@@ -1,6 +1,6 @@
-import { WorkspacePage } from "@/components/workspace/WorkspacePage";
-import { workspacePages } from "@/data/workspace";
+import { ArrivagesClient } from "@/components/arrivages/ArrivagesClient";
+import { getArrivages } from "@/lib/arrivages";
 
 export default function ArrivagesPage() {
-  return <WorkspacePage page={workspacePages.arrivages} />;
+  return <ArrivagesClient arrivages={getArrivages()} />;
 }
