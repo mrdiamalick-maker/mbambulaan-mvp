@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Arrivage, ArrivageStatus } from "@/lib/arrivages";
 import { arrivageStatuses } from "@/lib/arrivages";
@@ -16,14 +16,30 @@ const statusStyles: Record<ArrivageStatus, string> = {
   Ecoule: "bg-[#f1f3f5] text-[#495057] ring-[#ced4da]"
 };
 
+const declarationStatuses = arrivageStatuses.filter((item) => item !== "Tous") as ArrivageStatus[];
+
+const initialForm = {
+  espece: "",
+  quai: "",
+  quantite: "",
+  unite: "kg",
+  heureDebarquement: "",
+  statut: "Disponible" as ArrivageStatus
+};
+
 export function ArrivagesClient({ arrivages }: ArrivagesClientProps) {
+  const [localArrivages, setLocalArrivages] = useState(arrivages);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<(typeof arrivageStatuses)[number]>("Tous");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [form, setForm] = useState(initialForm);
+  const [errors, setErrors] = useState<Partial<Record<keyof typeof initialForm, string>>>({});
+  const [successMessage, setSuccessMessage] = useState("");
 
   const filteredArrivages = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return arrivages.filter((arrivage) => {
+    return localArrivages.filter((arrivage) => {
       const matchesStatus = status === "Tous" || arrivage.statut === status;
       const matchesQuery =
         normalizedQuery.length === 0 ||
@@ -34,7 +50,47 @@ export function ArrivagesClient({ arrivages }: ArrivagesClientProps) {
 
       return matchesStatus && matchesQuery;
     });
-  }, [arrivages, query, status]);
+  }, [localArrivages, query, status]);
+
+  function updateForm<Value extends keyof typeof initialForm>(field: Value, value: (typeof initialForm)[Value]) {
+    setForm((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined }));
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const nextErrors: Partial<Record<keyof typeof initialForm, string>> = {};
+    if (!form.espece.trim()) nextErrors.espece = "Indiquez l'espece.";
+    if (!form.quai.trim()) nextErrors.quai = "Indiquez le quai.";
+    if (!form.quantite.trim()) nextErrors.quantite = "Indiquez la quantite.";
+    if (!form.heureDebarquement.trim()) nextErrors.heureDebarquement = "Indiquez l'heure.";
+    if (form.heureDebarquement.trim() && !/^\d{2}:\d{2}$/.test(form.heureDebarquement.trim())) {
+      nextErrors.heureDebarquement = "Utilisez le format HH:MM.";
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      return;
+    }
+
+    const uniteLabel = form.unite === "tonne" ? "t" : "kg";
+    const nextArrivage: Arrivage = {
+      id: `arr-local-${Date.now()}`,
+      espece: form.espece.trim(),
+      quai: form.quai.trim(),
+      quantite: `${form.quantite.trim()} ${uniteLabel}`,
+      heureDebarquement: form.heureDebarquement.trim(),
+      statut: form.statut
+    };
+
+    setLocalArrivages((current) => [nextArrivage, ...current]);
+    setForm(initialForm);
+    setQuery("");
+    setStatus("Tous");
+    setSuccessMessage(`${nextArrivage.espece} declare sur ${nextArrivage.quai}.`);
+    setIsModalOpen(false);
+  }
 
   return (
     <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
@@ -53,6 +109,17 @@ export function ArrivagesClient({ arrivages }: ArrivagesClientProps) {
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[34rem]">
+              <button
+                type="button"
+                onClick={() => {
+                  setErrors({});
+                  setSuccessMessage("");
+                  setIsModalOpen(true);
+                }}
+                className="h-12 rounded-2xl bg-[#14312d] px-5 text-base font-black text-white transition hover:bg-[#1e4a43] sm:col-span-2"
+              >
+                Declarer un arrivage
+              </button>
               <label className="grid gap-2 text-sm font-bold text-[#14312d]/70">
                 Recherche
                 <input
@@ -79,10 +146,16 @@ export function ArrivagesClient({ arrivages }: ArrivagesClientProps) {
             </div>
           </div>
 
+          {successMessage ? (
+            <div className="mt-8 rounded-2xl bg-[#d8f3dc] px-5 py-4 text-sm font-black text-[#1b5e20] ring-1 ring-[#95d5b2]">
+              {successMessage}
+            </div>
+          ) : null}
+
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             <Metric value={String(filteredArrivages.length)} label="Arrivages affiches" />
-            <Metric value={String(arrivages.length)} label="Lots mockes" />
-            <Metric value={String(new Set(arrivages.map((arrivage) => arrivage.quai)).size)} label="Quais actifs" />
+            <Metric value={String(localArrivages.length)} label="Lots en memoire" />
+            <Metric value={String(new Set(localArrivages.map((arrivage) => arrivage.quai)).size)} label="Quais actifs" />
           </div>
 
           <div className="mt-8 hidden overflow-hidden rounded-3xl border border-[#14312d]/10 lg:block">
@@ -138,6 +211,86 @@ export function ArrivagesClient({ arrivages }: ArrivagesClientProps) {
           ) : null}
         </section>
       </div>
+
+      {isModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end bg-[#14312d]/45 px-4 py-4 backdrop-blur-sm sm:items-center sm:justify-center">
+          <section className="w-full rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-[#14312d]/10 sm:max-w-2xl sm:p-8">
+            <div className="flex items-start justify-between gap-6">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Declaration</p>
+                <h2 className="mt-3 text-3xl font-black">Nouvel arrivage</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="rounded-full border border-[#14312d]/15 px-4 py-2 text-sm font-black transition hover:border-[#14312d]"
+              >
+                Fermer
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="mt-6 grid gap-4 sm:grid-cols-2">
+              <FormField label="Espece" error={errors.espece}>
+                <input
+                  value={form.espece}
+                  onChange={(event) => updateForm("espece", event.target.value)}
+                  className="h-12 rounded-2xl border border-[#14312d]/15 bg-[#f7f4ec] px-4 font-semibold outline-none focus:border-[#14312d]"
+                />
+              </FormField>
+              <FormField label="Quai" error={errors.quai}>
+                <input
+                  value={form.quai}
+                  onChange={(event) => updateForm("quai", event.target.value)}
+                  className="h-12 rounded-2xl border border-[#14312d]/15 bg-[#f7f4ec] px-4 font-semibold outline-none focus:border-[#14312d]"
+                />
+              </FormField>
+              <FormField label="Quantite" error={errors.quantite}>
+                <input
+                  value={form.quantite}
+                  onChange={(event) => updateForm("quantite", event.target.value)}
+                  inputMode="decimal"
+                  className="h-12 rounded-2xl border border-[#14312d]/15 bg-[#f7f4ec] px-4 font-semibold outline-none focus:border-[#14312d]"
+                />
+              </FormField>
+              <FormField label="Unite">
+                <select
+                  value={form.unite}
+                  onChange={(event) => updateForm("unite", event.target.value)}
+                  className="h-12 rounded-2xl border border-[#14312d]/15 bg-[#f7f4ec] px-4 font-semibold outline-none focus:border-[#14312d]"
+                >
+                  <option value="kg">kg</option>
+                  <option value="tonne">tonne</option>
+                </select>
+              </FormField>
+              <FormField label="Heure" error={errors.heureDebarquement}>
+                <input
+                  value={form.heureDebarquement}
+                  onChange={(event) => updateForm("heureDebarquement", event.target.value)}
+                  inputMode="numeric"
+                  placeholder="12:45"
+                  className="h-12 rounded-2xl border border-[#14312d]/15 bg-[#f7f4ec] px-4 font-semibold outline-none focus:border-[#14312d]"
+                />
+              </FormField>
+              <FormField label="Statut">
+                <select
+                  value={form.statut}
+                  onChange={(event) => updateForm("statut", event.target.value as ArrivageStatus)}
+                  className="h-12 rounded-2xl border border-[#14312d]/15 bg-[#f7f4ec] px-4 font-semibold outline-none focus:border-[#14312d]"
+                >
+                  {declarationStatuses.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+              <button type="submit" className="h-12 rounded-2xl bg-[#14312d] px-5 font-black text-white transition hover:bg-[#1e4a43] sm:col-span-2">
+                Valider la declaration
+              </button>
+            </form>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -169,5 +322,15 @@ function MobileDetail({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">{label}</p>
       <p className="mt-2 text-lg font-black">{value}</p>
     </div>
+  );
+}
+
+function FormField({ children, error, label }: { children: React.ReactNode; error?: string; label: string }) {
+  return (
+    <label className="grid gap-2 text-sm font-bold text-[#14312d]/70">
+      {label}
+      {children}
+      {error ? <span className="text-xs font-black text-[#d65a31]">{error}</span> : null}
+    </label>
   );
 }
