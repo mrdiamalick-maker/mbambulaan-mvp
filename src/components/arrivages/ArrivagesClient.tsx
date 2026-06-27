@@ -1,12 +1,14 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Arrivage, ArrivageStatus } from "@/lib/arrivages";
 import { arrivageStatuses } from "@/lib/arrivages";
+import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 
 type ArrivagesClientProps = {
   arrivages: Arrivage[];
+  alertes?: string[];
 };
 
 const statusStyles: Record<ArrivageStatus, string> = {
@@ -27,7 +29,7 @@ const initialForm = {
   statut: "Disponible" as ArrivageStatus
 };
 
-export function ArrivagesClient({ arrivages }: ArrivagesClientProps) {
+export function ArrivagesClient({ alertes = [], arrivages }: ArrivagesClientProps) {
   const [localArrivages, setLocalArrivages] = useState(arrivages);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<(typeof arrivageStatuses)[number]>("Tous");
@@ -35,6 +37,13 @@ export function ArrivagesClient({ arrivages }: ArrivagesClientProps) {
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState<Partial<Record<keyof typeof initialForm, string>>>({});
   const [successMessage, setSuccessMessage] = useState("");
+
+  useEffect(() => {
+    const simulation = parseCoordinationSimulation(window.localStorage.getItem(coordinationSimulationStorageKey));
+    if (!simulation) return;
+
+    setLocalArrivages([...simulation.arrivages, ...arrivages]);
+  }, [arrivages]);
 
   const filteredArrivages = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -81,6 +90,7 @@ export function ArrivagesClient({ arrivages }: ArrivagesClientProps) {
       quai: form.quai.trim(),
       quantite: `${form.quantite.trim()} ${uniteLabel}`,
       heureDebarquement: form.heureDebarquement.trim(),
+      vendeur: `Pecheur ${form.quai.trim()}`,
       statut: form.statut
     };
 
@@ -149,6 +159,12 @@ export function ArrivagesClient({ arrivages }: ArrivagesClientProps) {
           {successMessage ? (
             <div className="mt-8 rounded-2xl bg-[#d8f3dc] px-5 py-4 text-sm font-black text-[#1b5e20] ring-1 ring-[#95d5b2]">
               {successMessage}
+            </div>
+          ) : null}
+
+          {alertes.length > 0 ? (
+            <div className="mt-8 rounded-2xl bg-[#fff3bf] px-5 py-4 text-sm font-black text-[#7a4f00] ring-1 ring-[#ffd43b]">
+              {alertes[0]}
             </div>
           ) : null}
 

@@ -3,17 +3,25 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { computeTransactionMetrics, computeTransactions, transactionsStorageKey } from "@/lib/coordination";
-import type { Opportunite, TransactionStatus } from "@/lib/coordination";
+import type { Opportunite, Transaction, TransactionStatus } from "@/lib/coordination";
+import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 
 export function TransactionsView({ opportunites }: { opportunites: Opportunite[] }) {
   const [statusByOpportunityId, setStatusByOpportunityId] = useState<Record<string, TransactionStatus>>({});
+  const [simulatedTransactions, setSimulatedTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(transactionsStorageKey);
     setStatusByOpportunityId(stored ? safeParseTransactions(stored) : {});
   }, []);
 
-  const transactions = useMemo(() => computeTransactions(opportunites, statusByOpportunityId), [opportunites, statusByOpportunityId]);
+  useEffect(() => {
+    const simulation = parseCoordinationSimulation(window.localStorage.getItem(coordinationSimulationStorageKey));
+    setSimulatedTransactions(simulation?.transactions ?? []);
+  }, []);
+
+  const storedTransactions = useMemo(() => computeTransactions(opportunites, statusByOpportunityId), [opportunites, statusByOpportunityId]);
+  const transactions = useMemo(() => [...simulatedTransactions, ...storedTransactions], [simulatedTransactions, storedTransactions]);
   const metrics = useMemo(() => computeTransactionMetrics(transactions), [transactions]);
 
   return (

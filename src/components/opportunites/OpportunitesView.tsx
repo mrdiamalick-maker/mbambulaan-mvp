@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { misesEnRelationStorageKey, reservationsStorageKey } from "@/lib/coordination";
 import type { MatchingSummary, Opportunite } from "@/lib/coordination";
+import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 
 type OpportunitesViewProps = {
   opportunites: Opportunite[];
@@ -13,6 +14,7 @@ type OpportunitesViewProps = {
 export function OpportunitesView({ opportunites, summary }: OpportunitesViewProps) {
   const [contactsInities, setContactsInities] = useState<string[]>([]);
   const [reservedIds, setReservedIds] = useState<string[]>([]);
+  const [simulatedOpportunites, setSimulatedOpportunites] = useState<Opportunite[]>([]);
   const [confirmation, setConfirmation] = useState("");
 
   useEffect(() => {
@@ -29,15 +31,22 @@ export function OpportunitesView({ opportunites, summary }: OpportunitesViewProp
     }
   }, []);
 
+  useEffect(() => {
+    const simulation = parseCoordinationSimulation(window.localStorage.getItem(coordinationSimulationStorageKey));
+    setSimulatedOpportunites(simulation?.opportunites ?? []);
+  }, []);
+
+  const allOpportunites = useMemo(() => [...simulatedOpportunites, ...opportunites], [opportunites, simulatedOpportunites]);
+
   const displayedOpportunites = useMemo(
     () =>
-      opportunites
+      allOpportunites
         .filter((opportunite) => !reservedIds.includes(opportunite.id))
         .map((opportunite) => ({
           ...opportunite,
           statut: contactsInities.includes(opportunite.id) ? "Contact initié" : opportunite.statut
         })),
-    [contactsInities, opportunites, reservedIds]
+    [allOpportunites, contactsInities, reservedIds]
   );
 
   function initiateContact(opportunite: Opportunite) {

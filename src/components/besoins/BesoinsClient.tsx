@@ -1,12 +1,14 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Besoin, UrgenceLevel } from "@/lib/besoins";
 import { urgenceLevels } from "@/lib/besoins";
+import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 
 type BesoinsClientProps = {
   besoins: Besoin[];
+  alertes?: string[];
 };
 
 const urgenceStyles: Record<UrgenceLevel, string> = {
@@ -26,7 +28,7 @@ const initialForm = {
   commentaire: ""
 };
 
-export function BesoinsClient({ besoins }: BesoinsClientProps) {
+export function BesoinsClient({ alertes = [], besoins }: BesoinsClientProps) {
   const [localBesoins, setLocalBesoins] = useState(besoins);
   const [query, setQuery] = useState("");
   const [urgence, setUrgence] = useState<(typeof urgenceLevels)[number]>("Toutes");
@@ -34,6 +36,13 @@ export function BesoinsClient({ besoins }: BesoinsClientProps) {
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState<Partial<Record<keyof typeof initialForm, string>>>({});
   const [successMessage, setSuccessMessage] = useState("");
+
+  useEffect(() => {
+    const simulation = parseCoordinationSimulation(window.localStorage.getItem(coordinationSimulationStorageKey));
+    if (!simulation) return;
+
+    setLocalBesoins([...simulation.besoins, ...besoins]);
+  }, [besoins]);
 
   const filteredBesoins = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -76,6 +85,7 @@ export function BesoinsClient({ besoins }: BesoinsClientProps) {
       quai: form.quai.trim(),
       quantite: `${form.quantite.trim()} ${uniteLabel}`,
       urgence: form.urgence,
+      acheteur: `Mareyeur ${form.quai.trim()}`,
       commentaire: form.commentaire.trim() || "Aucun commentaire ajoute."
     };
 
@@ -144,6 +154,12 @@ export function BesoinsClient({ besoins }: BesoinsClientProps) {
           {successMessage ? (
             <div className="mt-8 rounded-2xl bg-[#d8f3dc] px-5 py-4 text-sm font-black text-[#1b5e20] ring-1 ring-[#95d5b2]">
               {successMessage}
+            </div>
+          ) : null}
+
+          {alertes.length > 0 ? (
+            <div className="mt-8 rounded-2xl bg-[#fff3bf] px-5 py-4 text-sm font-black text-[#7a4f00] ring-1 ring-[#ffd43b]">
+              {alertes[0]}
             </div>
           ) : null}
 

@@ -6,6 +6,7 @@ import { countUnreadNotifications, createNotifications } from "@/lib/notificatio
 const links = [
   { href: "/demo", label: "Démo" },
   { href: "/espaces", label: "Espaces" },
+  { href: "/coordination", label: "Coordination" },
   { href: "/arrivages", label: "Arrivages" },
   { href: "/besoins", label: "Besoins" },
   { href: "/opportunites", label: "Opportunites" },

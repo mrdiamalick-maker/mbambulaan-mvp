@@ -6,6 +6,7 @@ import type { Opportunite, TransactionStatus } from "@/lib/coordination";
 import { computeTransactions, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
 import type { NotificationLevel, NotificationMetier } from "@/lib/notifications";
 import { createReservationNotifications, createTransactionNotifications, notificationStorageKey } from "@/lib/notifications";
+import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 
 type NotificationFilter = "Toutes" | "Non lues";
 
@@ -13,6 +14,7 @@ export function NotificationsCenter({ notifications, opportunites }: { notificat
   const [filter, setFilter] = useState<NotificationFilter>("Toutes");
   const [reservedIds, setReservedIds] = useState<string[]>([]);
   const [transactionStatusByOpportunityId, setTransactionStatusByOpportunityId] = useState<Record<string, TransactionStatus>>({});
+  const [simulatedNotifications, setSimulatedNotifications] = useState<NotificationMetier[]>([]);
   const [readIds, setReadIds] = useState<string[]>(() => notifications.filter((notification) => notification.lu).map((notification) => notification.id));
 
   useEffect(() => {
@@ -34,10 +36,15 @@ export function NotificationsCenter({ notifications, opportunites }: { notificat
     setTransactionStatusByOpportunityId(stored ? safeParseTransactions(stored) : {});
   }, []);
 
+  useEffect(() => {
+    const simulation = parseCoordinationSimulation(window.localStorage.getItem(coordinationSimulationStorageKey));
+    setSimulatedNotifications(simulation?.notifications ?? []);
+  }, []);
+
   const transactions = useMemo(() => computeTransactions(opportunites, transactionStatusByOpportunityId), [opportunites, transactionStatusByOpportunityId]);
   const localNotifications = useMemo(
-    () => [...createTransactionNotifications(transactions), ...createReservationNotifications(opportunites, reservedIds), ...notifications],
-    [notifications, opportunites, reservedIds, transactions]
+    () => [...simulatedNotifications, ...createTransactionNotifications(transactions), ...createReservationNotifications(opportunites, reservedIds), ...notifications],
+    [notifications, opportunites, reservedIds, simulatedNotifications, transactions]
   );
 
   const enrichedNotifications = useMemo(

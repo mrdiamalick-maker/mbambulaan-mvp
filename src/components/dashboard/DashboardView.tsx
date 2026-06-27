@@ -4,13 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { DashboardData } from "@/lib/coordination";
 import { computeReservationMetrics, computeTransactionMetrics, computeTransactions, misesEnRelationStorageKey, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
-import type { Opportunite, TransactionStatus } from "@/lib/coordination";
+import type { Opportunite, Transaction, TransactionStatus } from "@/lib/coordination";
 import type { NotificationMetier } from "@/lib/notifications";
+import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 
 export function DashboardView({ data, notifications, opportunites }: { data: DashboardData; notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
   const [misesEnRelation, setMisesEnRelation] = useState(data.stats.misesEnRelationInitiees);
   const [reservedIds, setReservedIds] = useState<string[]>([]);
   const [transactionStatusByOpportunityId, setTransactionStatusByOpportunityId] = useState<Record<string, TransactionStatus>>({});
+  const [simulatedStats, setSimulatedStats] = useState({ arrivages: 0, besoins: 0 });
+  const [simulatedOpportunites, setSimulatedOpportunites] = useState<Opportunite[]>([]);
+  const [simulatedTransactions, setSimulatedTransactions] = useState<Transaction[]>([]);
+  const [simulatedNotifications, setSimulatedNotifications] = useState<NotificationMetier[]>([]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(misesEnRelationStorageKey);
@@ -45,6 +50,17 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
     setTransactionStatusByOpportunityId(stored ? safeParseTransactions(stored) : {});
   }, []);
 
+  useEffect(() => {
+    const simulation = parseCoordinationSimulation(window.localStorage.getItem(coordinationSimulationStorageKey));
+    setSimulatedStats({
+      arrivages: simulation?.arrivages.length ?? 0,
+      besoins: simulation?.besoins.length ?? 0
+    });
+    setSimulatedOpportunites(simulation?.opportunites ?? []);
+    setSimulatedTransactions(simulation?.transactions ?? []);
+    setSimulatedNotifications(simulation?.notifications ?? []);
+  }, []);
+
   const insights = useMemo(() => {
     const [, quaisInsight] = data.insights;
     const relationInsight =
@@ -55,9 +71,12 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
     return [data.insights[0], quaisInsight, relationInsight];
   }, [data.insights, misesEnRelation]);
 
-  const reservationMetrics = useMemo(() => computeReservationMetrics(opportunites, reservedIds), [opportunites, reservedIds]);
-  const transactions = useMemo(() => computeTransactions(opportunites, transactionStatusByOpportunityId), [opportunites, transactionStatusByOpportunityId]);
+  const allOpportunites = useMemo(() => [...simulatedOpportunites, ...opportunites], [opportunites, simulatedOpportunites]);
+  const reservationMetrics = useMemo(() => computeReservationMetrics(allOpportunites, reservedIds), [allOpportunites, reservedIds]);
+  const storedTransactions = useMemo(() => computeTransactions(opportunites, transactionStatusByOpportunityId), [opportunites, transactionStatusByOpportunityId]);
+  const transactions = useMemo(() => [...simulatedTransactions, ...storedTransactions], [simulatedTransactions, storedTransactions]);
   const transactionMetrics = useMemo(() => computeTransactionMetrics(transactions), [transactions]);
+  const latestNotifications = useMemo(() => [...simulatedNotifications, ...notifications].slice(0, 6), [notifications, simulatedNotifications]);
 
   return (
     <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
@@ -88,9 +107,9 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
           </div>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <StatCard label="Arrivages publies" value={String(data.stats.arrivagesPublies)} />
+            <StatCard label="Arrivages publies" value={String(data.stats.arrivagesPublies + simulatedStats.arrivages)} />
             <StatCard label="Volume total debarque" value={data.stats.volumeTotalDebarque} />
-            <StatCard label="Besoins ouverts" value={String(data.stats.besoinsOuverts)} />
+            <StatCard label="Besoins ouverts" value={String(data.stats.besoinsOuverts + simulatedStats.besoins)} />
             <StatCard label="Opportunites ouvertes" value={String(reservationMetrics.opportunitesOuvertes)} />
             <StatCard label="Opportunites reservees" value={String(reservationMetrics.opportunitesReservees)} />
             <StatCard label="Taux de reservation" value={`${reservationMetrics.tauxReservation}%`} />
@@ -145,7 +164,7 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
 
           <DashboardSection title="Dernieres notifications">
             <div className="grid gap-3">
-              {notifications.map((notification) => (
+              {latestNotifications.map((notification) => (
                 <Link key={notification.id} href={notification.lien} className="rounded-2xl bg-[#f7f4ec] p-5 transition hover:bg-[#eee7d7]">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#d65a31]">{notification.niveau}</span>
