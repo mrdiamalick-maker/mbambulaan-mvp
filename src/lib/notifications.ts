@@ -1,10 +1,10 @@
 import type { Arrivage } from "@/lib/arrivages";
 import type { Besoin } from "@/lib/besoins";
-import type { DashboardData, Opportunite } from "@/lib/coordination";
+import type { DashboardData, Opportunite, Transaction } from "@/lib/coordination";
 
 export type NotificationLevel = "info" | "succès" | "attention";
 
-export type NotificationType = "arrivage" | "besoin" | "opportunite" | "couverture" | "demande" | "quai" | "reservation";
+export type NotificationType = "arrivage" | "besoin" | "opportunite" | "couverture" | "demande" | "quai" | "reservation" | "transaction";
 
 export type NotificationMetier = {
   id: string;
@@ -54,6 +54,19 @@ export function createReservationNotifications(opportunites: Opportunite[], rese
       lu: false,
       lien: `/opportunites/${opportunite.id}`
     }));
+}
+
+export function createTransactionNotifications(transactions: Transaction[]): NotificationMetier[] {
+  return transactions.map((transaction, index) => ({
+    id: `transaction-${transaction.opportuniteId}-${slugify(transaction.statut)}`,
+    type: "transaction" as const,
+    titre: "Statut de transaction mis a jour",
+    description: `${transaction.espece} sur ${transaction.quai} passe au statut ${transaction.statut}.`,
+    date: createNotificationDate(index + 56),
+    niveau: transaction.statut === "Terminée" ? ("succès" as const) : ("info" as const),
+    lu: false,
+    lien: `/opportunites/${transaction.opportuniteId}`
+  }));
 }
 
 function createArrivageNotifications(arrivages: Arrivage[]): NotificationMetier[] {

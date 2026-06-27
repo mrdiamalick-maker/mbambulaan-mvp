@@ -2,16 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { Opportunite } from "@/lib/coordination";
-import { reservationsStorageKey } from "@/lib/coordination";
+import type { Opportunite, TransactionStatus } from "@/lib/coordination";
+import { computeTransactions, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
 import type { NotificationLevel, NotificationMetier } from "@/lib/notifications";
-import { createReservationNotifications, notificationStorageKey } from "@/lib/notifications";
+import { createReservationNotifications, createTransactionNotifications, notificationStorageKey } from "@/lib/notifications";
 
 type NotificationFilter = "Toutes" | "Non lues";
 
 export function NotificationsCenter({ notifications, opportunites }: { notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
   const [filter, setFilter] = useState<NotificationFilter>("Toutes");
   const [reservedIds, setReservedIds] = useState<string[]>([]);
+  const [transactionStatusByOpportunityId, setTransactionStatusByOpportunityId] = useState<Record<string, TransactionStatus>>({});
   const [readIds, setReadIds] = useState<string[]>(() => notifications.filter((notification) => notification.lu).map((notification) => notification.id));
 
   useEffect(() => {
@@ -28,7 +29,16 @@ export function NotificationsCenter({ notifications, opportunites }: { notificat
     }
   }, []);
 
-  const localNotifications = useMemo(() => [...createReservationNotifications(opportunites, reservedIds), ...notifications], [notifications, opportunites, reservedIds]);
+  useEffect(() => {
+    const stored = window.localStorage.getItem(transactionsStorageKey);
+    setTransactionStatusByOpportunityId(stored ? safeParseTransactions(stored) : {});
+  }, []);
+
+  const transactions = useMemo(() => computeTransactions(opportunites, transactionStatusByOpportunityId), [opportunites, transactionStatusByOpportunityId]);
+  const localNotifications = useMemo(
+    () => [...createTransactionNotifications(transactions), ...createReservationNotifications(opportunites, reservedIds), ...notifications],
+    [notifications, opportunites, reservedIds, transactions]
+  );
 
   const enrichedNotifications = useMemo(
     () =>
@@ -144,10 +154,28 @@ const navigationItems = [
   { href: "/arrivages", label: "Arrivages" },
   { href: "/besoins", label: "Besoins" },
   { href: "/opportunites", label: "Opportunites" },
+  { href: "/transactions", label: "Transactions" },
   { href: "/quais", label: "Quais" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/notifications", label: "Notifications" }
 ];
+
+function safeParseTransactions(value: string): Record<string, TransactionStatus> {
+  try {
+    const transactions = JSON.parse(value);
+
+    if (!transactions || typeof transactions !== "object" || Array.isArray(transactions)) return {};
+
+    return Object.fromEntries(
+      Object.entries(transactions).filter((entry): entry is [string, TransactionStatus] => {
+        const [, status] = entry;
+        return status === "Réservée" || status === "En préparation" || status === "En cours de retrait" || status === "Terminée" || status === "Annulée";
+      })
+    );
+  } catch {
+    return {};
+  }
+}
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (

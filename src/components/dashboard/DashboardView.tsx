@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { DashboardData } from "@/lib/coordination";
-import { computeReservationMetrics, misesEnRelationStorageKey, reservationsStorageKey } from "@/lib/coordination";
-import type { Opportunite } from "@/lib/coordination";
+import { computeReservationMetrics, computeTransactionMetrics, computeTransactions, misesEnRelationStorageKey, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
+import type { Opportunite, TransactionStatus } from "@/lib/coordination";
 import type { NotificationMetier } from "@/lib/notifications";
 
 export function DashboardView({ data, notifications, opportunites }: { data: DashboardData; notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
   const [misesEnRelation, setMisesEnRelation] = useState(data.stats.misesEnRelationInitiees);
   const [reservedIds, setReservedIds] = useState<string[]>([]);
+  const [transactionStatusByOpportunityId, setTransactionStatusByOpportunityId] = useState<Record<string, TransactionStatus>>({});
 
   useEffect(() => {
     const stored = window.localStorage.getItem(misesEnRelationStorageKey);
@@ -39,6 +40,11 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
     }
   }, []);
 
+  useEffect(() => {
+    const stored = window.localStorage.getItem(transactionsStorageKey);
+    setTransactionStatusByOpportunityId(stored ? safeParseTransactions(stored) : {});
+  }, []);
+
   const insights = useMemo(() => {
     const [, quaisInsight] = data.insights;
     const relationInsight =
@@ -50,6 +56,8 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
   }, [data.insights, misesEnRelation]);
 
   const reservationMetrics = useMemo(() => computeReservationMetrics(opportunites, reservedIds), [opportunites, reservedIds]);
+  const transactions = useMemo(() => computeTransactions(opportunites, transactionStatusByOpportunityId), [opportunites, transactionStatusByOpportunityId]);
+  const transactionMetrics = useMemo(() => computeTransactionMetrics(transactions), [transactions]);
 
   return (
     <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
@@ -79,13 +87,16 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
             </div>
           </div>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <StatCard label="Arrivages publies" value={String(data.stats.arrivagesPublies)} />
             <StatCard label="Volume total debarque" value={data.stats.volumeTotalDebarque} />
             <StatCard label="Besoins ouverts" value={String(data.stats.besoinsOuverts)} />
             <StatCard label="Opportunites ouvertes" value={String(reservationMetrics.opportunitesOuvertes)} />
             <StatCard label="Opportunites reservees" value={String(reservationMetrics.opportunitesReservees)} />
             <StatCard label="Taux de reservation" value={`${reservationMetrics.tauxReservation}%`} />
+            <StatCard label="Transactions actives" value={String(transactionMetrics.transactionsActives)} />
+            <StatCard label="Transactions terminees" value={String(transactionMetrics.transactionsTerminees)} />
+            <StatCard label="Taux de finalisation" value={`${transactionMetrics.tauxFinalisation}%`} />
           </div>
         </section>
 
@@ -174,9 +185,28 @@ const navigationItems = [
   { href: "/arrivages", label: "Arrivages" },
   { href: "/besoins", label: "Besoins" },
   { href: "/opportunites", label: "Opportunites" },
+  { href: "/transactions", label: "Transactions" },
+  { href: "/quais", label: "Quais" },
   { href: "/notifications", label: "Notifications" },
   { href: "/dashboard", label: "Dashboard" }
 ];
+
+function safeParseTransactions(value: string): Record<string, TransactionStatus> {
+  try {
+    const transactions = JSON.parse(value);
+
+    if (!transactions || typeof transactions !== "object" || Array.isArray(transactions)) return {};
+
+    return Object.fromEntries(
+      Object.entries(transactions).filter((entry): entry is [string, TransactionStatus] => {
+        const [, status] = entry;
+        return status === "Réservée" || status === "En préparation" || status === "En cours de retrait" || status === "Terminée" || status === "Annulée";
+      })
+    );
+  } catch {
+    return {};
+  }
+}
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (

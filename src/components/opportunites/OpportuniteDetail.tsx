@@ -2,34 +2,60 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { reservationsStorageKey } from "@/lib/coordination";
-import type { Opportunite, OpportuniteStatus } from "@/lib/coordination";
+import { getNextTransactionStatus, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
+import type { Opportunite, OpportuniteStatus, TransactionStatus } from "@/lib/coordination";
 
 export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite }) {
   const [isReserved, setIsReserved] = useState(opportunite.statut === "Réservée");
+  const [transactionStatus, setTransactionStatus] = useState<TransactionStatus | null>(null);
+  const [successMessage, setSuccessMessage] = useState("");
   const statut: OpportuniteStatus = isReserved ? "Réservée" : opportunite.statut;
+  const isFinished = transactionStatus === "Terminée";
 
   useEffect(() => {
     const stored = window.localStorage.getItem(reservationsStorageKey);
-    if (!stored) return;
+    const storedTransactions = window.localStorage.getItem(transactionsStorageKey);
 
     try {
-      const ids = JSON.parse(stored);
-      if (Array.isArray(ids)) {
-        setIsReserved(ids.includes(opportunite.id));
+      const ids = stored ? JSON.parse(stored) : [];
+      const transactions = storedTransactions ? safeParseTransactions(storedTransactions) : {};
+
+      if (Array.isArray(ids) && ids.includes(opportunite.id)) {
+        setIsReserved(true);
+        setTransactionStatus(transactions[opportunite.id] ?? "Réservée");
       }
     } catch {
       setIsReserved(false);
+      setTransactionStatus(null);
     }
   }, [opportunite.id]);
 
   function reserveOpportunity() {
     const stored = window.localStorage.getItem(reservationsStorageKey);
+    const storedTransactions = window.localStorage.getItem(transactionsStorageKey);
     const ids = stored ? safeParseIds(stored) : [];
     const nextIds = ids.includes(opportunite.id) ? ids : [...ids, opportunite.id];
+    const transactions = storedTransactions ? safeParseTransactions(storedTransactions) : {};
+    const nextTransactions = { ...transactions, [opportunite.id]: transactions[opportunite.id] ?? "Réservée" };
 
     window.localStorage.setItem(reservationsStorageKey, JSON.stringify(nextIds));
+    window.localStorage.setItem(transactionsStorageKey, JSON.stringify(nextTransactions));
     setIsReserved(true);
+    setTransactionStatus(nextTransactions[opportunite.id]);
+    setSuccessMessage("Transaction creee au statut Reservee.");
+  }
+
+  function advanceTransaction() {
+    if (!transactionStatus || isFinished) return;
+
+    const storedTransactions = window.localStorage.getItem(transactionsStorageKey);
+    const transactions = storedTransactions ? safeParseTransactions(storedTransactions) : {};
+    const nextStatus = getNextTransactionStatus(transactionStatus);
+    const nextTransactions = { ...transactions, [opportunite.id]: nextStatus };
+
+    window.localStorage.setItem(transactionsStorageKey, JSON.stringify(nextTransactions));
+    setTransactionStatus(nextStatus);
+    setSuccessMessage(`Transaction mise a jour : ${nextStatus}.`);
   }
 
   return (
@@ -56,6 +82,7 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
                 {statut}
               </span>
               {isReserved ? <p className="mt-4 text-sm font-black text-[#7a4f00]">Réservée par un transformateur</p> : null}
+              {transactionStatus ? <p className="mt-3 text-sm font-black text-[#14312d]/70">Transaction : {transactionStatus}</p> : null}
               <button
                 type="button"
                 disabled={isReserved}
@@ -64,10 +91,24 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
               >
                 Réserver ce lot
               </button>
+              {isReserved ? (
+                <button
+                  type="button"
+                  disabled={isFinished}
+                  onClick={advanceTransaction}
+                  className="mt-3 h-12 w-full rounded-2xl border border-[#14312d]/15 px-5 text-sm font-black text-[#14312d] transition hover:border-[#14312d] disabled:cursor-not-allowed disabled:border-[#14312d]/10 disabled:text-[#14312d]/35"
+                >
+                  Faire avancer la transaction
+                </button>
+              ) : null}
             </div>
           </div>
 
-          {isReserved ? (
+          {successMessage ? (
+            <div className="mt-8 rounded-2xl bg-[#d8f3dc] px-5 py-4 text-sm font-black text-[#1b5e20] ring-1 ring-[#95d5b2]">
+              {successMessage}
+            </div>
+          ) : isReserved ? (
             <div className="mt-8 rounded-2xl bg-[#d8f3dc] px-5 py-4 text-sm font-black text-[#1b5e20] ring-1 ring-[#95d5b2]">
               Reservation confirmee. Cette opportunite n'est plus proposee comme disponible.
             </div>
@@ -123,6 +164,23 @@ function safeParseIds(value: string) {
     return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [];
   } catch {
     return [];
+  }
+}
+
+function safeParseTransactions(value: string): Record<string, TransactionStatus> {
+  try {
+    const transactions = JSON.parse(value);
+
+    if (!transactions || typeof transactions !== "object" || Array.isArray(transactions)) return {};
+
+    return Object.fromEntries(
+      Object.entries(transactions).filter((entry): entry is [string, TransactionStatus] => {
+        const [, status] = entry;
+        return status === "Réservée" || status === "En préparation" || status === "En cours de retrait" || status === "Terminée" || status === "Annulée";
+      })
+    );
+  } catch {
+    return {};
   }
 }
 

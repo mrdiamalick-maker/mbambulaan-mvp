@@ -3,8 +3,10 @@ import type { Besoin } from "@/lib/besoins";
 
 export const misesEnRelationStorageKey = "mbambulaan:mises-en-relation";
 export const reservationsStorageKey = "mbambulaan:opportunites-reservees";
+export const transactionsStorageKey = "mbambulaan:transactions";
 
 export type OpportuniteStatus = "Correspondance trouvée" | "Contact initié" | "Réservée";
+export type TransactionStatus = "Réservée" | "En préparation" | "En cours de retrait" | "Terminée" | "Annulée";
 
 export type CoordinationPriority = "Haute" | "Moyenne" | "Faible";
 
@@ -87,12 +89,32 @@ export type ReservationMetrics = {
   tauxReservation: number;
 };
 
+export type Transaction = {
+  id: string;
+  opportuniteId: string;
+  statut: TransactionStatus;
+  espece: string;
+  quai: string;
+  quantite: string;
+  date: string;
+  acteurReserve: string;
+};
+
+export type TransactionMetrics = {
+  transactionsActives: number;
+  transactionsTerminees: number;
+  tauxFinalisation: number;
+};
+
+export const transactionStatuses: TransactionStatus[] = ["Réservée", "En préparation", "En cours de retrait", "Terminée", "Annulée"];
+
 export function computeMatching(arrivages: Arrivage[], besoins: Besoin[], reservedOpportunityIds: string[] = []): Opportunite[] {
   return besoins
     .flatMap((besoin) =>
       arrivages
         .flatMap((arrivage) => {
           const scoreCompatibilite = computeCompatibility(arrivage, besoin);
+
           const opportunityId = `${arrivage.id}-${besoin.id}`;
 
           if (scoreCompatibilite < 70 || reservedOpportunityIds.includes(opportunityId)) return [];
@@ -246,8 +268,49 @@ export function computeReservationMetrics(opportunites: Opportunite[], reservedO
   };
 }
 
+export function computeTransactions(opportunites: Opportunite[], transactionStatusByOpportunityId: Record<string, TransactionStatus> = {}): Transaction[] {
+  return opportunites
+    .filter((opportunite) => transactionStatusByOpportunityId[opportunite.id])
+    .map((opportunite) => ({
+      id: `trx-${opportunite.id}`,
+      opportuniteId: opportunite.id,
+      statut: transactionStatusByOpportunityId[opportunite.id],
+      espece: opportunite.espece,
+      quai: opportunite.lieu,
+      quantite: opportunite.quantiteDemandee,
+      date: createTransactionDate(opportunite.id),
+      acteurReserve: "Transformateur pilote"
+    }))
+    .sort((first, second) => second.date.localeCompare(first.date));
+}
+
+export function computeTransactionMetrics(transactions: Transaction[]): TransactionMetrics {
+  const transactionsTerminees = transactions.filter((transaction) => transaction.statut === "Terminée").length;
+  const transactionsActives = transactions.filter((transaction) => transaction.statut !== "Terminée" && transaction.statut !== "Annulée").length;
+
+  return {
+    transactionsActives,
+    transactionsTerminees,
+    tauxFinalisation: transactions.length === 0 ? 0 : Math.round((transactionsTerminees / transactions.length) * 100)
+  };
+}
+
+export function getNextTransactionStatus(status: TransactionStatus): TransactionStatus {
+  if (status === "Réservée") return "En préparation";
+  if (status === "En préparation") return "En cours de retrait";
+  if (status === "En cours de retrait") return "Terminée";
+  return status;
+}
+
 export function findOpportuniteById(opportunites: Opportunite[], id: string) {
   return opportunites.find((opportunite) => opportunite.id === id);
+}
+
+function createTransactionDate(seed: string) {
+  const minutes = seed.split("").reduce((total, character) => total + character.charCodeAt(0), 0) % 360;
+  const date = new Date(Date.UTC(2026, 5, 27, 8, 0));
+  date.setUTCMinutes(date.getUTCMinutes() + minutes);
+  return date.toISOString();
 }
 
 function buildMatchingReasons(arrivage: Arrivage, besoin: Besoin) {
