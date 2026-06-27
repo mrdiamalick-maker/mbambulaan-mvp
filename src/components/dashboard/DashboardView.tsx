@@ -8,6 +8,7 @@ import type { Opportunite, Transaction, TransactionStatus } from "@/lib/coordina
 import type { NotificationMetier } from "@/lib/notifications";
 import { computeAverageRecommendationScore, getRecommendationTone } from "@/lib/recommendation";
 import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
+import { computeAverageTrustScore, getTrustTone } from "@/lib/trust";
 
 export function DashboardView({ data, notifications, opportunites }: { data: DashboardData; notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
   const [misesEnRelation, setMisesEnRelation] = useState(data.stats.misesEnRelationInitiees);
@@ -79,6 +80,7 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
   const transactionMetrics = useMemo(() => computeTransactionMetrics(transactions), [transactions]);
   const latestNotifications = useMemo(() => [...simulatedNotifications, ...notifications].slice(0, 6), [notifications, simulatedNotifications]);
   const averageRecommendationScore = useMemo(() => computeAverageRecommendationScore(allOpportunites), [allOpportunites]);
+  const averageTrustScore = useMemo(() => computeAverageTrustScore(), []);
 
   return (
     <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
@@ -119,6 +121,7 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
             <StatCard label="Transactions terminees" value={String(transactionMetrics.transactionsTerminees)} />
             <StatCard label="Taux de finalisation" value={`${transactionMetrics.tauxFinalisation}%`} />
             <StatCard label="Qualité moyenne des recommandations" value={`${averageRecommendationScore}%`} badge={<RecommendationBadge score={averageRecommendationScore} />} />
+            <StatCard label="Score de confiance moyen" value={`${averageTrustScore}%`} badge={<TrustBadge score={averageTrustScore} />} />
           </div>
         </section>
 
@@ -249,6 +252,17 @@ function RecommendationBadge({ score }: { score: number }) {
   };
 
   return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>Score {score}%</span>;
+}
+
+function TrustBadge({ score }: { score: number }) {
+  const tone = getTrustTone(score);
+  const styles = {
+    green: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+    orange: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    red: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>Confiance {score}%</span>;
 }
 
 function DashboardSection({ children, title }: { children: React.ReactNode; title: string }) {

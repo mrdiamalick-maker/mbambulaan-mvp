@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { getNextTransactionStatus, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
 import type { Opportunite, OpportuniteStatus, TransactionStatus } from "@/lib/coordination";
 import { getRecommendationTone } from "@/lib/recommendation";
+import { getActorTrust, getTrustReasons, getTrustTone } from "@/lib/trust";
+import type { ActorTrust } from "@/lib/trust";
 
 export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite }) {
   const [isReserved, setIsReserved] = useState(opportunite.statut === "Réservée");
@@ -12,6 +14,8 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
   const [successMessage, setSuccessMessage] = useState("");
   const statut: OpportuniteStatus = isReserved ? "Réservée" : opportunite.statut;
   const isFinished = transactionStatus === "Terminée";
+  const vendeurTrust = getActorTrust(opportunite.vendeur);
+  const acheteurTrust = getActorTrust(opportunite.acheteur);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(reservationsStorageKey);
@@ -157,8 +161,8 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
           <div className="mt-8 rounded-3xl border border-[#14312d]/10 p-6">
             <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Acteurs concernes</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <ActorCard label="Demandeur" value={opportunite.acheteur} />
-              <ActorCard label="Acteur concerne" value={opportunite.vendeur} />
+              <ActorCard actor={acheteurTrust} label="Demandeur" title="Score de confiance de l'acheteur" />
+              <ActorCard actor={vendeurTrust} label="Acteur concerne" title="Score de confiance du vendeur" />
             </div>
           </div>
         </section>
@@ -222,11 +226,35 @@ function DetailLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ActorCard({ label, value }: { label: string; value: string }) {
+function ActorCard({ actor, label, title }: { actor: ActorTrust; label: string; title: string }) {
   return (
     <div className="rounded-2xl bg-[#f7f4ec] p-5">
       <p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">{label}</p>
-      <p className="mt-2 text-xl font-black">{value}</p>
+      <p className="mt-2 text-xl font-black">{actor.nom}</p>
+      <p className="mt-4 text-sm font-black text-[#14312d]/65">{title}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <p className="text-3xl font-black">{actor.scoreConfiance}%</p>
+        <TrustBadge score={actor.scoreConfiance} />
+      </div>
+      <div className="mt-5 rounded-2xl bg-white p-4">
+        <p className="text-sm font-black">Pourquoi ce score ?</p>
+        <ul className="mt-3 grid gap-2 text-sm font-bold leading-6 text-[#14312d]/70">
+          {getTrustReasons(actor).slice(0, 4).map((reason) => (
+            <li key={reason}>- {reason}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
+}
+
+function TrustBadge({ score }: { score: number }) {
+  const tone = getTrustTone(score);
+  const styles = {
+    green: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+    orange: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    red: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{score}% confiance</span>;
 }

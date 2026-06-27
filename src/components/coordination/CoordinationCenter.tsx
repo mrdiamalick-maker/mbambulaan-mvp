@@ -9,6 +9,7 @@ import type { Opportunite, Transaction, TransactionStatus } from "@/lib/coordina
 import type { NotificationMetier } from "@/lib/notifications";
 import { getRecommendationTone, getTopRecommendations } from "@/lib/recommendation";
 import { createCoordinationSimulation, coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
+import { getRecommendedActors, getTrustLevel, getTrustTone } from "@/lib/trust";
 
 type CoordinationCenterProps = {
   arrivages: Arrivage[];
@@ -53,6 +54,7 @@ export function CoordinationCenter({ arrivages, besoins, opportunites, notificat
   const transactionMetrics = useMemo(() => computeTransactionMetrics(transactions), [transactions]);
   const allNotifications = useMemo(() => [...(simulation?.notifications ?? []), ...notifications], [notifications, simulation]);
   const topRecommendations = useMemo(() => getTopRecommendations(allOpportunites, 5), [allOpportunites]);
+  const recommendedActors = useMemo(() => getRecommendedActors(5), []);
 
   const waitingArrivages = allArrivages.filter((arrivage) => arrivage.statut === "Disponible" && !ignoredArrivageIds.includes(arrivage.id));
   const coveredBesoinIds = new Set(allOpportunites.map((opportunite) => opportunite.besoinId));
@@ -146,6 +148,27 @@ export function CoordinationCenter({ arrivages, besoins, opportunites, notificat
         </section>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
+          <Panel title="Acteurs recommandés">
+            <div className="grid gap-3">
+              {recommendedActors.map((actor) => (
+                <article key={actor.id} className="rounded-2xl bg-[#f7f4ec] p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h2 className="text-xl font-black">{actor.nom}</h2>
+                      <p className="mt-1 text-sm font-semibold text-[#14312d]/65">
+                        {actor.type} · {actor.zone}
+                      </p>
+                    </div>
+                    <TrustBadge score={actor.scoreConfiance} />
+                  </div>
+                  <p className="mt-3 text-sm font-bold text-[#14312d]/65">
+                    {actor.transactionsTerminees} transactions terminées · {actor.annulations} annulation(s)
+                  </p>
+                </article>
+              ))}
+            </div>
+          </Panel>
+
           <Panel title="Top recommandations">
             <div className="grid gap-3">
               {topRecommendations.map((opportunite) => (
@@ -387,4 +410,15 @@ function RecommendationBadge({ score }: { score: number }) {
   };
 
   return <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{score}%</span>;
+}
+
+function TrustBadge({ score }: { score: number }) {
+  const tone = getTrustTone(score);
+  const styles = {
+    green: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+    orange: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    red: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{getTrustLevel(score)}</span>;
 }

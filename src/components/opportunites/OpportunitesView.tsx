@@ -5,6 +5,7 @@ import Link from "next/link";
 import { misesEnRelationStorageKey, reservationsStorageKey } from "@/lib/coordination";
 import type { MatchingSummary, Opportunite } from "@/lib/coordination";
 import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
+import { getOpportunityTrust, getTrustLevel, getTrustTone } from "@/lib/trust";
 
 type OpportunitesViewProps = {
   opportunites: Opportunite[];
@@ -97,6 +98,7 @@ export function OpportunitesView({ opportunites, summary }: OpportunitesViewProp
                   <ColumnHeader>Demandeur</ColumnHeader>
                   <ColumnHeader>Acteur concerne</ColumnHeader>
                   <ColumnHeader>Score</ColumnHeader>
+                  <ColumnHeader>Confiance</ColumnHeader>
                   <ColumnHeader>Statut</ColumnHeader>
                   <ColumnHeader>Actions</ColumnHeader>
                 </tr>
@@ -110,6 +112,9 @@ export function OpportunitesView({ opportunites, summary }: OpportunitesViewProp
                     <Cell>{opportunite.acheteur}</Cell>
                     <Cell>{opportunite.vendeur}</Cell>
                     <Cell>Compatible à {opportunite.scoreCompatibilite}%</Cell>
+                    <Cell>
+                      <TrustBadge score={getOpportunityTrust(opportunite).scoreMoyen} />
+                    </Cell>
                     <Cell>
                       <StatusBadge>{opportunite.statut}</StatusBadge>
                     </Cell>
@@ -146,6 +151,7 @@ export function OpportunitesView({ opportunites, summary }: OpportunitesViewProp
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   <MobileDetail label="Quantite" value={opportunite.quantite} />
                   <MobileDetail label="Score" value={`Compatible à ${opportunite.scoreCompatibilite}%`} />
+                  <MobileDetail label="Confiance" value={getTrustLevel(getOpportunityTrust(opportunite).scoreMoyen)} />
                 </div>
                 <div className="mt-4 grid gap-3">
                   <MobileDetail label="Demandeur" value={opportunite.acheteur} />
@@ -198,6 +204,17 @@ function Cell({ children, strong = false }: { children: React.ReactNode; strong?
 
 function StatusBadge({ children }: { children: React.ReactNode }) {
   return <span className="inline-flex rounded-full bg-[#d8f3dc] px-3 py-1 text-xs font-black text-[#1b5e20] ring-1 ring-[#95d5b2]">{children}</span>;
+}
+
+function TrustBadge({ score }: { score: number }) {
+  const tone = getTrustTone(score);
+  const styles = {
+    green: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+    orange: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    red: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{getTrustLevel(score)}</span>;
 }
 
 function MobileDetail({ label, value }: { label: string; value: string }) {
