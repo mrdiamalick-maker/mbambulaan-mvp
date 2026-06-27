@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { misesEnRelationStorageKey } from "@/lib/dashboard";
 import type { MatchingSummary, Opportunite } from "@/lib/matching";
 
 type OpportunitesViewProps = {
@@ -23,7 +24,11 @@ export function OpportunitesView({ opportunites, summary }: OpportunitesViewProp
   );
 
   function initiateContact(opportunite: Opportunite) {
-    setContactsInities((current) => (current.includes(opportunite.id) ? current : [...current, opportunite.id]));
+    setContactsInities((current) => {
+      const next = current.includes(opportunite.id) ? current : [...current, opportunite.id];
+      window.localStorage.setItem(misesEnRelationStorageKey, JSON.stringify(next));
+      return next;
+    });
     setConfirmation(`Contact initie entre ${opportunite.acheteur} et ${opportunite.vendeur}.`);
   }
 
