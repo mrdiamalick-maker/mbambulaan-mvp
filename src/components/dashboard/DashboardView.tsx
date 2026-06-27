@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Arrivage } from "@/lib/arrivages";
 import type { Besoin } from "@/lib/besoins";
+import { computeIntelligentAlerts, getAlertTone } from "@/lib/alerts";
 import type { DashboardData } from "@/lib/coordination";
 import { computeReservationMetrics, computeTransactionMetrics, computeTransactions, misesEnRelationStorageKey, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
 import type { Opportunite, Transaction, TransactionStatus } from "@/lib/coordination";
@@ -95,6 +96,7 @@ export function DashboardView({ arrivages, besoins, data, notifications, opportu
   const impact = useMemo(() => computeImpactMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
   const tensions = useMemo(() => computeTensionMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
   const priorities = useMemo(() => computePrioritizationMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
+  const alertes = useMemo(() => computeIntelligentAlerts(allArrivages, allBesoins, allOpportunites, transactions, latestNotifications), [allArrivages, allBesoins, allOpportunites, latestNotifications, transactions]);
 
   return (
     <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
@@ -215,6 +217,27 @@ export function DashboardView({ arrivages, besoins, data, notifications, opportu
                 </Link>
               ))}
             </div>
+          </div>
+        </DashboardSection>
+
+        <DashboardSection title="Alertes à traiter">
+          <div className="grid gap-3">
+            {alertes.slice(0, 5).map((alerte) => (
+              <Link key={alerte.id} href={alerte.lienAction} className="rounded-2xl bg-[#f7f4ec] p-5 transition hover:bg-[#eee7d7]">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <AlertBadge level={alerte.niveau} />
+                      <PriorityBadge priority={alerte.priorite} />
+                    </div>
+                    <p className="mt-3 text-lg font-black">{alerte.titre}</p>
+                    <p className="mt-1 text-sm font-semibold leading-6 text-[#14312d]/65">{alerte.description}</p>
+                    <p className="mt-2 text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">{alerte.acteurConcerne} · {alerte.zoneOuQuai}</p>
+                  </div>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#14312d]/65">{alerte.statut}</span>
+                </div>
+              </Link>
+            ))}
           </div>
         </DashboardSection>
 
@@ -389,6 +412,17 @@ function PriorityBadge({ priority }: { priority: "Critique" | "Haute" | "Moyenne
   };
 
   return <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{priority}</span>;
+}
+
+function AlertBadge({ level }: { level: "info" | "attention" | "critique" }) {
+  const tone = getAlertTone(level);
+  const styles = {
+    info: "bg-[#dbeafe] text-[#174ea6] ring-[#93c5fd]",
+    high: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    critical: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{level}</span>;
 }
 
 function DashboardSection({ children, title }: { children: React.ReactNode; title: string }) {

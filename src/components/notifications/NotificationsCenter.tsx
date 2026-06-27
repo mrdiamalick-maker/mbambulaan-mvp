@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import type { IntelligentAlert } from "@/lib/alerts";
+import { createAlertNotifications } from "@/lib/alerts";
 import type { Opportunite, TransactionStatus } from "@/lib/coordination";
 import { computeTransactions, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
 import type { NotificationLevel, NotificationMetier } from "@/lib/notifications";
@@ -10,7 +12,7 @@ import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@
 
 type NotificationFilter = "Toutes" | "Non lues";
 
-export function NotificationsCenter({ notifications, opportunites }: { notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
+export function NotificationsCenter({ alertes = [], notifications, opportunites }: { alertes?: IntelligentAlert[]; notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
   const [filter, setFilter] = useState<NotificationFilter>("Toutes");
   const [reservedIds, setReservedIds] = useState<string[]>([]);
   const [transactionStatusByOpportunityId, setTransactionStatusByOpportunityId] = useState<Record<string, TransactionStatus>>({});
@@ -43,8 +45,8 @@ export function NotificationsCenter({ notifications, opportunites }: { notificat
 
   const transactions = useMemo(() => computeTransactions(opportunites, transactionStatusByOpportunityId), [opportunites, transactionStatusByOpportunityId]);
   const localNotifications = useMemo(
-    () => [...simulatedNotifications, ...createTransactionNotifications(transactions), ...createReservationNotifications(opportunites, reservedIds), ...notifications],
-    [notifications, opportunites, reservedIds, simulatedNotifications, transactions]
+    () => [...createAlertNotifications(alertes), ...simulatedNotifications, ...createTransactionNotifications(transactions), ...createReservationNotifications(opportunites, reservedIds), ...notifications],
+    [alertes, notifications, opportunites, reservedIds, simulatedNotifications, transactions]
   );
 
   const enrichedNotifications = useMemo(

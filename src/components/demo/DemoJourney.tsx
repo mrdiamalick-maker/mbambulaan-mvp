@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Arrivage } from "@/lib/arrivages";
 import type { Besoin } from "@/lib/besoins";
+import { computeIntelligentAlerts, getAlertTone } from "@/lib/alerts";
 import { computeMatching } from "@/lib/coordination";
 import type { DemoJourney as DemoJourneyData } from "@/lib/demo";
 import { computeImpactMetrics } from "@/lib/impact";
@@ -39,6 +40,13 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
       simulation
         ? computePrioritizationMetrics([...simulation.arrivages, ...arrivages], [...simulation.besoins, ...besoins], simulation.opportunites, simulation.transactions)
         : computePrioritizationMetrics(arrivages, besoins, baseOpportunites),
+    [arrivages, baseOpportunites, besoins, simulation]
+  );
+  const alertes = useMemo(
+    () =>
+      simulation
+        ? computeIntelligentAlerts([...simulation.arrivages, ...arrivages], [...simulation.besoins, ...besoins], simulation.opportunites, simulation.transactions, simulation.notifications)
+        : computeIntelligentAlerts(arrivages, besoins, baseOpportunites),
     [arrivages, baseOpportunites, besoins, simulation]
   );
   const displayedImpact = demoLaunched
@@ -244,6 +252,31 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
         </section>
 
         <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8">
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Mbàmbulaan alerte les acteurs au bon moment</p>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-2xl bg-[#f7f4ec] p-5">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">Alerte prioritaire</p>
+              <p className="mt-2 text-2xl font-black">{alertes[0]?.titre ?? "Aucune alerte critique"}</p>
+              <p className="mt-2 text-sm font-bold leading-6 text-[#14312d]/65">{alertes[0]?.description ?? "La journée mock reste sous contrôle."}</p>
+              {alertes[0] ? <AlertBadge level={alertes[0].niveau} /> : null}
+            </div>
+            <div className="grid gap-3">
+              {alertes.slice(1, 4).map((alerte) => (
+                <Link key={alerte.id} href={alerte.lienAction} className="rounded-2xl bg-[#f7f4ec] p-5 transition hover:bg-[#eee7d7]">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-lg font-black">{alerte.titre}</p>
+                      <p className="mt-1 text-sm font-semibold text-[#14312d]/65">{alerte.acteurConcerne} · {alerte.zoneOuQuai}</p>
+                    </div>
+                    <AlertBadge level={alerte.niveau} />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8">
           <h2 className="text-2xl font-black">Explorer les modules</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {moduleLinks.filter((item) => item.href !== "/demo").map((item) => (
@@ -337,4 +370,15 @@ function PriorityBadge({ priority }: { priority: "Critique" | "Haute" | "Moyenne
   };
 
   return <span className={`mt-4 inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{priority}</span>;
+}
+
+function AlertBadge({ level }: { level: "info" | "attention" | "critique" }) {
+  const tone = getAlertTone(level);
+  const styles = {
+    info: "bg-[#dbeafe] text-[#174ea6] ring-[#93c5fd]",
+    high: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    critical: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`mt-4 inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{level}</span>;
 }
