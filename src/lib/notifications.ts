@@ -4,7 +4,7 @@ import type { DashboardData, Opportunite } from "@/lib/coordination";
 
 export type NotificationLevel = "info" | "succès" | "attention";
 
-export type NotificationType = "arrivage" | "besoin" | "opportunite" | "couverture" | "demande" | "quai";
+export type NotificationType = "arrivage" | "besoin" | "opportunite" | "couverture" | "demande" | "quai" | "reservation";
 
 export type NotificationMetier = {
   id: string;
@@ -39,6 +39,21 @@ export function createNotifications(
 
 export function countUnreadNotifications(notifications: NotificationMetier[]) {
   return notifications.filter((notification) => !notification.lu).length;
+}
+
+export function createReservationNotifications(opportunites: Opportunite[], reservedOpportunityIds: string[]): NotificationMetier[] {
+  return opportunites
+    .filter((opportunite) => reservedOpportunityIds.includes(opportunite.id))
+    .map((opportunite, index) => ({
+      id: `reservation-${opportunite.id}`,
+      type: "reservation" as const,
+      titre: "Une opportunite vient d'etre reservee",
+      description: `${opportunite.quantiteDemandee} de ${opportunite.espece} sont reserves par un transformateur.`,
+      date: createNotificationDate(index + 48),
+      niveau: "succès" as const,
+      lu: false,
+      lien: `/opportunites/${opportunite.id}`
+    }));
 }
 
 function createArrivageNotifications(arrivages: Arrivage[]): NotificationMetier[] {

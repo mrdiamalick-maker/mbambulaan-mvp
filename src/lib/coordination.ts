@@ -2,8 +2,9 @@ import type { Arrivage } from "@/lib/arrivages";
 import type { Besoin } from "@/lib/besoins";
 
 export const misesEnRelationStorageKey = "mbambulaan:mises-en-relation";
+export const reservationsStorageKey = "mbambulaan:opportunites-reservees";
 
-export type OpportuniteStatus = "Correspondance trouvée" | "Contact initié";
+export type OpportuniteStatus = "Correspondance trouvée" | "Contact initié" | "Réservée";
 
 export type CoordinationPriority = "Haute" | "Moyenne" | "Faible";
 
@@ -80,21 +81,28 @@ export type DashboardData = {
   alertes: string[];
 };
 
-export function computeMatching(arrivages: Arrivage[], besoins: Besoin[]): Opportunite[] {
+export type ReservationMetrics = {
+  opportunitesOuvertes: number;
+  opportunitesReservees: number;
+  tauxReservation: number;
+};
+
+export function computeMatching(arrivages: Arrivage[], besoins: Besoin[], reservedOpportunityIds: string[] = []): Opportunite[] {
   return besoins
     .flatMap((besoin) =>
       arrivages
         .flatMap((arrivage) => {
           const scoreCompatibilite = computeCompatibility(arrivage, besoin);
+          const opportunityId = `${arrivage.id}-${besoin.id}`;
 
-          if (scoreCompatibilite < 70) return [];
+          if (scoreCompatibilite < 70 || reservedOpportunityIds.includes(opportunityId)) return [];
 
           const vendeur = arrivage.vendeur ?? `Vendeur ${arrivage.quai}`;
           const acheteur = besoin.acheteur ?? `Acheteur ${besoin.quai}`;
 
           return [
             {
-              id: `${arrivage.id}-${besoin.id}`,
+              id: opportunityId,
               arrivageId: arrivage.id,
               besoinId: besoin.id,
               espece: besoin.espece,
@@ -224,6 +232,17 @@ export function computeMatchingSummary(arrivages: Arrivage[], besoins: Besoin[],
     tauxCouvertureBesoins: besoins.length === 0 ? 0 : Math.round((besoinsCouverts / besoins.length) * 100),
     arrivagesDisponibles: arrivages.length,
     misesEnRelationCreees
+  };
+}
+
+export function computeReservationMetrics(opportunites: Opportunite[], reservedOpportunityIds: string[] = []): ReservationMetrics {
+  const opportunitesReservees = opportunites.filter((opportunite) => reservedOpportunityIds.includes(opportunite.id)).length;
+  const total = opportunites.length;
+
+  return {
+    opportunitesOuvertes: Math.max(0, total - opportunitesReservees),
+    opportunitesReservees,
+    tauxReservation: total === 0 ? 0 : Math.round((opportunitesReservees / total) * 100)
   };
 }
 

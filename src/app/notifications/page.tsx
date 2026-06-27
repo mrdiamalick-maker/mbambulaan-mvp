@@ -11,5 +11,5 @@ export default function NotificationsPage() {
   const dashboardData = computeDashboardMetrics(arrivages, besoins, opportunites);
   const notifications = createNotifications(arrivages, besoins, opportunites, dashboardData);
 
-  return <NotificationsCenter notifications={notifications} />;
+  return <NotificationsCenter notifications={notifications} opportunites={opportunites} />;
 }

@@ -1,7 +1,37 @@
+"use client";
+
 import Link from "next/link";
-import type { Opportunite } from "@/lib/matching";
+import { useEffect, useState } from "react";
+import { reservationsStorageKey } from "@/lib/coordination";
+import type { Opportunite, OpportuniteStatus } from "@/lib/coordination";
 
 export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite }) {
+  const [isReserved, setIsReserved] = useState(opportunite.statut === "Réservée");
+  const statut: OpportuniteStatus = isReserved ? "Réservée" : opportunite.statut;
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(reservationsStorageKey);
+    if (!stored) return;
+
+    try {
+      const ids = JSON.parse(stored);
+      if (Array.isArray(ids)) {
+        setIsReserved(ids.includes(opportunite.id));
+      }
+    } catch {
+      setIsReserved(false);
+    }
+  }, [opportunite.id]);
+
+  function reserveOpportunity() {
+    const stored = window.localStorage.getItem(reservationsStorageKey);
+    const ids = stored ? safeParseIds(stored) : [];
+    const nextIds = ids.includes(opportunite.id) ? ids : [...ids, opportunite.id];
+
+    window.localStorage.setItem(reservationsStorageKey, JSON.stringify(nextIds));
+    setIsReserved(true);
+  }
+
   return (
     <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
       <div className="mx-auto max-w-7xl">
@@ -22,11 +52,26 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
               <p className="text-sm font-black uppercase tracking-[0.14em] text-[#d65a31]">Compatibilite</p>
               <p className="mt-3 text-5xl font-black">{opportunite.scoreCompatibilite}%</p>
               <p className="mt-2 text-sm font-semibold text-[#14312d]/65">Compatible à {opportunite.scoreCompatibilite}%</p>
-              <span className="mt-5 inline-flex rounded-full bg-[#d8f3dc] px-3 py-1 text-xs font-black text-[#1b5e20] ring-1 ring-[#95d5b2]">
-                {opportunite.statut}
+              <span className={`mt-5 inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${isReserved ? "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]" : "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]"}`}>
+                {statut}
               </span>
+              {isReserved ? <p className="mt-4 text-sm font-black text-[#7a4f00]">Réservée par un transformateur</p> : null}
+              <button
+                type="button"
+                disabled={isReserved}
+                onClick={reserveOpportunity}
+                className="mt-5 h-12 w-full rounded-2xl bg-[#14312d] px-5 text-sm font-black text-white transition hover:bg-[#1e4a43] disabled:cursor-not-allowed disabled:bg-[#14312d]/30"
+              >
+                Réserver ce lot
+              </button>
             </div>
           </div>
+
+          {isReserved ? (
+            <div className="mt-8 rounded-2xl bg-[#d8f3dc] px-5 py-4 text-sm font-black text-[#1b5e20] ring-1 ring-[#95d5b2]">
+              Reservation confirmee. Cette opportunite n'est plus proposee comme disponible.
+            </div>
+          ) : null}
 
           <div className="mt-8 grid gap-4 lg:grid-cols-2">
             <InfoPanel title="Informations de l'offre">
@@ -70,6 +115,15 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
       </div>
     </main>
   );
+}
+
+function safeParseIds(value: string) {
+  try {
+    const ids = JSON.parse(value);
+    return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 function InfoPanel({ children, title }: { children: React.ReactNode; title: string }) {

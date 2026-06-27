@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { DashboardData } from "@/lib/coordination";
-import { misesEnRelationStorageKey } from "@/lib/coordination";
+import { computeReservationMetrics, misesEnRelationStorageKey, reservationsStorageKey } from "@/lib/coordination";
+import type { Opportunite } from "@/lib/coordination";
 import type { NotificationMetier } from "@/lib/notifications";
 
-export function DashboardView({ data, notifications }: { data: DashboardData; notifications: NotificationMetier[] }) {
+export function DashboardView({ data, notifications, opportunites }: { data: DashboardData; notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
   const [misesEnRelation, setMisesEnRelation] = useState(data.stats.misesEnRelationInitiees);
+  const [reservedIds, setReservedIds] = useState<string[]>([]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(misesEnRelationStorageKey);
@@ -23,6 +25,20 @@ export function DashboardView({ data, notifications }: { data: DashboardData; no
     }
   }, [data.stats.misesEnRelationInitiees]);
 
+  useEffect(() => {
+    const stored = window.localStorage.getItem(reservationsStorageKey);
+    if (!stored) return;
+
+    try {
+      const ids = JSON.parse(stored);
+      if (Array.isArray(ids)) {
+        setReservedIds(ids.filter((id): id is string => typeof id === "string"));
+      }
+    } catch {
+      setReservedIds([]);
+    }
+  }, []);
+
   const insights = useMemo(() => {
     const [, quaisInsight] = data.insights;
     const relationInsight =
@@ -32,6 +48,8 @@ export function DashboardView({ data, notifications }: { data: DashboardData; no
 
     return [data.insights[0], quaisInsight, relationInsight];
   }, [data.insights, misesEnRelation]);
+
+  const reservationMetrics = useMemo(() => computeReservationMetrics(opportunites, reservedIds), [opportunites, reservedIds]);
 
   return (
     <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
@@ -65,9 +83,9 @@ export function DashboardView({ data, notifications }: { data: DashboardData; no
             <StatCard label="Arrivages publies" value={String(data.stats.arrivagesPublies)} />
             <StatCard label="Volume total debarque" value={data.stats.volumeTotalDebarque} />
             <StatCard label="Besoins ouverts" value={String(data.stats.besoinsOuverts)} />
-            <StatCard label="Opportunites detectees" value={String(data.stats.opportunitesDetectees)} />
-            <StatCard label="Mises en relation initiees" value={String(misesEnRelation)} />
-            <StatCard label="Couverture besoins" value={`${data.stats.tauxCouvertureBesoins}%`} />
+            <StatCard label="Opportunites ouvertes" value={String(reservationMetrics.opportunitesOuvertes)} />
+            <StatCard label="Opportunites reservees" value={String(reservationMetrics.opportunitesReservees)} />
+            <StatCard label="Taux de reservation" value={`${reservationMetrics.tauxReservation}%`} />
           </div>
         </section>
 

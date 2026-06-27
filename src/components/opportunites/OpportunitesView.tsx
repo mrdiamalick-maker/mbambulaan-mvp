@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { misesEnRelationStorageKey } from "@/lib/dashboard";
-import type { MatchingSummary, Opportunite } from "@/lib/matching";
+import { misesEnRelationStorageKey, reservationsStorageKey } from "@/lib/coordination";
+import type { MatchingSummary, Opportunite } from "@/lib/coordination";
 
 type OpportunitesViewProps = {
   opportunites: Opportunite[];
@@ -12,15 +12,32 @@ type OpportunitesViewProps = {
 
 export function OpportunitesView({ opportunites, summary }: OpportunitesViewProps) {
   const [contactsInities, setContactsInities] = useState<string[]>([]);
+  const [reservedIds, setReservedIds] = useState<string[]>([]);
   const [confirmation, setConfirmation] = useState("");
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(reservationsStorageKey);
+    if (!stored) return;
+
+    try {
+      const ids = JSON.parse(stored);
+      if (Array.isArray(ids)) {
+        setReservedIds(ids.filter((id): id is string => typeof id === "string"));
+      }
+    } catch {
+      setReservedIds([]);
+    }
+  }, []);
 
   const displayedOpportunites = useMemo(
     () =>
-      opportunites.map((opportunite) => ({
-        ...opportunite,
-        statut: contactsInities.includes(opportunite.id) ? "Contact initié" : opportunite.statut
-      })),
-    [contactsInities, opportunites]
+      opportunites
+        .filter((opportunite) => !reservedIds.includes(opportunite.id))
+        .map((opportunite) => ({
+          ...opportunite,
+          statut: contactsInities.includes(opportunite.id) ? "Contact initié" : opportunite.statut
+        })),
+    [contactsInities, opportunites, reservedIds]
   );
 
   function initiateContact(opportunite: Opportunite) {
@@ -49,7 +66,7 @@ export function OpportunitesView({ opportunites, summary }: OpportunitesViewProp
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3 lg:min-w-[34rem]">
-              <Metric value={String(summary.nombreOpportunites)} label="Opportunites" />
+              <Metric value={String(displayedOpportunites.length)} label="Opportunites ouvertes" />
               <Metric value={`${summary.tauxCouvertureBesoins}%`} label="Couverture besoins" />
               <Metric value={String(contactsInities.length || summary.misesEnRelationCreees)} label="Mises en relation" />
             </div>

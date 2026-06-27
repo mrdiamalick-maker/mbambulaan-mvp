@@ -1,23 +1,42 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import type { Opportunite } from "@/lib/coordination";
+import { reservationsStorageKey } from "@/lib/coordination";
 import type { NotificationLevel, NotificationMetier } from "@/lib/notifications";
-import { notificationStorageKey } from "@/lib/notifications";
+import { createReservationNotifications, notificationStorageKey } from "@/lib/notifications";
 
 type NotificationFilter = "Toutes" | "Non lues";
 
-export function NotificationsCenter({ notifications }: { notifications: NotificationMetier[] }) {
+export function NotificationsCenter({ notifications, opportunites }: { notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
   const [filter, setFilter] = useState<NotificationFilter>("Toutes");
+  const [reservedIds, setReservedIds] = useState<string[]>([]);
   const [readIds, setReadIds] = useState<string[]>(() => notifications.filter((notification) => notification.lu).map((notification) => notification.id));
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(reservationsStorageKey);
+    if (!stored) return;
+
+    try {
+      const ids = JSON.parse(stored);
+      if (Array.isArray(ids)) {
+        setReservedIds(ids.filter((id): id is string => typeof id === "string"));
+      }
+    } catch {
+      setReservedIds([]);
+    }
+  }, []);
+
+  const localNotifications = useMemo(() => [...createReservationNotifications(opportunites, reservedIds), ...notifications], [notifications, opportunites, reservedIds]);
 
   const enrichedNotifications = useMemo(
     () =>
-      notifications.map((notification) => ({
+      localNotifications.map((notification) => ({
         ...notification,
         lu: notification.lu || readIds.includes(notification.id)
       })),
-    [notifications, readIds]
+    [localNotifications, readIds]
   );
 
   const unreadCount = enrichedNotifications.filter((notification) => !notification.lu).length;
