@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { DashboardData } from "@/lib/dashboard";
-import { misesEnRelationStorageKey } from "@/lib/dashboard";
+import type { DashboardData } from "@/lib/coordination";
+import { misesEnRelationStorageKey } from "@/lib/coordination";
+import type { NotificationMetier } from "@/lib/notifications";
 
-export function DashboardView({ data }: { data: DashboardData }) {
+export function DashboardView({ data, notifications }: { data: DashboardData; notifications: NotificationMetier[] }) {
   const [misesEnRelation, setMisesEnRelation] = useState(data.stats.misesEnRelationInitiees);
 
   useEffect(() => {
@@ -113,6 +114,21 @@ export function DashboardView({ data }: { data: DashboardData }) {
             </div>
           </DashboardSection>
 
+          <DashboardSection title="Dernieres notifications">
+            <div className="grid gap-3">
+              {notifications.map((notification) => (
+                <Link key={notification.id} href={notification.lien} className="rounded-2xl bg-[#f7f4ec] p-5 transition hover:bg-[#eee7d7]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#d65a31]">{notification.niveau}</span>
+                    {!notification.lu ? <span className="rounded-full bg-[#14312d] px-3 py-1 text-xs font-black text-white">Non lue</span> : null}
+                  </div>
+                  <p className="mt-3 text-lg font-black">{notification.titre}</p>
+                  <p className="mt-1 text-sm font-semibold leading-6 text-[#14312d]/65">{notification.description}</p>
+                </Link>
+              ))}
+            </div>
+          </DashboardSection>
+
           <DashboardSection title="Opportunites recentes">
             <div className="grid gap-3">
               {data.opportunitesRecentes.map((opportunite) => (
@@ -140,6 +156,7 @@ const navigationItems = [
   { href: "/arrivages", label: "Arrivages" },
   { href: "/besoins", label: "Besoins" },
   { href: "/opportunites", label: "Opportunites" },
+  { href: "/notifications", label: "Notifications" },
   { href: "/dashboard", label: "Dashboard" }
 ];
 
