@@ -11,6 +11,7 @@ import { computeImpactMetrics } from "@/lib/impact";
 import type { NotificationMetier } from "@/lib/notifications";
 import { computeAverageRecommendationScore, getRecommendationTone } from "@/lib/recommendation";
 import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
+import { computeTensionMetrics, getTensionTone } from "@/lib/tension";
 import { computeAverageTrustScore, getTrustTone } from "@/lib/trust";
 
 export function DashboardView({ arrivages, besoins, data, notifications, opportunites }: { arrivages: Arrivage[]; besoins: Besoin[]; data: DashboardData; notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
@@ -91,6 +92,7 @@ export function DashboardView({ arrivages, besoins, data, notifications, opportu
   const averageRecommendationScore = useMemo(() => computeAverageRecommendationScore(allOpportunites), [allOpportunites]);
   const averageTrustScore = useMemo(() => computeAverageTrustScore(), []);
   const impact = useMemo(() => computeImpactMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
+  const tensions = useMemo(() => computeTensionMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
 
   return (
     <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
@@ -145,6 +147,39 @@ export function DashboardView({ arrivages, besoins, data, notifications, opportu
             <ImpactCard label="Acteurs impactés" value={String(impact.acteursImpactes)} />
             <ImpactCard label="Familles estimées" value={String(impact.famillesImpactees)} />
             <ImpactCard label="Quai principal" value={impact.quaisImpactes[0]?.quai ?? "Aucun"} />
+          </div>
+        </DashboardSection>
+
+        <DashboardSection title="Tensions territoriales">
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="grid gap-3">
+              {tensions.zonesPrioritaires.map((zone) => (
+                <article key={zone.quai} className="rounded-2xl bg-[#f7f4ec] p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-lg font-black">{zone.quai}</p>
+                      <p className="mt-1 text-sm font-semibold text-[#14312d]/65">{zone.raison}</p>
+                    </div>
+                    <TensionBadge level={zone.niveau} />
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="grid gap-3">
+              {tensions.tensionsParEspece.slice(0, 3).map((espece) => (
+                <article key={espece.espece} className="rounded-2xl bg-[#f7f4ec] p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-lg font-black">{espece.espece}</p>
+                      <p className="mt-1 text-sm font-semibold text-[#14312d]/65">
+                        {espece.volumeDemande} demandés · {espece.besoinsNonCouverts} besoin(s) non couvert(s)
+                      </p>
+                    </div>
+                    <TensionBadge level={espece.niveau} />
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         </DashboardSection>
 
@@ -295,6 +330,18 @@ function TrustBadge({ score }: { score: number }) {
   };
 
   return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>Confiance {score}%</span>;
+}
+
+function TensionBadge({ level }: { level: "Faible" | "Moyenne" | "Forte" | "Critique" }) {
+  const tone = getTensionTone(level);
+  const styles = {
+    low: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+    medium: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    high: "bg-[#ffe8cc] text-[#9a3412] ring-[#fdba74]",
+    critical: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{level}</span>;
 }
 
 function DashboardSection({ children, title }: { children: React.ReactNode; title: string }) {

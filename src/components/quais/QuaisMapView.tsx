@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { QuaiMapPoint } from "@/lib/map";
 import { getQuaiActivityLabel, getQuaiFilterUrl, senegalSvgViewBox } from "@/lib/map";
+import { getTensionTone } from "@/lib/tension";
 
 export function QuaisMapView({ points }: { points: QuaiMapPoint[] }) {
   const [selectedId, setSelectedId] = useState(points[0]?.id ?? "");
@@ -36,9 +37,10 @@ export function QuaisMapView({ points }: { points: QuaiMapPoint[] }) {
               </p>
             </div>
             <div className="grid gap-2 rounded-3xl bg-[#f7f4ec] p-5 text-sm font-black sm:min-w-72">
-              <Legend color="#2f9e44" label="Activite faible" />
-              <Legend color="#f08c00" label="Activite suivie" />
-              <Legend color="#c92a2a" label="Activite forte" />
+              <Legend color="#2f9e44" label="Tension faible" />
+              <Legend color="#f08c00" label="Tension moyenne" />
+              <Legend color="#e8590c" label="Tension forte" />
+              <Legend color="#c92a2a" label="Tension critique" />
             </div>
           </div>
         </section>
@@ -97,6 +99,13 @@ const navigationItems = [
   { href: "/quais", label: "Quais" }
 ];
 
+const tensionToneStyles = {
+  low: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+  medium: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+  high: "bg-[#ffe8cc] text-[#9a3412] ring-[#fdba74]",
+  critical: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+};
+
 function QuaiPanel({ point }: { point: QuaiMapPoint }) {
   return (
     <aside className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8">
@@ -107,7 +116,7 @@ function QuaiPanel({ point }: { point: QuaiMapPoint }) {
           <p className="mt-2 text-sm font-bold text-[#14312d]/60">{point.quai}</p>
         </div>
         <span className="rounded-full px-3 py-1 text-xs font-black text-white" style={{ backgroundColor: point.color }}>
-          {getQuaiActivityLabel(point.activityLevel)}
+          {point.tension ? `Tension ${point.tension.niveau}` : getQuaiActivityLabel(point.activityLevel)}
         </span>
       </div>
 
@@ -117,8 +126,20 @@ function QuaiPanel({ point }: { point: QuaiMapPoint }) {
         <Metric label="Besoins ouverts" value={String(point.besoinsOuverts)} />
         <Metric label="Opportunites" value={String(point.opportunitesDetectees)} />
         <Metric label="Mises en relation" value={String(point.misesEnRelation)} />
+        <Metric label="Niveau de tension" value={point.tension?.niveau ?? getQuaiActivityLabel(point.activityLevel)} />
+        <Metric label="Demande" value={point.tension?.volumeDemande ?? "0 kg"} />
+        <Metric label="Deficit" value={point.tension?.deficit ?? "0 kg"} />
         <Metric label="Especes" value={point.especesPrincipales.length ? point.especesPrincipales.join(", ") : "Aucune"} />
       </div>
+
+      {point.tension ? (
+        <div className={`mt-6 rounded-3xl p-5 ring-1 ${tensionToneStyles[getTensionTone(point.tension.niveau)]}`}>
+          <p className="text-sm font-black uppercase tracking-[0.16em]">Lecture territoriale</p>
+          <p className="mt-3 text-sm font-bold leading-6">
+            {point.tension.volumeDemande} demandes pour {point.tension.volumeDisponible} disponibles, avec {point.tension.opportunitesDetectees} opportunité(s) détectée(s) et {point.tension.transactionsRealisees} transaction(s).
+          </p>
+        </div>
+      ) : null}
 
       <div className="mt-6 rounded-3xl bg-[#f7f4ec] p-5">
         <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d65a31]">Derniers debarquements</p>

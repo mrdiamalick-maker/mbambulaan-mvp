@@ -2,6 +2,8 @@ import type { Arrivage } from "@/lib/arrivages";
 import type { Besoin } from "@/lib/besoins";
 import type { DashboardData, Opportunite } from "@/lib/coordination";
 import { quaisReference } from "@/lib/reference";
+import type { QuaiTension, TensionMetrics } from "@/lib/tension";
+import { getTensionTone } from "@/lib/tension";
 
 export type QuaiActivityLevel = "low" | "medium" | "high";
 
@@ -19,6 +21,7 @@ export type QuaiMapPoint = {
   besoinsOuverts: number;
   opportunitesDetectees: number;
   misesEnRelation: number;
+  tension?: QuaiTension;
   derniersDebarquements: {
     id: string;
     espece: string;
@@ -36,6 +39,13 @@ export const quaiActivityColors: Record<QuaiActivityLevel, string> = {
   high: "#c92a2a"
 };
 
+export const quaiTensionColors = {
+  low: "#2f9e44",
+  medium: "#f08c00",
+  high: "#e8590c",
+  critical: "#c92a2a"
+} as const;
+
 const pilotQuais = quaisReference
   .filter((quai) => ["saint-louis", "kayar", "soumbedioune", "rufisque", "mbour", "joal"].includes(quai.id))
   .map((quai) => ({
@@ -50,7 +60,8 @@ export function createQuaiMapPoints(
   arrivages: Arrivage[],
   besoins: Besoin[],
   opportunites: Opportunite[],
-  dashboardData: DashboardData
+  dashboardData: DashboardData,
+  tensionData?: TensionMetrics
 ): QuaiMapPoint[] {
   return pilotQuais.map((pilot) => {
     const quaiArrivages = arrivages.filter((arrivage) => sameQuai(arrivage.quai, pilot.quai));
@@ -58,11 +69,13 @@ export function createQuaiMapPoints(
     const quaiOpportunites = opportunites.filter((opportunite) => sameQuai(opportunite.lieu, pilot.quai));
     const dashboardQuai = dashboardData.quaisActifs.find((quai) => sameQuai(quai.quai, pilot.quai));
     const activityLevel = computeQuaiActivityLevel(quaiArrivages.length, quaiBesoins.length, quaiOpportunites.length);
+    const tension = tensionData?.tensionsParQuai.find((item) => sameQuai(item.quai, pilot.quai));
 
     return {
       ...pilot,
-      color: quaiActivityColors[activityLevel],
+      color: tension ? quaiTensionColors[getTensionTone(tension.niveau)] : quaiActivityColors[activityLevel],
       activityLevel,
+      tension,
       volumeDebarque: dashboardQuai?.volumeTotal ?? "0 kg",
       nombreArrivages: quaiArrivages.length,
       especesPrincipales: computeMainSpecies(quaiArrivages),

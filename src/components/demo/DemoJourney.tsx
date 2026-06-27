@@ -9,6 +9,7 @@ import type { DemoJourney as DemoJourneyData } from "@/lib/demo";
 import { computeImpactMetrics } from "@/lib/impact";
 import { createCoordinationSimulation, coordinationSimulationStorageKey } from "@/lib/simulation";
 import type { CoordinationSimulation } from "@/lib/simulation";
+import { computeTensionMetrics, getTensionTone } from "@/lib/tension";
 
 export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arrivage[]; besoins: Besoin[]; journey: DemoJourneyData }) {
   const [visibleSteps, setVisibleSteps] = useState(0);
@@ -23,6 +24,13 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
       simulation
         ? computeImpactMetrics([...simulation.arrivages, ...arrivages], [...simulation.besoins, ...besoins], simulation.opportunites, simulation.transactions)
         : computeImpactMetrics(arrivages, besoins, baseOpportunites),
+    [arrivages, baseOpportunites, besoins, simulation]
+  );
+  const tensions = useMemo(
+    () =>
+      simulation
+        ? computeTensionMetrics([...simulation.arrivages, ...arrivages], [...simulation.besoins, ...besoins], simulation.opportunites, simulation.transactions)
+        : computeTensionMetrics(arrivages, besoins, baseOpportunites),
     [arrivages, baseOpportunites, besoins, simulation]
   );
   const displayedImpact = demoLaunched
@@ -184,6 +192,25 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
         </section>
 
         <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8">
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Lecture territoriale de la filière</p>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-2xl bg-[#f7f4ec] p-5">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">Zone prioritaire</p>
+              <p className="mt-2 text-2xl font-black">{tensions.zonesPrioritaires[0]?.quai ?? "Aucune"}</p>
+              <p className="mt-2 text-sm font-bold leading-6 text-[#14312d]/65">{tensions.zonesPrioritaires[0]?.raison ?? "Equilibre territorial stable sur les données mock."}</p>
+              {tensions.zonesPrioritaires[0] ? <TensionBadge level={tensions.zonesPrioritaires[0].niveau} /> : null}
+            </div>
+            <div className="grid gap-3">
+              {tensions.recommandations.slice(0, 3).map((recommandation) => (
+                <p key={recommandation} className="rounded-2xl bg-[#f7f4ec] p-5 text-sm font-black leading-6 text-[#14312d]/75">
+                  {recommandation}
+                </p>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8">
           <h2 className="text-2xl font-black">Explorer les modules</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {moduleLinks.filter((item) => item.href !== "/demo").map((item) => (
@@ -253,4 +280,16 @@ function ImpactResult({ label, value }: { label: string; value: string }) {
       <p className="mt-2 text-2xl font-black">{value}</p>
     </div>
   );
+}
+
+function TensionBadge({ level }: { level: "Faible" | "Moyenne" | "Forte" | "Critique" }) {
+  const tone = getTensionTone(level);
+  const styles = {
+    low: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+    medium: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    high: "bg-[#ffe8cc] text-[#9a3412] ring-[#fdba74]",
+    critical: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`mt-4 inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{level}</span>;
 }
