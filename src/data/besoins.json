@@ -5,6 +5,7 @@
     "quai": "Quai de Soumbedioune",
     "quantite": "300 kg",
     "urgence": "Haute",
+    "acheteur": "Mareyeur Dakar Frais",
     "commentaire": "Livraison attendue pour restaurants partenaires avant 14h."
   },
   {
@@ -13,6 +14,7 @@
     "quai": "Quai de Kayar",
     "quantite": "1 t",
     "urgence": "Moyenne",
+    "acheteur": "Comptoir Kayar Distribution",
     "commentaire": "Lots bien glaces pour distribution en marche local."
   },
   {
@@ -21,6 +23,7 @@
     "quai": "Quai de Mbour",
     "quantite": "220 kg",
     "urgence": "Basse",
+    "acheteur": "Atelier Mbour Transformation",
     "commentaire": "Besoin planifie pour transformation le lendemain."
   },
   {
@@ -29,6 +32,7 @@
     "quai": "Quai de Joal",
     "quantite": "160 kg",
     "urgence": "Haute",
+    "acheteur": "Export Joal Selection",
     "commentaire": "Commande export a consolider dans la journee."
   },
   {
@@ -37,6 +41,7 @@
     "quai": "Quai de Saint-Louis",
     "quantite": "750 kg",
     "urgence": "Moyenne",
+    "acheteur": "Mareyage Nord Services",
     "commentaire": "Achat recherche pour mareyage regional."
   },
   {
@@ -45,6 +50,7 @@
     "quai": "Quai de Mbour",
     "quantite": "180 kg",
     "urgence": "Basse",
+    "acheteur": "Cuisine Collective Mbour",
     "commentaire": "Besoin recurrent pour client collectif."
   }
 ]

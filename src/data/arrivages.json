@@ -5,6 +5,7 @@
     "quai": "Quai de Soumbedioune",
     "quantite": "420 kg",
     "heureDebarquement": "06:40",
+    "vendeur": "Groupement Soumbedioune Nord",
     "statut": "Disponible"
   },
   {
@@ -13,6 +14,7 @@
     "quai": "Quai de Kayar",
     "quantite": "1,2 t",
     "heureDebarquement": "07:15",
+    "vendeur": "Pirogue Kayar Horizon",
     "statut": "Reserve"
   },
   {
@@ -21,6 +23,7 @@
     "quai": "Quai de Mbour",
     "quantite": "310 kg",
     "heureDebarquement": "08:05",
+    "vendeur": "Cooperative Mbour Littoral",
     "statut": "En controle"
   },
   {
@@ -29,6 +32,7 @@
     "quai": "Quai de Joal",
     "quantite": "180 kg",
     "heureDebarquement": "09:20",
+    "vendeur": "Union Joal Peche",
     "statut": "Disponible"
   },
   {
@@ -37,6 +41,7 @@
     "quai": "Quai de Saint-Louis",
     "quantite": "860 kg",
     "heureDebarquement": "10:10",
+    "vendeur": "Equipe Langue de Barbarie",
     "statut": "Ecoule"
   },
   {
@@ -45,6 +50,7 @@
     "quai": "Quai de Mbour",
     "quantite": "260 kg",
     "heureDebarquement": "11:30",
+    "vendeur": "Pirogue Mbour Teranga",
     "statut": "Disponible"
   }
 ]

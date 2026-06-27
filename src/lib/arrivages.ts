@@ -10,6 +10,7 @@ export type Arrivage = {
   quai: string;
   quantite: string;
   heureDebarquement: string;
+  vendeur?: string;
   statut: ArrivageStatus;
 };
 

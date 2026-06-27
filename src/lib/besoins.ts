@@ -10,6 +10,7 @@ export type Besoin = {
   quai: string;
   quantite: string;
   urgence: UrgenceLevel;
+  acheteur?: string;
   commentaire: string;
 };
 
