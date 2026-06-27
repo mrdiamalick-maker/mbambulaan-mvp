@@ -6,6 +6,7 @@ import type { Arrivage } from "@/lib/arrivages";
 import type { Besoin } from "@/lib/besoins";
 import { computeDashboardMetrics, computeMatching, computeTransactionMetrics, computeTransactions, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
 import type { Opportunite, Transaction, TransactionStatus } from "@/lib/coordination";
+import { computeImpactMetrics } from "@/lib/impact";
 import type { NotificationMetier } from "@/lib/notifications";
 import { getRecommendationTone, getTopRecommendations } from "@/lib/recommendation";
 import { createCoordinationSimulation, coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
@@ -55,6 +56,7 @@ export function CoordinationCenter({ arrivages, besoins, opportunites, notificat
   const allNotifications = useMemo(() => [...(simulation?.notifications ?? []), ...notifications], [notifications, simulation]);
   const topRecommendations = useMemo(() => getTopRecommendations(allOpportunites, 5), [allOpportunites]);
   const recommendedActors = useMemo(() => getRecommendedActors(5), []);
+  const impact = useMemo(() => computeImpactMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
 
   const waitingArrivages = allArrivages.filter((arrivage) => arrivage.statut === "Disponible" && !ignoredArrivageIds.includes(arrivage.id));
   const coveredBesoinIds = new Set(allOpportunites.map((opportunite) => opportunite.besoinId));
@@ -148,6 +150,28 @@ export function CoordinationCenter({ arrivages, besoins, opportunites, notificat
         </section>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
+          <Panel title="Impact opérationnel">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <CompactMetric label="Volume valorisé" value={impact.volumeValorise} />
+              <CompactMetric label="Valeur estimée" value={impact.valeurEconomique} />
+              <CompactMetric label="Besoins couverts" value={`${impact.tauxBesoinsCouverts}%`} />
+              <CompactMetric label="Poisson sauvé" value={impact.poissonSauve} />
+            </div>
+            <div className="mt-5 grid gap-3">
+              {impact.quaisImpactes.slice(0, 3).map((quai) => (
+                <article key={quai.quai} className="rounded-2xl bg-[#f7f4ec] p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-lg font-black">{quai.quai}</p>
+                      <p className="mt-1 text-sm font-semibold text-[#14312d]/65">{quai.region}</p>
+                    </div>
+                    <StatusBadge label={`Impact ${quai.scoreImpact}`} tone="info" />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </Panel>
+
           <Panel title="Acteurs recommandés">
             <div className="grid gap-3">
               {recommendedActors.map((actor) => (

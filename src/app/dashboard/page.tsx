@@ -11,5 +11,5 @@ export default function DashboardPage() {
   const dashboardData = computeDashboardMetrics(arrivages, besoins, opportunites);
   const notifications = createNotifications(arrivages, besoins, opportunites, dashboardData);
 
-  return <DashboardView data={dashboardData} notifications={notifications.slice(0, 4)} opportunites={opportunites} />;
+  return <DashboardView arrivages={arrivages} besoins={besoins} data={dashboardData} notifications={notifications.slice(0, 4)} opportunites={opportunites} />;
 }

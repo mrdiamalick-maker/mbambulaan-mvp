@@ -1,18 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Arrivage } from "@/lib/arrivages";
 import type { Besoin } from "@/lib/besoins";
+import { computeMatching } from "@/lib/coordination";
 import type { DemoJourney as DemoJourneyData } from "@/lib/demo";
+import { computeImpactMetrics } from "@/lib/impact";
 import { createCoordinationSimulation, coordinationSimulationStorageKey } from "@/lib/simulation";
+import type { CoordinationSimulation } from "@/lib/simulation";
 
 export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arrivage[]; besoins: Besoin[]; journey: DemoJourneyData }) {
   const [visibleSteps, setVisibleSteps] = useState(0);
   const [demoLaunched, setDemoLaunched] = useState(false);
+  const [simulation, setSimulation] = useState<CoordinationSimulation | null>(null);
   const isRunning = visibleSteps > 0 && visibleSteps < journey.steps.length;
   const isComplete = visibleSteps === journey.steps.length;
   const activeStep = Math.max(1, visibleSteps || 1);
+  const baseOpportunites = useMemo(() => computeMatching(arrivages, besoins), [arrivages, besoins]);
+  const impact = useMemo(
+    () =>
+      simulation
+        ? computeImpactMetrics([...simulation.arrivages, ...arrivages], [...simulation.besoins, ...besoins], simulation.opportunites, simulation.transactions)
+        : computeImpactMetrics(arrivages, besoins, baseOpportunites),
+    [arrivages, baseOpportunites, besoins, simulation]
+  );
   const displayedImpact = demoLaunched
     ? {
         opportunities: journey.finalSummary.opportunites,
@@ -36,8 +48,9 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
   }, [isRunning, journey.steps.length, visibleSteps]);
 
   function launchDemo() {
-    const simulation = createCoordinationSimulation(arrivages, besoins);
-    window.localStorage.setItem(coordinationSimulationStorageKey, JSON.stringify(simulation));
+    const nextSimulation = createCoordinationSimulation(arrivages, besoins);
+    window.localStorage.setItem(coordinationSimulationStorageKey, JSON.stringify(nextSimulation));
+    setSimulation(nextSimulation);
     setDemoLaunched(true);
     setVisibleSteps(1);
   }
@@ -161,6 +174,16 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
         </section>
 
         <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8">
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Impact généré par Mbàmbulaan</p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <ImpactResult label="Volume valorisé" value={impact.volumeValorise} />
+            <ImpactResult label="Valeur économique" value={impact.valeurEconomique} />
+            <ImpactResult label="Poisson sauvé" value={impact.poissonSauve} />
+            <ImpactResult label="Familles impactées" value={String(impact.famillesImpactees)} />
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8">
           <h2 className="text-2xl font-black">Explorer les modules</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {moduleLinks.filter((item) => item.href !== "/demo").map((item) => (
@@ -219,6 +242,15 @@ function FinalMetric({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl bg-white/10 p-5 ring-1 ring-white/15">
       <p className="text-3xl font-black">{value}</p>
       <p className="mt-2 text-sm font-semibold text-white/75">{label}</p>
+    </div>
+  );
+}
+
+function ImpactResult({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-[#f7f4ec] p-5">
+      <p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">{label}</p>
+      <p className="mt-2 text-2xl font-black">{value}</p>
     </div>
   );
 }

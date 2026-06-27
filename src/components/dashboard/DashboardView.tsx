@@ -2,19 +2,24 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import type { Arrivage } from "@/lib/arrivages";
+import type { Besoin } from "@/lib/besoins";
 import type { DashboardData } from "@/lib/coordination";
 import { computeReservationMetrics, computeTransactionMetrics, computeTransactions, misesEnRelationStorageKey, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
 import type { Opportunite, Transaction, TransactionStatus } from "@/lib/coordination";
+import { computeImpactMetrics } from "@/lib/impact";
 import type { NotificationMetier } from "@/lib/notifications";
 import { computeAverageRecommendationScore, getRecommendationTone } from "@/lib/recommendation";
 import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 import { computeAverageTrustScore, getTrustTone } from "@/lib/trust";
 
-export function DashboardView({ data, notifications, opportunites }: { data: DashboardData; notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
+export function DashboardView({ arrivages, besoins, data, notifications, opportunites }: { arrivages: Arrivage[]; besoins: Besoin[]; data: DashboardData; notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
   const [misesEnRelation, setMisesEnRelation] = useState(data.stats.misesEnRelationInitiees);
   const [reservedIds, setReservedIds] = useState<string[]>([]);
   const [transactionStatusByOpportunityId, setTransactionStatusByOpportunityId] = useState<Record<string, TransactionStatus>>({});
   const [simulatedStats, setSimulatedStats] = useState({ arrivages: 0, besoins: 0 });
+  const [simulatedArrivages, setSimulatedArrivages] = useState<Arrivage[]>([]);
+  const [simulatedBesoins, setSimulatedBesoins] = useState<Besoin[]>([]);
   const [simulatedOpportunites, setSimulatedOpportunites] = useState<Opportunite[]>([]);
   const [simulatedTransactions, setSimulatedTransactions] = useState<Transaction[]>([]);
   const [simulatedNotifications, setSimulatedNotifications] = useState<NotificationMetier[]>([]);
@@ -58,6 +63,8 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
       arrivages: simulation?.arrivages.length ?? 0,
       besoins: simulation?.besoins.length ?? 0
     });
+    setSimulatedArrivages(simulation?.arrivages ?? []);
+    setSimulatedBesoins(simulation?.besoins ?? []);
     setSimulatedOpportunites(simulation?.opportunites ?? []);
     setSimulatedTransactions(simulation?.transactions ?? []);
     setSimulatedNotifications(simulation?.notifications ?? []);
@@ -73,6 +80,8 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
     return [data.insights[0], quaisInsight, relationInsight];
   }, [data.insights, misesEnRelation]);
 
+  const allArrivages = useMemo(() => [...simulatedArrivages, ...arrivages], [arrivages, simulatedArrivages]);
+  const allBesoins = useMemo(() => [...simulatedBesoins, ...besoins], [besoins, simulatedBesoins]);
   const allOpportunites = useMemo(() => [...simulatedOpportunites, ...opportunites], [opportunites, simulatedOpportunites]);
   const reservationMetrics = useMemo(() => computeReservationMetrics(allOpportunites, reservedIds), [allOpportunites, reservedIds]);
   const storedTransactions = useMemo(() => computeTransactions(opportunites, transactionStatusByOpportunityId), [opportunites, transactionStatusByOpportunityId]);
@@ -81,6 +90,7 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
   const latestNotifications = useMemo(() => [...simulatedNotifications, ...notifications].slice(0, 6), [notifications, simulatedNotifications]);
   const averageRecommendationScore = useMemo(() => computeAverageRecommendationScore(allOpportunites), [allOpportunites]);
   const averageTrustScore = useMemo(() => computeAverageTrustScore(), []);
+  const impact = useMemo(() => computeImpactMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
 
   return (
     <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
@@ -124,6 +134,19 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
             <StatCard label="Score de confiance moyen" value={`${averageTrustScore}%`} badge={<TrustBadge score={averageTrustScore} />} />
           </div>
         </section>
+
+        <DashboardSection title="Impact de la journée">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <ImpactCard label="Volume valorisé" value={impact.volumeValorise} />
+            <ImpactCard label="Valeur estimée" value={impact.valeurEconomique} />
+            <ImpactCard label="Besoins couverts" value={`${impact.besoinsCouverts}/${impact.besoinsTotal} · ${impact.tauxBesoinsCouverts}%`} />
+            <ImpactCard label="Poisson sauvé" value={impact.poissonSauve} />
+            <ImpactCard label="Transactions finalisées" value={String(impact.transactionsFinalisees)} />
+            <ImpactCard label="Acteurs impactés" value={String(impact.acteursImpactes)} />
+            <ImpactCard label="Familles estimées" value={String(impact.famillesImpactees)} />
+            <ImpactCard label="Quai principal" value={impact.quaisImpactes[0]?.quai ?? "Aucun"} />
+          </div>
+        </DashboardSection>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <DashboardSection title="Activite des quais">
@@ -239,6 +262,15 @@ function StatCard({ badge, label, value }: { badge?: React.ReactNode; label: str
       <p className="text-3xl font-black">{value}</p>
       <p className="mt-2 text-sm font-semibold text-[#14312d]/65">{label}</p>
       {badge ? <div className="mt-3">{badge}</div> : null}
+    </div>
+  );
+}
+
+function ImpactCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-[#f7f4ec] p-5">
+      <p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">{label}</p>
+      <p className="mt-2 text-2xl font-black">{value}</p>
     </div>
   );
 }
