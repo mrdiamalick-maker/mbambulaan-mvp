@@ -1,0 +1,50 @@
+[
+  {
+    "id": "bes-001",
+    "espece": "Thiof",
+    "quai": "Quai de Soumbedioune",
+    "quantite": "300 kg",
+    "urgence": "Haute",
+    "commentaire": "Livraison attendue pour restaurants partenaires avant 14h."
+  },
+  {
+    "id": "bes-002",
+    "espece": "Sardinelle",
+    "quai": "Quai de Kayar",
+    "quantite": "1 t",
+    "urgence": "Moyenne",
+    "commentaire": "Lots bien glaces pour distribution en marche local."
+  },
+  {
+    "id": "bes-003",
+    "espece": "Dorade",
+    "quai": "Quai de Mbour",
+    "quantite": "220 kg",
+    "urgence": "Basse",
+    "commentaire": "Besoin planifie pour transformation le lendemain."
+  },
+  {
+    "id": "bes-004",
+    "espece": "Crevette",
+    "quai": "Quai de Joal",
+    "quantite": "160 kg",
+    "urgence": "Haute",
+    "commentaire": "Commande export a consolider dans la journee."
+  },
+  {
+    "id": "bes-005",
+    "espece": "Yaboy",
+    "quai": "Quai de Saint-Louis",
+    "quantite": "750 kg",
+    "urgence": "Moyenne",
+    "commentaire": "Achat recherche pour mareyage regional."
+  },
+  {
+    "id": "bes-006",
+    "espece": "Capitaine",
+    "quai": "Quai de Mbour",
+    "quantite": "180 kg",
+    "urgence": "Basse",
+    "commentaire": "Besoin recurrent pour client collectif."
+  }
+]
