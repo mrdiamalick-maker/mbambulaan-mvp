@@ -4,10 +4,10 @@ import { computeDashboardMetrics, computeMatching } from "@/lib/coordination";
 import { countUnreadNotifications, createNotifications } from "@/lib/notifications";
 
 const links = [
-  { href: "#projet", label: "Projet" },
-  { href: "#acteurs", label: "Acteurs" },
-  { href: "#fonctionnalites", label: "Fonctionnalites" },
-  { href: "#benefices", label: "Benefices" }
+  { href: "/arrivages", label: "Arrivages" },
+  { href: "/besoins", label: "Besoins" },
+  { href: "/opportunites", label: "Opportunites" },
+  { href: "/quais", label: "Quais" }
 ];
 
 export function SiteHeader() {
@@ -19,13 +19,13 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#14312d]/10 bg-[#f7f4ec]/90 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-8">
         <a href="#accueil" className="text-lg font-black tracking-wide text-[#14312d]">
           Mbàmbulaan
         </a>
-        <nav className="hidden items-center gap-7 text-sm font-semibold text-[#14312d]/75 md:flex">
+        <nav className="order-3 flex w-full items-center gap-2 overflow-x-auto text-sm font-semibold text-[#14312d]/75 md:order-none md:w-auto md:gap-7 md:overflow-visible">
           {links.map((link) => (
-            <a key={link.href} href={link.href} className="transition hover:text-[#14312d]">
+            <a key={link.href} href={link.href} className="whitespace-nowrap rounded-full border border-[#14312d]/10 px-3 py-2 transition hover:border-[#14312d] hover:text-[#14312d] md:border-0 md:px-0">
               {link.label}
             </a>
           ))}
