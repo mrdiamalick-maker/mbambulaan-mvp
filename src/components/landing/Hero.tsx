@@ -13,11 +13,11 @@ export function Hero() {
             Une plateforme de coordination pour rendre les arrivages visibles, organiser les besoins et ouvrir des opportunites fiables entre les acteurs du poisson.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a className="rounded-full bg-[#14312d] px-6 py-3 text-center font-bold text-white transition hover:bg-[#1e4a43]" href="#fonctionnalites">
-              Voir les fonctionnalites
+            <a className="rounded-full bg-[#14312d] px-6 py-3 text-center font-bold text-white transition hover:bg-[#1e4a43]" href="/demo">
+              Démonstration
             </a>
-            <a className="rounded-full border border-[#14312d]/20 px-6 py-3 text-center font-bold text-[#14312d] transition hover:border-[#14312d]" href="#acteurs">
-              Explorer les acteurs
+            <a className="rounded-full border border-[#14312d]/20 px-6 py-3 text-center font-bold text-[#14312d] transition hover:border-[#14312d]" href="#fonctionnalites">
+              Voir les fonctionnalites
             </a>
           </div>
         </div>

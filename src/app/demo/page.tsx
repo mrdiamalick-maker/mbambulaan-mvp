@@ -1,8 +1,12 @@
 import { DemoJourney } from "@/components/demo/DemoJourney";
+import { getArrivages } from "@/lib/arrivages";
+import { getBesoins } from "@/lib/besoins";
 import { getDemoJourney } from "@/lib/demo";
 
 export default function DemoPage() {
   const journey = getDemoJourney();
+  const arrivages = getArrivages();
+  const besoins = getBesoins();
 
-  return <DemoJourney journey={journey} />;
+  return <DemoJourney arrivages={arrivages} besoins={besoins} journey={journey} />;
 }
