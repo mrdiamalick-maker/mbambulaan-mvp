@@ -1,4 +1,5 @@
 import { DashboardView } from "@/components/dashboard/DashboardView";
+import { DashboardSensitiveLotsSection } from "@/components/quality/QualityPanels";
 import { getArrivages } from "@/lib/arrivages";
 import { getBesoins } from "@/lib/besoins";
 import { computeDashboardMetrics, computeMatching } from "@/lib/coordination";
@@ -11,5 +12,10 @@ export default function DashboardPage() {
   const dashboardData = computeDashboardMetrics(arrivages, besoins, opportunites);
   const notifications = createNotifications(arrivages, besoins, opportunites, dashboardData);
 
-  return <DashboardView arrivages={arrivages} besoins={besoins} data={dashboardData} notifications={notifications.slice(0, 4)} opportunites={opportunites} />;
+  return (
+    <>
+      <DashboardView arrivages={arrivages} besoins={besoins} data={dashboardData} notifications={notifications.slice(0, 4)} opportunites={opportunites} />
+      <DashboardSensitiveLotsSection arrivages={arrivages} besoins={besoins} opportunites={opportunites} />
+    </>
+  );
 }

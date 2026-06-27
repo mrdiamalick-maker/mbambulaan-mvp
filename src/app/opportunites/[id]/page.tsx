@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { OpportuniteDetail } from "@/components/opportunites/OpportuniteDetail";
+import { OpportunityQualitySection } from "@/components/quality/QualityPanels";
 import { getArrivages } from "@/lib/arrivages";
 import { getBesoins } from "@/lib/besoins";
 import { computeMatching, findOpportuniteById } from "@/lib/coordination";
@@ -18,5 +19,10 @@ export default async function OpportuniteDetailPage({ params }: OpportuniteDetai
     notFound();
   }
 
-  return <OpportuniteDetail opportunite={opportunite} />;
+  return (
+    <>
+      <OpportuniteDetail opportunite={opportunite} />
+      <OpportunityQualitySection opportunite={opportunite} />
+    </>
+  );
 }
