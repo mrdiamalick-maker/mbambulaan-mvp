@@ -1,7 +1,6 @@
 import { DemoDaySimulationSection } from "@/components/daySimulation/DaySimulationPanels";
 import { DemoJourney } from "@/components/demo/DemoJourney";
 import { DemoExecutiveDecisionCard } from "@/components/executive/ExecutivePanels";
-import { DemoQualityCard } from "@/components/quality/QualityPanels";
 import { DemoRoleRecommendationCard } from "@/components/roleRecommendations/RoleRecommendationPanels";
 import { getArrivages } from "@/lib/arrivages";
 import { getBesoins } from "@/lib/besoins";
@@ -27,7 +26,6 @@ export default function DemoPage() {
       <DemoDaySimulationSection events={daySimulation.events} />
       <DemoRoleRecommendationCard recommendations={roleRecommendations} />
       <DemoExecutiveDecisionCard executive={executive} />
-      <DemoQualityCard arrivages={arrivages} besoins={besoins} />
     </>
   );
 }
