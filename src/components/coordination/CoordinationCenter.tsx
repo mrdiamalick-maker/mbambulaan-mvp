@@ -7,6 +7,7 @@ import type { Besoin } from "@/lib/besoins";
 import { computeDashboardMetrics, computeMatching, computeTransactionMetrics, computeTransactions, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
 import type { Opportunite, Transaction, TransactionStatus } from "@/lib/coordination";
 import type { NotificationMetier } from "@/lib/notifications";
+import { getRecommendationTone, getTopRecommendations } from "@/lib/recommendation";
 import { createCoordinationSimulation, coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 
 type CoordinationCenterProps = {
@@ -51,6 +52,7 @@ export function CoordinationCenter({ arrivages, besoins, opportunites, notificat
   const dashboardData = useMemo(() => computeDashboardMetrics(allArrivages, allBesoins, allOpportunites, reservedIds.length), [allArrivages, allBesoins, allOpportunites, reservedIds.length]);
   const transactionMetrics = useMemo(() => computeTransactionMetrics(transactions), [transactions]);
   const allNotifications = useMemo(() => [...(simulation?.notifications ?? []), ...notifications], [notifications, simulation]);
+  const topRecommendations = useMemo(() => getTopRecommendations(allOpportunites, 5), [allOpportunites]);
 
   const waitingArrivages = allArrivages.filter((arrivage) => arrivage.statut === "Disponible" && !ignoredArrivageIds.includes(arrivage.id));
   const coveredBesoinIds = new Set(allOpportunites.map((opportunite) => opportunite.besoinId));
@@ -144,6 +146,25 @@ export function CoordinationCenter({ arrivages, besoins, opportunites, notificat
         </section>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
+          <Panel title="Top recommandations">
+            <div className="grid gap-3">
+              {topRecommendations.map((opportunite) => (
+                <Link key={opportunite.id} href={`/opportunites/${opportunite.id}`} className="rounded-2xl bg-[#f7f4ec] p-5 transition hover:bg-[#eee7d7]">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h2 className="text-xl font-black">{opportunite.espece}</h2>
+                      <p className="mt-1 text-sm font-semibold text-[#14312d]/65">
+                        {opportunite.quantiteDemandee} · {opportunite.lieu}
+                      </p>
+                      <p className="mt-2 text-sm font-bold text-[#14312d]/65">{opportunite.acheteur} → {opportunite.vendeur}</p>
+                    </div>
+                    <RecommendationBadge score={opportunite.scoreCompatibilite} />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </Panel>
+
           <Panel title="Arrivages en attente">
             <div className="grid gap-3">
               {waitingArrivages.slice(0, 6).map((arrivage) => (
@@ -355,4 +376,15 @@ function ActionButton({ children, onClick }: { children: React.ReactNode; onClic
       {children}
     </button>
   );
+}
+
+function RecommendationBadge({ score }: { score: number }) {
+  const tone = getRecommendationTone(score);
+  const styles = {
+    green: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+    orange: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    red: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{score}%</span>;
 }

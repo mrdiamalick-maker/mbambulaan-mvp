@@ -1,5 +1,7 @@
 import type { Arrivage } from "@/lib/arrivages";
 import type { Besoin } from "@/lib/besoins";
+import { computeRecommendation } from "@/lib/recommendation";
+import type { RecommendationResult } from "@/lib/recommendation";
 
 export const misesEnRelationStorageKey = "mbambulaan:mises-en-relation";
 export const reservationsStorageKey = "mbambulaan:opportunites-reservees";
@@ -22,6 +24,7 @@ export type Opportunite = {
   quantiteDisponible: string;
   quantiteDemandee: string;
   scoreCompatibilite: number;
+  recommendation: RecommendationResult;
   priorite: CoordinationPriority;
   statut: OpportuniteStatus;
   raisons: string[];
@@ -113,7 +116,8 @@ export function computeMatching(arrivages: Arrivage[], besoins: Besoin[], reserv
     .flatMap((besoin) =>
       arrivages
         .flatMap((arrivage) => {
-          const scoreCompatibilite = computeCompatibility(arrivage, besoin);
+          const recommendation = computeRecommendation(arrivage, besoin);
+          const scoreCompatibilite = recommendation.score;
 
           const opportunityId = `${arrivage.id}-${besoin.id}`;
 
@@ -135,9 +139,10 @@ export function computeMatching(arrivages: Arrivage[], besoins: Besoin[], reserv
               quantiteDisponible: arrivage.quantite,
               quantiteDemandee: besoin.quantite,
               scoreCompatibilite,
+              recommendation,
               priorite: computePriority(scoreCompatibilite),
               statut: "Correspondance trouvée" as const,
-              raisons: buildMatchingReasons(arrivage, besoin),
+              raisons: recommendation.reasons,
               offre: {
                 id: arrivage.id,
                 quai: arrivage.quai,
@@ -162,27 +167,7 @@ export function computeMatching(arrivages: Arrivage[], besoins: Besoin[], reserv
 }
 
 export function computeCompatibility(arrivage: Arrivage, besoin: Besoin) {
-  const sameSpecies = normalize(arrivage.espece) === normalize(besoin.espece);
-  const availableKg = parseQuantiteEnKg(arrivage.quantite);
-  const neededKg = parseQuantiteEnKg(besoin.quantite);
-  const quantityCompatible = availableKg >= neededKg && neededKg > 0;
-  const sameZone = normalize(arrivage.quai) === normalize(besoin.quai);
-  const availableStatus = arrivage.statut === "Disponible" || arrivage.statut === "Reserve" || arrivage.statut === "En controle";
-  const timeReady = Boolean(arrivage.heureDebarquement);
-
-  let score = 0;
-  if (sameSpecies) score += 35;
-  if (quantityCompatible) score += 25;
-  if (sameZone) score += 15;
-  if (availableStatus) score += 15;
-  if (timeReady) score += 10;
-
-  if (sameSpecies && quantityCompatible) {
-    const surplusRatio = availableKg > 0 ? Math.max(0, (availableKg - neededKg) / availableKg) : 0;
-    score += Math.max(0, Math.round(8 - surplusRatio * 8));
-  }
-
-  return Math.min(100, score);
+  return computeRecommendation(arrivage, besoin).score;
 }
 
 export function computePriority(score: number): CoordinationPriority {
@@ -311,24 +296,6 @@ function createTransactionDate(seed: string) {
   const date = new Date(Date.UTC(2026, 5, 27, 8, 0));
   date.setUTCMinutes(date.getUTCMinutes() + minutes);
   return date.toISOString();
-}
-
-function buildMatchingReasons(arrivage: Arrivage, besoin: Besoin) {
-  const reasons = [
-    `Meme espece detectee : ${besoin.espece}.`,
-    `Quantite disponible suffisante : ${arrivage.quantite} pour ${besoin.quantite} demandes.`
-  ];
-
-  if (normalize(arrivage.quai) === normalize(besoin.quai)) {
-    reasons.push(`Meme zone geographique : ${arrivage.quai}.`);
-  } else {
-    reasons.push(`Point de coordination propose : ${arrivage.quai}.`);
-  }
-
-  reasons.push(`Disponibilite suivie avec le statut ${arrivage.statut}.`);
-  reasons.push(`Delai lisible depuis le debarquement de ${arrivage.heureDebarquement}.`);
-
-  return reasons;
 }
 
 function computeQuaisActifs(arrivages: Arrivage[], besoins: Besoin[]) {

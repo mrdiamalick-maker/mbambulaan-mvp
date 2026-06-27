@@ -6,6 +6,7 @@ import type { DashboardData } from "@/lib/coordination";
 import { computeReservationMetrics, computeTransactionMetrics, computeTransactions, misesEnRelationStorageKey, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
 import type { Opportunite, Transaction, TransactionStatus } from "@/lib/coordination";
 import type { NotificationMetier } from "@/lib/notifications";
+import { computeAverageRecommendationScore, getRecommendationTone } from "@/lib/recommendation";
 import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 
 export function DashboardView({ data, notifications, opportunites }: { data: DashboardData; notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
@@ -77,6 +78,7 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
   const transactions = useMemo(() => [...simulatedTransactions, ...storedTransactions], [simulatedTransactions, storedTransactions]);
   const transactionMetrics = useMemo(() => computeTransactionMetrics(transactions), [transactions]);
   const latestNotifications = useMemo(() => [...simulatedNotifications, ...notifications].slice(0, 6), [notifications, simulatedNotifications]);
+  const averageRecommendationScore = useMemo(() => computeAverageRecommendationScore(allOpportunites), [allOpportunites]);
 
   return (
     <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
@@ -116,6 +118,7 @@ export function DashboardView({ data, notifications, opportunites }: { data: Das
             <StatCard label="Transactions actives" value={String(transactionMetrics.transactionsActives)} />
             <StatCard label="Transactions terminees" value={String(transactionMetrics.transactionsTerminees)} />
             <StatCard label="Taux de finalisation" value={`${transactionMetrics.tauxFinalisation}%`} />
+            <StatCard label="Qualité moyenne des recommandations" value={`${averageRecommendationScore}%`} badge={<RecommendationBadge score={averageRecommendationScore} />} />
           </div>
         </section>
 
@@ -227,13 +230,25 @@ function safeParseTransactions(value: string): Record<string, TransactionStatus>
   }
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({ badge, label, value }: { badge?: React.ReactNode; label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-[#f7f4ec] p-5">
       <p className="text-3xl font-black">{value}</p>
       <p className="mt-2 text-sm font-semibold text-[#14312d]/65">{label}</p>
+      {badge ? <div className="mt-3">{badge}</div> : null}
     </div>
   );
+}
+
+function RecommendationBadge({ score }: { score: number }) {
+  const tone = getRecommendationTone(score);
+  const styles = {
+    green: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+    orange: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    red: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>Score {score}%</span>;
 }
 
 function DashboardSection({ children, title }: { children: React.ReactNode; title: string }) {

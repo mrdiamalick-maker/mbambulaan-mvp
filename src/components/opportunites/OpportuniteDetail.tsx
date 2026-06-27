@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getNextTransactionStatus, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
 import type { Opportunite, OpportuniteStatus, TransactionStatus } from "@/lib/coordination";
+import { getRecommendationTone } from "@/lib/recommendation";
 
 export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite }) {
   const [isReserved, setIsReserved] = useState(opportunite.statut === "Réservée");
@@ -78,6 +79,7 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
               <p className="text-sm font-black uppercase tracking-[0.14em] text-[#d65a31]">Compatibilite</p>
               <p className="mt-3 text-5xl font-black">{opportunite.scoreCompatibilite}%</p>
               <p className="mt-2 text-sm font-semibold text-[#14312d]/65">Compatible à {opportunite.scoreCompatibilite}%</p>
+              <RecommendationBadge score={opportunite.scoreCompatibilite} />
               <span className={`mt-5 inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${isReserved ? "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]" : "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]"}`}>
                 {statut}
               </span>
@@ -135,11 +137,18 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
           </div>
 
           <div className="mt-8 rounded-3xl bg-[#f7f4ec] p-6">
-            <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Pourquoi ce rapprochement</p>
-            <div className="mt-5 grid gap-3">
-              {opportunite.raisons.map((raison) => (
-                <p key={raison} className="rounded-2xl bg-white p-4 text-sm font-bold leading-6 text-[#14312d]/75">
-                  {raison}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Pourquoi cette recommandation ?</p>
+                <h2 className="mt-3 text-2xl font-black">Score final : {opportunite.scoreCompatibilite}%</h2>
+              </div>
+              <RecommendationBadge score={opportunite.scoreCompatibilite} />
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {opportunite.recommendation.criteria.map((criterion) => (
+                <p key={criterion.label} className={`rounded-2xl bg-white p-4 text-sm font-bold leading-6 ${criterion.matched ? "text-[#14312d]/80" : "text-[#14312d]/35"}`}>
+                  <span className="mr-2">{criterion.matched ? "✓" : "•"}</span>
+                  {criterion.label}
                 </p>
               ))}
             </div>
@@ -156,6 +165,17 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
       </div>
     </main>
   );
+}
+
+function RecommendationBadge({ score }: { score: number }) {
+  const tone = getRecommendationTone(score);
+  const styles = {
+    green: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+    orange: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    red: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`mt-3 inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>Recommandation {score}%</span>;
 }
 
 function safeParseIds(value: string) {
