@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { DaySimulationEvent } from "@/lib/daySimulation";
+import { StatusBadge as UiStatusBadge } from "@/components/ui/StatusBadge";
+import type { StatusTone } from "@/components/ui/StatusBadge";
 
 export function DemoDaySimulationSection({ events }: { events: DaySimulationEvent[] }) {
   return (
@@ -102,12 +104,12 @@ function EventDetail({ label, value }: { label: string; value: string }) {
 }
 
 function StatusBadge({ status }: { status: DaySimulationEvent["statut"] }) {
-  const styles: Record<DaySimulationEvent["statut"], string> = {
-    prévu: "bg-[#f1f3f5] text-[#495057] ring-[#ced4da]",
-    actif: "bg-[#dbeafe] text-[#174ea6] ring-[#93c5fd]",
-    traité: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
-    critique: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  const tones: Record<DaySimulationEvent["statut"], StatusTone> = {
+    prévu: "neutral",
+    actif: "info",
+    traité: "success",
+    critique: "danger"
   };
 
-  return <span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[status]}`}>{status}</span>;
+  return <UiStatusBadge tone={tones[status]} className="mt-2">{status}</UiStatusBadge>;
 }

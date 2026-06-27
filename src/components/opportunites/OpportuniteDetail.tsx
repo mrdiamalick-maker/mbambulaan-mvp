@@ -2,12 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import type { ArrivageStatus } from "@/lib/arrivages";
 import { getNextTransactionStatus, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
 import type { Opportunite, OpportuniteStatus, TransactionStatus } from "@/lib/coordination";
+import { computeLotsQuality, getQualityTone, getWasteRiskTone } from "@/lib/quality";
+import type { LotQuality } from "@/lib/quality";
 import { getRecommendationTone } from "@/lib/recommendation";
 import { computeTraceableLotForOpportunity } from "@/lib/traceability";
 import { getActorTrust, getTrustReasons, getTrustTone } from "@/lib/trust";
 import type { ActorTrust } from "@/lib/trust";
+import { StatusBadge as UiStatusBadge } from "@/components/ui/StatusBadge";
+import type { StatusTone } from "@/components/ui/StatusBadge";
 
 export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite }) {
   const [isReserved, setIsReserved] = useState(opportunite.statut === "Réservée");
@@ -18,6 +23,37 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
   const vendeurTrust = getActorTrust(opportunite.vendeur);
   const acheteurTrust = getActorTrust(opportunite.acheteur);
   const traceableLot = useMemo(() => computeTraceableLotForOpportunity(opportunite, transactionStatus), [opportunite, transactionStatus]);
+  const quality = useMemo(() => {
+    const transaction = transactionStatus
+      ? [
+          {
+            id: `trx-${opportunite.id}`,
+            opportuniteId: opportunite.id,
+            statut: transactionStatus,
+            espece: opportunite.espece,
+            quai: opportunite.lieu,
+            quantite: opportunite.quantiteDemandee,
+            date: new Date(Date.UTC(2026, 5, 27, 12, 45)).toISOString(),
+            acteurReserve: "Transformateur pilote"
+          }
+        ]
+      : [];
+
+    return computeLotsQuality(
+      [
+        {
+          id: opportunite.arrivageId,
+          espece: opportunite.espece,
+          quai: opportunite.offre.quai,
+          quantite: opportunite.offre.quantite,
+          heureDebarquement: opportunite.offre.heureDebarquement,
+          vendeur: opportunite.offre.vendeur,
+          statut: opportunite.offre.statut as ArrivageStatus
+        }
+      ],
+      { opportunites: [opportunite], transactions: transaction }
+    )[0];
+  }, [opportunite, transactionStatus]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(reservationsStorageKey);
@@ -86,9 +122,9 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
               <p className="mt-3 text-5xl font-black">{opportunite.scoreCompatibilite}%</p>
               <p className="mt-2 text-sm font-semibold text-[#14312d]/65">Compatible à {opportunite.scoreCompatibilite}%</p>
               <RecommendationBadge score={opportunite.scoreCompatibilite} />
-              <span className={`mt-5 inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${isReserved ? "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]" : "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]"}`}>
+              <UiStatusBadge tone={isReserved ? "warning" : "success"} className="mt-5">
                 {statut}
-              </span>
+              </UiStatusBadge>
               {isReserved ? <p className="mt-4 text-sm font-black text-[#7a4f00]">Réservée par un transformateur</p> : null}
               {transactionStatus ? <p className="mt-3 text-sm font-black text-[#14312d]/70">Transaction : {transactionStatus}</p> : null}
               <button
@@ -168,6 +204,24 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
             </div>
           </div>
 
+          <div className="mt-8 rounded-3xl bg-[#f7f4ec] p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Qualité du lot</p>
+                <h2 className="mt-3 text-2xl font-black">{quality.score}/100 · {quality.fraicheur}</h2>
+                <p className="mt-2 text-sm font-bold text-[#14312d]/65">{quality.actionRecommandee}</p>
+              </div>
+              <QualityBadge quality={quality} />
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {quality.facteurs.slice(0, 4).map((factor) => (
+                <p key={factor} className="rounded-2xl bg-white p-4 text-sm font-bold leading-6 text-[#14312d]/70">
+                  {factor}
+                </p>
+              ))}
+            </div>
+          </div>
+
           <div id="tracabilite" className="mt-8 rounded-3xl border border-[#14312d]/10 p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -201,14 +255,17 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
 }
 
 function RecommendationBadge({ score }: { score: number }) {
-  const tone = getRecommendationTone(score);
-  const styles = {
-    green: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
-    orange: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
-    red: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  const toneByRecommendation: Record<ReturnType<typeof getRecommendationTone>, StatusTone> = {
+    green: "success",
+    orange: "warning",
+    red: "danger"
   };
 
-  return <span className={`mt-3 inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>Recommandation {score}%</span>;
+  return (
+    <UiStatusBadge tone={toneByRecommendation[getRecommendationTone(score)]} className="mt-3">
+      Recommandation {score}%
+    </UiStatusBadge>
+  );
 }
 
 function safeParseIds(value: string) {
@@ -278,14 +335,26 @@ function ActorCard({ actor, label, title }: { actor: ActorTrust; label: string; 
 }
 
 function TrustBadge({ score }: { score: number }) {
-  const tone = getTrustTone(score);
-  const styles = {
-    green: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
-    orange: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
-    red: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  const toneByTrust: Record<ReturnType<typeof getTrustTone>, StatusTone> = {
+    green: "success",
+    orange: "warning",
+    red: "danger"
   };
 
-  return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{score}% confiance</span>;
+  return <UiStatusBadge tone={toneByTrust[getTrustTone(score)]}>{score}% confiance</UiStatusBadge>;
+}
+
+function QualityBadge({ quality }: { quality: LotQuality }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <UiStatusBadge tone={qualityToneMap[getQualityTone(quality.score)]}>
+        Qualite {quality.score}
+      </UiStatusBadge>
+      <UiStatusBadge tone={riskToneMap[getWasteRiskTone(quality.risqueGaspillage)]}>
+        Risque {quality.risqueGaspillage}
+      </UiStatusBadge>
+    </div>
+  );
 }
 
 function formatTraceDate(value: string) {
@@ -294,3 +363,16 @@ function formatTraceDate(value: string) {
     minute: "2-digit"
   }).format(new Date(value));
 }
+
+const qualityToneMap: Record<ReturnType<typeof getQualityTone>, StatusTone> = {
+  green: "success",
+  orange: "warning",
+  red: "danger"
+};
+
+const riskToneMap: Record<ReturnType<typeof getWasteRiskTone>, StatusTone> = {
+  low: "success",
+  medium: "warning",
+  high: "impact",
+  critical: "danger"
+};

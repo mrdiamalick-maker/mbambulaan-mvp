@@ -6,6 +6,8 @@ import { computeMatching, computeTransactions } from "@/lib/coordination";
 import type { Opportunite, Transaction } from "@/lib/coordination";
 import { computeSensitiveLots, computeLotsQuality, getQualityTone, getWasteRiskTone } from "@/lib/quality";
 import type { LotQuality } from "@/lib/quality";
+import { StatusBadge as UiStatusBadge } from "@/components/ui/StatusBadge";
+import type { StatusTone } from "@/components/ui/StatusBadge";
 
 type QualityContext = {
   arrivages: Arrivage[];
@@ -174,22 +176,22 @@ function FactorList({ quality }: { quality: LotQuality }) {
 }
 
 function QualityBadge({ score }: { score: number }) {
-  return <span className={`w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${qualityStyles[getQualityTone(score)]}`}>{score}% qualité</span>;
+  return <UiStatusBadge tone={qualityToneMap[getQualityTone(score)]}>{score}% qualité</UiStatusBadge>;
 }
 
 function RiskBadge({ risk }: { risk: Parameters<typeof getWasteRiskTone>[0] }) {
-  return <span className={`rounded-full px-3 py-1 text-xs font-black ring-1 ${riskStyles[getWasteRiskTone(risk)]}`}>Risque {risk.toLowerCase()}</span>;
+  return <UiStatusBadge tone={riskToneMap[getWasteRiskTone(risk)]}>Risque {risk.toLowerCase()}</UiStatusBadge>;
 }
 
-const qualityStyles: Record<ReturnType<typeof getQualityTone>, string> = {
-  green: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
-  orange: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
-  red: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+const qualityToneMap: Record<ReturnType<typeof getQualityTone>, StatusTone> = {
+  green: "success",
+  orange: "warning",
+  red: "danger"
 };
 
-const riskStyles: Record<ReturnType<typeof getWasteRiskTone>, string> = {
-  low: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
-  medium: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
-  high: "bg-[#ffe8cc] text-[#9a3412] ring-[#fdba74]",
-  critical: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+const riskToneMap: Record<ReturnType<typeof getWasteRiskTone>, StatusTone> = {
+  low: "success",
+  medium: "warning",
+  high: "impact",
+  critical: "danger"
 };

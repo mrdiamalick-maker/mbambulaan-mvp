@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { getRecommendationLevelTone } from "@/lib/roleRecommendations";
 import type { RoleRecommendation, RoleRecommendationRole } from "@/lib/roleRecommendations";
+import { StatusBadge as UiStatusBadge } from "@/components/ui/StatusBadge";
+import type { StatusTone } from "@/components/ui/StatusBadge";
 
 export function RoleRecommendationsSection({ recommendations, title = "Recommandations par rôle" }: { recommendations: RoleRecommendation[]; title?: string }) {
   return (
@@ -100,11 +102,11 @@ function RecommendationDetail({ label, value }: { label: string; value: string }
 }
 
 function LevelBadge({ level }: { level: RoleRecommendation["niveau"] }) {
-  const styles: Record<ReturnType<typeof getRecommendationLevelTone>, string> = {
-    info: "bg-[#dbeafe] text-[#174ea6] ring-[#93c5fd]",
-    high: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
-    critical: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  const tones: Record<ReturnType<typeof getRecommendationLevelTone>, StatusTone> = {
+    info: "info",
+    high: "warning",
+    critical: "danger"
   };
 
-  return <span className={`w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[getRecommendationLevelTone(level)]}`}>{level}</span>;
+  return <UiStatusBadge tone={tones[getRecommendationLevelTone(level)]}>{level}</UiStatusBadge>;
 }
