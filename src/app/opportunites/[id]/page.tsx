@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { OpportuniteDetail } from "@/components/opportunites/OpportuniteDetail";
 import { getArrivages } from "@/lib/arrivages";
 import { getBesoins } from "@/lib/besoins";
-import { createOpportunites, findOpportuniteById } from "@/lib/matching";
+import { computeMatching, findOpportuniteById } from "@/lib/coordination";
 
 type OpportuniteDetailPageProps = {
   params: Promise<{
@@ -12,7 +12,7 @@ type OpportuniteDetailPageProps = {
 
 export default async function OpportuniteDetailPage({ params }: OpportuniteDetailPageProps) {
   const { id } = await params;
-  const opportunite = findOpportuniteById(createOpportunites(getArrivages(), getBesoins()), id);
+  const opportunite = findOpportuniteById(computeMatching(getArrivages(), getBesoins()), id);
 
   if (!opportunite) {
     notFound();

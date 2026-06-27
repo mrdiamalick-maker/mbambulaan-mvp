@@ -1,6 +1,12 @@
 import { ArrivagesClient } from "@/components/arrivages/ArrivagesClient";
 import { getArrivages } from "@/lib/arrivages";
+import { getBesoins } from "@/lib/besoins";
+import { computeAlerts, computeMatching } from "@/lib/coordination";
 
 export default function ArrivagesPage() {
-  return <ArrivagesClient arrivages={getArrivages()} />;
+  const arrivages = getArrivages();
+  const besoins = getBesoins();
+  const alertes = computeAlerts(arrivages, besoins, computeMatching(arrivages, besoins));
+
+  return <ArrivagesClient key={alertes.length} arrivages={arrivages} />;
 }
