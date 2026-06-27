@@ -13,6 +13,7 @@ import { computePrioritizationMetrics, getPriorityTone } from "@/lib/prioritizat
 import { getRecommendationTone, getTopRecommendations } from "@/lib/recommendation";
 import { createCoordinationSimulation, coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 import { computeTensionMetrics, getTensionTone } from "@/lib/tension";
+import { computeTraceability } from "@/lib/traceability";
 import { getRecommendedActors, getTrustLevel, getTrustTone } from "@/lib/trust";
 
 type CoordinationCenterProps = {
@@ -63,6 +64,7 @@ export function CoordinationCenter({ arrivages, besoins, opportunites, notificat
   const tensions = useMemo(() => computeTensionMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
   const priorities = useMemo(() => computePrioritizationMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
   const alertes = useMemo(() => computeIntelligentAlerts(allArrivages, allBesoins, allOpportunites, transactions, allNotifications), [allArrivages, allBesoins, allNotifications, allOpportunites, transactions]);
+  const lotsSuivis = useMemo(() => computeTraceability(allArrivages, allOpportunites, transactions, allNotifications), [allArrivages, allNotifications, allOpportunites, transactions]);
 
   const waitingArrivages = allArrivages.filter((arrivage) => arrivage.statut === "Disponible" && !ignoredArrivageIds.includes(arrivage.id));
   const coveredBesoinIds = new Set(allOpportunites.map((opportunite) => opportunite.besoinId));
@@ -188,6 +190,25 @@ export function CoordinationCenter({ arrivages, besoins, opportunites, notificat
                     </div>
                     <StatusBadge label={alerte.statut} tone={alerte.statut === "nouvelle" ? "dark" : "success"} />
                   </div>
+                </Link>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="Lots à suivre">
+            <div className="grid gap-3">
+              {lotsSuivis.filter((lot) => lot.opportuniteLiee || lot.transactionLiee).slice(0, 5).map((lot) => (
+                <Link key={lot.lotId} href={lot.opportuniteLiee ? `/opportunites/${lot.opportuniteLiee.id}#tracabilite` : "/arrivages"} className="rounded-2xl bg-[#f7f4ec] p-5 transition hover:bg-[#eee7d7]">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-lg font-black">{lot.lotId}</p>
+                      <p className="mt-1 text-sm font-semibold text-[#14312d]/65">
+                        {lot.quantite} de {lot.espece} · {lot.quai}
+                      </p>
+                    </div>
+                    <StatusBadge label={lot.statutActuel} tone={lot.transactionLiee ? "info" : "success"} />
+                  </div>
+                  <p className="mt-3 text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">{lot.historique.length} événement(s) tracés</p>
                 </Link>
               ))}
             </div>

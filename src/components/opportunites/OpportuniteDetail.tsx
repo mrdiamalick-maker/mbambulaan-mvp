@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getNextTransactionStatus, reservationsStorageKey, transactionsStorageKey } from "@/lib/coordination";
 import type { Opportunite, OpportuniteStatus, TransactionStatus } from "@/lib/coordination";
 import { getRecommendationTone } from "@/lib/recommendation";
+import { computeTraceableLotForOpportunity } from "@/lib/traceability";
 import { getActorTrust, getTrustReasons, getTrustTone } from "@/lib/trust";
 import type { ActorTrust } from "@/lib/trust";
 
@@ -16,6 +17,7 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
   const isFinished = transactionStatus === "Terminée";
   const vendeurTrust = getActorTrust(opportunite.vendeur);
   const acheteurTrust = getActorTrust(opportunite.acheteur);
+  const traceableLot = useMemo(() => computeTraceableLotForOpportunity(opportunite, transactionStatus), [opportunite, transactionStatus]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(reservationsStorageKey);
@@ -165,6 +167,33 @@ export function OpportuniteDetail({ opportunite }: { opportunite: Opportunite })
               <ActorCard actor={vendeurTrust} label="Acteur concerne" title="Score de confiance du vendeur" />
             </div>
           </div>
+
+          <div id="tracabilite" className="mt-8 rounded-3xl border border-[#14312d]/10 p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Historique du lot</p>
+                <h2 className="mt-3 text-2xl font-black">{traceableLot.lotId}</h2>
+                <p className="mt-2 text-sm font-bold text-[#14312d]/65">
+                  {traceableLot.quantite} de {traceableLot.espece} · {traceableLot.quai} · {traceableLot.statutActuel}
+                </p>
+              </div>
+              <span className="w-fit rounded-full bg-[#f7f4ec] px-3 py-1 text-xs font-black text-[#14312d]/65 ring-1 ring-[#14312d]/10">{traceableLot.region}</span>
+            </div>
+            <ol className="mt-6 grid gap-3">
+              {traceableLot.historique.map((event) => (
+                <li key={event.id} className="grid gap-3 rounded-2xl bg-[#f7f4ec] p-5 sm:grid-cols-[10rem_1fr]">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">{formatTraceDate(event.date)}</p>
+                    <p className="mt-2 text-xs font-black text-[#14312d]/50">{event.module}</p>
+                  </div>
+                  <div>
+                    <p className="text-base font-black">{event.titre}</p>
+                    <p className="mt-1 text-sm font-semibold leading-6 text-[#14312d]/65">{event.description}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
         </section>
       </div>
     </main>
@@ -257,4 +286,11 @@ function TrustBadge({ score }: { score: number }) {
   };
 
   return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{score}% confiance</span>;
+}
+
+function formatTraceDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
 }

@@ -14,6 +14,7 @@ import { computePrioritizationMetrics, getPriorityTone } from "@/lib/prioritizat
 import { computeAverageRecommendationScore, getRecommendationTone } from "@/lib/recommendation";
 import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 import { computeTensionMetrics, getTensionTone } from "@/lib/tension";
+import { computeTraceability } from "@/lib/traceability";
 import { computeAverageTrustScore, getTrustTone } from "@/lib/trust";
 
 export function DashboardView({ arrivages, besoins, data, notifications, opportunites }: { arrivages: Arrivage[]; besoins: Besoin[]; data: DashboardData; notifications: NotificationMetier[]; opportunites: Opportunite[] }) {
@@ -97,6 +98,7 @@ export function DashboardView({ arrivages, besoins, data, notifications, opportu
   const tensions = useMemo(() => computeTensionMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
   const priorities = useMemo(() => computePrioritizationMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
   const alertes = useMemo(() => computeIntelligentAlerts(allArrivages, allBesoins, allOpportunites, transactions, latestNotifications), [allArrivages, allBesoins, allOpportunites, latestNotifications, transactions]);
+  const lotsSuivis = useMemo(() => computeTraceability(allArrivages, allOpportunites, transactions, latestNotifications), [allArrivages, allOpportunites, latestNotifications, transactions]);
 
   return (
     <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
@@ -136,6 +138,7 @@ export function DashboardView({ arrivages, besoins, data, notifications, opportu
             <StatCard label="Transactions actives" value={String(transactionMetrics.transactionsActives)} />
             <StatCard label="Transactions terminees" value={String(transactionMetrics.transactionsTerminees)} />
             <StatCard label="Taux de finalisation" value={`${transactionMetrics.tauxFinalisation}%`} />
+            <StatCard label="Lots suivis" value={String(lotsSuivis.length)} />
             <StatCard label="Qualité moyenne des recommandations" value={`${averageRecommendationScore}%`} badge={<RecommendationBadge score={averageRecommendationScore} />} />
             <StatCard label="Score de confiance moyen" value={`${averageTrustScore}%`} badge={<TrustBadge score={averageTrustScore} />} />
           </div>

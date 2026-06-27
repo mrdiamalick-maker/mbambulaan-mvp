@@ -12,6 +12,7 @@ import { computePrioritizationMetrics, getPriorityTone } from "@/lib/prioritizat
 import { createCoordinationSimulation, coordinationSimulationStorageKey } from "@/lib/simulation";
 import type { CoordinationSimulation } from "@/lib/simulation";
 import { computeTensionMetrics, getTensionTone } from "@/lib/tension";
+import { computeTraceability } from "@/lib/traceability";
 
 export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arrivage[]; besoins: Besoin[]; journey: DemoJourneyData }) {
   const [visibleSteps, setVisibleSteps] = useState(0);
@@ -48,6 +49,13 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
         ? computeIntelligentAlerts([...simulation.arrivages, ...arrivages], [...simulation.besoins, ...besoins], simulation.opportunites, simulation.transactions, simulation.notifications)
         : computeIntelligentAlerts(arrivages, besoins, baseOpportunites),
     [arrivages, baseOpportunites, besoins, simulation]
+  );
+  const lotsSuivis = useMemo(
+    () =>
+      simulation
+        ? computeTraceability([...simulation.arrivages, ...arrivages], simulation.opportunites, simulation.transactions, simulation.notifications)
+        : computeTraceability(arrivages, baseOpportunites),
+    [arrivages, baseOpportunites, simulation]
   );
   const displayedImpact = demoLaunched
     ? {
@@ -271,6 +279,27 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
                     <AlertBadge level={alerte.niveau} />
                   </div>
                 </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8">
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Traçabilité de bout en bout</p>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-2xl bg-[#f7f4ec] p-5">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">Lot suivi</p>
+              <p className="mt-2 text-2xl font-black">{lotsSuivis[0]?.lotId ?? "Aucun lot suivi"}</p>
+              <p className="mt-2 text-sm font-bold leading-6 text-[#14312d]/65">
+                {lotsSuivis[0] ? `${lotsSuivis[0].quantite} de ${lotsSuivis[0].espece} · ${lotsSuivis[0].quai} · ${lotsSuivis[0].statutActuel}` : "Lancez la démonstration pour suivre un lot complet."}
+              </p>
+            </div>
+            <div className="grid gap-3">
+              {lotsSuivis[0]?.historique.slice(0, 4).map((event) => (
+                <div key={event.id} className="rounded-2xl bg-[#f7f4ec] p-5">
+                  <p className="text-lg font-black">{event.titre}</p>
+                  <p className="mt-1 text-sm font-semibold text-[#14312d]/65">{event.description}</p>
+                </div>
               ))}
             </div>
           </div>

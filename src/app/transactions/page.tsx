@@ -4,7 +4,8 @@ import { getBesoins } from "@/lib/besoins";
 import { computeMatching } from "@/lib/coordination";
 
 export default function TransactionsPage() {
-  const opportunites = computeMatching(getArrivages(), getBesoins());
+  const arrivages = getArrivages();
+  const opportunites = computeMatching(arrivages, getBesoins());
 
-  return <TransactionsView opportunites={opportunites} />;
+  return <TransactionsView arrivages={arrivages} opportunites={opportunites} />;
 }

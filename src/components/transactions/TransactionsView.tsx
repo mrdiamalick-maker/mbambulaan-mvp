@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import type { Arrivage } from "@/lib/arrivages";
 import { computeTransactionMetrics, computeTransactions, transactionsStorageKey } from "@/lib/coordination";
 import type { Opportunite, Transaction, TransactionStatus } from "@/lib/coordination";
 import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
+import { computeTraceability } from "@/lib/traceability";
 
-export function TransactionsView({ opportunites }: { opportunites: Opportunite[] }) {
+export function TransactionsView({ arrivages, opportunites }: { arrivages: Arrivage[]; opportunites: Opportunite[] }) {
   const [statusByOpportunityId, setStatusByOpportunityId] = useState<Record<string, TransactionStatus>>({});
   const [simulatedTransactions, setSimulatedTransactions] = useState<Transaction[]>([]);
 
@@ -23,6 +25,10 @@ export function TransactionsView({ opportunites }: { opportunites: Opportunite[]
   const storedTransactions = useMemo(() => computeTransactions(opportunites, statusByOpportunityId), [opportunites, statusByOpportunityId]);
   const transactions = useMemo(() => [...simulatedTransactions, ...storedTransactions], [simulatedTransactions, storedTransactions]);
   const metrics = useMemo(() => computeTransactionMetrics(transactions), [transactions]);
+  const lotsByOpportunityId = useMemo(() => {
+    const lots = computeTraceability(arrivages, opportunites, transactions);
+    return new Map(lots.flatMap((lot) => (lot.opportuniteLiee ? [[lot.opportuniteLiee.id, lot]] : [])));
+  }, [arrivages, opportunites, transactions]);
 
   return (
     <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
@@ -67,6 +73,7 @@ export function TransactionsView({ opportunites }: { opportunites: Opportunite[]
                   <ColumnHeader>Quantite</ColumnHeader>
                   <ColumnHeader>Date</ColumnHeader>
                   <ColumnHeader>Acteur</ColumnHeader>
+                  <ColumnHeader>Lot</ColumnHeader>
                   <ColumnHeader>Action</ColumnHeader>
                 </tr>
               </thead>
@@ -81,9 +88,10 @@ export function TransactionsView({ opportunites }: { opportunites: Opportunite[]
                     <Cell>{transaction.quantite}</Cell>
                     <Cell>{formatDate(transaction.date)}</Cell>
                     <Cell>{transaction.acteurReserve}</Cell>
+                    <Cell>{lotsByOpportunityId.get(transaction.opportuniteId)?.lotId ?? "Lot suivi"}</Cell>
                     <td className="px-5 py-5">
-                      <Link href={`/opportunites/${transaction.opportuniteId}`} className="rounded-full border border-[#14312d]/15 px-3 py-2 text-xs font-black text-[#14312d] transition hover:border-[#14312d]">
-                        Voir
+                      <Link href={`/opportunites/${transaction.opportuniteId}#tracabilite`} className="rounded-full border border-[#14312d]/15 px-3 py-2 text-xs font-black text-[#14312d] transition hover:border-[#14312d]">
+                        Voir traçabilité
                       </Link>
                     </td>
                   </tr>
@@ -105,10 +113,11 @@ export function TransactionsView({ opportunites }: { opportunites: Opportunite[]
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   <MobileDetail label="Quantite" value={transaction.quantite} />
                   <MobileDetail label="Date" value={formatDate(transaction.date)} />
+                  <MobileDetail label="Lot" value={lotsByOpportunityId.get(transaction.opportuniteId)?.lotId ?? "Lot suivi"} />
                 </div>
                 <p className="mt-4 rounded-2xl bg-white p-4 text-sm font-black">{transaction.acteurReserve}</p>
-                <Link href={`/opportunites/${transaction.opportuniteId}`} className="mt-5 block h-12 rounded-2xl bg-[#14312d] px-5 py-3 text-center text-sm font-black text-white transition hover:bg-[#1e4a43]">
-                  Voir l'opportunite
+                <Link href={`/opportunites/${transaction.opportuniteId}#tracabilite`} className="mt-5 block h-12 rounded-2xl bg-[#14312d] px-5 py-3 text-center text-sm font-black text-white transition hover:bg-[#1e4a43]">
+                  Voir traçabilité
                 </Link>
               </article>
             ))}
