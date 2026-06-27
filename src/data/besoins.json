@@ -2,7 +2,7 @@
   {
     "id": "bes-001",
     "espece": "Thiof",
-    "quai": "Quai de Soumbedioune",
+    "quai": "Soumbédioune",
     "quantite": "300 kg",
     "urgence": "Haute",
     "acheteur": "Mareyeur Dakar Frais",
@@ -10,8 +10,8 @@
   },
   {
     "id": "bes-002",
-    "espece": "Sardinelle",
-    "quai": "Quai de Kayar",
+    "espece": "Sardinelle ronde",
+    "quai": "Kayar",
     "quantite": "1 t",
     "urgence": "Moyenne",
     "acheteur": "Comptoir Kayar Distribution",
@@ -20,7 +20,7 @@
   {
     "id": "bes-003",
     "espece": "Dorade",
-    "quai": "Quai de Mbour",
+    "quai": "Mbour",
     "quantite": "220 kg",
     "urgence": "Basse",
     "acheteur": "Atelier Mbour Transformation",
@@ -29,7 +29,7 @@
   {
     "id": "bes-004",
     "espece": "Crevette",
-    "quai": "Quai de Joal",
+    "quai": "Joal",
     "quantite": "160 kg",
     "urgence": "Haute",
     "acheteur": "Export Joal Selection",
@@ -38,7 +38,7 @@
   {
     "id": "bes-005",
     "espece": "Yaboy",
-    "quai": "Quai de Saint-Louis",
+    "quai": "Saint-Louis",
     "quantite": "750 kg",
     "urgence": "Moyenne",
     "acheteur": "Mareyage Nord Services",
@@ -47,10 +47,28 @@
   {
     "id": "bes-006",
     "espece": "Capitaine",
-    "quai": "Quai de Mbour",
+    "quai": "Mbour",
     "quantite": "180 kg",
     "urgence": "Basse",
     "acheteur": "Cuisine Collective Mbour",
     "commentaire": "Besoin recurrent pour client collectif."
+  },
+  {
+    "id": "bes-007",
+    "espece": "Sole",
+    "quai": "Kafountine",
+    "quantite": "160 kg",
+    "urgence": "Haute",
+    "acheteur": "Exporter Casamance Frais",
+    "commentaire": "Lot recherche pour consolidation export sous froid."
+  },
+  {
+    "id": "bes-008",
+    "espece": "Sardinelle plate",
+    "quai": "Hann",
+    "quantite": "700 kg",
+    "urgence": "Moyenne",
+    "acheteur": "Atelier Hann Transformation",
+    "commentaire": "Approvisionnement prevu pour fumage et sechage."
   }
 ]

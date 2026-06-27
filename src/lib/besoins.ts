@@ -1,6 +1,7 @@
 import besoinsData from "@/data/besoins.json";
+import { urgenceLevelOptions } from "@/lib/reference";
 
-export const urgenceLevels = ["Toutes", "Haute", "Moyenne", "Basse"] as const;
+export const urgenceLevels = urgenceLevelOptions;
 
 export type UrgenceLevel = Exclude<(typeof urgenceLevels)[number], "Toutes">;
 

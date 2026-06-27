@@ -1,6 +1,7 @@
 import arrivagesData from "@/data/arrivages.json";
+import { arrivageStatusOptions } from "@/lib/reference";
 
-export const arrivageStatuses = ["Tous", "Disponible", "Reserve", "En controle", "Ecoule"] as const;
+export const arrivageStatuses = arrivageStatusOptions;
 
 export type ArrivageStatus = Exclude<(typeof arrivageStatuses)[number], "Tous">;
 

@@ -2,7 +2,7 @@
   {
     "id": "arr-001",
     "espece": "Thiof",
-    "quai": "Quai de Soumbedioune",
+    "quai": "Soumbédioune",
     "quantite": "420 kg",
     "heureDebarquement": "06:40",
     "vendeur": "Groupement Soumbedioune Nord",
@@ -10,8 +10,8 @@
   },
   {
     "id": "arr-002",
-    "espece": "Sardinelle",
-    "quai": "Quai de Kayar",
+    "espece": "Sardinelle ronde",
+    "quai": "Kayar",
     "quantite": "1,2 t",
     "heureDebarquement": "07:15",
     "vendeur": "Pirogue Kayar Horizon",
@@ -20,7 +20,7 @@
   {
     "id": "arr-003",
     "espece": "Dorade",
-    "quai": "Quai de Mbour",
+    "quai": "Mbour",
     "quantite": "310 kg",
     "heureDebarquement": "08:05",
     "vendeur": "Cooperative Mbour Littoral",
@@ -29,7 +29,7 @@
   {
     "id": "arr-004",
     "espece": "Crevette",
-    "quai": "Quai de Joal",
+    "quai": "Joal",
     "quantite": "180 kg",
     "heureDebarquement": "09:20",
     "vendeur": "Union Joal Peche",
@@ -38,7 +38,7 @@
   {
     "id": "arr-005",
     "espece": "Yaboy",
-    "quai": "Quai de Saint-Louis",
+    "quai": "Saint-Louis",
     "quantite": "860 kg",
     "heureDebarquement": "10:10",
     "vendeur": "Equipe Langue de Barbarie",
@@ -47,10 +47,28 @@
   {
     "id": "arr-006",
     "espece": "Capitaine",
-    "quai": "Quai de Mbour",
+    "quai": "Mbour",
     "quantite": "260 kg",
     "heureDebarquement": "11:30",
     "vendeur": "Pirogue Mbour Teranga",
+    "statut": "Disponible"
+  },
+  {
+    "id": "arr-007",
+    "espece": "Maquereau",
+    "quai": "Yoff",
+    "quantite": "540 kg",
+    "heureDebarquement": "12:05",
+    "vendeur": "Collectif Yoff Littoral",
+    "statut": "Ecoule"
+  },
+  {
+    "id": "arr-008",
+    "espece": "Sole",
+    "quai": "Kafountine",
+    "quantite": "220 kg",
+    "heureDebarquement": "13:10",
+    "vendeur": "Coopérative Kafountine Sud",
     "statut": "Disponible"
   }
 ]

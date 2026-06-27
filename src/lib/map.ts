@@ -1,6 +1,7 @@
 import type { Arrivage } from "@/lib/arrivages";
 import type { Besoin } from "@/lib/besoins";
 import type { DashboardData, Opportunite } from "@/lib/coordination";
+import { quaisReference } from "@/lib/reference";
 
 export type QuaiActivityLevel = "low" | "medium" | "high";
 
@@ -35,14 +36,15 @@ export const quaiActivityColors: Record<QuaiActivityLevel, string> = {
   high: "#c92a2a"
 };
 
-const pilotQuais = [
-  { id: "saint-louis", nom: "Saint-Louis", quai: "Quai de Saint-Louis", x: 176, y: 72 },
-  { id: "kayar", nom: "Kayar", quai: "Quai de Kayar", x: 188, y: 214 },
-  { id: "soumbedioune", nom: "Soumbédioune", quai: "Quai de Soumbedioune", x: 165, y: 268 },
-  { id: "rufisque", nom: "Rufisque", quai: "Quai de Rufisque", x: 195, y: 282 },
-  { id: "mbour", nom: "Mbour", quai: "Quai de Mbour", x: 190, y: 344 },
-  { id: "joal", nom: "Joal", quai: "Quai de Joal", x: 178, y: 386 }
-] as const;
+const pilotQuais = quaisReference
+  .filter((quai) => ["saint-louis", "kayar", "soumbedioune", "rufisque", "mbour", "joal"].includes(quai.id))
+  .map((quai) => ({
+    id: quai.id,
+    nom: quai.nom,
+    quai: quai.nom,
+    x: quai.coordonnees.svgX,
+    y: quai.coordonnees.svgY
+  }));
 
 export function createQuaiMapPoints(
   arrivages: Arrivage[],

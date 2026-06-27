@@ -26,7 +26,7 @@ export function createCoordinationSimulation(baseArrivages: Arrivage[], baseBeso
     {
       id: "sim-arr-001",
       espece: "Thiof",
-      quai: "Quai de Joal",
+      quai: "Joal",
       quantite: "250 kg",
       heureDebarquement: "08:15",
       vendeur: "Pêcheur A",
@@ -37,7 +37,7 @@ export function createCoordinationSimulation(baseArrivages: Arrivage[], baseBeso
     {
       id: "sim-bes-001",
       espece: "Thiof",
-      quai: "Quai de Joal",
+      quai: "Joal",
       quantite: "200 kg",
       urgence: "Haute",
       acheteur: "Mareyeur Démo",
