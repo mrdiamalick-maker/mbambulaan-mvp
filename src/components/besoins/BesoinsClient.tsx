@@ -2,11 +2,16 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import type { Arrivage } from "@/lib/arrivages";
 import type { Besoin, UrgenceLevel } from "@/lib/besoins";
 import { urgenceLevels } from "@/lib/besoins";
+import { computeMatching } from "@/lib/coordination";
+import { computePrioritizationMetrics, getPriorityTone } from "@/lib/prioritization";
+import type { BusinessPriority } from "@/lib/prioritization";
 import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 
 type BesoinsClientProps = {
+  arrivages: Arrivage[];
   besoins: Besoin[];
   alertes?: string[];
 };
@@ -15,6 +20,13 @@ const urgenceStyles: Record<UrgenceLevel, string> = {
   Haute: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]",
   Moyenne: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
   Basse: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]"
+};
+
+const priorityStyles = {
+  low: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+  medium: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+  high: "bg-[#ffe8cc] text-[#9a3412] ring-[#fdba74]",
+  critical: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
 };
 
 const publicationUrgences = urgenceLevels.filter((item) => item !== "Toutes") as UrgenceLevel[];
@@ -28,7 +40,7 @@ const initialForm = {
   commentaire: ""
 };
 
-export function BesoinsClient({ alertes = [], besoins }: BesoinsClientProps) {
+export function BesoinsClient({ alertes = [], arrivages, besoins }: BesoinsClientProps) {
   const [localBesoins, setLocalBesoins] = useState(besoins);
   const [query, setQuery] = useState("");
   const [urgence, setUrgence] = useState<(typeof urgenceLevels)[number]>("Toutes");
@@ -59,6 +71,10 @@ export function BesoinsClient({ alertes = [], besoins }: BesoinsClientProps) {
       return matchesUrgence && matchesQuery;
     });
   }, [localBesoins, query, urgence]);
+  const prioritiesByNeedId = useMemo(() => {
+    const opportunites = computeMatching(arrivages, localBesoins);
+    return new Map(computePrioritizationMetrics(arrivages, localBesoins, opportunites).besoinsPriorises.map((item) => [item.id, item]));
+  }, [arrivages, localBesoins]);
 
   function updateForm<Value extends keyof typeof initialForm>(field: Value, value: (typeof initialForm)[Value]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -176,6 +192,7 @@ export function BesoinsClient({ alertes = [], besoins }: BesoinsClientProps) {
                   <ColumnHeader>Espece</ColumnHeader>
                   <ColumnHeader>Quai</ColumnHeader>
                   <ColumnHeader>Quantite</ColumnHeader>
+                  <ColumnHeader>Priorite</ColumnHeader>
                   <ColumnHeader>Urgence</ColumnHeader>
                   <ColumnHeader>Commentaire</ColumnHeader>
                 </tr>
@@ -186,6 +203,9 @@ export function BesoinsClient({ alertes = [], besoins }: BesoinsClientProps) {
                     <Cell strong>{besoin.espece}</Cell>
                     <Cell>{besoin.quai}</Cell>
                     <Cell>{besoin.quantite}</Cell>
+                    <Cell>
+                      <PriorityBadge priority={prioritiesByNeedId.get(besoin.id)?.priorite ?? "Faible"} />
+                    </Cell>
                     <Cell>
                       <UrgenceBadge urgence={besoin.urgence} />
                     </Cell>
@@ -208,6 +228,7 @@ export function BesoinsClient({ alertes = [], besoins }: BesoinsClientProps) {
                 </div>
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   <MobileDetail label="Quantite" value={besoin.quantite} />
+                  <MobileDetail label="Priorite" value={prioritiesByNeedId.get(besoin.id)?.priorite ?? "Faible"} />
                   <MobileDetail label="Urgence" value={besoin.urgence} />
                 </div>
                 <p className="mt-4 rounded-2xl bg-white p-4 text-sm font-semibold leading-6 text-[#14312d]/70">{besoin.commentaire}</p>
@@ -324,6 +345,10 @@ function Cell({ children, strong = false }: { children: React.ReactNode; strong?
 
 function UrgenceBadge({ urgence }: { urgence: UrgenceLevel }) {
   return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${urgenceStyles[urgence]}`}>{urgence}</span>;
+}
+
+function PriorityBadge({ priority }: { priority: BusinessPriority }) {
+  return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${priorityStyles[getPriorityTone(priority)]}`}>{priority}</span>;
 }
 
 function MobileDetail({ label, value }: { label: string; value: string }) {

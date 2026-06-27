@@ -2,19 +2,34 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import type { Arrivage } from "@/lib/arrivages";
+import type { Besoin } from "@/lib/besoins";
 import { misesEnRelationStorageKey, reservationsStorageKey } from "@/lib/coordination";
 import type { MatchingSummary, Opportunite } from "@/lib/coordination";
+import { computePrioritizationMetrics, getPriorityTone } from "@/lib/prioritization";
+import type { BusinessPriority } from "@/lib/prioritization";
 import { coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 import { getOpportunityTrust, getTrustLevel, getTrustTone } from "@/lib/trust";
 
 type OpportunitesViewProps = {
+  arrivages: Arrivage[];
+  besoins: Besoin[];
   opportunites: Opportunite[];
   summary: MatchingSummary;
 };
 
-export function OpportunitesView({ opportunites, summary }: OpportunitesViewProps) {
+const priorityStyles = {
+  low: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+  medium: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+  high: "bg-[#ffe8cc] text-[#9a3412] ring-[#fdba74]",
+  critical: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+};
+
+export function OpportunitesView({ arrivages, besoins, opportunites, summary }: OpportunitesViewProps) {
   const [contactsInities, setContactsInities] = useState<string[]>([]);
   const [reservedIds, setReservedIds] = useState<string[]>([]);
+  const [simulatedArrivages, setSimulatedArrivages] = useState<Arrivage[]>([]);
+  const [simulatedBesoins, setSimulatedBesoins] = useState<Besoin[]>([]);
   const [simulatedOpportunites, setSimulatedOpportunites] = useState<Opportunite[]>([]);
   const [confirmation, setConfirmation] = useState("");
 
@@ -34,10 +49,18 @@ export function OpportunitesView({ opportunites, summary }: OpportunitesViewProp
 
   useEffect(() => {
     const simulation = parseCoordinationSimulation(window.localStorage.getItem(coordinationSimulationStorageKey));
+    setSimulatedArrivages(simulation?.arrivages ?? []);
+    setSimulatedBesoins(simulation?.besoins ?? []);
     setSimulatedOpportunites(simulation?.opportunites ?? []);
   }, []);
 
+  const allArrivages = useMemo(() => [...simulatedArrivages, ...arrivages], [arrivages, simulatedArrivages]);
+  const allBesoins = useMemo(() => [...simulatedBesoins, ...besoins], [besoins, simulatedBesoins]);
   const allOpportunites = useMemo(() => [...simulatedOpportunites, ...opportunites], [opportunites, simulatedOpportunites]);
+  const prioritiesByOpportunityId = useMemo(
+    () => new Map(computePrioritizationMetrics(allArrivages, allBesoins, allOpportunites).opportunitesPriorisees.map((item) => [item.id, item])),
+    [allArrivages, allBesoins, allOpportunites]
+  );
 
   const displayedOpportunites = useMemo(
     () =>
@@ -98,6 +121,7 @@ export function OpportunitesView({ opportunites, summary }: OpportunitesViewProp
                   <ColumnHeader>Demandeur</ColumnHeader>
                   <ColumnHeader>Acteur concerne</ColumnHeader>
                   <ColumnHeader>Score</ColumnHeader>
+                  <ColumnHeader>Priorite</ColumnHeader>
                   <ColumnHeader>Confiance</ColumnHeader>
                   <ColumnHeader>Statut</ColumnHeader>
                   <ColumnHeader>Actions</ColumnHeader>
@@ -112,6 +136,9 @@ export function OpportunitesView({ opportunites, summary }: OpportunitesViewProp
                     <Cell>{opportunite.acheteur}</Cell>
                     <Cell>{opportunite.vendeur}</Cell>
                     <Cell>Compatible à {opportunite.scoreCompatibilite}%</Cell>
+                    <Cell>
+                      <PriorityBadge priority={prioritiesByOpportunityId.get(opportunite.id)?.priorite ?? "Faible"} />
+                    </Cell>
                     <Cell>
                       <TrustBadge score={getOpportunityTrust(opportunite).scoreMoyen} />
                     </Cell>
@@ -151,6 +178,7 @@ export function OpportunitesView({ opportunites, summary }: OpportunitesViewProp
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   <MobileDetail label="Quantite" value={opportunite.quantite} />
                   <MobileDetail label="Score" value={`Compatible à ${opportunite.scoreCompatibilite}%`} />
+                  <MobileDetail label="Priorite" value={prioritiesByOpportunityId.get(opportunite.id)?.priorite ?? "Faible"} />
                   <MobileDetail label="Confiance" value={getTrustLevel(getOpportunityTrust(opportunite).scoreMoyen)} />
                 </div>
                 <div className="mt-4 grid gap-3">
@@ -215,6 +243,10 @@ function TrustBadge({ score }: { score: number }) {
   };
 
   return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{getTrustLevel(score)}</span>;
+}
+
+function PriorityBadge({ priority }: { priority: BusinessPriority }) {
+  return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${priorityStyles[getPriorityTone(priority)]}`}>{priority}</span>;
 }
 
 function MobileDetail({ label, value }: { label: string; value: string }) {

@@ -9,5 +9,5 @@ export default function OpportunitesPage() {
   const opportunites = computeMatching(arrivages, besoins);
   const summary = computeMatchingSummary(arrivages, besoins, opportunites);
 
-  return <OpportunitesView opportunites={opportunites} summary={summary} />;
+  return <OpportunitesView arrivages={arrivages} besoins={besoins} opportunites={opportunites} summary={summary} />;
 }

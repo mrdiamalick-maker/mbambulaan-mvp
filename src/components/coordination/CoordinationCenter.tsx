@@ -8,6 +8,7 @@ import { computeDashboardMetrics, computeMatching, computeTransactionMetrics, co
 import type { Opportunite, Transaction, TransactionStatus } from "@/lib/coordination";
 import { computeImpactMetrics } from "@/lib/impact";
 import type { NotificationMetier } from "@/lib/notifications";
+import { computePrioritizationMetrics, getPriorityTone } from "@/lib/prioritization";
 import { getRecommendationTone, getTopRecommendations } from "@/lib/recommendation";
 import { createCoordinationSimulation, coordinationSimulationStorageKey, parseCoordinationSimulation } from "@/lib/simulation";
 import { computeTensionMetrics, getTensionTone } from "@/lib/tension";
@@ -59,6 +60,7 @@ export function CoordinationCenter({ arrivages, besoins, opportunites, notificat
   const recommendedActors = useMemo(() => getRecommendedActors(5), []);
   const impact = useMemo(() => computeImpactMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
   const tensions = useMemo(() => computeTensionMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
+  const priorities = useMemo(() => computePrioritizationMetrics(allArrivages, allBesoins, allOpportunites, transactions), [allArrivages, allBesoins, allOpportunites, transactions]);
 
   const waitingArrivages = allArrivages.filter((arrivage) => arrivage.statut === "Disponible" && !ignoredArrivageIds.includes(arrivage.id));
   const coveredBesoinIds = new Set(allOpportunites.map((opportunite) => opportunite.besoinId));
@@ -152,6 +154,22 @@ export function CoordinationCenter({ arrivages, besoins, opportunites, notificat
         </section>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
+          <Panel title="File des priorités">
+            <div className="grid gap-3">
+              {priorities.actionsPrioritaires.map((action) => (
+                <Link key={action.id} href={action.href} className="rounded-2xl bg-[#f7f4ec] p-5 transition hover:bg-[#eee7d7]">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-lg font-black">{action.titre}</p>
+                      <p className="mt-1 text-sm font-semibold text-[#14312d]/65">{action.description}</p>
+                    </div>
+                    <PriorityBadge priority={action.priorite} />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </Panel>
+
           <Panel title="Actions prioritaires">
             <div className="grid gap-3">
               {tensions.recommandations.map((recommandation) => (
@@ -482,4 +500,16 @@ function TensionBadge({ level }: { level: "Faible" | "Moyenne" | "Forte" | "Crit
   };
 
   return <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{level}</span>;
+}
+
+function PriorityBadge({ priority }: { priority: "Critique" | "Haute" | "Moyenne" | "Faible" }) {
+  const tone = getPriorityTone(priority);
+  const styles = {
+    low: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+    medium: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    high: "bg-[#ffe8cc] text-[#9a3412] ring-[#fdba74]",
+    critical: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{priority}</span>;
 }

@@ -6,7 +6,6 @@ import { computeAlerts, computeMatching } from "@/lib/coordination";
 export default function BesoinsPage() {
   const arrivages = getArrivages();
   const besoins = getBesoins();
-  const alertes = computeAlerts(arrivages, besoins, computeMatching(arrivages, besoins));
 
-  return <BesoinsClient key={alertes.length} besoins={besoins} />;
+  return <BesoinsClient alertes={computeAlerts(arrivages, besoins, computeMatching(arrivages, besoins))} arrivages={arrivages} besoins={besoins} />;
 }

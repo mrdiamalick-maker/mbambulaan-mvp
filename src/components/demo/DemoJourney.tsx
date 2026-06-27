@@ -7,6 +7,7 @@ import type { Besoin } from "@/lib/besoins";
 import { computeMatching } from "@/lib/coordination";
 import type { DemoJourney as DemoJourneyData } from "@/lib/demo";
 import { computeImpactMetrics } from "@/lib/impact";
+import { computePrioritizationMetrics, getPriorityTone } from "@/lib/prioritization";
 import { createCoordinationSimulation, coordinationSimulationStorageKey } from "@/lib/simulation";
 import type { CoordinationSimulation } from "@/lib/simulation";
 import { computeTensionMetrics, getTensionTone } from "@/lib/tension";
@@ -31,6 +32,13 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
       simulation
         ? computeTensionMetrics([...simulation.arrivages, ...arrivages], [...simulation.besoins, ...besoins], simulation.opportunites, simulation.transactions)
         : computeTensionMetrics(arrivages, besoins, baseOpportunites),
+    [arrivages, baseOpportunites, besoins, simulation]
+  );
+  const priorities = useMemo(
+    () =>
+      simulation
+        ? computePrioritizationMetrics([...simulation.arrivages, ...arrivages], [...simulation.besoins, ...besoins], simulation.opportunites, simulation.transactions)
+        : computePrioritizationMetrics(arrivages, besoins, baseOpportunites),
     [arrivages, baseOpportunites, besoins, simulation]
   );
   const displayedImpact = demoLaunched
@@ -211,6 +219,31 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
         </section>
 
         <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8">
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Décision assistée par Mbàmbulaan</p>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-2xl bg-[#f7f4ec] p-5">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">Action à traiter</p>
+              <p className="mt-2 text-2xl font-black">{priorities.actionsPrioritaires[0]?.titre ?? "Aucune action prioritaire"}</p>
+              <p className="mt-2 text-sm font-bold leading-6 text-[#14312d]/65">{priorities.actionsPrioritaires[0]?.description ?? "Les données mock restent équilibrées."}</p>
+              {priorities.actionsPrioritaires[0] ? <PriorityBadge priority={priorities.actionsPrioritaires[0].priorite} /> : null}
+            </div>
+            <div className="grid gap-3">
+              {priorities.actionsPrioritaires.slice(1, 4).map((action) => (
+                <Link key={action.id} href={action.href} className="rounded-2xl bg-[#f7f4ec] p-5 transition hover:bg-[#eee7d7]">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-lg font-black">{action.titre}</p>
+                      <p className="mt-1 text-sm font-semibold text-[#14312d]/65">{action.description}</p>
+                    </div>
+                    <PriorityBadge priority={action.priorite} />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8">
           <h2 className="text-2xl font-black">Explorer les modules</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {moduleLinks.filter((item) => item.href !== "/demo").map((item) => (
@@ -292,4 +325,16 @@ function TensionBadge({ level }: { level: "Faible" | "Moyenne" | "Forte" | "Crit
   };
 
   return <span className={`mt-4 inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{level}</span>;
+}
+
+function PriorityBadge({ priority }: { priority: "Critique" | "Haute" | "Moyenne" | "Faible" }) {
+  const tone = getPriorityTone(priority);
+  const styles = {
+    low: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
+    medium: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
+    high: "bg-[#ffe8cc] text-[#9a3412] ring-[#fdba74]",
+    critical: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]"
+  };
+
+  return <span className={`mt-4 inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[tone]}`}>{priority}</span>;
 }
