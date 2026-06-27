@@ -1,0 +1,8 @@
+{
+  "scenarioTitle": "Parcours coordonne Joal",
+  "scenarioSummary": "Une demonstration du flux complet depuis le debarquement jusqu'au pilotage territorial.",
+  "arrivageId": "arr-004",
+  "besoinId": "bes-004",
+  "reservedBy": "Transformateur pilote Joal",
+  "transactionStatus": "En cours de retrait"
+}

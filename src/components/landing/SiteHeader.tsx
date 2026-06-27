@@ -4,6 +4,7 @@ import { computeDashboardMetrics, computeMatching } from "@/lib/coordination";
 import { countUnreadNotifications, createNotifications } from "@/lib/notifications";
 
 const links = [
+  { href: "/demo", label: "Démo" },
   { href: "/arrivages", label: "Arrivages" },
   { href: "/besoins", label: "Besoins" },
   { href: "/opportunites", label: "Opportunites" },
