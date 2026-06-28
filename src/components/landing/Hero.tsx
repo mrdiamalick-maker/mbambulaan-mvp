@@ -1,55 +1,50 @@
-import { ActorNode } from "@/components/ui/ActorNode";
 import { Button } from "@/components/ui/Button";
-import { FlowStep } from "@/components/ui/FlowStep";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
-const flow = [
-  { title: "Pêcheur", detail: "Déclare le lot" },
-  { title: "Lot", detail: "Sardinelle · Kayar" },
-  { title: "Besoin", detail: "Volume recherché" },
-  { title: "Opportunité", detail: "Matching détecté" },
-  { title: "Transaction", detail: "Retrait suivi" },
-  { title: "Impact", detail: "Volume valorisé" },
-  { title: "Décision", detail: "Action priorisée" }
+const demoReasons = [
+  { label: "Avant", text: "Informations dispersées" },
+  { label: "Pendant", text: "Mbàmbulaan connecte les acteurs" },
+  { label: "Après", text: "La filière devient lisible et pilotable" }
 ];
 
-const actors = [
-  { role: "Pêcheur", action: "déclarer un lot", tone: "success" as const },
-  { role: "Mareyeur", action: "réserver rapidement", tone: "info" as const },
-  { role: "Transformateur", action: "capter un surplus", tone: "warning" as const },
-  { role: "Collectivité", action: "suivre les tensions", tone: "impact" as const },
-  { role: "Administration", action: "décider avec l’impact", tone: "dark" as const }
-];
+const actors = ["Pêcheur", "Mareyeur", "Transformateur", "Collectivité", "Administration"];
 
-const proofs = [
-  { title: "Visibilité des arrivages", text: "Les lots débarqués deviennent visibles et exploitables." },
-  { title: "Traçabilité des lots", text: "Chaque lot garde un fil depuis le quai jusqu’à la transaction." },
-  { title: "Lecture territoriale", text: "Les tensions et impacts éclairent les décisions publiques." }
+const outputs = ["Opportunité détectée", "Transaction suivie", "Impact mesuré", "Décision recommandée"];
+
+const modules = [
+  { name: "Arrivages", role: "Rendre les lots visibles", href: "/arrivages" },
+  { name: "Besoins", role: "Qualifier la demande", href: "/besoins" },
+  { name: "Opportunités", role: "Détecter les correspondances", href: "/opportunites" },
+  { name: "Transactions", role: "Suivre les retraits", href: "/transactions" },
+  { name: "Traçabilité", role: "Suivre chaque lot", href: "/opportunites" },
+  { name: "Dashboard", role: "Piloter l’activité", href: "/dashboard" },
+  { name: "Coordination", role: "Prioriser les actions", href: "/coordination" },
+  { name: "Executive", role: "Lire la décision", href: "/executive" }
 ];
 
 export function Hero() {
   return (
-    <section id="accueil" className="bg-[#F7F2E8]">
+    <section id="accueil" className="bg-white">
       <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:py-14">
-        <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
+        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>
             <div className="flex items-center gap-3">
               <div
-                className="h-11 w-11 rounded-2xl border border-[#0F2D4A]/10 bg-white bg-contain bg-center bg-no-repeat shadow-sm"
+                className="h-14 w-14 rounded-2xl bg-white bg-contain bg-center bg-no-repeat ring-1 ring-[#0F2D4A]/10"
                 style={{ backgroundImage: "url('/images/mbambulaan/mbambulaan-logo.webp')" }}
                 aria-hidden="true"
               />
               <div>
+                <p className="text-sm font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Coordination maritime</p>
                 <p className="text-lg font-black text-[#0F2D4A]">Mbàmbulaan</p>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#1F6F8B]">Coordination maritime</p>
               </div>
             </div>
 
-            <h1 className="mt-6 max-w-3xl text-3xl font-black leading-[1.1] text-[#0F2D4A] sm:text-5xl">
+            <h1 className="mt-7 max-w-3xl text-4xl font-black leading-[1.06] text-[#0F2D4A] sm:text-5xl">
               Coordonner la pêche artisanale, du quai à la décision.
             </h1>
-            <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-[#0F2D4A]/68">
+            <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-[#334155]">
               Mbàmbulaan rend visibles les arrivages, connecte les besoins, suit les lots et mesure l’impact territorial.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -60,70 +55,104 @@ export function Hero() {
             </div>
           </div>
 
-          <ProductCard className="overflow-hidden bg-white p-0">
+          <div className="relative overflow-hidden rounded-[2rem] bg-[#F8FAFC] p-4 ring-1 ring-[#0F2D4A]/8">
             <div
-              className="min-h-[19rem] bg-[#0F2D4A] bg-cover bg-center p-4 sm:p-5"
+              className="min-h-[22rem] rounded-[1.5rem] bg-[#EAF6F8] bg-cover bg-center"
               style={{
                 backgroundImage:
-                  "linear-gradient(90deg, rgba(15,45,74,0.72), rgba(15,45,74,0.16)), url('/images/mbambulaan/hero-pirogue.webp')"
+                  "linear-gradient(90deg, rgba(255,255,255,0.94), rgba(255,255,255,0.62)), url('/images/mbambulaan/sea-slider.webp')"
               }}
             >
-              <div className="grid h-full gap-4 xl:grid-cols-[1fr_0.82fr] xl:items-end">
-                <div className="rounded-2xl bg-white/92 p-5 shadow-sm backdrop-blur">
-                  <StatusBadge tone="success">Lot suivi</StatusBadge>
-                  <p className="mt-4 text-2xl font-black text-[#0F2D4A]">Sardinelle ronde</p>
-                  <p className="mt-2 text-sm font-bold text-[#0F2D4A]/62">Kayar · 700 kg · qualité contrôlée</p>
-                  <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                    {["Arrivage déclaré", "Opportunité détectée", "Impact mesuré"].map((item) => (
-                      <div key={item} className="rounded-xl bg-[#F7F2E8] p-3 text-xs font-black text-[#0F2D4A]">
-                        {item}
-                      </div>
-                    ))}
-                  </div>
+              <div className="flex min-h-[22rem] flex-col justify-between p-5 sm:p-7">
+                <div className="max-w-sm">
+                  <StatusBadge tone="info">Lot suivi</StatusBadge>
+                  <p className="mt-4 text-3xl font-black text-[#0F2D4A]">Sardinelle ronde</p>
+                  <p className="mt-2 text-sm font-bold text-[#334155]">Kayar · 700 kg · qualité contrôlée</p>
                 </div>
-                <div className="grid gap-2">
-                  {["Transaction suivie", "Décision recommandée", "Tension territoriale lue"].map((item) => (
-                    <div key={item} className="rounded-2xl border border-white/25 bg-white/88 p-4 text-sm font-black text-[#0F2D4A] backdrop-blur">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {["Arrivage déclaré", "Besoin compatible", "Impact mesuré"].map((item) => (
+                    <div key={item} className="rounded-2xl bg-white/92 p-4 text-sm font-black text-[#0F2D4A] shadow-sm ring-1 ring-[#0F2D4A]/8 backdrop-blur">
                       {item}
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-          </ProductCard>
+          </div>
         </div>
 
-        <ProductCard className="mt-8">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#D85A34]">Ce que Mbàmbulaan coordonne</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
-            {flow.map((step, index) => (
-              <FlowStep key={step.title} active detail={step.detail} index={index + 1} status="lié" title={step.title} tone={index === 0 ? "success" : index > 4 ? "impact" : "info"} />
-            ))}
-          </div>
-        </ProductCard>
-
-        <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_0.78fr]">
-          <ProductCard>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#D85A34]">Acteurs</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {actors.map((actor) => (
-                <ActorNode key={actor.role} action={actor.action} role={actor.role} tone={actor.tone} />
-              ))}
+        <ProductCard className="mt-10 bg-[#F8FAFC]">
+          <div className="grid gap-5 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Pourquoi lancer la démo ?</p>
+              <h2 className="mt-2 text-2xl font-black text-[#0F2D4A]">Voir le changement complet, pas seulement les écrans.</h2>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[#334155]">
+                La démo montre le changement complet : un lot isolé devient une opportunité, une transaction suivie, un impact mesuré et une décision recommandée.
+              </p>
             </div>
-          </ProductCard>
-
-          <ProductCard>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#D85A34]">Preuves</p>
-            <div className="mt-4 grid gap-3">
-              {proofs.map((proof) => (
-                <div key={proof.title} className="rounded-2xl bg-[#F7F2E8] p-4">
-                  <p className="text-sm font-black text-[#0F2D4A]">{proof.title}</p>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-[#0F2D4A]/62">{proof.text}</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {demoReasons.map((reason) => (
+                <div key={reason.label} className="rounded-2xl bg-white p-4 ring-1 ring-[#0F2D4A]/8">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[#D85A34]">{reason.label}</p>
+                  <p className="mt-2 text-sm font-black leading-5 text-[#0F2D4A]">{reason.text}</p>
                 </div>
               ))}
             </div>
-          </ProductCard>
-        </div>
+          </div>
+        </ProductCard>
+
+        <ProductCard className="mt-6">
+          <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Ce que Mbàmbulaan coordonne</p>
+              <h2 className="mt-2 text-2xl font-black text-[#0F2D4A]">Une carte de coordination autour du lot.</h2>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[#334155]">
+                Le lot devient le point commun entre acteurs, besoins, transaction, impact et décision publique.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-[1fr_0.9fr]">
+              <div className="rounded-[1.75rem] bg-[#F8FAFC] p-5 ring-1 ring-[#0F2D4A]/8">
+                <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-white text-center text-sm font-black leading-5 text-[#0F2D4A] shadow-sm ring-1 ring-[#1F6F8B]/18">
+                  Lot suivi
+                </div>
+                <div className="mt-5 grid grid-cols-2 gap-2">
+                  {actors.map((actor) => (
+                    <div key={actor} className="rounded-2xl bg-white px-3 py-2 text-center text-xs font-black text-[#334155] ring-1 ring-[#0F2D4A]/7">
+                      {actor}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-2">
+                {outputs.map((output) => (
+                  <div key={output} className="rounded-2xl bg-white p-4 text-sm font-black text-[#0F2D4A] ring-1 ring-[#1F6F8B]/16">
+                    {output}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </ProductCard>
+
+        <ProductCard className="mt-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Modules connectés</p>
+              <h2 className="mt-2 text-2xl font-black text-[#0F2D4A]">Explorer après avoir vu le scénario.</h2>
+            </div>
+            <Button href="/demo" variant="ghost">Commencer par la démo</Button>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {modules.map((module) => (
+              <a key={module.name} href={module.href} className="rounded-2xl bg-[#F8FAFC] p-4 ring-1 ring-[#0F2D4A]/8 transition hover:bg-white hover:shadow-sm">
+                <StatusBadge tone="neutral">Disponible</StatusBadge>
+                <p className="mt-3 text-base font-black text-[#0F2D4A]">{module.name}</p>
+                <p className="mt-1 text-sm font-semibold text-[#334155]">{module.role}</p>
+              </a>
+            ))}
+          </div>
+        </ProductCard>
       </div>
     </section>
   );

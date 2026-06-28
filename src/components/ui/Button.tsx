@@ -11,13 +11,13 @@ type ButtonProps = {
 } & ButtonHTMLAttributes<HTMLButtonElement>;
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: "bg-[#0F2D4A] text-white hover:bg-[#1F6F8B]",
-  secondary: "border border-[#0F2D4A]/20 bg-white text-[#0F2D4A] hover:border-[#1F6F8B]/60 hover:bg-[#F7F2E8]",
-  ghost: "bg-[#F7F2E8] text-[#0F2D4A] ring-1 ring-[#0F2D4A]/8 hover:bg-white"
+  primary: "bg-white text-[#0F2D4A] ring-1 ring-[#0F2D4A]/14 hover:bg-[#F8FAFC]",
+  secondary: "bg-transparent text-[#0F2D4A] ring-1 ring-[#1F6F8B]/18 hover:bg-[#F8FAFC]",
+  ghost: "bg-transparent text-[#334155] hover:bg-[#F8FAFC] hover:text-[#0F2D4A]"
 };
 
 export function Button({ children, className = "", href, type = "button", variant = "primary", ...props }: ButtonProps) {
-  const classes = `inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-black shadow-sm transition ${variantStyles[variant]} ${className}`;
+  const classes = `inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-black transition ${variantStyles[variant]} ${className}`;
 
   if (href) {
     return (

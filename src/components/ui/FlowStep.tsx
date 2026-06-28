@@ -13,9 +13,9 @@ type FlowStepProps = {
 
 export function FlowStep({ active = false, detail, href, index, status, title, tone = "neutral" }: FlowStepProps) {
   const content = (
-    <div className={`min-h-28 rounded-2xl border p-4 transition ${active ? "border-[#14312d]/30 bg-white shadow-sm" : "border-[#14312d]/8 bg-[#f7f9f8]"}`}>
+    <div className={`min-h-28 rounded-2xl border p-4 transition ${active ? "border-[#1F6F8B]/24 bg-white shadow-sm" : "border-[#0F2D4A]/8 bg-[#F8FAFC]"}`}>
       <div className="flex items-start justify-between gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#14312d] text-xs font-black text-white">{index}</span>
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-black text-[#0F2D4A] ring-1 ring-[#1F6F8B]/24">{index}</span>
         <StatusBadge tone={tone}>{status}</StatusBadge>
       </div>
       <p className="mt-3 text-sm font-black text-[#14312d]">{title}</p>

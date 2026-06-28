@@ -11,7 +11,7 @@ export function ModuleCard({ as = "article", children, className = "", interacti
   const Component = as;
 
   return (
-    <Component className={`rounded-2xl bg-[#f8faf8] p-4 ring-1 ring-[#14312d]/8 transition sm:p-5 ${interactive ? "hover:-translate-y-0.5 hover:bg-white hover:shadow-sm" : ""} ${className}`}>
+    <Component className={`rounded-2xl bg-[#F8FAFC] p-4 ring-1 ring-[#0F2D4A]/8 transition sm:p-5 ${interactive ? "hover:-translate-y-0.5 hover:bg-white hover:shadow-sm" : ""} ${className}`}>
       {children}
     </Component>
   );

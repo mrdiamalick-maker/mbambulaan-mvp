@@ -3,13 +3,14 @@ import { getBesoins } from "@/lib/besoins";
 import { computeDashboardMetrics, computeMatching } from "@/lib/coordination";
 import { countUnreadNotifications, createNotifications } from "@/lib/notifications";
 
-const links = [
+const explorerLinks = [
   { href: "/arrivages", label: "Arrivages" },
   { href: "/besoins", label: "Besoins" },
   { href: "/opportunites", label: "Opportunités" },
-  { href: "/coordination", label: "Coordination" },
+  { href: "/transactions", label: "Transactions" },
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/executive", label: "Executive" }
+  { href: "/coordination", label: "Coordination" },
+  { href: "/quais", label: "Quais" }
 ];
 
 export function SiteHeader() {
@@ -20,40 +21,50 @@ export function SiteHeader() {
   const unreadCount = countUnreadNotifications(createNotifications(arrivages, besoins, opportunites, dashboardData));
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#0F2D4A]/10 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8">
-        <a href="/" className="flex items-center gap-3 text-[#0F2D4A]">
+    <header className="sticky top-0 z-50 border-b border-[#0F2D4A]/8 bg-white/96 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
+        <a href="/" className="flex min-w-0 items-center gap-3 text-[#0F2D4A]">
           <span
-            className="h-9 w-9 rounded-xl border border-[#0F2D4A]/10 bg-[#F7F2E8] bg-contain bg-center bg-no-repeat"
+            className="h-11 w-11 shrink-0 rounded-2xl bg-white bg-contain bg-center bg-no-repeat ring-1 ring-[#0F2D4A]/10"
             style={{ backgroundImage: "url('/images/mbambulaan/mbambulaan-logo.webp')" }}
             aria-hidden="true"
           />
-          <span className="text-lg font-black tracking-wide">Mbàmbulaan</span>
+          <span className="min-w-0">
+            <span className="block truncate text-lg font-black tracking-wide">Mbàmbulaan</span>
+            <span className="hidden text-xs font-bold text-[#1F6F8B] sm:block">Plateforme de coordination maritime</span>
+          </span>
         </a>
-        <nav className="order-3 flex w-full items-center gap-2 overflow-x-auto text-sm font-bold text-[#0F2D4A]/70 lg:order-none lg:w-auto lg:gap-5 lg:overflow-visible">
-          {links.map((link) => (
-            <a key={link.href} href={link.href} className="whitespace-nowrap rounded-xl border border-[#0F2D4A]/10 px-3 py-2 transition hover:border-[#1F6F8B]/45 hover:bg-[#F7F2E8] hover:text-[#0F2D4A] lg:border-0 lg:px-0 lg:hover:bg-transparent">
-              {link.label}
-            </a>
-          ))}
+
+        <nav className="hidden items-center gap-6 text-sm font-bold text-[#334155] lg:flex">
+          <a href="/" className="transition hover:text-[#0F2D4A]">Accueil</a>
+          <a href="/demo" className="transition hover:text-[#0F2D4A]">Démo</a>
+          <a href="/executive" className="transition hover:text-[#0F2D4A]">Vue exécutive</a>
+          <details className="group relative">
+            <summary className="cursor-pointer list-none transition hover:text-[#0F2D4A]">Explorer</summary>
+            <div className="absolute right-0 top-8 hidden w-56 rounded-2xl bg-white p-2 shadow-xl ring-1 ring-[#0F2D4A]/10 group-open:grid">
+              {explorerLinks.map((link) => (
+                <a key={link.href} href={link.href} className="rounded-xl px-3 py-2 text-sm font-bold text-[#334155] transition hover:bg-[#F8FAFC] hover:text-[#0F2D4A]">
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          </details>
         </nav>
+
         <div className="flex items-center gap-2">
-          <a href="/executive" className="hidden rounded-xl border border-[#0F2D4A]/15 px-3 py-2 text-sm font-bold text-[#0F2D4A] transition hover:border-[#1F6F8B]/50 sm:inline-flex sm:px-4">
-            Vue exécutive
-          </a>
-          <a href="/notifications" className="relative rounded-xl border border-[#0F2D4A]/15 px-3 py-2 text-sm font-bold text-[#0F2D4A] transition hover:border-[#1F6F8B]/50 sm:px-4">
+          <a href="/notifications" className="relative hidden rounded-xl px-3 py-2 text-sm font-bold text-[#334155] transition hover:bg-[#F8FAFC] hover:text-[#0F2D4A] sm:inline-flex">
             Notifications
             {unreadCount > 0 ? (
-              <span className="absolute -right-2 -top-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#D85A34] px-2 text-xs font-black text-white">
+              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#D85A34] px-1.5 text-[0.65rem] font-black text-white">
                 {unreadCount}
               </span>
             ) : null}
           </a>
-          <a
-            href="/demo"
-            className="rounded-xl bg-[#0F2D4A] px-4 py-2 text-sm font-black text-white transition hover:bg-[#1F6F8B]"
-          >
-            Démo
+          <a href="/executive" className="hidden rounded-xl px-3 py-2 text-sm font-bold text-[#334155] transition hover:bg-[#F8FAFC] hover:text-[#0F2D4A] md:inline-flex">
+            Vue exécutive
+          </a>
+          <a href="/demo" className="rounded-xl bg-white px-4 py-2 text-sm font-black text-[#0F2D4A] ring-1 ring-[#1F6F8B]/22 transition hover:bg-[#F8FAFC]">
+            Lancer la démo
           </a>
         </div>
       </div>
