@@ -10,13 +10,13 @@ type StatusBadgeProps = {
 };
 
 const toneStyles: Record<StatusTone, string> = {
-  success: "bg-[#d8f3dc] text-[#1b5e20] ring-[#95d5b2]",
-  warning: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]",
-  info: "bg-[#dbeafe] text-[#174ea6] ring-[#93c5fd]",
-  danger: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]",
-  neutral: "bg-white text-[#14312d]/65 ring-[#14312d]/10",
-  dark: "bg-[#14312d] text-white ring-[#14312d]",
-  impact: "bg-[#e8f7f2] text-[#0f5132] ring-[#9ad6bf]"
+  success: "bg-[#EAF6F8] text-[#0B3B2E] ring-[#1F6F8B]/25",
+  warning: "bg-[#FFF4D9] text-[#71520f] ring-[#E8C76A]/60",
+  info: "bg-[#E7F1F6] text-[#0F2D4A] ring-[#1F6F8B]/30",
+  danger: "bg-[#FBE8E2] text-[#8f321d] ring-[#D85A34]/30",
+  neutral: "bg-white text-[#0F2D4A]/65 ring-[#0F2D4A]/10",
+  dark: "bg-[#0F2D4A] text-white ring-[#0F2D4A]",
+  impact: "bg-[#EAF3EE] text-[#0B3B2E] ring-[#0B3B2E]/20"
 };
 
 export function StatusBadge({ children, className = "", label, tone = "neutral" }: StatusBadgeProps) {

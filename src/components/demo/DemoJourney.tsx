@@ -86,19 +86,27 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
         </nav>
 
         <section className="mt-5 grid gap-4 lg:grid-cols-[0.72fr_1.28fr]">
-          <ProductCard className="flex flex-col justify-between gap-5" tone="plain">
+          <ProductCard className="flex flex-col justify-between gap-5 overflow-hidden p-0" tone="plain">
+            <div
+              className="bg-[#0F2D4A] bg-cover bg-center p-5 text-white"
+              style={{
+                backgroundImage:
+                  "linear-gradient(135deg, rgba(15,45,74,0.88), rgba(31,111,139,0.52)), url('/images/mbambulaan/sea-texture.webp')"
+              }}
+            >
             <div>
               <StatusBadge tone={running ? "success" : "neutral"}>{running ? "Simulation active" : "État initial"}</StatusBadge>
               <h1 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">Démonstration opérationnelle</h1>
-              <p className="mt-3 text-sm font-semibold leading-6 text-[#14312d]/66">Suivez un lot depuis le quai jusqu’à la décision.</p>
+              <p className="mt-3 text-sm font-semibold leading-6 text-white/76">Suivez un lot depuis le quai jusqu’à l’impact.</p>
+            </div>
             </div>
 
-            <div className="grid gap-3">
+            <div className="grid gap-3 px-5">
               <StateList active={!running} title="Avant" items={beforeState} />
               <StateList active={running} title="Après" items={afterState} />
             </div>
 
-            <Button onClick={launchSimulation} className="w-full">
+            <Button onClick={launchSimulation} className="mx-5 mb-5 w-[calc(100%-2.5rem)]">
               {running ? "Relancer la simulation" : "Lancer la simulation"}
             </Button>
           </ProductCard>
@@ -170,14 +178,14 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
 
 function StateList({ active, items, title }: { active: boolean; items: string[]; title: string }) {
   return (
-    <div className={`rounded-2xl border p-4 ${active ? "border-[#14312d]/20 bg-[#f7f9f8]" : "border-[#14312d]/8 bg-white text-[#14312d]/55"}`}>
+    <div className={`rounded-2xl border p-4 ${active ? "border-[#1F6F8B]/28 bg-[#EAF6F8]" : "border-[#0F2D4A]/8 bg-white text-[#0F2D4A]/55"}`}>
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-black">{title}</p>
         <StatusBadge tone={active ? "impact" : "neutral"}>{active ? "visible" : "référence"}</StatusBadge>
       </div>
       <div className="mt-3 grid gap-2">
         {items.map((item) => (
-          <div key={item} className="rounded-xl bg-white px-3 py-2 text-sm font-bold ring-1 ring-[#14312d]/8">
+          <div key={item} className="rounded-xl bg-white px-3 py-2 text-sm font-bold ring-1 ring-[#0F2D4A]/8">
             {item}
           </div>
         ))}
@@ -188,12 +196,21 @@ function StateList({ active, items, title }: { active: boolean; items: string[];
 
 function LivingLotCard({ lot, qualityScore, running }: { lot?: ReturnType<typeof computeTraceability>[number]; qualityScore?: number; running: boolean }) {
   return (
-    <ProductCard tone={running ? "active" : "soft"} className="min-h-full">
+    <ProductCard tone={running ? "active" : "soft"} className="min-h-full overflow-hidden p-0">
+      <div
+        className="h-28 bg-[#1F6F8B] bg-cover bg-center"
+        style={{
+          backgroundImage:
+            "linear-gradient(90deg, rgba(15,45,74,0.24), rgba(15,45,74,0.04)), url('/images/mbambulaan/fishermen-action.webp')"
+        }}
+        aria-hidden="true"
+      />
+      <div className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#d65a31]">Le lot vivant</p>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#D85A34]">Le lot vivant</p>
           <h2 className="mt-2 text-2xl font-black">{running ? (lot?.espece ?? "Sardinelle ronde") : "Lot non suivi"}</h2>
-          <p className="mt-1 text-sm font-semibold text-[#14312d]/62">{running ? (lot ? `${lot.quai} · ${lot.lotId}` : "Kayar · lot pilote") : "Aucune vue partagée"}</p>
+          <p className="mt-1 text-sm font-semibold text-[#0F2D4A]/62">{running ? (lot ? `${lot.quai} · ${lot.lotId}` : "Kayar · lot pilote") : "Aucune vue partagée"}</p>
         </div>
         <StatusBadge tone={running ? "success" : "neutral"}>{running ? "actif" : "isolé"}</StatusBadge>
       </div>
@@ -207,11 +224,12 @@ function LivingLotCard({ lot, qualityScore, running }: { lot?: ReturnType<typeof
         <MetricCard label="Transaction" value={running ? (lot?.transactionLiee?.statut ?? "À créer") : "Absente"} size="compact" tone="default" />
       </div>
 
-      <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-[#14312d]/8">
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">Traçabilité</p>
-        <p className="mt-2 text-sm font-bold leading-6 text-[#14312d]/66">
+      <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-[#0F2D4A]/8">
+        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#D85A34]">Traçabilité</p>
+        <p className="mt-2 text-sm font-bold leading-6 text-[#0F2D4A]/66">
           {running ? (lot?.historique.slice(0, 4).map((event) => event.titre).join(" → ") ?? "Arrivage → Opportunité → Réservation → Transaction") : "Non disponible"}
         </p>
+      </div>
       </div>
     </ProductCard>
   );
@@ -225,16 +243,16 @@ function DecisionPanel({ active, alert, decision, tension, zone }: { active: boo
       <p className={`mt-2 text-sm font-semibold leading-6 ${active ? "text-white/72" : "text-[#14312d]/62"}`}>
         {active ? (alert ?? tension ?? "700 kg demandés, tension critique.") : "Les arbitrages restent faits par téléphone."}
       </p>
-      <p className={`mt-4 text-xs font-black uppercase tracking-[0.12em] ${active ? "text-[#f5c85d]" : "text-[#d65a31]"}`}>{zone ?? "Hann"}</p>
+      <p className={`mt-4 text-xs font-black uppercase tracking-[0.12em] ${active ? "text-[#F7F2E8]" : "text-[#D85A34]"}`}>{zone ?? "Hann"}</p>
     </ProductCard>
   );
 }
 
 function DecisionLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[#14312d]/8 bg-[#f7f9f8] p-4">
-      <p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">{label}</p>
-      <p className="mt-2 text-sm font-black leading-6 text-[#14312d]/78">{value}</p>
+    <div className="rounded-2xl border border-[#0F2D4A]/8 bg-[#F7F2E8] p-4">
+      <p className="text-xs font-black uppercase tracking-[0.12em] text-[#D85A34]">{label}</p>
+      <p className="mt-2 text-sm font-black leading-6 text-[#0F2D4A]/78">{value}</p>
     </div>
   );
 }

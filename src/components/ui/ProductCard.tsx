@@ -7,10 +7,10 @@ type ProductCardProps = {
 };
 
 const toneStyles = {
-  plain: "border-[#14312d]/10 bg-white text-[#14312d]",
-  soft: "border-[#14312d]/8 bg-[#f7f9f8] text-[#14312d]",
-  active: "border-[#7fc7a4] bg-[#eef8f1] text-[#14312d]",
-  dark: "border-[#14312d] bg-[#14312d] text-white"
+  plain: "border-[#0F2D4A]/10 bg-white text-[#0F2D4A]",
+  soft: "border-[#0F2D4A]/8 bg-[#F7F2E8] text-[#0F2D4A]",
+  active: "border-[#1F6F8B]/35 bg-[#EAF6F8] text-[#0F2D4A]",
+  dark: "border-[#0F2D4A] bg-[#0F2D4A] text-white"
 };
 
 export function ProductCard({ children, className = "", tone = "plain" }: ProductCardProps) {
