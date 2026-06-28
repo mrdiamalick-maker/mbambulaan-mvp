@@ -49,10 +49,13 @@ export function Hero() {
               Coordonner la pêche artisanale, du quai à la décision.
             </h1>
             <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-[#334155]">
-              Mbàmbulaan rend visibles les arrivages, connecte les besoins, suit les lots et mesure l’impact territorial.
+              Mbàmbulaan coordonne les arrivages, les besoins, les lots et les décisions de la pêche artisanale.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Button href="/demo">Voir la démonstration</Button>
+              <Button href="/parcours" variant="secondary">
+                Choisir mon parcours
+              </Button>
               <Button href="/executive" variant="secondary">
                 Vue exécutive
               </Button>
@@ -184,7 +187,7 @@ export function Hero() {
               <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Modules connectés</p>
               <h2 className="mt-2 text-2xl font-black text-[#0F2D4A]">Explorer après avoir vu le scénario.</h2>
             </div>
-            <Button href="/demo" variant="ghost">Commencer par la démo</Button>
+            <Button href="/parcours" variant="ghost">Choisir un parcours</Button>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {modules.map((module) => (
