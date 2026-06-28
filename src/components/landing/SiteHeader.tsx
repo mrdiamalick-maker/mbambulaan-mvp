@@ -3,16 +3,6 @@ import { getBesoins } from "@/lib/besoins";
 import { computeDashboardMetrics, computeMatching } from "@/lib/coordination";
 import { countUnreadNotifications, createNotifications } from "@/lib/notifications";
 
-const explorerLinks = [
-  { href: "/arrivages", label: "Arrivages" },
-  { href: "/besoins", label: "Besoins" },
-  { href: "/opportunites", label: "Opportunités" },
-  { href: "/transactions", label: "Transactions" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/coordination", label: "Coordination" },
-  { href: "/quais", label: "Quais" }
-];
-
 export function SiteHeader() {
   const arrivages = getArrivages();
   const besoins = getBesoins();
@@ -38,17 +28,8 @@ export function SiteHeader() {
         <nav className="hidden items-center gap-6 text-sm font-bold text-white/78 lg:flex">
           <a href="/" className="transition hover:text-white">Accueil</a>
           <a href="/demo" className="transition hover:text-white">Démo</a>
+          <a href="/parcours" className="transition hover:text-white">Parcours</a>
           <a href="/executive" className="transition hover:text-white">Executive</a>
-          <details className="group relative">
-            <summary className="cursor-pointer list-none transition hover:text-white">Explorer</summary>
-            <div className="absolute right-0 top-8 hidden w-56 rounded-2xl bg-white p-2 text-[#0F2D4A] shadow-xl ring-1 ring-[#0F2D4A]/10 group-open:grid">
-              {explorerLinks.map((link) => (
-                <a key={link.href} href={link.href} className="rounded-xl px-3 py-2 text-sm font-bold text-[#334155] transition hover:bg-[#F8FAFC] hover:text-[#0F2D4A]">
-                  {link.label}
-                </a>
-              ))}
-            </div>
-          </details>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -60,8 +41,8 @@ export function SiteHeader() {
               </span>
             ) : null}
           </a>
-          <a href="/executive" className="hidden rounded-xl px-3 py-2 text-sm font-bold text-white/76 transition hover:bg-white/10 hover:text-white md:inline-flex">
-            Executive
+          <a href="/parcours" className="hidden rounded-xl px-3 py-2 text-sm font-bold text-white/76 transition hover:bg-white/10 hover:text-white md:inline-flex">
+            Parcours
           </a>
           <a href="/demo" className="rounded-xl bg-white px-4 py-2 text-sm font-black text-[#0F2D4A] transition hover:bg-[#F8FAFC]">
             Lancer la démo
