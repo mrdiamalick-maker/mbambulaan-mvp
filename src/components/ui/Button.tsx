@@ -11,8 +11,8 @@ type ButtonProps = {
 } & ButtonHTMLAttributes<HTMLButtonElement>;
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: "bg-white text-[#0F2D4A] ring-1 ring-[#0F2D4A]/14 hover:bg-[#F8FAFC]",
-  secondary: "bg-transparent text-[#0F2D4A] ring-1 ring-[#1F6F8B]/18 hover:bg-[#F8FAFC]",
+  primary: "bg-[#1F6F8B] text-white shadow-sm shadow-[#1F6F8B]/20 hover:bg-[#0F2D4A]",
+  secondary: "bg-white text-[#0F2D4A] ring-1 ring-[#E2E8F0] hover:bg-[#F8FAFC]",
   ghost: "bg-transparent text-[#334155] hover:bg-[#F8FAFC] hover:text-[#0F2D4A]"
 };
 

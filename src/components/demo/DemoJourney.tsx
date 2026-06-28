@@ -14,6 +14,7 @@ import { createCoordinationSimulation, coordinationSimulationStorageKey } from "
 import type { CoordinationSimulation } from "@/lib/simulation";
 import { computeTensionMetrics } from "@/lib/tension";
 import { computeTraceability } from "@/lib/traceability";
+import { ActorNode } from "@/components/ui/ActorNode";
 import { Button } from "@/components/ui/Button";
 import { FlowStep } from "@/components/ui/FlowStep";
 import { MetricCard } from "@/components/ui/MetricCard";
@@ -144,6 +145,15 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
           </div>
         </ProductCard>
 
+        <ProductCard className="mt-5">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Acteurs mobilisés</p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {stakeholders.map((actor) => (
+              <ActorNode key={actor.role} active={running} action={actor.action} benefit={actor.benefit} role={actor.role} tone={actor.tone} />
+            ))}
+          </div>
+        </ProductCard>
+
         <section className="mt-5 grid gap-5 lg:grid-cols-[0.72fr_1.28fr]">
           <ProductCard className="bg-[#F8FAFC]">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Par où commencer ?</p>
@@ -266,3 +276,11 @@ const beforeState = ["Arrivage isolé", "Besoin invisible", "Transaction informe
 const afterState = ["Lot suivi", "Opportunité détectée", "Transaction suivie", "Impact mesuré", "Décision recommandée"];
 
 const startSteps = ["Lancer la simulation", "Observer le lot suivi", "Voir la décision recommandée", "Explorer les modules si besoin"];
+
+const stakeholders = [
+  { role: "Pêcheur", action: "Déclare le lot", benefit: "Visibilité immédiate", tone: "success" as const },
+  { role: "Mareyeur", action: "Réserve", benefit: "Accès au bon volume", tone: "info" as const },
+  { role: "Transformateur", action: "Capte un surplus", benefit: "Moins de perte", tone: "warning" as const },
+  { role: "Collectivité", action: "Suit les tensions", benefit: "Lecture territoriale", tone: "impact" as const },
+  { role: "Administration", action: "Décide", benefit: "Priorités consolidées", tone: "dark" as const }
+];

@@ -12,6 +12,8 @@ const actors = ["Pêcheur", "Mareyeur", "Transformateur", "Collectivité", "Admi
 
 const outputs = ["Opportunité détectée", "Transaction suivie", "Impact mesuré", "Décision recommandée"];
 
+const steps = ["Arrivage", "Besoin", "Opportunité", "Transaction", "Impact", "Décision"];
+
 const modules = [
   { name: "Arrivages", role: "Rendre les lots visibles", href: "/arrivages" },
   { name: "Besoins", role: "Qualifier la demande", href: "/besoins" },
@@ -81,6 +83,25 @@ export function Hero() {
           </div>
         </div>
 
+        <ProductCard className="mt-10">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Comment ça marche</p>
+              <h2 className="mt-2 text-2xl font-black text-[#0F2D4A]">Un parcours court, du signal terrain à la décision.</h2>
+            </div>
+            <StatusBadge tone="info">Flux complet</StatusBadge>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-6">
+            {steps.map((step, index) => (
+              <div key={step} className="relative rounded-2xl bg-[#F8FAFC] p-4 ring-1 ring-[#E2E8F0]">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-xs font-black text-[#0F2D4A] ring-1 ring-[#1F6F8B]/20">{index + 1}</span>
+                <p className="mt-4 text-sm font-black text-[#0F2D4A]">{step}</p>
+                {index < steps.length - 1 ? <span className="absolute -right-2 top-1/2 hidden h-px w-4 bg-[#1F6F8B]/30 md:block" /> : null}
+              </div>
+            ))}
+          </div>
+        </ProductCard>
+
         <ProductCard className="mt-10 bg-[#F8FAFC]">
           <div className="grid gap-5 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
             <div>
@@ -97,6 +118,22 @@ export function Hero() {
                   <p className="mt-2 text-sm font-black leading-5 text-[#0F2D4A]">{reason.text}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </ProductCard>
+
+        <ProductCard className="mt-6 bg-[#F8FAFC]">
+          <div className="grid gap-4 sm:grid-cols-[1fr_16rem] sm:items-center">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Présentation terrain</p>
+              <h2 className="mt-2 text-2xl font-black text-[#0F2D4A]">Bientôt : vidéos terrain et démonstrations guidées</h2>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[#334155]">
+                Un emplacement est préparé pour intégrer plus tard des séquences de quai, d’acteurs et de démonstration sans alourdir le MVP.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-white p-5 text-center ring-1 ring-[#E2E8F0]">
+              <p className="text-3xl font-black text-[#1F6F8B]">01:30</p>
+              <p className="mt-2 text-xs font-black uppercase tracking-[0.12em] text-[#334155]">Vidéo future</p>
             </div>
           </div>
         </ProductCard>

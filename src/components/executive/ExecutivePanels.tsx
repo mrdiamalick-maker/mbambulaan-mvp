@@ -1,51 +1,250 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type { ExecutiveDecision, ExecutiveMetric, ExecutiveRisk, ExecutiveSummary, ExecutiveTerritoryItem } from "@/lib/executive";
+import type { ExecutiveDecision, ExecutiveRisk, ExecutiveSummary, ExecutiveTerritoryItem } from "@/lib/executive";
+import { ChartCard } from "@/components/ui/ChartCard";
+import { InsightPanel } from "@/components/ui/InsightPanel";
+import { KpiGrid } from "@/components/ui/KpiGrid";
+import { ModuleCard } from "@/components/ui/ModuleCard";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 
 export function ExecutiveView({ executive }: { executive: ExecutiveSummary }) {
+  const coverage = extractPercent(executive.resumeExecutif.find((metric) => metric.label === "Besoins couverts")?.detail);
+  const territory = executive.lectureTerritoriale.quaisLesPlusSousTension;
+  const impact = executive.lectureTerritoriale.quaisAFortImpact;
+
   return (
-    <main className="bg-[#f7f4ec] text-[#14312d]">
-      <section className="px-5 py-12 sm:px-8"><div className="mx-auto max-w-7xl"><Link href="/dashboard" className="inline-flex rounded-full border border-[#14312d]/15 px-4 py-2 text-sm font-black transition hover:border-[#14312d]">Retour dashboard</Link><div className="mt-8 max-w-4xl"><p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Lecture décideur</p><h1 className="mt-4 text-4xl font-black leading-tight sm:text-5xl">Vue exécutive institutionnelle</h1><p className="mt-5 text-base font-semibold leading-7 text-[#14312d]/70">Une synthèse compacte pour lire en quelques minutes l'impact, les tensions, les priorités, les risques et les décisions utiles à la filière.</p></div><MetricGrid metrics={executive.resumeExecutif} /></div></section>
-      <ExecutiveBand title="Décisions recommandées" eyebrow="Priorités" description="Les décisions proposées croisent tension territoriale, qualité des lots, besoins critiques, alertes et confiance des acteurs."><div className="grid gap-4 lg:grid-cols-2">{executive.decisionsRecommandees.map((decision) => <DecisionCard key={decision.id} decision={decision} />)}</div></ExecutiveBand>
-      <ExecutiveBand title="Lecture territoriale" eyebrow="Territoires" description="Les quais sont classés selon leur activité, leur tension, leur risque et l'impact observé dans le MVP."><div className="grid gap-4 xl:grid-cols-2"><TerritoryList title="Quais les plus actifs" items={executive.lectureTerritoriale.quaisLesPlusActifs} /><TerritoryList title="Quais sous tension" items={executive.lectureTerritoriale.quaisLesPlusSousTension} /><TerritoryList title="Quais à risque" items={executive.lectureTerritoriale.quaisARisque} /><TerritoryList title="Quais à fort impact" items={executive.lectureTerritoriale.quaisAFortImpact} /></div></ExecutiveBand>
-      <ExecutiveBand title="Lecture impact" eyebrow="Valeur créée" description="La plateforme relie les volumes, la valeur économique, le gaspillage évité et les acteurs touchés."><MetricGrid metrics={executive.lectureImpact} compact /></ExecutiveBand>
-      <ExecutiveBand title="Risques exécutifs" eyebrow="Points de vigilance" description="Les risques principaux sont prêts à être transformés en action de coordination."><div className="grid gap-4 lg:grid-cols-2">{executive.risquesExecutifs.map((risk) => <RiskCard key={risk.id} risk={risk} />)}</div></ExecutiveBand>
+    <main className="min-h-screen bg-[#F8FAFC] text-[#0F2D4A]">
+      <section className="px-5 py-8 sm:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link href="/dashboard" className="rounded-xl bg-white px-4 py-2 text-sm font-black text-[#0F2D4A] ring-1 ring-[#E2E8F0] transition hover:bg-[#F8FAFC]">
+              Retour dashboard
+            </Link>
+            <Link href="/demo" className="rounded-xl bg-[#1F6F8B] px-4 py-2 text-sm font-black text-white shadow-sm shadow-[#1F6F8B]/20 transition hover:bg-[#0F2D4A]">
+              Voir la démo
+            </Link>
+          </div>
+
+          <section className="mt-6 rounded-[2rem] border border-[#E2E8F0] bg-white p-6 shadow-[0_18px_45px_rgba(15,45,74,0.06)] sm:p-8">
+            <div className="grid gap-6 lg:grid-cols-[1fr_18rem] lg:items-end">
+              <SectionHeader
+                eyebrow="Pilotage institutionnel"
+                level="page"
+                title="Vue exécutive institutionnelle"
+                description="Synthèse décisionnelle de la filière : impact, tensions, risques et priorités d’action."
+              />
+              <ExecutiveGauge value={coverage} label="Couverture des besoins" />
+            </div>
+            <div className="mt-7">
+              <KpiGrid items={executive.resumeExecutif} />
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <ExecutiveBand title="Graphiques décisionnels" eyebrow="Lecture BI" description="Des indicateurs visuels simples pour lire les tensions, la couverture et l'impact sans changer de module.">
+        <div className="grid gap-4 lg:grid-cols-[1fr_18rem_1fr]">
+          <ChartCard title="Quais sous tension" eyebrow="Tension" items={territory.map((item) => territoryBar(item))} />
+          <ChartCard title="Couverture des besoins" eyebrow="Jauge">
+            <ExecutiveGauge value={coverage} label={`${coverage}% couverts`} large />
+          </ChartCard>
+          <ChartCard title="Impact par quai" eyebrow="Impact" items={impact.map((item) => impactBar(item))} />
+        </div>
+      </ExecutiveBand>
+
+      <ExecutiveBand title="Décisions recommandées" eyebrow="Aide à la décision" description="Chaque décision met en relation l’action, la zone, la raison et l’impact attendu.">
+        <div className="grid gap-4 lg:grid-cols-2">
+          {executive.decisionsRecommandees.slice(0, 6).map((decision) => (
+            <DecisionCard key={decision.id} decision={decision} />
+          ))}
+        </div>
+      </ExecutiveBand>
+
+      <ExecutiveBand title="Risques à surveiller" eyebrow="Points critiques" description="Les risques principaux sont priorisés pour éviter la perte de valeur, les besoins non couverts et les blocages opérationnels.">
+        <div className="grid gap-4 lg:grid-cols-2">
+          {executive.risquesExecutifs.slice(0, 6).map((risk) => (
+            <RiskCard key={risk.id} risk={risk} />
+          ))}
+        </div>
+      </ExecutiveBand>
+
+      <ExecutiveBand title="Carte de lecture territoriale" eyebrow="Territoires" description="Une grille de quais pour croiser tension, volume, impact et priorité d’action.">
+        <TerritoryGrid items={executive.lectureTerritoriale.quaisLesPlusActifs} />
+      </ExecutiveBand>
+
+      <section className="px-5 pb-10 sm:px-8">
+        <div className="mx-auto max-w-7xl rounded-3xl border border-[#E2E8F0] bg-white p-6 text-center shadow-[0_18px_45px_rgba(15,45,74,0.06)]">
+          <p className="text-xl font-black text-[#0F2D4A]">Mbàmbulaan transforme les signaux terrain en décisions actionnables.</p>
+        </div>
+      </section>
     </main>
   );
 }
 
 export function DashboardExecutiveLink({ executive }: { executive: ExecutiveSummary }) {
   const criticalRisks = executive.risquesExecutifs.filter((risk) => risk.niveau === "critique").length;
-  return <ExecutiveBand title="Synthèse exécutive" eyebrow="Institutionnel" description="Une vue prête pour collectivité, ministère, coopérative structurée ou partenaire financier."><div className="grid gap-4 lg:grid-cols-[1fr_18rem]"><MetricGrid metrics={executive.resumeExecutif.slice(0, 4)} compact /><div className="rounded-2xl bg-[#f7f4ec] p-5"><p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">À arbitrer</p><p className="mt-3 text-4xl font-black">{criticalRisks}</p><p className="mt-2 text-sm font-bold leading-6 text-[#14312d]/65">risque(s) critique(s) et {executive.decisionsRecommandees.length} décision(s) recommandée(s).</p><Link href="/executive" className="mt-5 inline-flex rounded-full bg-[#14312d] px-4 py-2 text-xs font-black text-white transition hover:bg-[#1e4a43]">Ouvrir la synthèse</Link></div></div></ExecutiveBand>;
+
+  return (
+    <ExecutiveBand title="Synthèse exécutive" eyebrow="Institutionnel" description="Une vue prête pour collectivité, ministère, coopérative structurée ou partenaire financier.">
+      <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
+        <KpiGrid items={executive.resumeExecutif.slice(0, 4)} />
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0_14px_34px_rgba(15,45,74,0.05)]">
+          <p className="text-xs font-black uppercase tracking-[0.12em] text-[#1F6F8B]">À arbitrer</p>
+          <p className="mt-3 text-4xl font-black text-[#0F2D4A]">{criticalRisks}</p>
+          <p className="mt-2 text-sm font-bold leading-6 text-[#334155]">risque(s) critique(s) et {executive.decisionsRecommandees.length} décision(s) recommandée(s).</p>
+          <Link href="/executive" className="mt-5 inline-flex rounded-xl bg-[#1F6F8B] px-4 py-2 text-xs font-black text-white transition hover:bg-[#0F2D4A]">
+            Ouvrir la synthèse
+          </Link>
+        </div>
+      </div>
+    </ExecutiveBand>
+  );
 }
 
 export function CoordinationInstitutionalPanel({ executive }: { executive: ExecutiveSummary }) {
-  return <ExecutiveBand title="Lecture institutionnelle" eyebrow="Coordination" description="La coordination peut traduire les signaux métier en décisions publiques ou partenariales."><div className="grid gap-4 lg:grid-cols-3">{executive.decisionsRecommandees.slice(0, 3).map((decision) => <DecisionCard key={decision.id} decision={decision} compact />)}</div></ExecutiveBand>;
+  return (
+    <ExecutiveBand title="Lecture institutionnelle" eyebrow="Coordination" description="La coordination peut traduire les signaux métier en décisions publiques ou partenariales.">
+      <div className="grid gap-4 lg:grid-cols-3">
+        {executive.decisionsRecommandees.slice(0, 3).map((decision) => (
+          <DecisionCard key={decision.id} decision={decision} compact />
+        ))}
+      </div>
+    </ExecutiveBand>
+  );
 }
 
 export function DemoExecutiveDecisionCard({ executive }: { executive: ExecutiveSummary }) {
-  return <ExecutiveBand title="Lecture décideur : impact, tensions et priorités" eyebrow="Démonstration exécutive" description="La démo se termine par une lecture institutionnelle de la valeur créée et des actions à décider."><div className="grid gap-4 lg:grid-cols-[1fr_1fr]"><MetricGrid metrics={executive.lectureImpact.slice(0, 4)} compact /><div className="grid gap-4">{executive.decisionsRecommandees.slice(0, 2).map((decision) => <DecisionCard key={decision.id} decision={decision} compact />)}</div></div></ExecutiveBand>;
+  return (
+    <ExecutiveBand title="Lecture décideur : impact, tensions et priorités" eyebrow="Démonstration exécutive" description="La démo se termine par une lecture institutionnelle de la valeur créée et des actions à décider.">
+      <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+        <KpiGrid items={executive.lectureImpact.slice(0, 4)} />
+        <div className="grid gap-4">
+          {executive.decisionsRecommandees.slice(0, 2).map((decision) => (
+            <DecisionCard key={decision.id} decision={decision} compact />
+          ))}
+        </div>
+      </div>
+    </ExecutiveBand>
+  );
 }
 
 function ExecutiveBand({ children, description, eyebrow, title }: { children: ReactNode; description: string; eyebrow: string; title: string }) {
-  return <section className="bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8"><div className="mx-auto max-w-7xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8"><p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">{eyebrow}</p><div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h2 className="text-3xl font-black">{title}</h2><p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-[#14312d]/65">{description}</p></div><Link href="/executive" className="w-fit rounded-full border border-[#14312d]/15 px-4 py-2 text-sm font-black transition hover:border-[#14312d]">Voir exécutif</Link></div><div className="mt-6">{children}</div></div></section>;
-}
-
-function MetricGrid({ compact = false, metrics }: { compact?: boolean; metrics: ExecutiveMetric[] }) {
-  return <div className={`mt-6 grid gap-4 ${compact ? "md:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-4"}`}>{metrics.map((metric) => <article key={metric.label} className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-[#14312d]/10"><p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">{metric.label}</p><p className="mt-3 text-3xl font-black">{metric.value}</p><p className="mt-2 text-sm font-bold leading-6 text-[#14312d]/65">{metric.detail}</p></article>)}</div>;
+  return (
+    <section className="bg-[#F8FAFC] px-5 py-6 text-[#0F2D4A] sm:px-8">
+      <div className="mx-auto max-w-7xl">
+        <InsightPanel title={title} eyebrow={eyebrow} description={description}>
+          {children}
+        </InsightPanel>
+      </div>
+    </section>
+  );
 }
 
 function DecisionCard({ compact = false, decision }: { compact?: boolean; decision: ExecutiveDecision }) {
-  return <article className="rounded-2xl bg-[#f7f4ec] p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">{decision.moduleCible} · {decision.quai}</p><h3 className="mt-2 text-xl font-black">{decision.titre}</h3><p className="mt-2 text-sm font-semibold leading-6 text-[#14312d]/70">{decision.description}</p></div><LevelBadge level={decision.niveau} /></div>{!compact ? <div className="mt-4 grid gap-3 md:grid-cols-2"><Detail label="Action" value={decision.actionRecommandee} /><Detail label="Impact attendu" value={decision.impactAttendu} /></div> : null}<Link href={decision.lienMetier} className="mt-4 inline-flex rounded-full bg-[#14312d] px-4 py-2 text-xs font-black text-white transition hover:bg-[#1e4a43]">Voir</Link></article>;
-}
-
-function TerritoryList({ items, title }: { items: ExecutiveTerritoryItem[]; title: string }) {
-  return <div className="rounded-2xl bg-[#f7f4ec] p-5"><h3 className="text-xl font-black">{title}</h3><div className="mt-4 grid gap-3">{items.map((item) => <div key={`${title}-${item.quai}`} className="rounded-xl bg-white px-4 py-3"><div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><p className="font-black">{item.quai}</p><p className="mt-1 text-sm font-bold text-[#14312d]/60">{item.region} · {item.volume}</p></div><LevelBadge level={item.risque} label={item.tension} /></div><p className="mt-2 text-sm font-bold leading-6 text-[#14312d]/65">{item.impact}</p></div>)}</div></div>;
+  return (
+    <ModuleCard>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.12em] text-[#1F6F8B]">{decision.moduleCible} · {decision.quai}</p>
+          <h3 className="mt-2 text-xl font-black text-[#0F2D4A]">{decision.titre}</h3>
+          <p className="mt-2 text-sm font-semibold leading-6 text-[#334155]">{decision.description}</p>
+        </div>
+        <LevelBadge level={decision.niveau} />
+      </div>
+      {!compact ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <Detail label="Action" value={decision.actionRecommandee} />
+          <Detail label="Impact attendu" value={decision.impactAttendu} />
+        </div>
+      ) : null}
+      <Link href={decision.lienMetier} className="mt-4 inline-flex rounded-xl bg-white px-4 py-2 text-xs font-black text-[#0F2D4A] ring-1 ring-[#E2E8F0] transition hover:bg-[#F8FAFC]">
+        Voir
+      </Link>
+    </ModuleCard>
+  );
 }
 
 function RiskCard({ risk }: { risk: ExecutiveRisk }) {
-  return <article className="rounded-2xl bg-[#f7f4ec] p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">{risk.quai}</p><h3 className="mt-2 text-xl font-black">{risk.titre}</h3><p className="mt-2 text-sm font-semibold leading-6 text-[#14312d]/70">{risk.description}</p></div><LevelBadge level={risk.niveau} /></div><Link href={risk.lienMetier} className="mt-4 inline-flex rounded-full bg-[#14312d] px-4 py-2 text-xs font-black text-white transition hover:bg-[#1e4a43]">Traiter</Link></article>;
+  return (
+    <ModuleCard>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.12em] text-[#1F6F8B]">{risk.quai}</p>
+          <h3 className="mt-2 text-xl font-black text-[#0F2D4A]">{risk.titre}</h3>
+          <p className="mt-2 text-sm font-semibold leading-6 text-[#334155]">{risk.description}</p>
+        </div>
+        <LevelBadge level={risk.niveau} />
+      </div>
+      <Link href={risk.lienMetier} className="mt-4 inline-flex rounded-xl bg-white px-4 py-2 text-xs font-black text-[#0F2D4A] ring-1 ring-[#E2E8F0] transition hover:bg-[#F8FAFC]">
+        Traiter
+      </Link>
+    </ModuleCard>
+  );
 }
 
-function Detail({ label, value }: { label: string; value: string }) { return <div className="rounded-xl bg-white px-4 py-3"><p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">{label}</p><p className="mt-1 text-sm font-bold leading-6 text-[#14312d]/70">{value}</p></div>; }
-function LevelBadge({ label, level }: { label?: string; level: ExecutiveDecision["niveau"] }) { const styles: Record<ExecutiveDecision["niveau"], string> = { info: "bg-[#dbeafe] text-[#174ea6] ring-[#93c5fd]", attention: "bg-[#fff3bf] text-[#7a4f00] ring-[#ffd43b]", critique: "bg-[#ffe3e3] text-[#9b1c1c] ring-[#ffa8a8]" }; return <span className={`w-fit rounded-full px-3 py-1 text-xs font-black ring-1 ${styles[level]}`}>{label ?? level}</span>; }
+function TerritoryGrid({ items }: { items: ExecutiveTerritoryItem[] }) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {items.map((item) => (
+        <article key={item.quai} className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0_12px_28px_rgba(15,45,74,0.05)]">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-lg font-black text-[#0F2D4A]">{item.quai}</p>
+              <p className="mt-1 text-sm font-semibold text-[#334155]">{item.region}</p>
+            </div>
+            <LevelBadge level={item.risque} label={item.tension} />
+          </div>
+          <div className="mt-5 grid gap-3">
+            <Detail label="Volume" value={item.volume} />
+            <Detail label="Impact" value={item.impact} />
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ExecutiveGauge({ label, large = false, value }: { label: string; large?: boolean; value: number }) {
+  return (
+    <div className={`mx-auto flex flex-col items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white p-5 text-center shadow-[0_12px_28px_rgba(15,45,74,0.05)] ${large ? "min-h-52 w-full" : ""}`}>
+      <div
+        className={`${large ? "h-32 w-32" : "h-24 w-24"} rounded-full p-3`}
+        style={{ background: `conic-gradient(#1F6F8B ${value * 3.6}deg, #E2E8F0 0deg)` }}
+      >
+        <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
+          <span className={`${large ? "text-3xl" : "text-2xl"} font-black text-[#0F2D4A]`}>{value}%</span>
+        </div>
+      </div>
+      <p className="mt-3 text-sm font-black text-[#334155]">{label}</p>
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-white px-4 py-3 ring-1 ring-[#E2E8F0]">
+      <p className="text-xs font-black uppercase tracking-[0.12em] text-[#1F6F8B]">{label}</p>
+      <p className="mt-1 text-sm font-bold leading-6 text-[#334155]">{value}</p>
+    </div>
+  );
+}
+
+function LevelBadge({ label, level }: { label?: string; level: ExecutiveDecision["niveau"] }) {
+  return <StatusBadge tone={level === "critique" ? "danger" : level === "attention" ? "warning" : "info"}>{label ?? level}</StatusBadge>;
+}
+
+function extractPercent(text = "") {
+  const match = text.match(/(\d+)%/);
+  return match ? Number(match[1]) : 0;
+}
+
+function territoryBar(item: ExecutiveTerritoryItem) {
+  const percent = item.tension === "Critique" ? 100 : item.tension === "Forte" ? 78 : item.tension === "Moyenne" ? 54 : 28;
+  return { label: item.quai, value: item.tension, percent, meta: item.region };
+}
+
+function impactBar(item: ExecutiveTerritoryItem) {
+  const value = Number(item.impact.match(/\d+/)?.[0] ?? 1);
+  return { label: item.quai, value: item.impact, percent: Math.min(100, Math.max(18, value)), meta: item.volume };
+}
