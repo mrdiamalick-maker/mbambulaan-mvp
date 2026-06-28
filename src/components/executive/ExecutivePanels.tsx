@@ -4,6 +4,7 @@ import type { ExecutiveDecision, ExecutiveRisk, ExecutiveSummary, ExecutiveTerri
 import { ChartCard } from "@/components/ui/ChartCard";
 import { InsightPanel } from "@/components/ui/InsightPanel";
 import { KpiGrid } from "@/components/ui/KpiGrid";
+import { MapPanel } from "@/components/ui/MapPanel";
 import { ModuleCard } from "@/components/ui/ModuleCard";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -15,7 +16,7 @@ export function ExecutiveView({ executive }: { executive: ExecutiveSummary }) {
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] text-[#0F2D4A]">
-      <section className="px-5 py-8 sm:px-8">
+      <section className="px-5 py-6 sm:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Link href="/dashboard" className="rounded-xl bg-white px-4 py-2 text-sm font-black text-[#0F2D4A] ring-1 ring-[#E2E8F0] transition hover:bg-[#F8FAFC]">
@@ -36,6 +37,13 @@ export function ExecutiveView({ executive }: { executive: ExecutiveSummary }) {
               />
               <ExecutiveGauge value={coverage} label="Couverture des besoins" />
             </div>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {["Aujourd’hui", "Quais", "Espèces", "Risques", "Impact"].map((filter, index) => (
+                <span key={filter} className={`rounded-full px-4 py-2 text-xs font-black ${index === 0 ? "bg-[#0F2D4A] text-white" : "bg-[#F8FAFC] text-[#334155] ring-1 ring-[#E2E8F0]"}`}>
+                  {filter}
+                </span>
+              ))}
+            </div>
             <div className="mt-7">
               <KpiGrid items={executive.resumeExecutif} />
             </div>
@@ -43,8 +51,14 @@ export function ExecutiveView({ executive }: { executive: ExecutiveSummary }) {
         </div>
       </section>
 
+      <section className="bg-[#F8FAFC] px-5 py-6 sm:px-8">
+        <div className="mx-auto max-w-7xl">
+          <MapPanel title="Carte des quais prioritaires" />
+        </div>
+      </section>
+
       <ExecutiveBand title="Graphiques décisionnels" eyebrow="Lecture BI" description="Des indicateurs visuels simples pour lire les tensions, la couverture et l'impact sans changer de module.">
-        <div className="grid gap-4 lg:grid-cols-[1fr_18rem_1fr]">
+        <div className="grid gap-4 lg:grid-cols-[1fr_16rem_1fr]">
           <ChartCard title="Quais sous tension" eyebrow="Tension" items={territory.map((item) => territoryBar(item))} />
           <ChartCard title="Couverture des besoins" eyebrow="Jauge">
             <ExecutiveGauge value={coverage} label={`${coverage}% couverts`} large />
@@ -53,19 +67,18 @@ export function ExecutiveView({ executive }: { executive: ExecutiveSummary }) {
         </div>
       </ExecutiveBand>
 
-      <ExecutiveBand title="Décisions recommandées" eyebrow="Aide à la décision" description="Chaque décision met en relation l’action, la zone, la raison et l’impact attendu.">
-        <div className="grid gap-4 lg:grid-cols-2">
-          {executive.decisionsRecommandees.slice(0, 6).map((decision) => (
-            <DecisionCard key={decision.id} decision={decision} />
-          ))}
-        </div>
-      </ExecutiveBand>
-
-      <ExecutiveBand title="Risques à surveiller" eyebrow="Points critiques" description="Les risques principaux sont priorisés pour éviter la perte de valeur, les besoins non couverts et les blocages opérationnels.">
-        <div className="grid gap-4 lg:grid-cols-2">
-          {executive.risquesExecutifs.slice(0, 6).map((risk) => (
-            <RiskCard key={risk.id} risk={risk} />
-          ))}
+      <ExecutiveBand title="Décisions, risques et territoires" eyebrow="Priorités" description="Une synthèse compacte pour arbitrer sans parcourir tous les modules.">
+        <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid gap-4">
+            {executive.decisionsRecommandees.slice(0, 3).map((decision) => (
+              <DecisionCard key={decision.id} decision={decision} />
+            ))}
+          </div>
+          <div className="grid gap-4">
+            {executive.risquesExecutifs.slice(0, 3).map((risk) => (
+              <RiskCard key={risk.id} risk={risk} />
+            ))}
+          </div>
         </div>
       </ExecutiveBand>
 

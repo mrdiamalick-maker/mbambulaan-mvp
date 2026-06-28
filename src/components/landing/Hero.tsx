@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/Button";
+import { MapPanel } from "@/components/ui/MapPanel";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
@@ -20,6 +21,7 @@ const modules = [
   { name: "Opportunités", role: "Détecter les correspondances", href: "/opportunites" },
   { name: "Transactions", role: "Suivre les retraits", href: "/transactions" },
   { name: "Traçabilité", role: "Suivre chaque lot", href: "/opportunites" },
+  { name: "Quais", role: "Lire le territoire", href: "/quais" },
   { name: "Dashboard", role: "Piloter l’activité", href: "/dashboard" },
   { name: "Coordination", role: "Prioriser les actions", href: "/coordination" },
   { name: "Executive", role: "Lire la décision", href: "/executive" }
@@ -102,25 +104,29 @@ export function Hero() {
           </div>
         </ProductCard>
 
-        <ProductCard className="mt-10 bg-[#F8FAFC]">
+        <ProductCard className="mt-10 bg-[#0F2D4A] text-white">
           <div className="grid gap-5 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Pourquoi lancer la démo ?</p>
-              <h2 className="mt-2 text-2xl font-black text-[#0F2D4A]">Voir le changement complet, pas seulement les écrans.</h2>
-              <p className="mt-3 text-sm font-semibold leading-6 text-[#334155]">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-white/64">Pourquoi lancer la démo ?</p>
+              <h2 className="mt-2 text-2xl font-black text-white">Voir le changement complet, pas seulement les écrans.</h2>
+              <p className="mt-3 text-sm font-semibold leading-6 text-white/72">
                 La démo montre le changement complet : un lot isolé devient une opportunité, une transaction suivie, un impact mesuré et une décision recommandée.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               {demoReasons.map((reason) => (
-                <div key={reason.label} className="rounded-2xl bg-white p-4 ring-1 ring-[#0F2D4A]/8">
-                  <p className="text-xs font-black uppercase tracking-[0.12em] text-[#D85A34]">{reason.label}</p>
-                  <p className="mt-2 text-sm font-black leading-5 text-[#0F2D4A]">{reason.text}</p>
+                <div key={reason.label} className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-white/60">{reason.label}</p>
+                  <p className="mt-2 text-sm font-black leading-5 text-white">{reason.text}</p>
                 </div>
               ))}
             </div>
           </div>
         </ProductCard>
+
+        <div className="mt-6">
+          <MapPanel title="Où agir en priorité ?" />
+        </div>
 
         <ProductCard className="mt-6 bg-[#F8FAFC]">
           <div className="grid gap-4 sm:grid-cols-[1fr_16rem] sm:items-center">
@@ -155,7 +161,7 @@ export function Hero() {
                 </div>
                 <div className="mt-5 grid grid-cols-2 gap-2">
                   {actors.map((actor) => (
-                    <div key={actor} className="rounded-2xl bg-white px-3 py-2 text-center text-xs font-black text-[#334155] ring-1 ring-[#0F2D4A]/7">
+                    <div key={actor} className="rounded-2xl bg-white px-3 py-2 text-center text-xs font-black text-[#334155] ring-1 ring-[#E2E8F0]">
                       {actor}
                     </div>
                   ))}
@@ -163,7 +169,7 @@ export function Hero() {
               </div>
               <div className="grid gap-2">
                 {outputs.map((output) => (
-                  <div key={output} className="rounded-2xl bg-white p-4 text-sm font-black text-[#0F2D4A] ring-1 ring-[#1F6F8B]/16">
+                  <div key={output} className="rounded-2xl bg-[#0F2D4A] p-4 text-sm font-black text-white shadow-sm ring-1 ring-[#0F2D4A]/10">
                     {output}
                   </div>
                 ))}
@@ -180,12 +186,12 @@ export function Hero() {
             </div>
             <Button href="/demo" variant="ghost">Commencer par la démo</Button>
           </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {modules.map((module) => (
-              <a key={module.name} href={module.href} className="rounded-2xl bg-[#F8FAFC] p-4 ring-1 ring-[#0F2D4A]/8 transition hover:bg-white hover:shadow-sm">
-                <StatusBadge tone="neutral">Disponible</StatusBadge>
-                <p className="mt-3 text-base font-black text-[#0F2D4A]">{module.name}</p>
-                <p className="mt-1 text-sm font-semibold text-[#334155]">{module.role}</p>
+              <a key={module.name} href={module.href} className="rounded-2xl bg-[#0F2D4A] p-4 text-white shadow-sm ring-1 ring-[#0F2D4A]/10 transition hover:bg-[#1F6F8B]">
+                <span className="rounded-full bg-white/12 px-3 py-1 text-xs font-black text-white/82">Disponible</span>
+                <p className="mt-3 text-base font-black text-white">{module.name}</p>
+                <p className="mt-1 text-sm font-semibold text-white/70">{module.role}</p>
               </a>
             ))}
           </div>

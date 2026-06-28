@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Arrivage } from "@/lib/arrivages";
 import type { Besoin } from "@/lib/besoins";
 import { computeIntelligentAlerts } from "@/lib/alerts";
@@ -14,23 +14,15 @@ import { createCoordinationSimulation, coordinationSimulationStorageKey } from "
 import type { CoordinationSimulation } from "@/lib/simulation";
 import { computeTensionMetrics } from "@/lib/tension";
 import { computeTraceability } from "@/lib/traceability";
-import { ActorNode } from "@/components/ui/ActorNode";
 import { Button } from "@/components/ui/Button";
-import { FlowStep } from "@/components/ui/FlowStep";
+import { MapPanel } from "@/components/ui/MapPanel";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { PageShell } from "@/components/ui/PageShell";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
-type FlowItem = {
-  title: string;
-  detail: string;
-  href: string;
-};
-
-export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arrivage[]; besoins: Besoin[]; journey: DemoJourneyData }) {
+export function DemoJourney({ arrivages, besoins }: { arrivages: Arrivage[]; besoins: Besoin[]; journey: DemoJourneyData }) {
   const [running, setRunning] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
   const [simulation, setSimulation] = useState<CoordinationSimulation | null>(null);
 
   const baseOpportunites = useMemo(() => computeMatching(arrivages, besoins), [arrivages, besoins]);
@@ -50,218 +42,143 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
   const quality = sensitiveLots[0];
   const decision = priorities.actionsPrioritaires[0];
   const tension = tensions.zonesPrioritaires[0];
-  const flow = buildFlow(journey, impact, transactions[0]?.statut, decision?.titre);
-
-  useEffect(() => {
-    if (!running || activeStep >= flow.length) return;
-
-    const timer = window.setTimeout(() => setActiveStep((step) => Math.min(step + 1, flow.length)), 440);
-
-    return () => window.clearTimeout(timer);
-  }, [activeStep, flow.length, running]);
 
   function launchSimulation() {
     const nextSimulation = createCoordinationSimulation(arrivages, besoins);
     window.localStorage.setItem(coordinationSimulationStorageKey, JSON.stringify(nextSimulation));
     setSimulation(nextSimulation);
     setRunning(true);
-    setActiveStep(1);
   }
 
   return (
-    <PageShell>
+    <PageShell className="bg-[#F8FAFC]">
       <div className="mx-auto max-w-7xl">
         <nav className="flex items-center gap-2 overflow-x-auto pb-1">
           {navLinks.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`whitespace-nowrap rounded-xl px-3 py-2 text-xs font-black transition ${
-                item.href === "/demo" ? "bg-[#F8FAFC] text-[#0F2D4A] ring-1 ring-[#1F6F8B]/18" : "text-[#334155] hover:bg-[#F8FAFC] hover:text-[#0F2D4A]"
-              }`}
-            >
+            <Link key={item.href} href={item.href} className={`whitespace-nowrap rounded-xl px-3 py-2 text-xs font-black transition ${item.href === "/demo" ? "bg-[#0F2D4A] text-white" : "bg-white text-[#334155] ring-1 ring-[#E2E8F0] hover:text-[#0F2D4A]"}`}>
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <section className="mt-6 grid gap-5 lg:grid-cols-[0.72fr_1.28fr] lg:items-stretch">
-          <ProductCard className="flex flex-col justify-between gap-5">
+        <section className="mt-6 rounded-[2rem] bg-[#0F2D4A] p-6 text-white shadow-[0_18px_45px_rgba(15,45,74,0.16)] sm:p-8">
+          <div className="grid gap-6 lg:grid-cols-[1fr_18rem] lg:items-center">
             <div>
-              <StatusBadge tone={running ? "success" : "info"}>{running ? "Simulation lancée" : "Parcours guidé"}</StatusBadge>
-              <h1 className="mt-4 text-3xl font-black leading-tight text-[#0F2D4A] sm:text-4xl">Démonstration Mbàmbulaan</h1>
-              <p className="mt-3 text-sm font-semibold leading-6 text-[#334155]">Suivez un lot depuis le quai jusqu’à l’impact.</p>
-              <p className="mt-3 text-sm font-semibold leading-6 text-[#334155]">
-                Cette démonstration relie les modules entre eux pour montrer le parcours complet, contrairement aux pages métier qui affichent chaque module séparément.
+              <StatusBadge tone={running ? "success" : "info"}>{running ? "Simulation active" : "Scénario guidé"}</StatusBadge>
+              <h1 className="mt-4 text-3xl font-black leading-tight sm:text-5xl">Démonstration Mbàmbulaan</h1>
+              <p className="mt-3 max-w-3xl text-base font-semibold leading-7 text-white/76">
+                Un scénario guidé qui relie les modules : arrivage, besoin, opportunité, transaction, impact et décision.
               </p>
             </div>
-
-            <div className="grid gap-3">
-              <StateList title="Avant" items={beforeState} active={!running} />
-              <StateList title="Après" items={afterState} active={running} />
-            </div>
-
             <Button onClick={launchSimulation} className="w-full">
-              {running ? "Relancer la simulation" : "Lancer la simulation"}
+              Lancer la simulation
             </Button>
-          </ProductCard>
-
-          <div className="grid gap-5 xl:grid-cols-[1.02fr_0.98fr]">
-            <LivingLotCard lot={lot} qualityScore={quality?.score} running={running} />
-
-            <div className="grid gap-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <MetricCard label="Opportunités" value={running ? String(opportunites.length) : "0"} tone={running ? "info" : "warm"} size="compact" />
-                <MetricCard label="Transactions" value={running ? String(transactions.length) : "0"} tone={running ? "success" : "warm"} size="compact" />
-                <MetricCard label="Impact" value={running ? impact.poissonSauve : "Non mesuré"} tone={running ? "success" : "warm"} size="compact" />
-                <MetricCard label="Alertes" value={running ? String(alerts.length) : "0"} tone={running ? "info" : "warm"} size="compact" />
-              </div>
-              <DecisionPanel active={running} alert={alerts[0]?.titre} decision={decision?.titre} tension={tension?.raison} zone={tension?.quai} />
-            </div>
           </div>
         </section>
 
+        <section className="mt-5 grid gap-5 lg:grid-cols-[0.82fr_1.1fr_0.82fr]">
+          <StateColumn title="Avant" active={!running} items={beforeState} />
+          <LotCockpit lot={lot} qualityScore={quality?.score} running={running} />
+          <StateColumn title="Après" active={running} items={afterState} after />
+        </section>
+
         <ProductCard className="mt-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Modules activés</p>
-              <h2 className="mt-2 text-2xl font-black text-[#0F2D4A]">Arrivages → Besoins → Opportunités → Transactions → Impact → Décision</h2>
-            </div>
-            <StatusBadge tone={running ? "success" : "neutral"}>{running ? "flux actif" : "prêt"}</StatusBadge>
-          </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {flow.map((step, index) => (
-              <FlowStep
-                key={step.title}
-                active={running && activeStep >= index + 1}
-                detail={running ? step.detail : "À observer"}
-                href={step.href}
-                index={index + 1}
-                status={!running ? "démo" : activeStep > index + 1 ? "activé" : activeStep === index + 1 ? "en cours" : "à venir"}
-                title={step.title}
-                tone={!running ? "neutral" : activeStep > index + 1 ? "success" : activeStep === index + 1 ? "info" : "warning"}
-              />
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Flux activé</p>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {flowSteps.map((step, index) => (
+              <div key={step} className="flex items-center gap-2">
+                <span className={`rounded-full px-3 py-2 text-xs font-black ${running ? "bg-[#0F2D4A] text-white" : "bg-[#F8FAFC] text-[#334155] ring-1 ring-[#E2E8F0]"}`}>{step}</span>
+                {index < flowSteps.length - 1 ? <span className="text-[#1F6F8B]">→</span> : null}
+              </div>
             ))}
           </div>
         </ProductCard>
 
-        <ProductCard className="mt-5">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Acteurs mobilisés</p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {stakeholders.map((actor) => (
-              <ActorNode key={actor.role} active={running} action={actor.action} benefit={actor.benefit} role={actor.role} tone={actor.tone} />
-            ))}
-          </div>
-        </ProductCard>
-
-        <section className="mt-5 grid gap-5 lg:grid-cols-[0.72fr_1.28fr]">
-          <ProductCard className="bg-[#F8FAFC]">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Par où commencer ?</p>
-            <div className="mt-5 grid gap-3">
-              {startSteps.map((step, index) => (
-                <div key={step} className="flex items-center gap-3 rounded-2xl bg-white p-3 ring-1 ring-[#0F2D4A]/8">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F8FAFC] text-xs font-black text-[#0F2D4A] ring-1 ring-[#1F6F8B]/18">{index + 1}</span>
-                  <p className="text-sm font-black text-[#0F2D4A]">{step}</p>
+        <section className="mt-5 grid gap-5 xl:grid-cols-[0.92fr_1.08fr]">
+          <ProductCard>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Acteurs</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-5 xl:grid-cols-1">
+              {stakeholders.map((actor) => (
+                <div key={actor.role} className="rounded-2xl bg-[#F8FAFC] p-3 ring-1 ring-[#E2E8F0]">
+                  <p className="text-sm font-black text-[#0F2D4A]">{actor.role}</p>
+                  <p className="mt-1 text-xs font-semibold text-[#334155]">{actor.action}</p>
                 </div>
               ))}
             </div>
           </ProductCard>
-
-          <ProductCard>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Décision recommandée</p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <DecisionLine label="Décision" value={running ? "Orienter les mareyeurs vers Hann et prioriser les lots sensibles." : "Lancer la simulation pour consolider la décision."} />
-              <DecisionLine label="Pourquoi" value={running ? "700 kg demandés, tension critique et lot sensible." : "Avant la démo, les signaux restent séparés."} />
-              <DecisionLine label="Impact attendu" value={running ? "Moins de perte, meilleure couverture et lecture territoriale." : "Impact visible après activation du scénario."} />
-            </div>
-          </ProductCard>
+          <DecisionBlock running={running} alert={alerts[0]?.titre} decision={decision?.titre} tension={tension?.raison} zone={tension?.quai} impact={impact.poissonSauve} />
         </section>
+
+        <div className="mt-5">
+          <MapPanel title="Le territoire réagit au scénario" />
+        </div>
       </div>
     </PageShell>
   );
 }
 
-function StateList({ active, items, title }: { active: boolean; items: string[]; title: string }) {
+function StateColumn({ active, after = false, items, title }: { active: boolean; after?: boolean; items: string[]; title: string }) {
   return (
-    <div className={`rounded-2xl p-4 ring-1 ${active ? "bg-white ring-[#1F6F8B]/24" : "bg-[#F8FAFC] text-[#334155] ring-[#0F2D4A]/8"}`}>
+    <ProductCard className={active ? (after ? "bg-[#EAF3EE]" : "bg-[#F7F2E8]") : ""}>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-black text-[#0F2D4A]">{title}</p>
-        <StatusBadge tone={active ? "info" : "neutral"}>{active ? "visible" : "référence"}</StatusBadge>
+        <h2 className="text-xl font-black text-[#0F2D4A]">{title}</h2>
+        <StatusBadge tone={active ? (after ? "success" : "warning") : "neutral"}>{active ? "visible" : "référence"}</StatusBadge>
       </div>
-      <div className="mt-3 grid gap-2">
+      <div className="mt-4 grid gap-3">
         {items.map((item) => (
-          <div key={item} className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-[#334155] ring-1 ring-[#0F2D4A]/7">
+          <div key={item} className={`rounded-2xl p-4 text-sm font-black ${active ? "bg-white text-[#0F2D4A]" : "bg-[#F8FAFC] text-[#334155]"} ring-1 ring-[#E2E8F0]`}>
             {item}
           </div>
         ))}
       </div>
-    </div>
+    </ProductCard>
   );
 }
 
-function LivingLotCard({ lot, qualityScore, running }: { lot?: ReturnType<typeof computeTraceability>[number]; qualityScore?: number; running: boolean }) {
+function LotCockpit({ lot, qualityScore, running }: { lot?: ReturnType<typeof computeTraceability>[number]; qualityScore?: number; running: boolean }) {
   return (
-    <ProductCard tone={running ? "active" : "plain"} className="min-h-full">
+    <ProductCard className="bg-white">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Lot central</p>
-          <h2 className="mt-2 text-2xl font-black text-[#0F2D4A]">{running ? (lot?.espece ?? "Sardinelle ronde") : "Lot non suivi"}</h2>
-          <p className="mt-1 text-sm font-semibold text-[#334155]">{running ? (lot ? `${lot.quai} · ${lot.lotId}` : "Kayar · lot pilote") : "Aucune vue partagée"}</p>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#1F6F8B]">Lot suivi</p>
+          <h2 className="mt-2 text-3xl font-black text-[#0F2D4A]">{running ? (lot?.espece ?? "Sardinelle ronde") : "Lot non relié"}</h2>
+          <p className="mt-1 text-sm font-semibold text-[#334155]">{running ? (lot ? `${lot.quai} · ${lot.lotId}` : "Kayar · lot pilote") : "Activez la simulation"}</p>
         </div>
-        <StatusBadge tone={running ? "success" : "neutral"}>{running ? "suivi" : "isolé"}</StatusBadge>
+        <StatusBadge tone={running ? "success" : "neutral"}>{running ? "tracé" : "isolé"}</StatusBadge>
       </div>
-
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <MetricCard label="Espèce" value={running ? (lot?.espece ?? "Sardinelle") : "Inconnue"} size="compact" tone="default" />
         <MetricCard label="Quai" value={running ? (lot?.quai ?? "Kayar") : "Non relié"} size="compact" tone="default" />
         <MetricCard label="Quantité" value={running ? (lot?.quantite ?? "700 kg") : "Non suivie"} size="compact" tone="default" />
         <MetricCard label="Qualité" value={running ? `${qualityScore ?? 88}/100` : "Non évaluée"} size="compact" tone="default" />
+        <MetricCard label="Statut" value={running ? (lot?.statutActuel ?? "Opportunité") : "Dispersé"} size="compact" tone="default" />
         <MetricCard label="Transaction" value={running ? (lot?.transactionLiee?.statut ?? "À créer") : "Absente"} size="compact" tone="default" />
-        <MetricCard label="Traçabilité" value={running ? "Activée" : "Non disponible"} size="compact" tone="default" />
-      </div>
-
-      <div className="mt-4 rounded-2xl bg-[#F8FAFC] p-4 ring-1 ring-[#0F2D4A]/8">
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#1F6F8B]">Historique du lot</p>
-        <p className="mt-2 text-sm font-bold leading-6 text-[#334155]">
-          {running ? (lot?.historique.slice(0, 4).map((event) => event.titre).join(" → ") ?? "Arrivage → Opportunité → Réservation → Transaction") : "L’historique apparaît quand la simulation relie les modules."}
-        </p>
       </div>
     </ProductCard>
   );
 }
 
-function DecisionPanel({ active, alert, decision, tension, zone }: { active: boolean; alert?: string; decision?: string; tension?: string; zone?: string }) {
+function DecisionBlock({ alert, decision, impact, running, tension, zone }: { alert?: string; decision?: string; impact: string; running: boolean; tension?: string; zone?: string }) {
   return (
-    <ProductCard className={active ? "ring-1 ring-[#1F6F8B]/20" : ""}>
-      <StatusBadge tone={active ? "impact" : "neutral"}>Décision recommandée</StatusBadge>
-      <h2 className="mt-3 text-xl font-black text-[#0F2D4A]">{active ? (decision ?? "Orienter les mareyeurs vers Hann") : "Décision non consolidée"}</h2>
-      <p className="mt-2 text-sm font-semibold leading-6 text-[#334155]">
-        {active ? (alert ?? tension ?? "700 kg demandés, tension critique.") : "Lancez la simulation pour transformer les signaux dispersés en décision lisible."}
-      </p>
-      <p className="mt-4 text-xs font-black uppercase tracking-[0.12em] text-[#D85A34]">{zone ?? "Zone pilote"}</p>
-    </ProductCard>
+    <section className="rounded-3xl bg-[#0F2D4A] p-5 text-white shadow-[0_18px_45px_rgba(15,45,74,0.18)]">
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-white/62">Décision finale</p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <DecisionItem label="Décision recommandée" value={running ? (decision ?? "Orienter les mareyeurs vers Hann et prioriser les lots sensibles.") : "Lancer la simulation pour obtenir la décision."} />
+        <DecisionItem label="Pourquoi" value={running ? (alert ?? tension ?? "Tension critique, besoin non couvert, risque de perte.") : "Les signaux ne sont pas encore consolidés."} />
+        <DecisionItem label="Impact" value={running ? `${impact} sauvés et meilleure couverture.` : "Impact visible après activation."} />
+      </div>
+      <p className="mt-4 text-xs font-black uppercase tracking-[0.12em] text-white/62">{zone ?? "Zone pilote"}</p>
+    </section>
   );
 }
 
-function DecisionLine({ label, value }: { label: string; value: string }) {
+function DecisionItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-[#F8FAFC] p-4 ring-1 ring-[#0F2D4A]/8">
-      <p className="text-xs font-black uppercase tracking-[0.12em] text-[#1F6F8B]">{label}</p>
-      <p className="mt-2 text-sm font-black leading-6 text-[#0F2D4A]">{value}</p>
+    <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15">
+      <p className="text-xs font-black uppercase tracking-[0.12em] text-white/60">{label}</p>
+      <p className="mt-2 text-sm font-black leading-6 text-white">{value}</p>
     </div>
   );
-}
-
-function buildFlow(journey: DemoJourneyData, impact: ReturnType<typeof computeImpactMetrics>, transactionStatus?: string, decisionTitle?: string): FlowItem[] {
-  const byId = new Map(journey.steps.map((step) => [step.id, step]));
-  return [
-    { title: "Arrivages", detail: byId.get(2)?.data ?? "Lot déclaré", href: "/arrivages" },
-    { title: "Besoins", detail: byId.get(3)?.data ?? "Besoin détecté", href: "/besoins" },
-    { title: "Opportunités", detail: byId.get(4)?.data ?? "Correspondance créée", href: "/opportunites" },
-    { title: "Transactions", detail: transactionStatus ?? "Retrait suivi", href: "/transactions" },
-    { title: "Impact", detail: `${impact.poissonSauve} sauvés`, href: "/dashboard" },
-    { title: "Décision", detail: decisionTitle ?? "Action priorisée", href: "/executive" }
-  ];
 }
 
 const navLinks = [
@@ -273,14 +190,12 @@ const navLinks = [
 ];
 
 const beforeState = ["Arrivage isolé", "Besoin invisible", "Transaction informelle", "Décision non consolidée"];
-const afterState = ["Lot suivi", "Opportunité détectée", "Transaction suivie", "Impact mesuré", "Décision recommandée"];
-
-const startSteps = ["Lancer la simulation", "Observer le lot suivi", "Voir la décision recommandée", "Explorer les modules si besoin"];
-
+const afterState = ["Opportunité détectée", "Transaction suivie", "Impact mesuré", "Décision recommandée"];
+const flowSteps = ["Arrivage", "Besoin", "Opportunité", "Réservation", "Transaction", "Impact", "Décision"];
 const stakeholders = [
-  { role: "Pêcheur", action: "Déclare le lot", benefit: "Visibilité immédiate", tone: "success" as const },
-  { role: "Mareyeur", action: "Réserve", benefit: "Accès au bon volume", tone: "info" as const },
-  { role: "Transformateur", action: "Capte un surplus", benefit: "Moins de perte", tone: "warning" as const },
-  { role: "Collectivité", action: "Suit les tensions", benefit: "Lecture territoriale", tone: "impact" as const },
-  { role: "Administration", action: "Décide", benefit: "Priorités consolidées", tone: "dark" as const }
+  { role: "Pêcheur", action: "déclare" },
+  { role: "Mareyeur", action: "réserve" },
+  { role: "Transformateur", action: "capte" },
+  { role: "Collectivité", action: "suit" },
+  { role: "Administration", action: "décide" }
 ];
