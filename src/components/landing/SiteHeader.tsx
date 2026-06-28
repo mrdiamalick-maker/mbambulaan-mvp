@@ -9,7 +9,7 @@ const links = [
   { href: "/coordination", label: "Coordination" },
   { href: "/arrivages", label: "Arrivages" },
   { href: "/besoins", label: "Besoins" },
-  { href: "/opportunites", label: "Opportunites" },
+  { href: "/opportunites", label: "Opportunités" },
   { href: "/transactions", label: "Transactions" },
   { href: "/quais", label: "Quais" }
 ];
@@ -22,7 +22,7 @@ export function SiteHeader() {
   const unreadCount = countUnreadNotifications(createNotifications(arrivages, besoins, opportunites, dashboardData));
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#14312d]/10 bg-[#f7f4ec]/90 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-[#14312d]/10 bg-white/92 backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-8">
         <a href="#accueil" className="text-lg font-black tracking-wide text-[#14312d]">
           Mbàmbulaan
@@ -47,7 +47,7 @@ export function SiteHeader() {
             href="/dashboard"
             className="rounded-full bg-[#14312d] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1e4a43]"
           >
-            Espace pilote
+            Dashboard
           </a>
         </div>
       </div>

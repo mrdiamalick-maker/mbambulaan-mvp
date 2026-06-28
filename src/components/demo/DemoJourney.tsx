@@ -49,6 +49,7 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
   const lotSensible = sensitiveLots[0];
   const decision = priorities.actionsPrioritaires[0];
   const zonePrioritaire = tensions.zonesPrioritaires[0];
+  const activeAlert = alertes[0];
   const flowSteps = buildFlowSteps(journey, {
     impact,
     priorityTitle: decision?.titre,
@@ -58,7 +59,7 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
   useEffect(() => {
     if (!demoLaunched || visibleSteps >= flowSteps.length) return;
 
-    const timer = window.setTimeout(() => setVisibleSteps((current) => Math.min(current + 1, flowSteps.length)), 650);
+    const timer = window.setTimeout(() => setVisibleSteps((current) => Math.min(current + 1, flowSteps.length)), 520);
 
     return () => window.clearTimeout(timer);
   }, [demoLaunched, flowSteps.length, visibleSteps]);
@@ -72,173 +73,162 @@ export function DemoJourney({ arrivages, besoins, journey }: { arrivages: Arriva
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f4ec] px-5 py-8 text-[#14312d] sm:px-8">
+    <main className="min-h-screen bg-white px-4 py-5 text-[#14312d] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <nav className="flex flex-wrap gap-2">
-          {moduleLinks.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
-                item.href === "/demo" ? "border-[#14312d] bg-[#14312d] text-white" : "border-[#14312d]/15 text-[#14312d] hover:border-[#14312d]"
-              }`}
+        <DemoNav />
+
+        <section className="mt-5 grid gap-4 lg:grid-cols-[0.82fr_1.18fr]">
+          <div className="rounded-3xl border border-[#14312d]/10 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <UiStatusBadge tone={demoLaunched ? "success" : "neutral"}>{demoLaunched ? "Filière coordonnée" : "Filière dispersée"}</UiStatusBadge>
+              <span className="text-xs font-black text-[#14312d]/45">{visibleSteps}/{flowSteps.length}</span>
+            </div>
+            <h1 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">Mbàmbulaan en action</h1>
+            <p className="mt-3 text-sm font-semibold leading-6 text-[#14312d]/68">
+              Une démonstration courte pour voir comment un lot devient une opportunité, une transaction suivie et une décision territoriale.
+            </p>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <StatePanel active={!demoLaunched} title="Avant" label="Informations séparées" points={beforePoints} tone="neutral" />
+              <StatePanel active={demoLaunched} title="Après" label="Modules connectés" points={afterPoints} tone="success" />
+            </div>
+
+            <button
+              type="button"
+              onClick={launchDemo}
+              className="mt-5 h-12 w-full rounded-2xl bg-[#14312d] px-5 text-sm font-black text-white shadow-sm transition hover:bg-[#1e4a43]"
             >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+              {demoLaunched ? "Relancer la démonstration" : "Lancer la démonstration"}
+            </button>
+          </div>
 
-        <section className="mt-8 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8">
-          <div className="grid gap-6 xl:grid-cols-[0.95fr_1.35fr]">
-            <div className="flex flex-col justify-between rounded-3xl bg-[#14312d] p-6 text-white">
-              <div>
-                <UiStatusBadge tone={demoLaunched ? "success" : "warning"}>{demoLaunched ? "Démonstration active" : "État initial"}</UiStatusBadge>
-                <h1 className="mt-5 text-4xl font-black leading-tight sm:text-5xl">Mbàmbulaan en action</h1>
-                <p className="mt-4 text-base font-semibold leading-7 text-white/78">
-                  Voyez comment un lot débarqué devient une opportunité, une transaction suivie et un impact mesurable.
-                </p>
-              </div>
-              <div className="mt-8">
-                <p className="rounded-2xl bg-white/10 p-4 text-sm font-black leading-6 ring-1 ring-white/15">
-                  {demoLaunched
-                    ? "Mbàmbulaan connecte les acteurs, suit le lot et affiche les priorités."
-                    : "La filière est dispersée : arrivages, besoins et décisions sont séparés."}
-                </p>
-                <button
-                  type="button"
-                  onClick={launchDemo}
-                  className="mt-4 h-12 w-full rounded-2xl bg-[#f5c85d] px-5 text-sm font-black text-[#14312d] transition hover:bg-[#ffd977]"
-                >
-                  {demoLaunched ? "Relancer la démonstration" : "Lancer la démonstration"}
-                </button>
-              </div>
+          <div className="rounded-3xl border border-[#14312d]/10 bg-[#f8faf8] p-4 shadow-sm">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <MetricCard label="Volume valorisé" value={demoLaunched ? impact.volumeValorise : "Non relié"} tone="default" size="compact" />
+              <MetricCard label="Poisson sauvé" value={demoLaunched ? impact.poissonSauve : "À risque"} tone="default" size="compact" />
+              <MetricCard label="Besoins couverts" value={demoLaunched ? `${journey.finalSummary.couverture}%` : "Non visible"} tone="default" size="compact" />
+              <MetricCard label="Décision" value={demoLaunched ? "Priorisée" : "Intuitive"} tone="default" size="compact" />
             </div>
 
-            <div className="grid gap-4">
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <MetricCard label="Volume valorisé" value={impact.volumeValorise} tone={demoLaunched ? "default" : "warm"} />
-                <MetricCard label="Valeur estimée" value={impact.valeurEconomique} tone={demoLaunched ? "default" : "warm"} />
-                <MetricCard label="Poisson sauvé" value={impact.poissonSauve} tone={demoLaunched ? "default" : "warm"} />
-                <MetricCard label="Besoins couverts" value={`${demoLaunched ? journey.finalSummary.couverture : journey.impact.coverageRate}%`} tone={demoLaunched ? "default" : "warm"} />
+            <div className="mt-4 rounded-2xl bg-white p-4 ring-1 ring-[#14312d]/8">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-[#d65a31]">Flux visuel</p>
+                  <h2 className="mt-1 text-xl font-black">Du débarquement à la décision</h2>
+                </div>
+                <UiStatusBadge tone={demoLaunched ? "info" : "neutral"}>{demoLaunched ? "flux activé" : "en attente"}</UiStatusBadge>
               </div>
-
-              <div className="rounded-3xl bg-[#f7f4ec] p-5 ring-1 ring-[#14312d]/8">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#d65a31]">Flux de coordination</p>
-                    <h2 className="mt-2 text-2xl font-black">Arrivage → Décision</h2>
-                  </div>
-                  <p className="text-sm font-black text-[#14312d]/55">{visibleSteps}/{flowSteps.length} étapes actives</p>
-                </div>
-                <div className="mt-5 grid gap-3 md:grid-cols-4">
-                  {flowSteps.map((step) => (
-                    <FlowCard key={step.id} demoLaunched={demoLaunched} isActive={visibleSteps === step.id} isDone={visibleSteps > step.id} step={step} />
-                  ))}
-                </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-4">
+                {flowSteps.map((step) => (
+                  <FlowCard key={step.id} demoLaunched={demoLaunched} isActive={visibleSteps === step.id} isDone={visibleSteps > step.id} step={step} />
+                ))}
               </div>
             </div>
           </div>
         </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <LotCard demoLaunched={demoLaunched} lotQualifie={lotSensible} lotSuivi={lotSuivi} />
-
-          <div className="grid gap-6">
-            <DecisionCard alertTitle={alertes[0]?.titre} decisionTitle={decision?.titre} priority={decision?.priorite} zone={zonePrioritaire?.quai} />
-            <div className="grid gap-4 md:grid-cols-2">
-              {actorCards.map((actor) => (
-                <ModuleCard key={actor.title} className={demoLaunched ? "bg-white" : ""}>
-                  <UiStatusBadge tone={actor.tone}>{actor.role}</UiStatusBadge>
-                  <h3 className="mt-4 text-lg font-black">{actor.title}</h3>
-                  <p className="mt-2 text-sm font-bold leading-6 text-[#14312d]/65">{actor.action}</p>
-                </ModuleCard>
-              ))}
-            </div>
+        <section className="mt-4 grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-1">
+            <LotCard demoLaunched={demoLaunched} lotQualifie={lotSensible} lotSuivi={lotSuivi} />
+            <DecisionCard alertTitle={activeAlert?.titre} decisionTitle={decision?.titre} priority={decision?.priorite} zone={zonePrioritaire?.quai} />
           </div>
-        </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[1fr_0.85fr]">
-          <InsightPanel
-            eyebrow="Écosystème"
-            title="Modules activés par le cockpit"
-            description="Les liens restent disponibles, mais chaque module est présenté comme une pièce du système de coordination."
-          >
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {ecosystemModules.map((module) => (
-                <Link key={module.href} href={module.href} className="rounded-2xl bg-[#f7f4ec] p-4 ring-1 ring-[#14312d]/5 transition hover:bg-[#eee7d7]">
-                  <p className="text-sm font-black">{module.label}</p>
-                  <p className="mt-2 text-xs font-bold leading-5 text-[#14312d]/60">{module.description}</p>
-                </Link>
-              ))}
-            </div>
-          </InsightPanel>
+          <div className="grid gap-4">
+            <InsightPanel eyebrow="Parties prenantes" title="Ce que je fais maintenant">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                {actorCards.map((actor) => (
+                  <ActorCard key={actor.role} actor={actor} active={demoLaunched} />
+                ))}
+              </div>
+            </InsightPanel>
 
-          <InsightPanel eyebrow="En 30 secondes" title="Ce que la démo prouve">
-            <div className="grid gap-3">
-              {proofPoints.map((point) => (
-                <div key={point} className="rounded-2xl bg-[#f7f4ec] p-4 text-sm font-black leading-6 text-[#14312d]/75">
-                  {point}
-                </div>
-              ))}
-            </div>
-          </InsightPanel>
+            <InsightPanel eyebrow="Écosystème" title="Un lot au centre, des modules connectés">
+              <EcosystemVisual active={demoLaunched} />
+            </InsightPanel>
+          </div>
         </section>
       </div>
     </main>
   );
 }
 
+function DemoNav() {
+  return (
+    <nav className="flex items-center gap-2 overflow-x-auto pb-1">
+      {moduleLinks.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          className={`whitespace-nowrap rounded-full border px-3 py-2 text-xs font-black transition ${
+            item.href === "/demo" ? "border-[#14312d] bg-[#14312d] text-white" : "border-[#14312d]/12 bg-white text-[#14312d]/70 hover:border-[#14312d]/40"
+          }`}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function StatePanel({ active, label, points, title, tone }: { active: boolean; label: string; points: string[]; title: string; tone: StatusTone }) {
+  return (
+    <div className={`rounded-2xl border p-4 ${active ? "border-[#14312d]/22 bg-[#f8faf8]" : "border-[#14312d]/8 bg-white"}`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-black">{title}</p>
+        <UiStatusBadge tone={active ? tone : "neutral"}>{label}</UiStatusBadge>
+      </div>
+      <ul className="mt-3 space-y-2">
+        {points.map((point) => (
+          <li key={point} className="text-sm font-semibold leading-5 text-[#14312d]/65">
+            {point}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function FlowCard({ demoLaunched, isActive, isDone, step }: { demoLaunched: boolean; isActive: boolean; isDone: boolean; step: FlowStep }) {
   const tone: StatusTone = !demoLaunched ? "neutral" : isDone ? "success" : isActive ? "info" : "warning";
-  const status = !demoLaunched ? "en attente" : isDone ? "terminé" : isActive ? "actif" : "en attente";
+  const status = !demoLaunched ? "off" : isDone ? "ok" : isActive ? "actif" : "à venir";
 
   return (
     <Link
       href={step.href}
-      className={`min-h-36 rounded-2xl border p-4 transition ${
+      className={`min-h-28 rounded-2xl border p-3 transition ${
         isActive
-          ? "border-[#14312d] bg-white shadow-sm"
+          ? "border-[#14312d] bg-[#eef6ff]"
           : isDone
-            ? "border-[#95d5b2] bg-[#d8f3dc]"
-            : "border-[#14312d]/10 bg-white/70 hover:border-[#14312d]/25"
+            ? "border-[#95d5b2] bg-[#e8f7f2]"
+            : "border-[#14312d]/8 bg-white hover:border-[#14312d]/28"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#14312d] text-sm font-black text-white">{step.id}</span>
+      <div className="flex items-start justify-between gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#14312d] text-xs font-black text-white">{step.id}</span>
         <UiStatusBadge tone={tone}>{status}</UiStatusBadge>
       </div>
-      <h3 className="mt-4 text-lg font-black">{step.title}</h3>
-      <p className="mt-2 text-sm font-bold leading-6 text-[#14312d]/65">{step.data}</p>
+      <h3 className="mt-3 text-sm font-black">{step.title}</h3>
+      <p className="mt-1 text-xs font-bold leading-5 text-[#14312d]/62">{demoLaunched ? step.data : "Non connecté"}</p>
     </Link>
   );
 }
 
 function LotCard({ demoLaunched, lotQualifie, lotSuivi }: { demoLaunched: boolean; lotQualifie?: SensitiveLot; lotSuivi?: TraceableLot }) {
   return (
-    <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <section className="rounded-3xl border border-[#14312d]/10 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#d65a31]">Le lot suivi</p>
-          <h2 className="mt-3 text-3xl font-black">{lotSuivi?.espece ?? lotQualifie?.espece ?? "Lot pilote"}</h2>
-          <p className="mt-2 text-sm font-bold leading-6 text-[#14312d]/65">
-            {lotSuivi ? `${lotSuivi.lotId} · ${lotSuivi.quai}` : "Lancez la démonstration pour suivre un objet métier réel."}
-          </p>
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-[#d65a31]">Lot suivi</p>
+          <h2 className="mt-2 text-xl font-black">{demoLaunched ? (lotSuivi?.espece ?? lotQualifie?.espece ?? "Lot pilote") : "Lot non tracé"}</h2>
+          <p className="mt-1 text-sm font-semibold text-[#14312d]/62">{demoLaunched && lotSuivi ? `${lotSuivi.lotId} · ${lotSuivi.quai}` : "Les informations sont séparées."}</p>
         </div>
-        <UiStatusBadge tone={demoLaunched ? "success" : "neutral"}>{demoLaunched ? "suivi actif" : "en attente"}</UiStatusBadge>
+        <UiStatusBadge tone={demoLaunched ? "success" : "neutral"}>{demoLaunched ? "tracé" : "dispersé"}</UiStatusBadge>
       </div>
-
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <MetricCard label="Quantité" value={lotSuivi?.quantite ?? "Lot mock"} size="compact" />
-        <MetricCard label="Qualité" value={lotQualifie ? `${lotQualifie.score}/100` : "À qualifier"} size="compact" />
-        <MetricCard label="Statut" value={lotSuivi?.statutActuel ?? "Non lancé"} size="compact" />
-        <MetricCard label="Transaction liée" value={lotSuivi?.transactionLiee?.statut ?? "À créer"} size="compact" />
-      </div>
-
-      <div className="mt-5 rounded-2xl bg-[#f7f4ec] p-4">
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#d65a31]">Traçabilité</p>
-        <p className="mt-2 text-sm font-bold leading-6 text-[#14312d]/70">
-          {lotSuivi?.historique.slice(0, 3).map((event) => event.titre).join(" → ") ?? "Arrivage → Opportunité → Réservation → Transaction"}
-        </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <MetricCard label="Quantité" value={demoLaunched ? (lotSuivi?.quantite ?? "Lot mock") : "Inconnue"} size="compact" tone="warm" />
+        <MetricCard label="Qualité" value={demoLaunched && lotQualifie ? `${lotQualifie.score}/100` : "Non qualifiée"} size="compact" tone="warm" />
+        <MetricCard label="Statut" value={demoLaunched ? (lotSuivi?.statutActuel ?? "Suivi") : "Non suivi"} size="compact" tone="warm" />
+        <MetricCard label="Transaction" value={demoLaunched ? (lotSuivi?.transactionLiee?.statut ?? "À créer") : "Absente"} size="compact" tone="warm" />
       </div>
     </section>
   );
@@ -246,23 +236,55 @@ function LotCard({ demoLaunched, lotQualifie, lotSuivi }: { demoLaunched: boolea
 
 function DecisionCard({ alertTitle, decisionTitle, priority, zone }: { alertTitle?: string; decisionTitle?: string; priority?: "Critique" | "Haute" | "Moyenne" | "Faible"; zone?: string }) {
   return (
-    <section className="rounded-3xl bg-[#14312d] p-6 text-white shadow-sm sm:p-8">
-      <UiStatusBadge tone={priority ? priorityTone(priority) : "impact"}>Décision recommandée</UiStatusBadge>
-      <h2 className="mt-4 text-3xl font-black">{decisionTitle ?? "Orienter les mareyeurs vers Hann"}</h2>
-      <p className="mt-3 text-sm font-semibold leading-6 text-white/75">
-        {alertTitle ?? "Traiter d'abord Sardinelle plate et renforcer la conservation à Hann."}
-      </p>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15">
-          <p className="text-xs font-black uppercase tracking-[0.12em] text-[#f5c85d]">Zone</p>
-          <p className="mt-2 text-xl font-black">{zone ?? "Hann"}</p>
-        </div>
-        <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15">
-          <p className="text-xs font-black uppercase tracking-[0.12em] text-[#f5c85d]">Priorité</p>
-          <p className="mt-2 text-xl font-black">{priority ?? "Haute"}</p>
-        </div>
+    <section className="rounded-3xl border border-[#14312d]/10 bg-[#14312d] p-5 text-white shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <UiStatusBadge tone={priority ? priorityTone(priority) : "impact"}>Décision</UiStatusBadge>
+        <span className="text-xs font-black text-white/55">{zone ?? "Zone pilote"}</span>
+      </div>
+      <h2 className="mt-4 text-xl font-black leading-snug">{decisionTitle ?? "Orienter les mareyeurs vers Hann"}</h2>
+      <p className="mt-2 text-sm font-semibold leading-6 text-white/72">{alertTitle ?? "Prioriser les lots sensibles et renforcer la conservation."}</p>
+      <div className="mt-4 rounded-2xl bg-white/10 p-3 ring-1 ring-white/15">
+        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#f5c85d]">Priorité</p>
+        <p className="mt-1 text-lg font-black">{priority ?? "Haute"}</p>
       </div>
     </section>
+  );
+}
+
+function ActorCard({ active, actor }: { active: boolean; actor: { action: string; role: string; tone: StatusTone } }) {
+  return (
+    <ModuleCard className={active ? "bg-white" : "bg-[#f8faf8]"}>
+      <UiStatusBadge tone={active ? actor.tone : "neutral"}>{actor.role}</UiStatusBadge>
+      <p className="mt-3 text-sm font-black leading-5">{actor.action}</p>
+    </ModuleCard>
+  );
+}
+
+function EcosystemVisual({ active }: { active: boolean }) {
+  return (
+    <div className="grid gap-3 lg:grid-cols-[0.8fr_1fr_0.8fr] lg:items-center">
+      <div className="grid gap-2">
+        {["Pêcheur", "Mareyeur", "Transformateur"].map((node) => (
+          <div key={node} className={`rounded-2xl border px-4 py-3 text-sm font-black ${active ? "border-[#95d5b2] bg-[#e8f7f2]" : "border-[#14312d]/8 bg-white text-[#14312d]/55"}`}>
+            {node}
+          </div>
+        ))}
+      </div>
+      <div className="rounded-3xl border border-[#14312d]/10 bg-white p-5 text-center shadow-sm">
+        <UiStatusBadge tone={active ? "success" : "neutral"}>{active ? "Lot coordonné" : "Lot isolé"}</UiStatusBadge>
+        <p className="mt-3 text-2xl font-black">Arrivage central</p>
+        <p className="mt-2 text-sm font-semibold leading-6 text-[#14312d]/62">
+          {active ? "Connecté aux besoins, opportunités, transactions et décisions." : "Visible localement, sans vision partagée."}
+        </p>
+      </div>
+      <div className="grid gap-2">
+        {["Dashboard", "Notifications", "Vue exécutive"].map((node) => (
+          <div key={node} className={`rounded-2xl border px-4 py-3 text-sm font-black ${active ? "border-[#93c5fd] bg-[#eef6ff]" : "border-[#14312d]/8 bg-white text-[#14312d]/55"}`}>
+            {node}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -281,14 +303,14 @@ function buildFlowSteps(
   const reservation = byId.get(5) ?? opportunite;
 
   return [
-    { id: 1, title: "Pêcheur", data: "Lot déclaré au quai", href: "/arrivages" },
+    { id: 1, title: "Pêcheur", data: "Lot déclaré", href: "/arrivages" },
     { id: 2, title: "Arrivage", data: arrivage.data, href: "/arrivages" },
     { id: 3, title: "Besoin", data: besoin.data, href: "/besoins" },
     { id: 4, title: "Opportunité", data: opportunite.data, href: "/opportunites" },
     { id: 5, title: "Réservation", data: reservation.data, href: reservation.href },
-    { id: 6, title: "Transaction", data: context.transactionStatus ?? "Retrait en cours", href: "/transactions" },
+    { id: 6, title: "Transaction", data: context.transactionStatus ?? "Retrait lancé", href: "/transactions" },
     { id: 7, title: "Impact", data: `${context.impact.poissonSauve} sauvés`, href: "/dashboard" },
-    { id: 8, title: "Décision", data: context.priorityTitle ?? "Renforcer Hann", href: "/executive" }
+    { id: 8, title: "Décision", data: context.priorityTitle ?? "Action priorisée", href: "/executive" }
   ];
 }
 
@@ -312,25 +334,13 @@ const moduleLinks = [
   { href: "/executive", label: "Executive" }
 ];
 
-const actorCards: Array<{ role: string; title: string; action: string; tone: StatusTone }> = [
-  { role: "Pêcheur", title: "Déclarer un lot", action: "Je rends mon arrivage visible immédiatement.", tone: "success" },
-  { role: "Mareyeur", title: "Trouver et réserver", action: "Je repère les lots compatibles avec mes besoins.", tone: "info" },
-  { role: "Transformateur", title: "Capter un surplus", action: "Je traite les volumes sensibles avant perte.", tone: "warning" },
-  { role: "Collectivité", title: "Voir les priorités", action: "Je lis les tensions, risques et impacts du territoire.", tone: "impact" }
-];
+const beforePoints = ["Arrivages dispersés", "Besoins non visibles", "Décisions par téléphone"];
+const afterPoints = ["Lot déclaré", "Besoin identifié", "Impact mesuré"];
 
-const ecosystemModules = [
-  { href: "/arrivages", label: "Arrivages", description: "Déclaration et visibilité des lots." },
-  { href: "/besoins", label: "Besoins", description: "Demandes d'achat structurées." },
-  { href: "/opportunites", label: "Opportunités", description: "Matching et réservation." },
-  { href: "/transactions", label: "Transactions", description: "Suivi de retrait et livraison." },
-  { href: "/dashboard", label: "Dashboard", description: "Impact, KPI et lecture globale." },
-  { href: "/coordination", label: "Coordination", description: "File d'actions et alertes." },
-  { href: "/executive", label: "Executive", description: "Synthèse décideur." }
-];
-
-const proofPoints = [
-  "Un lot devient un objet suivi, pas une simple annonce.",
-  "L'offre, la demande et la transaction sont reliées dans un même cockpit.",
-  "Les décisions publiques s'appuient sur impact, tension et priorité."
+const actorCards: Array<{ role: string; action: string; tone: StatusTone }> = [
+  { role: "Pêcheur", action: "Je déclare mon lot.", tone: "success" },
+  { role: "Mareyeur", action: "Je trouve et réserve.", tone: "info" },
+  { role: "Transformateur", action: "Je capte un surplus.", tone: "warning" },
+  { role: "Collectivité", action: "Je vois les tensions.", tone: "impact" },
+  { role: "Administration", action: "Je comprends l'impact.", tone: "dark" }
 ];
