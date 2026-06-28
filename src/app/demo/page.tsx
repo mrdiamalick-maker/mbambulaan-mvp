@@ -1,12 +1,8 @@
-import { DemoJourney } from "@/components/demo/DemoJourney";
-import { getArrivages } from "@/lib/arrivages";
-import { getBesoins } from "@/lib/besoins";
-import { getDemoJourney } from "@/lib/demo";
+import { MvpSliceDemo } from "@/components/slice/MvpSliceDemo";
+import { computeCoordinationEngine } from "@/lib/mvpSlice";
 
 export default function DemoPage() {
-  const journey = getDemoJourney();
-  const arrivages = getArrivages();
-  const besoins = getBesoins();
+  const slice = computeCoordinationEngine();
 
-  return <DemoJourney arrivages={arrivages} besoins={besoins} journey={journey} />;
+  return <MvpSliceDemo slice={slice} />;
 }
