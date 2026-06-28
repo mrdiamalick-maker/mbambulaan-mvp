@@ -1,0 +1,74 @@
+[
+  {
+    "id": "arr-001",
+    "espece": "Thiof",
+    "quai": "Soumbédioune",
+    "quantite": "420 kg",
+    "heureDebarquement": "06:40",
+    "vendeur": "Groupement Soumbedioune Nord",
+    "statut": "Disponible"
+  },
+  {
+    "id": "arr-002",
+    "espece": "Sardinelle ronde",
+    "quai": "Kayar",
+    "quantite": "1,2 t",
+    "heureDebarquement": "07:15",
+    "vendeur": "Pirogue Kayar Horizon",
+    "statut": "Reserve"
+  },
+  {
+    "id": "arr-003",
+    "espece": "Dorade",
+    "quai": "Mbour",
+    "quantite": "310 kg",
+    "heureDebarquement": "08:05",
+    "vendeur": "Cooperative Mbour Littoral",
+    "statut": "En controle"
+  },
+  {
+    "id": "arr-004",
+    "espece": "Crevette",
+    "quai": "Joal",
+    "quantite": "180 kg",
+    "heureDebarquement": "09:20",
+    "vendeur": "Union Joal Peche",
+    "statut": "Disponible"
+  },
+  {
+    "id": "arr-005",
+    "espece": "Yaboy",
+    "quai": "Saint-Louis",
+    "quantite": "860 kg",
+    "heureDebarquement": "10:10",
+    "vendeur": "Equipe Langue de Barbarie",
+    "statut": "Ecoule"
+  },
+  {
+    "id": "arr-006",
+    "espece": "Capitaine",
+    "quai": "Mbour",
+    "quantite": "260 kg",
+    "heureDebarquement": "11:30",
+    "vendeur": "Pirogue Mbour Teranga",
+    "statut": "Disponible"
+  },
+  {
+    "id": "arr-007",
+    "espece": "Maquereau",
+    "quai": "Yoff",
+    "quantite": "540 kg",
+    "heureDebarquement": "12:05",
+    "vendeur": "Collectif Yoff Littoral",
+    "statut": "Ecoule"
+  },
+  {
+    "id": "arr-008",
+    "espece": "Sole",
+    "quai": "Kafountine",
+    "quantite": "220 kg",
+    "heureDebarquement": "13:10",
+    "vendeur": "Coopérative Kafountine Sud",
+    "statut": "Disponible"
+  }
+]
