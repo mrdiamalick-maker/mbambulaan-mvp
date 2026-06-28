@@ -4,13 +4,12 @@ import { computeDashboardMetrics, computeMatching } from "@/lib/coordination";
 import { countUnreadNotifications, createNotifications } from "@/lib/notifications";
 
 const links = [
-  { href: "/demo", label: "Démo" },
   { href: "/arrivages", label: "Arrivages" },
   { href: "/besoins", label: "Besoins" },
   { href: "/opportunites", label: "Opportunités" },
   { href: "/coordination", label: "Coordination" },
-  { href: "/quais", label: "Quais" },
-  { href: "/espaces", label: "Espaces" }
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/executive", label: "Executive" }
 ];
 
 export function SiteHeader() {
@@ -34,7 +33,7 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <a href="/notifications" className="relative rounded-full border border-[#14312d]/15 px-3 py-2 text-sm font-bold text-[#14312d] transition hover:border-[#14312d] sm:px-4">
+          <a href="/notifications" className="relative rounded-xl border border-[#14312d]/15 px-3 py-2 text-sm font-bold text-[#14312d] transition hover:border-[#14312d] sm:px-4">
             Notifications
             {unreadCount > 0 ? (
               <span className="absolute -right-2 -top-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#d65a31] px-2 text-xs font-black text-white">
@@ -43,10 +42,10 @@ export function SiteHeader() {
             ) : null}
           </a>
           <a
-            href="/dashboard"
-            className="rounded-full bg-[#14312d] px-3 py-2 text-sm font-black text-white transition hover:bg-[#1e4a43] sm:px-4"
+            href="/demo"
+            className="rounded-xl bg-[#0f2f2b] px-4 py-2 text-sm font-black text-white transition hover:bg-[#17453f]"
           >
-            Dashboard
+            Démo
           </a>
         </div>
       </div>
