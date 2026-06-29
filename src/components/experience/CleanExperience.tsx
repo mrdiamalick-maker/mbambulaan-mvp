@@ -1,40 +1,206 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-const profiles = [
-  ["etat", "État / institution", "Territoire, tensions, arbitrages, preuves."],
-  ["collectivite", "Collectivité", "Quai, acteurs locaux, actions justifiables."],
-  ["ong", "ONG / programme", "Actions, bénéficiaires, preuves, impact estimé."],
-  ["entreprise", "Entreprise privée", "Besoins qualifiés, risques, action encadrée."],
-  ["exportateur", "Exportateur", "Qualité, trace, limites et décision export."],
-  ["organisation", "Organisation professionnelle", "Membres, demandes collectives, partenaires."],
-  ["acteur-terrain", "Pêcheur / mareyeur", "Signal terrain, statut, retour coordination."],
-  ["investisseur", "Investisseur", "Thèse, flux de valeur, traction et risques."]
-] as const;
-
-const spaces: Record<string, { title: string; promise: string; kpis: string[]; modules: string[]; steps: string[]; proof: string; cta: string }> = {
-  etat: { title: "Espace ministère", promise: "Voir comment un territoire devient pilotable sans transformer Mbàmbulaan en dashboard public.", kpis: ["3 territoires", "12 signaux", "4 décisions"], modules: ["Vue territoire", "Tensions filière", "Signaux qualifiés", "Coordination acteurs", "Rapport ministère"], steps: ["Identifier une tension", "Lire les signaux", "Prioriser une décision", "Coordonner les acteurs", "Partager une synthèse"], proof: "Données simulées, limites visibles, prudence institutionnelle.", cta: "Cadrer un pilote ministère" },
-  collectivite: { title: "Espace collectivité", promise: "Passer d’un problème de quai à une action locale défendable.", kpis: ["1 quai pilote", "5 acteurs", "2 actions"], modules: ["Lecture du quai", "Besoins locaux", "Action communale", "Relais terrain", "Compte rendu"], steps: ["Voir le signal", "Qualifier l’urgence", "Choisir l’action", "Mobiliser", "Rendre compte"], proof: "Preuve locale à confirmer par pilote.", cta: "Cadrer une convention" },
-  ong: { title: "Espace programme", promise: "Relier interventions, bénéficiaires, preuves et reporting bailleur.", kpis: ["2 actions", "38 bénéficiaires", "1 rapport"], modules: ["Plan d’action", "Suivi terrain", "Preuves", "Impact estimé", "Rapport"], steps: ["Choisir l’intervention", "Relier les acteurs", "Suivre l’action", "Documenter", "Rapporter"], proof: "Impact estimé, non officiel.", cta: "Demander une démo programme" },
-  entreprise: { title: "Espace entreprise", promise: "Qualifier une opportunité sans créer une marketplace publique.", kpis: ["6 besoins", "3 lots", "1 décision"], modules: ["Besoins", "Compatibilité", "Qualité", "Risques", "Action encadrée"], steps: ["Lire le besoin", "Comparer", "Vérifier", "Évaluer", "Coordonner"], proof: "Preuve commerciale encadrée.", cta: "Cadrer un forfait" },
-  exportateur: { title: "Espace exportateur", promise: "Comprendre qualité, trace et limites avant engagement.", kpis: ["1 lot", "4 contrôles", "2 limites"], modules: ["Lot", "Qualité", "Trace", "Non-conformités", "Décision export"], steps: ["Sélectionner", "Lire qualité", "Voir trace", "Identifier limites", "Décider"], proof: "Trace système non officielle.", cta: "Cadrer export" },
-  organisation: { title: "Espace organisation professionnelle", promise: "Coordonner membres, demandes collectives et partenaires.", kpis: ["24 membres", "7 besoins", "3 partenaires"], modules: ["Membres", "Demandes", "Actions", "Partenaires", "Preuves"], steps: ["Remonter", "Regrouper", "Identifier", "Coordonner", "Capitaliser"], proof: "Preuve organisationnelle simulée.", cta: "Cadrer un pilote" },
-  "acteur-terrain": { title: "Espace pêcheur / mareyeur", promise: "Faire remonter un signal et suivre ce qu’il déclenche.", kpis: ["1 signal", "1 statut", "1 retour"], modules: ["Déclaration", "Statut", "Retour", "Opportunité", "Confiance"], steps: ["Déclarer", "Qualifier", "Voir statut", "Être relié", "Garder trace"], proof: "Signal simulé, confidentialité préservée.", cta: "Inclure dans un pilote" },
-  investisseur: { title: "Espace investisseur", promise: "Voir la logique de valeur et les risques d’exécution.", kpis: ["8 segments", "3 flux", "1 thèse"], modules: ["Thèse", "Valeur", "Traction", "Risques", "Économie"], steps: ["Problème", "Mécanisme", "Payeur", "Preuve", "Trajectoire"], proof: "Hypothèses explicites.", cta: "Session investisseur" }
+const publicPreview = {
+  console: [
+    "Signal terrain détecté : Joal / conservation",
+    "Besoin financement qualifié : chaîne du froid",
+    "Programme partenaire identifié : appui quai",
+    "Décision recommandée : cadrer un pilote Joal",
+    "Note de synthèse prête avec limites de preuve"
+  ],
+  nodes: [
+    { label: "Quai", x: 10, y: 62 },
+    { label: "Collectivité", x: 30, y: 34 },
+    { label: "ONG", x: 52, y: 55 },
+    { label: "Ministère", x: 72, y: 24 },
+    { label: "Entreprise", x: 88, y: 66 }
+  ],
+  metrics: [
+    { label: "Signaux qualifiés", value: "12" },
+    { label: "Acteurs reliés", value: "7" },
+    { label: "Décision proposée", value: "1" }
+  ]
 };
 
-export const profileSlugs = profiles.map(([slug]) => ({ slug }));
+function Shell({ children }: { children: ReactNode }) {
+  return (
+    <main className="min-h-screen bg-[#f6f3ea] text-[#112f36]">
+      <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
+        <Link href="/" className="flex items-center gap-3">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#102f3a] text-sm font-black text-white">Mb</span>
+          <span>
+            <strong className="block text-sm font-black tracking-tight text-[#102f3a]">Mbàmbulaan</strong>
+            <small className="block text-[0.68rem] font-black uppercase tracking-[0.16em] text-[#718086]">Coordination OS</small>
+          </span>
+        </Link>
+        <nav className="hidden items-center gap-7 text-sm font-black text-[#50636a] md:flex">
+          <Link href="/demo">Démo</Link>
+          <Link href="/demande-demo">Demander une démo</Link>
+          <Link href="/devis" className="rounded-full border border-[#cbd9dc] bg-white px-4 py-2 text-[#102f3a] shadow-sm">Cadrer un pilote</Link>
+        </nav>
+        <Link href="/demo" className="rounded-full bg-[#0d6f8d] px-4 py-3 text-xs font-black text-white md:hidden">Démo</Link>
+      </header>
+      {children}
+      <footer className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-10 text-sm font-bold text-[#65767c] sm:px-8 md:flex-row md:items-center md:justify-between">
+        <span>Mbàmbulaan transforme les signaux terrain en décisions coordonnées.</span>
+        <span>Public → démo par rôle → espace privé contextualisé.</span>
+      </footer>
+    </main>
+  );
+}
 
-function Shell({ children }: { children: ReactNode }) { return <main className="min-h-screen bg-[#f7f8f5] text-[#102a37]"><header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8"><Link href="/" className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0d3b4c] text-sm font-black text-white">Mb</span><span><strong className="block">Mbàmbulaan</strong><small className="text-xs font-bold text-[#64727a]">Operating System de coordination</small></span></Link><nav className="hidden gap-6 text-sm font-bold text-[#425662] md:flex"><Link href="/demo">Démo</Link><Link href="/demande-demo">Demander une démo</Link><Link href="/devis">Devis</Link></nav></header>{children}<footer className="mx-auto max-w-7xl px-5 py-10 text-sm font-semibold text-[#64727a] sm:px-8">Public → démo personnalisée → espace privé par rôle.</footer></main>; }
-function CTA({ href, children, secondary = false }: { href: string; children: ReactNode; secondary?: boolean }) { return <Link href={href} className={`inline-flex min-h-12 items-center justify-center rounded-full px-6 text-sm font-black ${secondary ? "border border-[#d8e1e5] bg-white text-[#0d3b4c]" : "bg-[#0d6f8d] text-white"}`}>{children}</Link>; }
-function Eyebrow({ children }: { children: ReactNode }) { return <p className="text-xs font-black uppercase tracking-[0.2em] text-[#0d6f8d]">{children}</p>; }
+function Cta({ href, children, secondary = false }: { href: string; children: ReactNode; secondary?: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`inline-flex min-h-12 items-center justify-center rounded-full px-6 text-sm font-black shadow-sm transition hover:-translate-y-0.5 ${
+        secondary
+          ? "border border-[#ccdadd] bg-white text-[#102f3a]"
+          : "bg-[#0d6f8d] text-white"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
 
-export function Landing() { return <Shell><section className="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-2 lg:items-center"><div><Eyebrow>Pêche artisanale · Sénégal</Eyebrow><h1 className="mt-5 text-5xl font-black leading-[0.96] tracking-[-0.05em] text-[#0d3b4c] sm:text-7xl">L’infrastructure qui rend la filière coordonnable.</h1><p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-[#43545e]">Mbàmbulaan relie signaux terrain, acteurs, décisions et preuves. Le public découvre la promesse. La valeur se montre en démo.</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><CTA href="/demo">Lancer la démo</CTA><CTA href="/devis" secondary>Demander un devis</CTA></div></div><div className="rounded-[2rem] border border-[#dce5e8] bg-white p-4 shadow-2xl"><div className="rounded-[1.5rem] bg-[#0d3b4c] p-6 text-white"><p className="text-xs font-black uppercase tracking-[0.18em] text-white/55">Aperçu contrôlé</p><h2 className="mt-4 text-3xl font-black">Un signal devient une décision.</h2>{["Signal terrain","Qualification","Action coordonnée","Preuve disponible"].map((item,i)=><div key={item} className="mt-3 flex justify-between rounded-2xl bg-white/10 p-4"><strong>{item}</strong><span>0{i+1}</span></div>)}<p className="mt-6 text-sm font-semibold text-white/65">Aucun module métier n’est ouvert au public.</p></div></div></section><section className="mx-auto grid max-w-7xl gap-5 px-5 py-10 sm:px-8 md:grid-cols-3">{[["Pourquoi maintenant","Les informations existent, mais elles restent dispersées."],["Pour qui","Institutions, collectivités, ONG, entreprises, organisations et acteurs terrain."],["Ce qui est vendu","Une capacité de coordination, de décision et de preuve selon le rôle."]].map(([t,x])=><article key={t} className="rounded-3xl border border-[#dce5e8] bg-white p-6"><h2 className="text-xl font-black text-[#0d3b4c]">{t}</h2><p className="mt-3 text-sm font-semibold leading-6 text-[#586973]">{x}</p></article>)}</section></Shell>; }
+function Eyebrow({ children }: { children: ReactNode }) {
+  return <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0d6f8d]">{children}</p>;
+}
 
-export function DemoHome() { return <Shell><section className="mx-auto max-w-5xl px-5 py-16 sm:px-8"><Eyebrow>Démo personnalisée</Eyebrow><h1 className="mt-5 text-5xl font-black leading-none tracking-[-0.05em] text-[#0d3b4c]">Choisissez le scénario adapté à votre rôle.</h1><p className="mt-5 text-lg font-semibold leading-8 text-[#52656f]">Le choix ouvre un espace simulé avec fonctionnalités, parcours de décision, preuve et action commerciale.</p></section><section className="mx-auto grid max-w-7xl gap-4 px-5 pb-16 sm:px-8 md:grid-cols-2 lg:grid-cols-4">{profiles.map(([slug,label,text])=><Link key={slug} href={`/demo/${slug}`} className="rounded-3xl border border-[#dce5e8] bg-white p-5 hover:border-[#0d6f8d]"><span className="text-xs font-black uppercase tracking-[0.16em] text-[#0d6f8d]">Profil</span><h2 className="mt-3 text-xl font-black text-[#0d3b4c]">{label}</h2><p className="mt-3 text-sm font-semibold leading-6 text-[#586973]">{text}</p><strong className="mt-5 inline-flex text-sm font-black text-[#0d6f8d]">Entrer dans l’espace →</strong></Link>)}</section></Shell>; }
+function MiniCockpit() {
+  return (
+    <div className="rounded-[2rem] border border-white/70 bg-[#102f3a] p-4 shadow-2xl">
+      <div className="rounded-[1.55rem] bg-[#f9fbf8] p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.2em] text-[#0d6f8d]">Console de coordination</p>
+            <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-[#102f3a]">Joal / Petite-Côte</h2>
+          </div>
+          <span className="rounded-full bg-[#fff2cf] px-3 py-2 text-xs font-black text-[#6b4a00]">Tension forte</span>
+        </div>
 
-export function RoleDemo({ slug }: { slug: string }) { const profile = profiles.find(([s]) => s === slug) ?? profiles[0]; const space = spaces[profile[0]]; return <Shell><section className="mx-auto grid max-w-7xl gap-8 px-5 py-16 sm:px-8 lg:grid-cols-[0.9fr_1.1fr]"><div><Eyebrow>Démo espace rôle</Eyebrow><h1 className="mt-5 text-5xl font-black leading-none tracking-[-0.05em] text-[#0d3b4c]">{space.title}</h1><p className="mt-5 text-lg font-semibold leading-8 text-[#52656f]">{space.promise}</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><CTA href="/demande-demo">Démo complète</CTA><CTA href="/devis" secondary>{space.cta}</CTA></div></div><div className="grid gap-3 sm:grid-cols-3">{space.kpis.map((kpi)=><article key={kpi} className="rounded-3xl border border-[#dce5e8] bg-white p-5"><span className="text-xs font-black uppercase tracking-[0.16em] text-[#0d6f8d]">Indicateur</span><p className="mt-3 text-2xl font-black text-[#0d3b4c]">{kpi}</p></article>)}</div></section><section className="mx-auto grid max-w-7xl gap-5 px-5 pb-12 sm:px-8 lg:grid-cols-[0.85fr_1.15fr]"><div className="rounded-[2rem] border border-[#dce5e8] bg-white p-6 shadow-xl"><h2 className="text-2xl font-black text-[#0d3b4c]">Fonctionnalités visibles</h2>{space.modules.map((x)=><div key={x} className="mt-3 rounded-2xl bg-[#f2f7f7] p-4 text-sm font-black text-[#0d3b4c]">{x}</div>)}</div><div className="rounded-[2rem] bg-[#0d3b4c] p-6 text-white shadow-xl"><p className="text-xs font-black uppercase tracking-[0.16em] text-white/55">Parcours de décision</p><h2 className="mt-3 text-3xl font-black">Du signal à l’action.</h2>{space.steps.map((step,i)=><div key={step} className="mt-4 flex gap-4 rounded-2xl bg-white/10 p-4"><span className="font-black text-white/45">0{i+1}</span><strong>{step}</strong></div>)}<p className="mt-6 rounded-2xl bg-white/10 p-4 text-sm font-semibold leading-6 text-white/72">{space.proof}</p></div></section></Shell>; }
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          {publicPreview.metrics.map((metric) => (
+            <div key={metric.label} className="rounded-2xl border border-[#dde8e9] bg-white p-4">
+              <p className="text-3xl font-black text-[#102f3a]">{metric.value}</p>
+              <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-[#6b7a80]">{metric.label}</p>
+            </div>
+          ))}
+        </div>
 
-export function PrivateSpaces() { return <Shell><section className="mx-auto max-w-5xl px-5 py-16 sm:px-8"><Eyebrow>Espaces privés</Eyebrow><h1 className="mt-5 text-5xl font-black leading-none tracking-[-0.05em] text-[#0d3b4c]">La solution visible dépend du rôle et de la valeur achetée.</h1><p className="mt-5 text-lg font-semibold leading-8 text-[#52656f]">Les fonctionnalités sont activées selon le rôle, le territoire, le pilote, la convention ou le forfait.</p></section></Shell>; }
-export function LeadPage({ kind }: { kind: "demo" | "devis" }) { const isDemo = kind === "demo"; const fields = isDemo ? ["Nom","Organisation","Rôle","Email","Téléphone","Type d’organisation","Objectif","Territoire"] : ["Organisation","Type d’acteur","Territoire","Besoin principal","Échéance","Niveau d’accompagnement","Contact","Email"]; return <Shell><section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 lg:grid-cols-2"><div><Eyebrow>{isDemo ? "Demande de démo" : "Demande de devis"}</Eyebrow><h1 className="mt-5 text-5xl font-black leading-none tracking-[-0.05em] text-[#0d3b4c]">{isDemo ? "Recevoir une démo adaptée à votre rôle." : "Cadrer une proposition adaptée à votre territoire."}</h1><p className="mt-5 text-lg font-semibold leading-8 text-[#52656f]">La demande permet de cadrer le bon scénario.</p></div><form className="rounded-[2rem] border border-[#dce5e8] bg-white p-6 shadow-xl"><div className="grid gap-4 sm:grid-cols-2">{fields.map((label)=><label key={label} className="grid gap-2 text-sm font-black text-[#0d3b4c]">{label}<input className="min-h-12 rounded-2xl border border-[#dce5e8] bg-[#f8fbfb] px-4" placeholder={label}/></label>)}</div><button className="mt-5 rounded-full bg-[#0d6f8d] px-6 py-4 text-sm font-black text-white" type="button">Préparer la demande</button><p className="mt-4 text-sm font-semibold text-[#66757d]">Version sans backend : aucune donnée n’est envoyée.</p></form></section></Shell>; }
-export function ModuleGate({ title }: { title: string }) { return <Shell><section className="mx-auto max-w-4xl px-5 py-24 text-center sm:px-8"><Eyebrow>Module privé</Eyebrow><h1 className="mt-5 text-5xl font-black leading-none tracking-[-0.05em] text-[#0d3b4c]">{title} n’est pas un accès public.</h1><p className="mx-auto mt-5 max-w-2xl text-lg font-semibold leading-8 text-[#52656f]">Cette fonctionnalité appartient à un espace privé ou à une démo personnalisée.</p><div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row"><CTA href="/demo">Choisir une démo</CTA><CTA href="/espace-prive" secondary>Comprendre les espaces privés</CTA></div></section></Shell>; }
+        <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+          <div className="relative min-h-[16rem] overflow-hidden rounded-[1.5rem] bg-[#e7f0ee] p-4">
+            <div className="absolute inset-x-10 top-1/2 h-px bg-[#7aa2a0]" />
+            <div className="absolute left-1/2 top-10 h-[11rem] w-px bg-[#7aa2a0]" />
+            {publicPreview.nodes.map((node) => (
+              <div
+                key={node.label}
+                className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
+                style={{ left: `${node.x}%`, top: `${node.y}%` }}
+              >
+                <span className="mx-auto block h-4 w-4 rounded-full border-2 border-white bg-[#0d6f8d] shadow-lg" />
+                <span className="mt-2 block rounded-full bg-white/90 px-2 py-1 text-[0.65rem] font-black text-[#102f3a] shadow-sm">{node.label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-[1.5rem] bg-[#0f2630] p-4 text-white">
+            {publicPreview.console.map((line, index) => (
+              <div key={line} className="flex gap-3 border-b border-white/10 py-3 last:border-b-0">
+                <span className="font-black text-white/35">0{index + 1}</span>
+                <p className="text-sm font-semibold leading-6 text-white/80">{line}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function Landing() {
+  return (
+    <Shell>
+      <section className="mx-auto grid max-w-7xl gap-12 px-5 py-14 sm:px-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
+        <div>
+          <Eyebrow>Pêche artisanale · infrastructure de coordination</Eyebrow>
+          <h1 className="mt-5 text-5xl font-black leading-[0.94] tracking-[-0.055em] text-[#102f3a] sm:text-7xl">
+            L’infrastructure de coordination de la pêche artisanale.
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg font-bold leading-8 text-[#4d6269]">
+            Mbàmbulaan connecte les acteurs, qualifie les signaux, organise les décisions et transforme les données terrain en services utiles.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Cta href="/demo">Lancer la démo</Cta>
+            <Cta href="/devis" secondary>Cadrer un pilote</Cta>
+          </div>
+        </div>
+        <MiniCockpit />
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-4 px-5 py-8 sm:px-8 md:grid-cols-2 lg:grid-cols-5">
+        {["Voir", "Comprendre", "Coordonner", "Décider", "Prouver"].map((verb) => (
+          <article key={verb} className="rounded-[1.5rem] border border-[#d9e4e6] bg-white p-5 shadow-sm">
+            <span className="text-xs font-black uppercase tracking-[0.16em] text-[#0d6f8d]">Rendre possible</span>
+            <h2 className="mt-3 text-2xl font-black text-[#102f3a]">{verb}</h2>
+          </article>
+        ))}
+      </section>
+
+      <section className="mx-auto grid max-w-7xl gap-5 px-5 py-12 sm:px-8 lg:grid-cols-[0.9fr_1.1fr]">
+        <div>
+          <Eyebrow>Pourquoi Mbàmbulaan</Eyebrow>
+          <h2 className="mt-4 text-4xl font-black leading-tight tracking-[-0.045em] text-[#102f3a]">
+            La filière n’a pas besoin d’un dashboard public. Elle a besoin d’un système d’orchestration.
+          </h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[
+            "Information dispersée entre terrain, programmes et institutions.",
+            "Coordination faible entre quais, acteurs, financeurs et services.",
+            "Décisions difficiles faute de preuve lisible.",
+            "Services inexistants parce que la donnée n’est pas qualifiée."
+          ].map((item) => (
+            <div key={item} className="rounded-[1.35rem] border border-[#d9e4e6] bg-white p-5 text-sm font-bold leading-6 text-[#4d6269] shadow-sm">
+              {item}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 pb-16 sm:px-8">
+        <div className="rounded-[2rem] bg-[#102f3a] p-6 text-white shadow-2xl md:p-8">
+          <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-white/55">Démo par rôle</p>
+              <h2 className="mt-3 text-4xl font-black leading-tight tracking-[-0.045em]">Découvrez l’espace qui correspond à votre décision.</h2>
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-white/70">
+                Ministère, ONG, collectivité, entreprise, organisation ou acteur terrain : chaque démo ouvre un cockpit différent.
+              </p>
+            </div>
+            <Cta href="/demo">Découvrir par rôle</Cta>
+          </div>
+        </div>
+      </section>
+    </Shell>
+  );
+}
+
+export function ModuleGate({ title }: { title: string }) {
+  return (
+    <Shell>
+      <section className="mx-auto max-w-4xl px-5 py-24 text-center sm:px-8">
+        <Eyebrow>Module privé</Eyebrow>
+        <h1 className="mt-5 text-5xl font-black leading-none tracking-[-0.05em] text-[#102f3a]">{title} n’est pas un accès public.</h1>
+        <p className="mx-auto mt-5 max-w-2xl text-lg font-bold leading-8 text-[#52656f]">
+          Cette fonctionnalité appartient à un espace privé ou à une démo personnalisée selon le rôle.
+        </p>
+        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <Cta href="/demo">Choisir une démo</Cta>
+          <Cta href="/espace-prive" secondary>Comprendre les espaces privés</Cta>
+        </div>
+      </section>
+    </Shell>
+  );
+}
