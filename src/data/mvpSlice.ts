@@ -140,12 +140,12 @@ export const mvpActors: MvpActor[] = [
   { id: "act-pecheur-joal", name: "Pirogue Joal Kër Gi", role: "Pêcheur référent", territory: "Petite-Côte", source: "Déclaration agent terrain", status: "Qualifié", proofLevel: "validé", date: "2026-06-29" },
   { id: "act-mareyeur-dakar", name: "Mareyeur Dakar Frais", role: "Acheteur demandeur", territory: "Dakar", source: "Besoin publié", status: "Qualifié", proofLevel: "déclaratif", date: "2026-06-29" },
   { id: "act-agent-joal", name: "Awa Diouf", role: "Animatrice territoriale", territory: "Petite-Côte", source: "Réseau terrain Mbàmbulaan", status: "Qualifié", proofLevel: "validé", date: "2026-06-29" },
-  { id: "act-collectivite", name: "Cellule économie locale", role: "Décideur territorial", territory: "Petite-Côte", source: "Espace collectivité", status: "Synthétisé", proofLevel: "audité", date: "2026-06-29" }
+  { id: "act-collectivite", name: "Cellule économie locale", role: "Décideur territorial", territory: "Petite-Côte", source: "Espace collectivité", status: "Synthétisé", proofLevel: "système", date: "2026-06-29" }
 ];
 
 export const mvpOrganizations: MvpOrganization[] = [
   { id: "org-coop-joal", name: "Union Joal Pêche", type: "Coopérative", territory: "Petite-Côte", source: "Référentiel local", status: "Qualifié", proofLevel: "validé", date: "2026-06-29" },
-  { id: "org-municipal", name: "Collectivité de Joal-Fadiouth", type: "Collectivité", territory: "Petite-Côte", source: "Partenaire pilote", status: "Synthétisé", proofLevel: "audité", date: "2026-06-29" }
+  { id: "org-municipal", name: "Collectivité de Joal-Fadiouth", type: "Collectivité", territory: "Petite-Côte", source: "Partenaire pilote", status: "Synthétisé", proofLevel: "validé", date: "2026-06-29" }
 ];
 
 export const mvpTerritories: MvpTerritory[] = [
@@ -197,14 +197,14 @@ export const mvpNeeds: MvpNeed[] = [
 export const mvpActions: MvpAction[] = [
   {
     id: "action-reserver-joal",
-    title: "Réserver le lot Joal avant dégradation",
-    description: "Le signal est qualifié, le besoin est urgent et la quantité disponible couvre la demande. La prochaine action est de réserver puis suivre la transaction.",
+    title: "Qualifier le lot, mobiliser l'acheteur compatible et conserver la preuve de décision",
+    description: "Le signal qualifié, le besoin urgent et la tension locale déclenchent une action de coordination : mobiliser l'acheteur compatible, suivre l'avancement et conserver la preuve de décision.",
     territory: "Petite-Côte",
     source: "Coordination engine",
     status: "En action",
     proofLevel: "système",
     date: "2026-06-29 09:42",
-    ownerRole: "Mareyeur / coordination",
+    ownerRole: "Coordination / mareyeur",
     targetHref: "/opportunites/arr-004-bes-004"
   }
 ];
@@ -228,7 +228,7 @@ export const mvpProofs: MvpProof[] = [
     territory: "Petite-Côte",
     source: "Impact / report summary helper",
     status: "Synthétisé",
-    proofLevel: "audité",
+    proofLevel: "système",
     date: "2026-06-29 10:00",
     linkedObjectId: "action-reserver-joal"
   }
@@ -244,8 +244,8 @@ export const mvpTrustSignals: MvpTrustSignal[] = [
 ];
 
 export const mvpReportMetrics: MvpReportMetric[] = [
-  { id: "metric-signal", label: "Signal terrain qualifié", value: "1", territory: "Petite-Côte", source: "Coordination engine", status: "Synthétisé", proofLevel: "audité", date: "2026-06-29" },
+  { id: "metric-signal", label: "Signal terrain qualifié", value: "1", territory: "Petite-Côte", source: "Coordination engine", status: "Synthétisé", proofLevel: "système", date: "2026-06-29" },
   { id: "metric-opportunity", label: "Opportunité prioritaire", value: "1", territory: "Petite-Côte", source: "Matching engine", status: "Synthétisé", proofLevel: "système", date: "2026-06-29" },
   { id: "metric-action", label: "Action recommandée", value: "1", territory: "Petite-Côte", source: "Prioritization helper", status: "Synthétisé", proofLevel: "système", date: "2026-06-29" },
-  { id: "metric-proof", label: "Preuves liées", value: "2", territory: "Petite-Côte", source: "Traceability helper", status: "Synthétisé", proofLevel: "audité", date: "2026-06-29" }
+  { id: "metric-proof", label: "Preuves liées", value: "2", territory: "Petite-Côte", source: "Traceability helper", status: "Synthétisé", proofLevel: "système", date: "2026-06-29" }
 ];
