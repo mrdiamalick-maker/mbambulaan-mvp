@@ -11,9 +11,9 @@ type InsightPanelProps = {
 
 export function InsightPanel({ children, className = "", description, eyebrow, title }: InsightPanelProps) {
   return (
-    <section className={`rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#14312d]/10 sm:p-8 ${className}`}>
+    <section className={`rounded-3xl bg-white p-5 shadow-[0_18px_45px_rgba(15,45,74,0.06)] ring-1 ring-[#E2E8F0] sm:p-6 ${className}`}>
       <SectionHeader eyebrow={eyebrow} title={title} description={description} />
-      <div className="mt-6">{children}</div>
+      <div className="mt-5">{children}</div>
     </section>
   );
 }
