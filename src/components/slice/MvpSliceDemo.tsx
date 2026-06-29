@@ -94,6 +94,7 @@ export function MvpSliceDemo({ slice }: { slice: MvpSliceSummary }) {
 const navigationItems = [
   { href: "/", label: "Accueil" },
   { href: "/demo", label: "Démo" },
+  { href: "/territoire-pilote", label: "Territoire pilote" },
   { href: "/arrivages", label: "Arrivages" },
   { href: "/besoins", label: "Besoins" },
   { href: "/opportunites", label: "Opportunités" },
