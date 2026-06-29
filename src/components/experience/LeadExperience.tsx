@@ -47,14 +47,14 @@ export function LeadExperience({ kind }: { kind: "demo" | "devis" }) {
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-[#0d6f8d]">Demande préparée</p>
                 <h2 className="mt-4 text-4xl font-black tracking-[-0.045em] text-[#102f3a]">
-                  Votre demande est prête à être reprise par l’équipe Mbàmbulaan.
+                  Voici l’espace auquel votre organisation pourrait accéder après cadrage.
                 </h2>
                 <p className="mx-auto mt-4 max-w-xl text-sm font-bold leading-6 text-[#52656f]">
-                  Version sans backend : aucune donnée n’est envoyée. Cette confirmation simule l’état attendu après soumission dans un futur parcours privé.
+                  Demande préparée. Version sans backend : aucune donnée n’est envoyée. La suite montre le rendu premium simulé de la solution après souscription.
                 </p>
                 <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-                  <Link href="/demo" className="rounded-full bg-[#0d6f8d] px-6 py-4 text-sm font-black text-white">Revenir aux démos</Link>
-                  <Link href="/" className="rounded-full border border-[#cbd9dc] bg-white px-6 py-4 text-sm font-black text-[#102f3a]">Accueil</Link>
+                  <Link href="/espace-prive" className="rounded-full bg-[#0d6f8d] px-6 py-4 text-sm font-black text-white">Entrer dans l’espace premium simulé</Link>
+                  <Link href="/demo" className="rounded-full border border-[#cbd9dc] bg-white px-6 py-4 text-sm font-black text-[#102f3a]">Revenir à la démo par rôle</Link>
                 </div>
               </div>
             </div>
