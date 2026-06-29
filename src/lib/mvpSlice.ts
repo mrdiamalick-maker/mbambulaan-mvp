@@ -103,7 +103,7 @@ export function computeImpactReportSummary() {
     impact,
     metrics: mvpReportMetrics,
     title: "Rapport opérationnel du slice MVP",
-    decision: "Prioriser le lot qualifié à Joal, activer la réservation et conserver la preuve de décision.",
+    decision: "Qualifier le lot à Joal, mobiliser l'acheteur compatible, suivre l'action et conserver la preuve de décision.",
     limits: "Données locales mockées : la preuve est démonstrative et doit être remplacée par des validations terrain en pilote."
   };
 }
