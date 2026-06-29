@@ -1,8 +1,5 @@
-import { MvpSliceDemo } from "@/components/slice/MvpSliceDemo";
-import { computeCoordinationEngine } from "@/lib/mvpSlice";
+import { DemoHome } from "@/components/experience/CleanExperience";
 
 export default function DemoPage() {
-  const slice = computeCoordinationEngine();
-
-  return <MvpSliceDemo slice={slice} />;
+  return <DemoHome />;
 }
