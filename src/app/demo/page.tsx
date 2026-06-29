@@ -1,8 +1,6 @@
-import { MvpSliceDemo } from "@/components/slice/MvpSliceDemo";
+import { PremiumDemoPage } from "@/components/premium/PremiumExperience";
 import { computeCoordinationEngine } from "@/lib/mvpSlice";
 
 export default function DemoPage() {
-  const slice = computeCoordinationEngine();
-
-  return <MvpSliceDemo slice={slice} />;
+  return <PremiumDemoPage slice={computeCoordinationEngine()} />;
 }
