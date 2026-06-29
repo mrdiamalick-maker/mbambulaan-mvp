@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
-import { OpportuniteDetail } from "@/components/opportunites/OpportuniteDetail";
+import { PremiumOpportunityDetailPage } from "@/components/premium/PremiumExperience";
 import { getArrivages } from "@/lib/arrivages";
 import { getBesoins } from "@/lib/besoins";
 import { computeMatching, findOpportuniteById } from "@/lib/coordination";
+import { computeCoordinationEngine } from "@/lib/mvpSlice";
 
 type OpportuniteDetailPageProps = {
   params: Promise<{
@@ -18,5 +19,5 @@ export default async function OpportuniteDetailPage({ params }: OpportuniteDetai
     notFound();
   }
 
-  return <OpportuniteDetail opportunite={opportunite} />;
+  return <PremiumOpportunityDetailPage opportunite={opportunite} slice={computeCoordinationEngine()} />;
 }
