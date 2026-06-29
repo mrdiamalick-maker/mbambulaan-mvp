@@ -1,5 +1,5 @@
-import { RoleWorkspace } from "@/components/experience/RoleWorkspace";
+import { InstitutionalCockpit } from "@/components/experience/InstitutionalCockpit";
 
 export default function Page() {
-  return <RoleWorkspace slug="etat" />;
+  return <InstitutionalCockpit />;
 }
