@@ -1,5 +1,5 @@
-import { RoleDemo } from "@/components/experience/CleanExperience";
+import { RoleWorkspace } from "@/components/experience/RoleWorkspace";
 
 export default function Page() {
-  return <RoleDemo slug="acteur-terrain" />;
+  return <RoleWorkspace slug="pecheur" />;
 }
