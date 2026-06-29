@@ -146,7 +146,7 @@ export function ActionQueue({ actions }: { actions: MvpAction[] }) {
               <ProofBadge level={action.proofLevel} />
               <StatusBadge tone="neutral">{action.ownerRole}</StatusBadge>
               <Link href={action.targetHref} className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#0F2D4A] ring-1 ring-[#E2E8F0]">
-                Traiter
+                Coordonner
               </Link>
             </div>
           </article>
@@ -192,14 +192,14 @@ export function DecisionSummary({ slice }: { slice: MvpSliceSummary }) {
             <p className="text-xs font-black uppercase tracking-[0.12em] text-white/55">{metric.label}</p>
             <p className="mt-2 text-2xl font-black text-white">{metric.value}</p>
             <div className="mt-3">
-              <ProofBadge level={metric.proofLevel} />
+              <StatusBadge tone="info">Preuve {metric.proofLevel}</StatusBadge>
             </div>
           </div>
         ))}
       </div>
       <p className="mt-5 rounded-2xl bg-white/10 p-4 text-sm font-semibold leading-6 text-white/75">Limite : {slice.report.limits}</p>
       <Link href="/executive" className="mt-5 inline-flex rounded-xl bg-white px-4 py-2 text-xs font-black text-[#0F2D4A] transition hover:bg-[#F8FAFC]">
-        Ouvrir la vue executive
+        Ouvrir la vue exécutive
       </Link>
     </ProductCard>
   );
