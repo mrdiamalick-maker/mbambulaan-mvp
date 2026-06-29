@@ -1,5 +1,5 @@
-import { LeadPage } from "@/components/experience/CleanExperience";
+import { LeadExperience } from "@/components/experience/LeadExperience";
 
 export default function Page() {
-  return <LeadPage kind="demo" />;
+  return <LeadExperience kind="demo" />;
 }
