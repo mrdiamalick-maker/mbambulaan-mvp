@@ -42,10 +42,32 @@ export function TerritoryPilotScenario({ pilot }: { pilot: TerritoryPilotSummary
               <p className="text-xs font-black uppercase tracking-[0.14em] text-white/60">Lecture immédiate</p>
               <p className="mt-3 text-2xl font-black text-white">Tension {pilot.tensionLevel.toLowerCase()}</p>
               <p className="mt-2 text-sm font-semibold leading-6 text-white/70">
-                Quai {pilot.quay}, région {pilot.region}. Le territoire pilote devient un espace de coordination lisible.
+                Quai {pilot.quay}, région {pilot.region}. Le territoire pilote devient un espace de coordination lisible pour décider, suivre et rendre compte.
               </p>
             </ProductCard>
           </div>
+        </section>
+
+        <section className="mt-6 grid gap-4 lg:grid-cols-[0.75fr_1.25fr]">
+          <ProductCard tone="active" className="p-6">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#1F6F8B]">Pourquoi ce pilote</p>
+            <h2 className="mt-3 text-3xl font-black leading-tight text-[#0F2D4A]">Joal montre la valeur territoriale, pas seulement une mise en relation.</h2>
+            <p className="mt-4 text-sm font-semibold leading-6 text-[#334155]">{pilot.whyPilot}</p>
+          </ProductCard>
+
+          <ProductCard>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#1F6F8B]">Valeur pilote</p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {pilot.valuePoints.map((point) => (
+                <article key={point.id} className="rounded-2xl bg-[#F8FAFC] p-4 ring-1 ring-[#E2E8F0]">
+                  <StatusBadge tone="info">{point.audience}</StatusBadge>
+                  <h3 className="mt-3 text-lg font-black text-[#0F2D4A]">{point.title}</h3>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-[#334155]">{point.description}</p>
+                  <p className="mt-3 text-xs font-black uppercase tracking-[0.12em] text-[#1F6F8B]">Preuve : {point.proof}</p>
+                </article>
+              ))}
+            </div>
+          </ProductCard>
         </section>
 
         <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -136,6 +158,9 @@ export function TerritoryPilotScenario({ pilot }: { pilot: TerritoryPilotSummary
             <p className="text-xs font-black uppercase tracking-[0.14em] text-white/60">{pilot.synthesis.title}</p>
             <h2 className="mt-3 text-3xl font-black text-white">{pilot.synthesis.impact}</h2>
             <p className="mt-4 text-sm font-semibold leading-6 text-white/75">{pilot.synthesis.decision}</p>
+            <p className="mt-4 rounded-2xl bg-white/10 p-4 text-sm font-semibold leading-6 text-white/75">
+              Valeur capturable plus tard : transformer les preuves terrain, la lecture de tension et la coordination d'acteurs en service pilote pour collectivités, coopératives et partenaires.
+            </p>
             <p className="mt-4 rounded-2xl bg-white/10 p-4 text-sm font-semibold leading-6 text-white/70">Limite : {pilot.synthesis.limits}</p>
           </ProductCard>
         </section>
