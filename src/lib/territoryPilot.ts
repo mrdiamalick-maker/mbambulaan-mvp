@@ -19,6 +19,7 @@ export type TerritoryPilotSummary = {
   tensionLevel: MvpTensionLevel;
   headline: string;
   narrative: string;
+  whyPilot: string;
   signal: ReturnType<typeof computeCoordinationEngine>["signal"];
   need: ReturnType<typeof computeCoordinationEngine>["need"];
   action: ReturnType<typeof computeCoordinationEngine>["action"];
@@ -50,6 +51,13 @@ export type TerritoryPilotSummary = {
     impact: string;
     limits: string;
   };
+  valuePoints: Array<{
+    id: string;
+    audience: string;
+    title: string;
+    description: string;
+    proof: string;
+  }>;
   nextActions: Array<{
     label: string;
     href: string;
@@ -71,6 +79,8 @@ export function computeTerritoryPilot(): TerritoryPilotSummary {
     headline: `${slice.signal.quay} / ${slice.signal.territory}`,
     narrative:
       "Un signal terrain qualifié devient une décision territoriale lisible : le besoin est identifié, l'action est coordonnée, la preuve est conservée et la synthèse peut être présentée.",
+    whyPilot:
+      "Joal concentre un quai actif, des arrivages sensibles, des besoins acheteurs proches et une organisation locale mobilisable. C'est un bon pilote pour prouver qu'un territoire peut passer d'informations dispersées à une coordination opérationnelle.",
     signal: slice.signal,
     need: slice.need,
     action: slice.action,
@@ -101,6 +111,36 @@ export function computeTerritoryPilot(): TerritoryPilotSummary {
       impact: slice.report.impact,
       limits: slice.report.limits
     },
+    valuePoints: [
+      {
+        id: "local-authority",
+        audience: "Collectivité locale",
+        title: "Prioriser l'action publique",
+        description: "La collectivité voit quel quai est sous tension, quel lot risque de perdre de la valeur et quelle action doit être suivie en premier.",
+        proof: "Tension, action prioritaire et synthèse exécutive"
+      },
+      {
+        id: "professional-organization",
+        audience: "Organisation professionnelle",
+        title: "Coordonner pêcheurs et acheteurs",
+        description: "La coopérative ou le GIE peut montrer qu'un signal déclaré par un pêcheur devient une action suivie, avec acteurs, besoin et preuve associés.",
+        proof: "Signal validé, besoin compatible et acteurs mobilisés"
+      },
+      {
+        id: "institutional-partner",
+        audience: "Partenaire institutionnel",
+        title: "Lire l'impact territorial",
+        description: "Le partenaire comprend ce qui a été traité, ce qui reste fragile et pourquoi le territoire pilote mérite accompagnement, données et moyens.",
+        proof: "Métriques de rapport et limites explicites"
+      },
+      {
+        id: "mbambulaan-team",
+        audience: "Équipe Mbàmbulaan",
+        title: "Transformer le pilote en modèle réplicable",
+        description: "L'équipe identifie les preuves à renforcer, les usages à monétiser plus tard et les conditions pour répliquer le scénario sur d'autres quais.",
+        proof: "Preuve système, preuve terrain et parcours de coordination"
+      }
+    ],
     flow: [
       {
         id: "signal",
