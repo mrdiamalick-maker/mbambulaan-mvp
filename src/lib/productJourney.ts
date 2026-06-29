@@ -68,7 +68,7 @@ export const roleJourneys: ProductRoleJourney[] = [
     label: "Transformateur",
     objectifPrincipal: "Capter un surplus et sécuriser un approvisionnement.",
     premiereAction: "Publier un besoin industriel ou réserver un lot sensible.",
-    prochainesActions: ["Identifier les lots à risque", "Réserver une opportunité prioritaire", "Suivre la livraison"],
+    prochainesActions: ["Identifier les lots à risque", "Coordonner une opportunité prioritaire", "Suivre la livraison"],
     modulesUtiles: [
       { label: "Besoins", href: "/besoins" },
       { label: "Opportunités", href: "/opportunites" },
@@ -132,7 +132,7 @@ export const transversalFlows: ProductFlow[] = [
     id: "opportunite",
     titre: "Parcours opportunité",
     description: "Une opportunité explique pourquoi deux acteurs doivent être mis en relation.",
-    etapes: ["Score", "Confiance", "Qualité", "Réservation"],
+    etapes: ["Score", "Confiance", "Qualité", "Coordination"],
     moduleFinal: { label: "Opportunités", href: "/opportunites" }
   },
   {
@@ -171,12 +171,12 @@ export const priorityActions: PriorityAction[] = [
     statutRecommande: "Maintenant"
   },
   {
-    titre: "Réserver une opportunité",
-    description: "Transformer une recommandation en mise en relation opérationnelle.",
+    titre: "Coordonner une opportunité",
+    description: "Transformer une recommandation en mise en relation opérationnelle, suivie et traçable.",
     roleConcerne: "Mareyeur / Transformateur",
     moduleCible: "Opportunités",
     lien: "/opportunites",
-    resultatAttendu: "Une transaction locale peut être suivie.",
+    resultatAttendu: "Les acteurs compatibles sont mobilisés et la transaction locale peut être suivie.",
     statutRecommande: "Maintenant"
   },
   {
@@ -220,7 +220,7 @@ export const priorityActions: PriorityAction[] = [
 export const pageMissions: Record<string, string> = {
   arrivages: "Cette page sert à rendre les lots visibles. Après une déclaration, Mbàmbulaan peut détecter une opportunité compatible.",
   besoins: "Cette page sert à publier la demande. Ensuite, le matching cherche les lots compatibles.",
-  opportunites: "Cette page sert à choisir quelle mise en relation traiter en premier, puis à réserver ou consulter le détail.",
+  opportunites: "Cette page sert à choisir quelle mise en relation traiter en premier, mobiliser les acteurs compatibles et consulter le détail.",
   transactions: "Cette page sert à suivre l'état d'un lot réservé et à accéder à sa traçabilité.",
   notifications: "Cette page sert à traiter les signaux métier et revenir vers le module concerné.",
   quais: "Cette page sert à choisir un quai sous tension et comprendre la décision territoriale possible.",
