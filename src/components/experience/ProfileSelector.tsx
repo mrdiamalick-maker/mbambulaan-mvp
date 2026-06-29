@@ -1,118 +1,117 @@
-import Link from "next/link";
+"use client";
 
-const profiles = [
-  {
-    slug: "etat",
-    label: "État / Ministère",
-    scenario: "Arbitrer une tension sur un territoire pilote",
-    value: "Voir les signaux terrain, les programmes actifs, les demandes de financement et une note de décision exploitable.",
-    shown: ["Tension Joal", "KPIs filière", "Acteurs à coordonner", "Note ministère"]
-  },
-  {
-    slug: "ong",
-    label: "ONG / Programme",
-    scenario: "Suivre un programme et produire une preuve bailleur",
-    value: "Comprendre où agir, quelles preuves existent et quelles limites doivent rester visibles.",
-    shown: ["Bénéficiaires", "Actions terrain", "Impact estimé", "Reporting prudent"]
-  },
-  {
-    slug: "collectivite",
-    label: "Collectivité",
-    scenario: "Transformer un problème de quai en action communale",
-    value: "Passer d'un signal local à une décision défendable devant les acteurs du territoire.",
-    shown: ["Quai prioritaire", "Acteurs locaux", "Action communale", "Compte rendu"]
-  },
-  {
-    slug: "pecheur",
-    label: "Pêcheur",
-    scenario: "Signaler un besoin et suivre le retour de coordination",
-    value: "Montrer une expérience assistée, simple, avec relais terrain plutôt qu'un dashboard lourd.",
-    shown: ["Signal", "Statut", "Relais quai", "Retour coordination"]
-  },
-  {
-    slug: "mareyeur",
-    label: "Mareyeur",
-    scenario: "Organiser un flux produit et réduire le risque logistique",
-    value: "Visualiser les lots, la qualité, les besoins marché et les actions à coordonner.",
-    shown: ["Flux produits", "Qualité", "Logistique", "Confiance"]
-  },
-  {
-    slug: "exportateur",
-    label: "Entreprise / Exportateur",
-    scenario: "Qualifier une opportunité sans marketplace",
-    value: "Évaluer une opportunité encadrée avec qualité, trace, risque et limites de preuve.",
-    shown: ["Opportunité", "Trace", "Risque supply", "Coordination commerciale"]
-  },
-  {
-    slug: "organisation",
-    label: "Organisation professionnelle",
-    scenario: "Structurer une demande collective",
-    value: "Transformer des besoins membres en actions collectives lisibles pour partenaires et financeurs.",
-    shown: ["Membres", "Demandes agrégées", "Plaidoyer", "Preuves"]
-  },
-  {
-    slug: "investisseur",
-    label: "Investisseur",
-    scenario: "Comprendre la thèse infrastructure",
-    value: "Lire pourquoi Mbàmbulaan peut devenir une couche de coordination vendable et défendable.",
-    shown: ["Segments payeurs", "Flux de valeur", "Risques", "Trajectoire"]
-  }
-];
+import Link from "next/link";
+import { useState } from "react";
+import { getWorkspace, roleProfiles, type RoleSlug } from "@/components/experience/RoleWorkspaceV2";
 
 export function ProfileSelector() {
+  const [selectedSlug, setSelectedSlug] = useState<RoleSlug>("etat");
+  const selectedProfile = roleProfiles.find((profile) => profile.slug === selectedSlug) ?? roleProfiles[0];
+  const workspace = getWorkspace(selectedProfile.slug);
+
   return (
-    <main className="min-h-screen bg-[#f7f8f5] text-[#102a37]">
+    <main className="min-h-screen bg-[#f6f3ea] text-[#112f36]">
       <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
-        <Link href="/" className="flex items-center gap-3 font-black text-[#0d3b4c]">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#0d3b4c] text-sm text-white">Mb</span>
+        <Link href="/" className="flex items-center gap-3 font-black text-[#102f3a]">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#102f3a] text-sm text-white">Mb</span>
           <span>Mbàmbulaan</span>
         </Link>
-        <nav className="flex items-center gap-4 text-sm font-black text-[#425662]">
+        <nav className="flex items-center gap-4 text-sm font-black text-[#50636a]">
           <Link href="/">Accueil</Link>
-          <Link href="/devis" className="hidden text-[#0d6f8d] sm:inline">Demander un devis</Link>
+          <Link href="/devis" className="hidden rounded-full border border-[#cbd9dc] bg-white px-4 py-2 text-[#102f3a] sm:inline">Cadrer un pilote</Link>
         </nav>
       </header>
 
-      <section className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#0d6f8d]">Démo personnalisée sur invitation</p>
-          <h1 className="mt-5 text-5xl font-black leading-none tracking-[-0.05em] text-[#0d3b4c] sm:text-7xl">
-            Choisissez le scénario adapté à votre rôle.
+      <section className="mx-auto grid max-w-7xl gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[0.72fr_1.28fr]">
+        <aside>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0d6f8d]">Démo personnalisée</p>
+          <h1 className="mt-4 text-5xl font-black leading-none tracking-[-0.055em] text-[#102f3a] sm:text-7xl">
+            Quel univers voulez-vous débloquer ?
           </h1>
-        </div>
-        <div className="rounded-[2rem] border border-[#dce5e8] bg-white p-6 shadow-xl">
-          <p className="text-lg font-bold leading-8 text-[#52656f]">
-            La démo n'ouvre pas tout le produit. Elle simule un espace métier : problème réel, signaux, lecture Mbàmbulaan, décision, coordination, preuve et résultat de valeur.
+          <p className="mt-5 text-lg font-bold leading-8 text-[#52656f]">
+            La démo ne montre pas tout le produit. Elle ouvre un espace simulé adapté au rôle, avec données, cockpit, diagnostic, décisions et preuve.
           </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            {["Public", "Démo", "Privé"].map((step, index) => (
-              <div key={step} className="rounded-2xl bg-[#f1f6f6] p-4">
-                <span className="text-xs font-black text-[#0d6f8d]">0{index + 1}</span>
-                <strong className="mt-2 block text-[#0d3b4c]">{step}</strong>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      <section className="mx-auto grid max-w-7xl gap-4 px-5 pb-16 sm:px-8 md:grid-cols-2 xl:grid-cols-4">
-        {profiles.map((profile) => (
-          <Link
-            key={profile.slug}
-            href={`/demo/${profile.slug}`}
-            className="group flex min-h-[23rem] flex-col rounded-[1.7rem] border border-[#dce5e8] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-[#0d6f8d] hover:shadow-xl"
-          >
-            <span className="text-xs font-black uppercase tracking-[0.16em] text-[#0d6f8d]">{profile.label}</span>
-            <h2 className="mt-4 text-2xl font-black leading-tight text-[#0d3b4c]">{profile.scenario}</h2>
-            <p className="mt-3 text-sm font-semibold leading-6 text-[#586973]">{profile.value}</p>
-            <div className="mt-5 grid gap-2">
-              {profile.shown.map((item) => (
-                <span key={item} className="rounded-2xl bg-[#f2f7f7] px-3 py-2 text-xs font-black text-[#0d3b4c]">{item}</span>
-              ))}
+          <div className="mt-8 grid gap-2">
+            {roleProfiles.map((profile) => {
+              const isSelected = profile.slug === selectedSlug;
+              return (
+                <button
+                  key={profile.slug}
+                  type="button"
+                  onClick={() => setSelectedSlug(profile.slug)}
+                  className={`rounded-2xl border px-4 py-3 text-left transition ${
+                    isSelected
+                      ? "border-[#0d6f8d] bg-[#0d6f8d] text-white shadow-lg"
+                      : "border-[#d9e4e6] bg-white text-[#102f3a] hover:border-[#0d6f8d]"
+                  }`}
+                >
+                  <span className="block text-xs font-black uppercase tracking-[0.16em] opacity-70">{profile.shortLabel}</span>
+                  <strong className="mt-1 block text-sm font-black">{profile.scenario}</strong>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <section className="rounded-[2.2rem] border border-[#d8e4e6] bg-white p-4 shadow-2xl">
+          <div className="grid min-h-full gap-5 rounded-[1.8rem] bg-[#f9fbf8] p-5 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="flex flex-col">
+              <span className="w-fit rounded-full bg-[#e4f4f7] px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-[#0d6f8d]">
+                {selectedProfile.label}
+              </span>
+              <h2 className="mt-5 text-4xl font-black leading-tight tracking-[-0.045em] text-[#102f3a]">
+                {selectedProfile.scenario}
+              </h2>
+              <p className="mt-4 text-base font-bold leading-7 text-[#52656f]">{selectedProfile.problem}</p>
+              <div className="mt-5 rounded-3xl bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#0d6f8d]">Promesse de la démo</p>
+                <p className="mt-3 text-lg font-black leading-7 text-[#102f3a]">{selectedProfile.promise}</p>
+              </div>
+              <div className="mt-auto pt-6">
+                <Link
+                  href={`/demo/${selectedProfile.slug}`}
+                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#0d6f8d] px-6 text-sm font-black text-white shadow-sm"
+                >
+                  {selectedProfile.unlockLabel}
+                </Link>
+              </div>
             </div>
-            <strong className="mt-auto pt-6 text-sm font-black text-[#0d6f8d]">Voir cette démo →</strong>
-          </Link>
-        ))}
+
+            <div className="grid gap-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                {selectedProfile.previewKpis.map((kpi) => (
+                  <div key={kpi} className="rounded-2xl border border-[#dce8ea] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#7a8a90]">KPI aperçu</p>
+                    <p className="mt-2 text-xl font-black leading-tight text-[#102f3a]">{kpi}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-[1.6rem] bg-[#102f3a] p-5 text-white">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-white/50">Cockpit débloqué</p>
+                <h3 className="mt-3 text-3xl font-black tracking-[-0.04em]">{workspace.title}</h3>
+                <p className="mt-3 text-sm font-semibold leading-6 text-white/70">{workspace.subhead}</p>
+                <div className="mt-5 grid gap-3">
+                  {[workspace.context, workspace.problem, selectedProfile.value].map((item) => (
+                    <div key={item} className="rounded-2xl bg-white/10 p-4 text-sm font-bold leading-6 text-white/82">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[1.6rem] border border-[#dce8ea] bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#0d6f8d]">Ce qui sera montré</p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {["KPIs", "Signaux", "Carte territoire", "Diagnostic", "Actions", "Preuve / limites"].map((item) => (
+                    <span key={item} className="rounded-2xl bg-[#eef5f5] px-3 py-2 text-xs font-black text-[#102f3a]">{item}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
   );
