@@ -98,5 +98,5 @@ const navigationItems = [
   { href: "/besoins", label: "Besoins" },
   { href: "/opportunites", label: "Opportunités" },
   { href: "/coordination", label: "Coordination" },
-  { href: "/executive", label: "Executive" }
+  { href: "/executive", label: "Vue exécutive" }
 ];
