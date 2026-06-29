@@ -1,5 +1,5 @@
-import { DemoHome } from "@/components/experience/CleanExperience";
+import { ProfileSelector } from "@/components/experience/ProfileSelector";
 
-export default function DemoPage() {
-  return <DemoHome />;
+export default function Page() {
+  return <ProfileSelector />;
 }
