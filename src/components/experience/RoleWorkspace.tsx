@@ -1,1 +1,3 @@
-export { RoleWorkspace } from "./RoleWorkspaceV2";
+import { RoleWorkspace } from "./PremiumRoleWorkspace";
+
+export { RoleWorkspace };
