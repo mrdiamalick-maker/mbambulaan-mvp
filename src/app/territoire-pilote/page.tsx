@@ -1,6 +1,6 @@
-import { TerritoryPilotScenario } from "@/components/territory/TerritoryPilotScenario";
+import { PremiumTerritoryPage } from "@/components/premium/PremiumExperience";
 import { computeTerritoryPilot } from "@/lib/territoryPilot";
 
 export default function TerritoryPilotPage() {
-  return <TerritoryPilotScenario pilot={computeTerritoryPilot()} />;
+  return <PremiumTerritoryPage pilot={computeTerritoryPilot()} />;
 }
