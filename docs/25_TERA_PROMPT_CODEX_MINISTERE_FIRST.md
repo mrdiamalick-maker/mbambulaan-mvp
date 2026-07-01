@@ -18,7 +18,7 @@ Objectif : arreter de tout traiter en meme temps. Focus uniquement sur l'espace 
 
 Rendre l'espace Ministere excellent, convaincant et achetable.
 
-Le Ministere doit comprendre que Mbambulaan l'aide a maitriser la peche artisanale : territoires, quais, acteurs, tensions, programmes, financements, preuves et decisions.
+Le Ministere doit comprendre que Mbambulaan l'aide a maitriser la peche artisanale : territoires, quais, acteurs, tensions, programmes, budgets, financements, ressources, infrastructures, incidents, obsolescence, preuves et decisions.
 
 ## Corrections globales rapides
 
@@ -54,7 +54,9 @@ Remplacer par :
 - Territoires
 - Tensions et alertes
 - Programmes
-- Financements
+- Budgets et financements
+- Ressources et infrastructures
+- Incidents et obsolescence
 - Acteurs
 - Notes et rapports
 - Preuves
@@ -73,9 +75,12 @@ Afficher :
 - alertes majeures ;
 - decisions attendues ;
 - programmes a risque ;
+- alertes budgetaires ;
+- ressources critiques ;
+- incidents ouverts ;
 - synthese IA simulee.
 
-Actions : generer synthese, ouvrir zone critique, marquer decision.
+Actions : generer synthese, ouvrir zone critique, marquer decision, ouvrir alerte budgetaire.
 
 ## Module Carte des quais
 
@@ -92,6 +97,8 @@ Afficher :
 - acteurs presents ;
 - programmes ;
 - financement ;
+- ressources ou infrastructures critiques ;
+- incidents ;
 - preuves.
 
 Actions : prioriser zone, demander verification, generer note, ouvrir fiche territoire.
@@ -100,7 +107,7 @@ Actions : prioriser zone, demander verification, generer note, ouvrir fiche terr
 
 Objectif : comparer et prioriser.
 
-Afficher : classement, score priorite, tension, volume ou signaux, acteurs, preuve, action recommandee.
+Afficher : classement, score priorite, tension, volume ou signaux, acteurs, preuve, budget engage, incident ouvert, action recommandee.
 
 Actions : classer, affecter suivi, exporter liste simulee.
 
@@ -108,7 +115,7 @@ Actions : classer, affecter suivi, exporter liste simulee.
 
 Objectif : suivre conflits, urgences et signaux sensibles.
 
-Afficher : alerte, severite, territoire, responsable, statut, delai.
+Afficher : alerte, severite, territoire, responsable, statut, delai, impact potentiel.
 
 Actions : changer statut, assigner responsable, creer note d'alerte.
 
@@ -116,23 +123,39 @@ Actions : changer statut, assigner responsable, creer note d'alerte.
 
 Objectif : suivre les interventions publiques et partenaires.
 
-Afficher : portefeuille programmes, zone, budget, avancement, partenaire, risque de doublon.
+Afficher : portefeuille programmes, zone, budget, execution, avancement, partenaire, risque de doublon, indicateurs attendus.
 
 Actions : detecter doublon, ouvrir programme, marquer risque, generer point de suivi.
 
-## Module Financements
+## Module Budgets et financements
 
-Objectif : suivre les demandes et arbitrages.
+Objectif : suivre les budgets, les financements octroyes, les retards et les ecarts.
 
-Afficher : dossiers, montants, urgence, preuve, programme associe, statut.
+Afficher : budget prevu, budget engage, budget consomme, taux execution, partenaire, territoire, programme, statut, retard, preuve.
 
-Actions : prioriser dossier, demander preuve, preparer arbitrage.
+Actions : prioriser dossier, demander justification, demander preuve, preparer arbitrage, signaler ecart.
+
+## Module Ressources et infrastructures
+
+Objectif : savoir quelles ressources existent, ou elles sont, qui en est responsable et dans quel etat elles se trouvent.
+
+Afficher : ressources humaines, agents, relais, materiel, froid, quais, equipements, etat, localisation, responsable, disponibilite.
+
+Actions : affecter ressource, declarer indisponibilite, demander maintenance, relier ressource a programme.
+
+## Module Incidents et obsolescence
+
+Objectif : suivre les incidents, pannes, equipements obsoletes et risques operationnels.
+
+Afficher : incident, type, territoire, gravite, ressource touchee, date, responsable, statut, prochaine action.
+
+Actions : declarer incident, changer statut, demander verification, creer note d'urgence, relier incident a financement.
 
 ## Module Acteurs
 
 Objectif : voir les acteurs clefs par zone.
 
-Afficher : services, communes, ONG, organisations, relais, mareyeurs, exportateurs.
+Afficher : services, communes, ONG, organisations, relais, mareyeurs, exportateurs, agents, partenaires techniques.
 
 Actions : ouvrir fiche, filtrer par territoire, affecter contact.
 
@@ -140,15 +163,15 @@ Actions : ouvrir fiche, filtrer par territoire, affecter contact.
 
 Objectif : reduire le travail manuel.
 
-Afficher : notes brouillon, notes pretes, rapports, destinataire, statut.
+Afficher : notes brouillon, notes pretes, rapports, destinataire, statut, source de donnees.
 
-Actions : generer note IA simulee, passer en validation, archiver.
+Actions : generer note IA simulee, passer en validation, archiver, lier note a budget ou incident.
 
 ## Module Preuves
 
 Objectif : savoir ce qui est fiable.
 
-Afficher : source, niveau de preuve, territoire, date, validation.
+Afficher : source, niveau de preuve, territoire, date, validation, donnee liee, decision liee.
 
 Actions : demander verification terrain, valider preuve, relier preuve a decision.
 
@@ -170,6 +193,10 @@ Exemples :
 - Quelles zones prioriser cette semaine ?
 - Quels programmes risquent de se chevaucher ?
 - Quelle note peut etre preparee pour arbitrage ?
+- Quels budgets sont en retard ?
+- Quels financements sont sous-utilises ?
+- Quelles ressources sont critiques ou obsoletes ?
+- Quels incidents doivent etre traites cette semaine ?
 
 Afficher que l'IA est simulee sur donnees mockees.
 
@@ -209,6 +236,9 @@ npm run build
 - espace Ministere fortement retravaille ;
 - modules dynamiques utiles ;
 - carte renforcée ;
+- budgets et financements renforces ;
+- ressources et infrastructures ajoutees ;
+- incidents et obsolescence ajoutes ;
 - IA simulee ;
 - build OK ;
 - PR #26 toujours draft.
