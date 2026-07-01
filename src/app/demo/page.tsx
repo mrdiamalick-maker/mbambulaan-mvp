@@ -3,35 +3,40 @@ import { PageIntro, PublicNav, RoleSelector, SectionCard, StatusBadge } from "@/
 
 export default function DemoPage() {
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#f6fbfb]">
       <PublicNav />
       <PageIntro
-        eyebrow="Démo personnalisée"
-        title="Choisissez le scénario adapté à votre rôle."
-        description="La démo n'ouvre pas tout le produit publiquement. Elle montre uniquement la valeur utile pour chaque type de prospect, puis oriente vers le cadrage ou l'espace premium simulé."
+        eyebrow="Qualification d'essai"
+        title="Quel problème voulez-vous résoudre avec Mbàmbulaan ?"
+        description="La démo qualifie votre profil, votre territoire et la valeur à montrer. Elle ne donne pas accès à tout le produit publiquement."
       >
         <div className="flex flex-wrap gap-3">
-          <StatusBadge tone="blue">Avant achat : preuve de valeur</StatusBadge>
-          <StatusBadge tone="green">Après cadrage : espace premium simulé</StatusBadge>
+          <StatusBadge tone="blue">Données terrain</StatusBadge>
+          <StatusBadge tone="green">Coordination</StatusBadge>
+          <StatusBadge tone="amber">Preuves et reporting</StatusBadge>
         </div>
       </PageIntro>
-      <section className="mx-auto max-w-7xl px-5 pb-12 sm:px-8">
-        <RoleSelector />
-      </section>
       <section className="mx-auto grid max-w-7xl gap-5 px-5 pb-16 sm:px-8 lg:grid-cols-[1fr_0.8fr]">
-        <SectionCard title="Parcours de démonstration" description="Le fil directeur reste le même, mais la lecture change selon le rôle.">
+        <SectionCard title="1. Choisir le profil" description="Chaque profil voit un scénario adapté, pas une interface complète.">
+          <RoleSelector />
+        </SectionCard>
+        <SectionCard title="2. Choisir la valeur à voir" description="Le parcours montre uniquement le problème métier prioritaire.">
           <div className="grid gap-3">
-            {["Signal terrain", "Qualification", "Décision prioritaire", "Preuve", "Rapport", "Espace premium"].map((step, index) => (
-              <div key={step} className="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-slate-200">
-                <span className="grid h-9 w-9 place-items-center rounded-full bg-slate-950 text-xs font-black text-white">{index + 1}</span>
+            {["Cartographier une tension", "Coordonner une action", "Suivre une preuve", "Préparer un rapport", "Cadrer un essai"].map((step, index) => (
+              <div key={step} className="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-cyan-100">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-cyan-700 text-xs font-black text-white">{index + 1}</span>
                 <p className="font-black text-slate-900">{step}</p>
               </div>
             ))}
           </div>
         </SectionCard>
-        <SectionCard title="Accès contrôlé" description="Les modules opérationnels ne sont pas des pages publiques autonomes.">
-          <p className="text-sm font-semibold leading-6 text-slate-600">Les arrivages, besoins, opportunités, financements, rapports et preuves apparaissent dans les démos par rôle et dans l'espace premium simulé.</p>
-          <Link href="/espace-prive" className="mt-5 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-black text-white">Voir l'après souscription</Link>
+        <SectionCard title="3. Demander un essai" description="Après qualification, le prospect peut demander un essai ou cadrer un pilote.">
+          <p className="text-sm font-semibold leading-6 text-slate-600">
+            L'espace privé simulé reste un support de présentation. Dans le produit réel, chaque utilisateur ne voit que son espace selon ses droits.
+          </p>
+          <Link href="/demande-demo" className="mt-5 inline-flex rounded-full bg-cyan-700 px-5 py-3 text-sm font-black text-white">
+            Demander un essai
+          </Link>
         </SectionCard>
       </section>
     </main>
