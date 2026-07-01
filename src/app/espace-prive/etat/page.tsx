@@ -1,6 +1,5 @@
-import { PrivateSpaceClient } from "@/components/private-space/PrivateSpaceClient";
-import { getPrivateSpaceConfig } from "@/data/privateSpaces";
+import { MinistryInstitutionalSpace } from "@/components/private-space/MinistryInstitutionalSpace";
 
 export default function EtatPrivateSpacePage() {
-  return <PrivateSpaceClient config={getPrivateSpaceConfig("etat")} />;
+  return <MinistryInstitutionalSpace />;
 }
