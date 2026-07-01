@@ -9,10 +9,10 @@ export default function EspacePrivePortalPage() {
       <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8">
         <StatusBadge tone="blue">Accès partenaire</StatusBadge>
         <h1 className="mt-5 max-w-4xl text-5xl font-black tracking-tight text-slate-950">
-          Connexion aux espaces privés Mbàmbulaan.
+          Choisir l’espace privé adapté à l’organisation.
         </h1>
         <p className="mt-5 max-w-3xl text-lg font-semibold leading-8 text-slate-600">
-          Dans le produit réel, l'utilisateur ne voit que l'espace correspondant à son organisation, son rôle et ses droits. Les accès ci-dessous sont uniquement simulés pour la présentation.
+          Dans le produit réel, l'utilisateur ne voit que l'espace correspondant à son organisation, son rôle et ses droits. Les accès ci-dessous simulent ce que chaque partenaire obtient après cadrage : lecture, action, preuve et suivi.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link href="/" className="rounded-full border border-cyan-200 bg-white px-5 py-3 text-center text-sm font-black text-cyan-950">Retour landing</Link>
