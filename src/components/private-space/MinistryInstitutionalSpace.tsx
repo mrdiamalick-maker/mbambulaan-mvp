@@ -1,44 +1,37 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  ministryActors,
   ministryAiModules,
-  ministryKpis,
-  ministryQuickQuestions,
-  quayProfiles,
-  type MinistryTone,
-  type QuayProfile,
-  type QuayReferent
+  ministryBudgetLines,
+  ministryIncidents,
+  ministryInitialPendingActions,
+  ministryProofs,
+  ministryQuayMetrics,
+  ministryReferents,
+  ministryResources,
+  ministryTerritories,
+  type MinistryPendingAction,
+  type MinistryQuayMetric,
+  type MinistryReferent,
+  type MinistryTerritory,
+  type MinistryTone
 } from "@/data/ministrySpace";
 
 const modules = [
   { id: "national", label: "Vue nationale", question: "Que doit savoir le Ministère aujourd'hui ?" },
-  { id: "map", label: "Carte et territoires", question: "Quelle zone prioriser et pourquoi ?" },
+  { id: "map", label: "Carte et territoires", question: "Quel quai prioriser et pourquoi ?" },
   { id: "alerts", label: "Alertes et incidents", question: "Qu'est-ce qui demande une réaction rapide ?" },
-  { id: "budgets", label: "Programmes et budgets", question: "Quels programmes ou budgets posent problème ?" },
-  { id: "resources", label: "Ressources et acteurs", question: "Quels moyens sont disponibles ou critiques ?" },
-  { id: "proofs", label: "Notes, preuves et accès", question: "Quelle décision peut être documentée et validée ?" }
+  { id: "budgets", label: "Programmes et budgets", question: "Quel financement pose problème ?" },
+  { id: "resources", label: "Ressources et acteurs", question: "Quels moyens et référents mobiliser ?" },
+  { id: "proofs", label: "Notes, preuves et accès", question: "Quelle décision peut être documentée ?" }
 ] as const;
 
 type ModuleId = (typeof modules)[number]["id"];
 
-type PendingAction = {
-  id: string;
-  label: string;
-  quay: string;
-  type: string;
-};
-
-type Insight = {
-  label: string;
-  value: string;
-  detail: string;
-  tone: MinistryTone;
-  progress?: number;
-};
-
-const toneClass: Record<MinistryTone, string> = {
+const seaTone: Record<MinistryTone, string> = {
   blue: "border-cyan-200 bg-cyan-50 text-cyan-950",
   green: "border-emerald-200 bg-emerald-50 text-emerald-950",
   amber: "border-amber-200 bg-amber-50 text-amber-950",
@@ -46,119 +39,114 @@ const toneClass: Record<MinistryTone, string> = {
   slate: "border-slate-200 bg-slate-50 text-slate-900"
 };
 
-const fillClass: Record<MinistryTone, string> = {
-  blue: "bg-cyan-700",
-  green: "bg-emerald-600",
-  amber: "bg-amber-500",
-  red: "bg-rose-500",
-  slate: "bg-slate-500"
-};
-
-function tensionTone(tension: QuayProfile["tension"]): MinistryTone {
-  if (tension === "Critique") return "red";
-  if (tension === "Forte") return "amber";
-  if (tension === "Moyenne") return "blue";
-  return "green";
-}
-
-function tensionDot(tension: QuayProfile["tension"]) {
+function tensionDot(tension: MinistryTerritory["tension"]) {
   if (tension === "Critique") return "bg-rose-500";
   if (tension === "Forte") return "bg-amber-400";
-  if (tension === "Moyenne") return "bg-cyan-400";
+  if (tension === "Moyenne") return "bg-yellow-300";
   return "bg-emerald-400";
 }
 
-function formatFcfa(value: number) {
-  return `${value} M`;
+function metricTone(metric: MinistryQuayMetric): MinistryTone {
+  if (metric.priorityScore >= 85) return "red";
+  if (metric.priorityScore >= 70) return "amber";
+  if (metric.priorityScore >= 55) return "blue";
+  return "green";
 }
 
 export function MinistryInstitutionalSpace() {
   const [active, setActive] = useState<ModuleId>("national");
-  const [selectedQuayId, setSelectedQuayId] = useState("joal");
+  const [selectedQuay, setSelectedQuay] = useState("Joal");
+  const [tensionFilter, setTensionFilter] = useState("Toutes");
   const [message, setMessage] = useState("IA simulée - données mockées. L'humain valide chaque décision.");
   const [generatedNote, setGeneratedNote] = useState("Aucune note préparée.");
   const [statusById, setStatusById] = useState<Record<string, string>>({});
-  const [pendingActions, setPendingActions] = useState<PendingAction[]>([]);
+  const [priorityBoost, setPriorityBoost] = useState<Record<string, number>>({});
+  const [pendingActions, setPendingActions] = useState<MinistryPendingAction[]>(ministryInitialPendingActions);
   const [aiEnabled, setAiEnabled] = useState<Record<string, boolean>>(
     Object.fromEntries(ministryAiModules.map((module) => [module.name, module.status !== "Désactivée"]))
   );
 
-  const selectedQuay = quayProfiles.find((item) => item.id === selectedQuayId) ?? quayProfiles[0];
   const module = modules.find((item) => item.id === active) ?? modules[0];
+  const territory = ministryTerritories.find((item) => item.name === selectedQuay) ?? ministryTerritories[0];
+  const metricBase = ministryQuayMetrics.find((item) => item.quay === selectedQuay) ?? ministryQuayMetrics[0];
+  const metric = { ...metricBase, priorityScore: Math.min(100, metricBase.priorityScore + (priorityBoost[selectedQuay] ?? 0)) };
+  const budget = ministryBudgetLines.find((item) => item.territory === selectedQuay) ?? ministryBudgetLines[0];
+  const incidents = ministryIncidents.filter((item) => item.territory === selectedQuay);
+  const resources = ministryResources.filter((item) => item.territory === selectedQuay);
+  const proofs = ministryProofs.filter((item) => item.territory === selectedQuay);
+  const referents = ministryReferents.filter((item) => item.quay === selectedQuay);
+  const filteredTerritories = ministryTerritories.filter((item) => tensionFilter === "Toutes" || item.tension === tensionFilter);
 
-  const nationalExecution = Math.round(quayProfiles.reduce((sum, item) => sum + item.metrics.budgetExecution, 0) / quayProfiles.length);
-  const criticalQuays = quayProfiles.filter((item) => item.tension === "Critique" || item.tension === "Forte");
-  const totalIncidents = quayProfiles.reduce((sum, item) => sum + item.metrics.openIncidents, 0);
+  const aiInsight = useMemo(() => {
+    const risk = incidents[0]?.title ?? resources[0]?.state ?? "aucun incident bloquant";
+    const missing = proofs.length ? "preuve disponible" : "preuve terrain à compléter";
+    return `${selectedQuay}: priorité ${metric.priorityScore}/100. Risque principal: ${risk}. ${territory.recommendedAction} Donnée clé: ${missing}.`;
+  }, [incidents, metric.priorityScore, proofs.length, selectedQuay, resources, territory.recommendedAction]);
 
-  const insights = useMemo<Insight[]>(() => {
-    if (active === "national") {
-      return [
-        { label: "Quais sous tension", value: String(criticalQuays.length), detail: "priorité nationale", tone: "red", progress: 68 },
-        { label: "Exécution moyenne", value: `${nationalExecution}%`, detail: "programmes pilotes", tone: "blue", progress: nationalExecution },
-        { label: "Incidents ouverts", value: String(totalIncidents), detail: "à instruire", tone: "amber", progress: 54 }
-      ];
-    }
-    return [
-      { label: "Tension", value: selectedQuay.tension, detail: selectedQuay.mainRisk, tone: tensionTone(selectedQuay.tension), progress: selectedQuay.priorityScore },
-      { label: "Exécution", value: `${selectedQuay.metrics.budgetExecution}%`, detail: "budget consommé", tone: selectedQuay.metrics.budgetExecution < 65 ? "amber" : "green", progress: selectedQuay.metrics.budgetExecution },
-      { label: "Financement", value: formatFcfa(selectedQuay.metrics.pendingFundingFcfa), detail: "en attente", tone: selectedQuay.metrics.pendingFundingFcfa > 40 ? "red" : "blue", progress: Math.min(selectedQuay.metrics.pendingFundingFcfa * 1.4, 100) }
-    ];
-  }, [active, criticalQuays.length, nationalExecution, selectedQuay, totalIncidents]);
-
-  function addPendingAction(label: string, type: string) {
-    const action = {
-      id: `${Date.now()}-${pendingActions.length}`,
-      label,
-      quay: selectedQuay.name,
-      type
-    };
-    setPendingActions((items) => [action, ...items].slice(0, 6));
-    setMessage(`${label}. Simulation MVP - action visible dans le parcours.`);
+  function addAction(title: string, type: string, status = "À traiter") {
+    const action = { id: `act-${Date.now()}-${pendingActions.length}`, title, quay: selectedQuay, type, status };
+    setPendingActions((items) => [action, ...items].slice(0, 8));
+    setMessage(`${title}. Simulation MVP - action non connectée au backend`);
   }
 
-  function prepareNote(context = selectedQuay.name) {
-    const note = `Brouillon ${context}: ${selectedQuay.mainRisk}. Action recommandée: ${selectedQuay.recommendedAction} Donnée à vérifier: ${selectedQuay.missingData}.`;
-    setGeneratedNote(note);
-    addPendingAction(`Note d'arbitrage préparée pour ${context}`, "Note");
-  }
-
-  function requestReferentReport(referent: QuayReferent) {
-    setStatusById((items) => ({ ...items, [referent.id]: "Compte rendu demandé" }));
-    setGeneratedNote(`Note terrain ${selectedQuay.name}: demander à ${referent.name} (${referent.role}) de confirmer ${referent.needs}.`);
-    addPendingAction(`Compte rendu demandé à ${referent.name}`, "Référent");
-  }
-
-  function flagBudgetGap() {
-    setStatusById((items) => ({ ...items, [`budget-${selectedQuay.id}`]: "Écart signalé" }));
-    setGeneratedNote(`Arbitrage budget ${selectedQuay.name}: ${selectedQuay.budget.variance}. Financement en attente: ${formatFcfa(selectedQuay.budget.pendingFunding)} FCFA.`);
-    addPendingAction(`Écart budget signalé pour ${selectedQuay.name}`, "Budget");
-  }
-
-  function requestMaintenance(resource: string) {
-    setStatusById((items) => ({ ...items, [`resource-${selectedQuay.id}-${resource}`]: "Maintenance demandée" }));
-    addPendingAction(`Maintenance demandée: ${resource}`, "Ressource");
+  function prepareNote(context = selectedQuay) {
+    setGeneratedNote(`Note ${context}: priorité ${metric.priorityScore}/100, financement ${metric.pendingFunding}, référent ${referents[0]?.name ?? "à désigner"}, preuve ${proofs[0]?.level ?? "à compléter"}.`);
+    addAction(`Note d'arbitrage préparée pour ${context}`, "Note", "Préparée");
   }
 
   function prioritizeQuay() {
-    setStatusById((items) => ({ ...items, [`priority-${selectedQuay.id}`]: "Priorité renforcée" }));
-    addPendingAction(`${selectedQuay.name} priorisé`, "Priorité");
+    setPriorityBoost((items) => ({ ...items, [selectedQuay]: Math.min(9, (items[selectedQuay] ?? 0) + 5) }));
+    addAction(`Quai priorisé: ${selectedQuay}`, "Priorité", "Priorisé");
+  }
+
+  function signalBudgetGap() {
+    setStatusById((items) => ({ ...items, [budget.id]: "Écart signalé" }));
+    setGeneratedNote(`Arbitrage budget ${selectedQuay}: écart signalé sur ${budget.program}, preuve ${budget.proof}, partenaire ${budget.partner}.`);
+    addAction(`Écart budget signalé: ${budget.program}`, "Budget", "Écart signalé");
+  }
+
+  function requestFieldCheck() {
+    setGeneratedNote(`Vérification terrain ${selectedQuay}: contrôler ${territory.mainRisk.toLowerCase()}, contacter ${referents[0]?.name ?? "référent local"} et joindre une preuve datée.`);
+    addAction(`Vérification terrain demandée: ${selectedQuay}`, "Terrain", "Demandée");
+  }
+
+  function requestMaintenance(resourceName: string, id: string) {
+    setStatusById((items) => ({ ...items, [id]: "Maintenance demandée" }));
+    addAction(`Maintenance demandée: ${resourceName}`, "Ressource", "Demandée");
+  }
+
+  function requestReferentReport(referent: MinistryReferent) {
+    setStatusById((items) => ({ ...items, [referent.id]: "Compte rendu demandé" }));
+    setGeneratedNote(`Compte rendu terrain demandé à ${referent.name} (${referent.role}) pour ${selectedQuay}: ${referent.needs}.`);
+    addAction(`Compte rendu demandé: ${referent.name}`, "Référent", "Demandé");
+  }
+
+  function validateProof() {
+    const proof = proofs[0];
+    if (!proof) {
+      addAction(`Preuve à compléter: ${selectedQuay}`, "Preuve", "À compléter");
+      return;
+    }
+    setStatusById((items) => ({ ...items, [proof.id]: "Validation demandée" }));
+    setGeneratedNote(`Preuve ${selectedQuay}: ${proof.source} passée en validation simulée pour ${proof.linkedDecision}.`);
+    addAction(`Validation preuve demandée: ${proof.source}`, "Preuve", "Validation demandée");
   }
 
   return (
-    <main className="min-h-screen bg-[#f3faf8] text-slate-950">
+    <main className="min-h-screen bg-[#f4faf9] text-slate-950">
       <header className="border-b border-cyan-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-8">
         <div className="mx-auto flex max-w-[94rem] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-700 text-sm font-black text-white shadow-sm shadow-cyan-900/20">Mb</Link>
+            <Link href="/" className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-700 text-sm font-black text-white">Mb</Link>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">Ministère des Pêches · espace privé</p>
-              <h1 className="text-2xl font-black tracking-tight">Pilotage institutionnel quai par quai</h1>
+              <h1 className="text-2xl font-black tracking-tight">Pilotage institutionnel par quai</h1>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-900">Données mockées</span>
-            <Link href="/espace-prive" className="rounded-full border border-cyan-200 bg-white px-4 py-2 text-sm font-black text-cyan-950">Portail espaces</Link>
-            <button onClick={() => prepareNote()} className="rounded-full bg-cyan-700 px-4 py-2 text-sm font-black text-white">Préparer une note</button>
+            <QuaySelector selected={selectedQuay} onSelect={setSelectedQuay} />
+            <Link href="/espace-prive" className="rounded-full border border-cyan-200 bg-white px-4 py-2 text-sm font-black text-cyan-950">Portail</Link>
+            <button onClick={() => prepareNote()} className="rounded-full bg-cyan-700 px-4 py-2 text-sm font-black text-white">Préparer note</button>
           </div>
         </div>
       </header>
@@ -167,27 +155,30 @@ export function MinistryInstitutionalSpace() {
         <div className="rounded-[1.5rem] border border-cyan-100 bg-white p-3 shadow-sm">
           <div className="flex gap-2 overflow-x-auto pb-1">
             {modules.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActive(item.id)}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition ${active === item.id ? "bg-cyan-700 text-white" : "bg-slate-50 text-slate-600 hover:bg-cyan-50 hover:text-cyan-950"}`}
-              >
+              <button key={item.id} onClick={() => setActive(item.id)} className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition ${active === item.id ? "bg-cyan-700 text-white" : "bg-slate-50 text-slate-600 hover:bg-cyan-50 hover:text-cyan-950"}`}>
                 {item.label}
               </button>
             ))}
           </div>
         </div>
 
+        <ModuleQuestion title={module.label} question={module.question} quay={selectedQuay} message={message} />
+
+        <section className="grid gap-3 md:grid-cols-3">
+          <RadialMetric label="Priorité quai" value={metric.priorityScore} suffix="/100" tone={metricTone(metric)} />
+          <DonutMetric label="Exécution budget" value={metric.executionRate} detail={budget.program} />
+          <SparkMetric label="Signaux terrain" values={metric.signalTrend} detail={`${metric.lastUpdate} · ${territory.tension}`} />
+        </section>
+
+        <MetricRibbon />
+
         <div className="grid gap-5 xl:grid-cols-[1fr_23rem]">
-          <div className="grid gap-5">
-            <ModuleQuestion title={module.label} question={module.question} message={message} />
-            <QuaySelector selectedQuayId={selectedQuayId} onSelect={(id) => { setSelectedQuayId(id); setActive("map"); setMessage(`${quayProfiles.find((item) => item.id === id)?.name ?? "Quai"} sélectionné. Les indicateurs se mettent à jour.`); }} />
-            <section className="grid gap-3 md:grid-cols-3">
-              {insights.map((insight, index) => <VisualMetric key={insight.label} insight={insight} variant={index === 0 ? "donut" : "bar"} />)}
-            </section>
-            {renderExploration()}
-          </div>
-          <DecisionRail />
+          <div className="grid gap-5">{renderExploration()}</div>
+          <aside className="grid content-start gap-4">
+            <AiRail />
+            <PendingActions />
+            <TracePanel />
+          </aside>
         </div>
       </section>
     </main>
@@ -204,105 +195,76 @@ export function MinistryInstitutionalSpace() {
 
   function NationalView() {
     return (
-      <section className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-        <CompactPanel title="Priorités nationales" subtitle="Du signal national à l'action locale">
-          <div className="grid gap-3">
-            {quayProfiles.slice().sort((a, b) => b.priorityScore - a.priorityScore).slice(0, 4).map((quay) => (
-              <button key={quay.id} onClick={() => { setSelectedQuayId(quay.id); setActive("map"); }} className="grid gap-2 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left sm:grid-cols-[6rem_1fr_6rem] sm:items-center">
-                <span className="font-black">{quay.name}</span>
-                <span className="text-sm font-semibold text-slate-600">{quay.mainRisk}</span>
-                <span className="rounded-full bg-white px-3 py-2 text-center text-xs font-black text-cyan-900">Score {quay.priorityScore}</span>
-              </button>
-            ))}
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <CompactPanel title="Lecture quai" subtitle="Sélection dynamique">
+          <div className="grid gap-3 lg:grid-cols-[1fr_0.8fr]">
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-cyan-700">{territory.zone}</p>
+              <h3 className="mt-2 text-3xl font-black">{selectedQuay}</h3>
+              <p className="mt-2 text-sm font-bold text-slate-600">{territory.mainRisk}</p>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Chip label="Incidents" value={String(incidents.length)} />
+                <Chip label="Ressources" value={String(metric.criticalResources)} />
+                <Chip label="Preuves" value={String(metric.validatedProofs)} />
+                <Chip label="Référents" value={String(metric.referentsAvailable)} />
+              </div>
+            </div>
+            <MiniBarStack />
           </div>
+          <ActionStrip primary="Prioriser quai" secondary={["Vérifier terrain", "Générer note"]} onPrimary={prioritizeQuay} onSecondary={(item) => item.includes("terrain") ? requestFieldCheck() : prepareNote(selectedQuay)} />
         </CompactPanel>
-        <CompactPanel title="Lecture IA" subtitle="Question -> insight -> action -> trace">
-          <p className="text-sm font-bold leading-6 text-slate-700">{selectedQuay.name} est le quai à suivre : {selectedQuay.mainRisk}. L'action recommandée est de {selectedQuay.recommendedAction.toLowerCase()}</p>
-          <ActionStrip primary="Préparer note" secondary={["Ouvrir carte", "Voir référents"]} onPrimary={() => prepareNote()} onSecondary={(item) => item === "Ouvrir carte" ? setActive("map") : setActive("resources")} />
-        </CompactPanel>
+        <ReferentsPanel />
       </section>
     );
   }
 
   function MapView() {
     return (
-      <section className="grid gap-4 xl:grid-cols-[1fr_22rem]">
-        <CompactPanel title="Carte des quais pilotes" subtitle="Sélection dynamique et mise à jour des indicateurs">
-          <div className="relative min-h-[31rem] overflow-hidden rounded-[1.25rem] bg-[radial-gradient(circle_at_18%_16%,rgba(20,184,166,0.24),transparent_28%),linear-gradient(140deg,#f8fafc,#dff7f4_44%,#f7e7c3)]">
-            <div className="absolute left-[22%] top-8 h-[86%] w-8 rounded-full border-l-4 border-cyan-300/80" />
-            <div className="absolute inset-x-6 bottom-5 rounded-2xl border border-white/70 bg-white/80 p-3 backdrop-blur">
-              <div className="grid gap-2 sm:grid-cols-5">
-                {quayProfiles.map((quay) => (
-                  <button key={quay.id} onClick={() => setSelectedQuayId(quay.id)} className={`rounded-2xl px-3 py-2 text-left text-xs font-black transition ${selectedQuay.id === quay.id ? "bg-cyan-700 text-white" : "bg-white text-slate-600 hover:bg-cyan-50"}`}>
-                    {quay.name}<span className="block text-[0.65rem] opacity-70">{quay.tension}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            {quayProfiles.map((quay) => (
-              <button
-                key={quay.id}
-                type="button"
-                onClick={() => setSelectedQuayId(quay.id)}
-                className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white shadow-lg transition hover:scale-110 ${selectedQuay.id === quay.id ? "h-12 w-12 ring-8 ring-cyan-800/10" : "h-7 w-7"} ${tensionDot(quay.tension)}`}
-                style={{ left: `${quay.x}%`, top: `${quay.y}%` }}
-                aria-label={`Sélectionner ${quay.name}`}
-              />
+      <section className="grid gap-4 xl:grid-cols-[1fr_21rem]">
+        <CompactPanel title="Carte des quais" subtitle="Filtre tension + sélection quai">
+          <div className="mb-3 flex flex-wrap gap-2">
+            {["Toutes", "Critique", "Forte", "Moyenne", "Faible"].map((item) => (
+              <button key={item} onClick={() => setTensionFilter(item)} className={`rounded-full px-3 py-1.5 text-xs font-black ${tensionFilter === item ? "bg-cyan-700 text-white" : "bg-slate-100 text-slate-600"}`}>{item}</button>
             ))}
-            {quayProfiles.map((quay) => <span key={`${quay.id}-label`} className="absolute -translate-x-1/2 rounded-full bg-white/90 px-3 py-1 text-[0.7rem] font-black text-slate-700 shadow-sm" style={{ left: `${quay.x}%`, top: `calc(${quay.y}% + 1.55rem)` }}>{quay.name}</span>)}
+          </div>
+          <div className="relative min-h-[31rem] overflow-hidden rounded-[1.25rem] bg-[radial-gradient(circle_at_18%_18%,rgba(20,184,166,0.25),transparent_30%),linear-gradient(140deg,#f8fafc,#dff7f4_46%,#f7e7c3)]">
+            <div className="absolute left-[22%] top-8 h-[86%] w-8 rounded-full border-l-4 border-cyan-300/80" />
+            {filteredTerritories.map((item) => (
+              <button key={item.name} type="button" onClick={() => setSelectedQuay(item.name)} className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white shadow-lg transition hover:scale-110 ${selectedQuay === item.name ? "h-11 w-11 ring-4 ring-cyan-800/20" : "h-7 w-7"} ${tensionDot(item.tension)}`} style={{ left: `${item.x}%`, top: `${item.y}%` }} aria-label={`Sélectionner ${item.name}`} />
+            ))}
+            {filteredTerritories.map((item) => <span key={`${item.name}-label`} className="absolute -translate-x-1/2 rounded-full bg-white/90 px-3 py-1 text-[0.7rem] font-black text-slate-700 shadow-sm" style={{ left: `${item.x}%`, top: `calc(${item.y}% + 1.35rem)` }}>{item.name}</span>)}
           </div>
         </CompactPanel>
-        <QuayCard />
+        <QuayDetail />
       </section>
     );
   }
 
   function IncidentView() {
     return (
-      <CompactPanel title={`Triage incidents · ${selectedQuay.name}`} subtitle="Réagir vite et garder une trace">
-        <div className="mb-4 grid gap-3 sm:grid-cols-3">
-          <MiniStat label="Incidents" value={String(selectedQuay.metrics.openIncidents)} tone="red" />
-          <MiniStat label="Ressources" value={String(selectedQuay.metrics.criticalResources)} tone="amber" />
-          <MiniStat label="Priorité" value={`${selectedQuay.priorityScore}/100`} tone="blue" />
-        </div>
-        <div className="grid gap-3">
-          {selectedQuay.incidents.map((incident) => (
-            <div key={incident} className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div><p className="font-black text-slate-900">{incident}</p><p className="text-sm font-semibold text-slate-500">Statut : {statusById[`incident-${selectedQuay.id}-${incident}`] ?? "Ouvert"}</p></div>
-              <button onClick={() => { setStatusById((items) => ({ ...items, [`incident-${selectedQuay.id}-${incident}`]: "Vérification demandée" })); addPendingAction(`Vérification demandée: ${incident}`, "Incident"); }} className="rounded-full bg-cyan-700 px-3 py-2 text-xs font-black text-white">Vérifier</button>
-            </div>
-          ))}
-        </div>
-      </CompactPanel>
+      <section className="grid gap-4 xl:grid-cols-[1fr_0.8fr]">
+        <CompactPanel title="Triage incidents" subtitle={`${selectedQuay} · réaction rapide`}>
+          <DataTable headers={["Incident", "Gravité", "Statut", "Action"]} rows={(incidents.length ? incidents : ministryIncidents.slice(0, 2)).map((incident) => [
+            incident.title,
+            incident.severity,
+            statusById[incident.id] ?? incident.status,
+            <button key={incident.id} onClick={() => { setStatusById((items) => ({ ...items, [incident.id]: "Vérification demandée" })); addAction(`Vérification demandée: ${incident.title}`, "Incident", "Demandée"); }} className="rounded-full bg-cyan-700 px-3 py-1.5 text-xs font-black text-white">Vérifier</button>
+          ])} />
+        </CompactPanel>
+        <SparkMetric label="Tendance incidents" values={metric.incidentTrend} detail="5 derniers relevés" />
+      </section>
     );
   }
 
   function BudgetView() {
     return (
-      <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-        <CompactPanel title={`Budget · ${selectedQuay.name}`} subtitle="Écarts utiles à l'arbitrage">
-          <div className="grid place-items-center gap-4">
-            <Donut value={selectedQuay.metrics.budgetExecution} label="Exécution" tone={selectedQuay.metrics.budgetExecution < 65 ? "amber" : "green"} />
-            <div className="w-full grid gap-3">
-              <ProgressRow label="Prévu" value={selectedQuay.budget.planned} max={selectedQuay.budget.planned} tone="slate" />
-              <ProgressRow label="Engagé" value={selectedQuay.budget.committed} max={selectedQuay.budget.planned} tone="blue" />
-              <ProgressRow label="Consommé" value={selectedQuay.budget.consumed} max={selectedQuay.budget.planned} tone="green" />
-            </div>
-          </div>
+      <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <CompactPanel title="Budget du quai" subtitle="Prévu / engagé / consommé">
+          <BudgetBars />
+          <ActionStrip primary="Signaler écart" secondary={["Demander preuve", "Préparer arbitrage"]} onPrimary={signalBudgetGap} onSecondary={(item) => item.includes("arbitrage") ? prepareNote(selectedQuay) : validateProof()} />
         </CompactPanel>
-        <CompactPanel title="Programmes et écarts" subtitle="Pas une comptabilité complète, une aide à l'arbitrage">
-          <div className="grid gap-3">
-            {selectedQuay.programs.map((program) => (
-              <div key={program.name} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div><p className="font-black text-slate-900">{program.name}</p><p className="text-sm font-semibold text-slate-500">{program.owner} · {program.risk}</p></div>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-cyan-900">{statusById[`program-${program.name}`] ?? program.status}</span>
-                </div>
-              </div>
-            ))}
-            <p className="rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-950">{selectedQuay.budget.variance}</p>
-            <ActionStrip primary="Signaler écart" secondary={["Préparer arbitrage", "Demander preuve"]} onPrimary={flagBudgetGap} onSecondary={(item) => item.includes("arbitrage") ? prepareNote() : addPendingAction(`${item}: ${selectedQuay.name}`, "Budget")} />
-          </div>
+        <CompactPanel title="Programme lié" subtitle={budget.partner}>
+          <DataTable headers={["Programme", "Exécution", "Statut", "Écart"]} rows={[[budget.program, `${budget.executionRate}%`, statusById[budget.id] ?? budget.status, budget.variance]]} />
         </CompactPanel>
       </section>
     );
@@ -310,41 +272,30 @@ export function MinistryInstitutionalSpace() {
 
   function ResourceView() {
     return (
-      <section className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-        <CompactPanel title={`Capacité opérationnelle · ${selectedQuay.name}`} subtitle="Moyens critiques et disponibilités">
-          <div className="grid gap-3">
-            {selectedQuay.resources.map((resource) => (
-              <div key={resource} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div><p className="font-black">{resource}</p><p className="text-xs font-bold text-slate-500">{statusById[`resource-${selectedQuay.id}-${resource}`] ?? "À suivre"}</p></div>
-                  <button onClick={() => requestMaintenance(resource)} className="rounded-full bg-cyan-700 px-3 py-2 text-xs font-black text-white">Maintenance</button>
-                </div>
-              </div>
-            ))}
-          </div>
+      <section className="grid gap-4 xl:grid-cols-[1fr_0.95fr]">
+        <CompactPanel title="Capacité opérationnelle" subtitle={`${selectedQuay} · ressources critiques`}>
+          <DataTable headers={["Ressource", "État", "Disponibilité", "Action"]} rows={(resources.length ? resources : ministryResources.slice(0, 2)).map((resource) => [
+            resource.name,
+            statusById[resource.id] ?? resource.state,
+            resource.availability,
+            <button key={resource.id} onClick={() => requestMaintenance(resource.name, resource.id)} className="rounded-full bg-cyan-700 px-3 py-1.5 text-xs font-black text-white">Maintenance</button>
+          ])} />
         </CompactPanel>
-        <CompactPanel title="Référents terrain" subtitle="Points d'ancrage de coordination, pas CRM">
-          <div className="grid gap-3">
-            {selectedQuay.referents.map((referent) => <ReferentCard key={referent.id} referent={referent} onAction={() => requestReferentReport(referent)} status={statusById[referent.id]} />)}
-          </div>
-        </CompactPanel>
+        <ReferentsPanel />
       </section>
     );
   }
 
   function ProofView() {
     return (
-      <section className="grid gap-4 lg:grid-cols-[1fr_0.95fr]">
-        <CompactPanel title="Trace décisionnelle" subtitle="Preuves, note et actions en attente">
-          <div className="grid gap-3">
-            {selectedQuay.proofs.map((proof) => <div key={proof} className="rounded-2xl bg-emerald-50 p-3 text-sm font-black text-emerald-950">{proof}</div>)}
-            <div className="rounded-2xl bg-cyan-50 p-4 text-sm font-bold leading-6 text-cyan-950">{generatedNote}</div>
-            <ActionStrip primary="Générer note" secondary={["Valider preuve", "Historiser"]} onPrimary={() => prepareNote()} onSecondary={(item) => addPendingAction(`${item}: ${selectedQuay.name}`, "Trace")} />
-          </div>
+      <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+        <CompactPanel title="Trace décisionnelle" subtitle={`${selectedQuay} · preuves et note`}>
+          <DataTable headers={["Source", "Niveau", "Validation", "Décision"]} rows={(proofs.length ? proofs : ministryProofs.slice(0, 2)).map((proof) => [proof.source, proof.level, statusById[proof.id] ?? proof.validation, proof.linkedDecision])} />
+          <ActionStrip primary="Valider preuve" secondary={["Demander vérification", "Générer note"]} onPrimary={validateProof} onSecondary={(item) => item.includes("note") ? prepareNote(selectedQuay) : requestFieldCheck()} />
         </CompactPanel>
-        <CompactPanel title="Gouvernance IA" subtitle="Modules activables ou désactivables">
+        <CompactPanel title="Gouvernance IA" subtitle="IA assiste, humain valide">
           <div className="grid gap-2">
-            {ministryAiModules.map((item) => (
+            {ministryAiModules.slice(0, 5).map((item) => (
               <button key={item.name} onClick={() => setAiEnabled((values) => ({ ...values, [item.name]: !values[item.name] }))} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3 text-left">
                 <span><span className="block text-sm font-black">{item.name}</span><span className="block text-xs font-semibold text-slate-500">{item.control}</span></span>
                 <span className={`rounded-full px-2 py-1 text-[0.65rem] font-black ${aiEnabled[item.name] ? "bg-emerald-100 text-emerald-900" : "bg-slate-200 text-slate-600"}`}>{aiEnabled[item.name] ? item.status : "Désactivée"}</span>
@@ -356,57 +307,159 @@ export function MinistryInstitutionalSpace() {
     );
   }
 
-  function QuayCard() {
+  function ReferentsPanel() {
     return (
-      <CompactPanel title={`Fiche quai · ${selectedQuay.name}`} subtitle={`${selectedQuay.commune} · ${selectedQuay.region} · ${selectedQuay.lat}, ${selectedQuay.lng}`}>
-        <div className="grid gap-3">
-          <div className={`rounded-2xl border p-3 ${toneClass[tensionTone(selectedQuay.tension)]}`}>
-            <p className="text-xs font-black uppercase tracking-[0.12em] opacity-70">Risque dominant</p>
-            <p className="mt-2 text-sm font-black leading-6">{selectedQuay.mainRisk}</p>
-          </div>
-          <Row label="Score priorité" value={`${selectedQuay.priorityScore}/100`} />
-          <Row label="Programmes" value={String(selectedQuay.metrics.activePrograms)} />
-          <Row label="Incidents" value={String(selectedQuay.metrics.openIncidents)} />
-          <Row label="Référents" value={String(selectedQuay.metrics.availableReferents)} />
-          <p className="rounded-2xl bg-cyan-50 p-3 text-sm font-bold text-cyan-950">{selectedQuay.recommendedAction}</p>
-          <ActionStrip primary="Prioriser quai" secondary={["Note territoire", "Vérifier preuve"]} onPrimary={prioritizeQuay} onSecondary={(item) => item.includes("Note") ? prepareNote() : addPendingAction(`${item}: ${selectedQuay.name}`, "Quai")} />
+      <CompactPanel title="Référents terrain" subtitle="Points d’ancrage de coordination">
+        <div className="grid gap-2">
+          {(referents.length ? referents : ministryReferents.slice(0, 3)).map((referent) => (
+            <div key={referent.id} className="rounded-2xl bg-slate-50 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black">{referent.name}</p>
+                  <p className="text-xs font-semibold text-slate-500">{referent.role} · confiance {referent.trust}</p>
+                </div>
+                <span className="rounded-full bg-white px-2 py-1 text-[0.65rem] font-black text-cyan-900">{statusById[referent.id] ?? referent.status}</span>
+              </div>
+              <p className="mt-2 text-xs font-bold text-slate-600">{referent.lastReport}</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">Besoin: {referent.needs}</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">Programme: {referent.programs}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button onClick={() => requestReferentReport(referent)} className="rounded-full bg-cyan-700 px-3 py-1.5 text-xs font-black text-white">Compte rendu</button>
+                <button onClick={() => addAction(`Suivi programme affecté: ${referent.name}`, "Programme", "Affecté")} className="rounded-full border border-cyan-200 bg-white px-3 py-1.5 text-xs font-black text-cyan-950">Affecter suivi</button>
+              </div>
+            </div>
+          ))}
         </div>
       </CompactPanel>
     );
   }
 
-  function DecisionRail() {
+  function QuayDetail() {
     return (
-      <aside className="grid content-start gap-4">
-        <CompactPanel title="Insight IA quai" subtitle="IA simulée - données mockées">
-          <p className="text-xl font-black text-slate-950">{selectedQuay.name} · {selectedQuay.tension}</p>
-          <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{selectedQuay.mainRisk}. Action recommandée : {selectedQuay.recommendedAction}</p>
-          <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-950">Donnée à vérifier : {selectedQuay.missingData}</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {ministryQuickQuestions.slice(0, 4).map((question) => <button key={question} onClick={() => addPendingAction(`Question IA: ${question}`, "IA")} className="rounded-full border border-cyan-100 bg-white px-3 py-2 text-xs font-black text-cyan-950">{question}</button>)}
+      <CompactPanel title={`Fiche ${selectedQuay}`} subtitle={`${territory.zone} · ${territory.lat}, ${territory.lng}`}>
+        <div className="grid gap-2 text-sm font-bold text-slate-700">
+          <Row label="Tension" value={territory.tension} />
+          <Row label="Commune / région" value={`${territory.commune} · ${territory.zone}`} />
+          <Row label="Risque dominant" value={territory.mainRisk} />
+          <Row label="Programmes" value={String(territory.programs)} />
+          <Row label="Budget" value={budget.planned} />
+          <Row label="Financement en attente" value={metric.pendingFunding} />
+          <Row label="Incidents" value={String(incidents.length)} />
+          <Row label="Ressources critiques" value={String(metric.criticalResources)} />
+          <Row label="Preuves validées" value={String(metric.validatedProofs)} />
+          <Row label="Référents" value={String(referents.length)} />
+          <Row label="Mise à jour" value={metric.lastUpdate} />
+        </div>
+        <p className="mt-4 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-950">{territory.recommendedAction}</p>
+        <ActionStrip primary="Prioriser quai" secondary={["Vérifier terrain", "Note quai"]} onPrimary={prioritizeQuay} onSecondary={(item) => item.includes("Note") ? prepareNote(selectedQuay) : requestFieldCheck()} />
+      </CompactPanel>
+    );
+  }
+
+  function AiRail() {
+    return (
+      <CompactPanel title="IA Mbàmbulaan" subtitle="Données mockées · humain valide">
+        <p className="text-sm font-bold leading-6 text-slate-700">{aiInsight}</p>
+        <div className="mt-3 grid gap-2">
+          {["Pourquoi ce quai est prioritaire ?", "Quel financement est bloqué ?", "Quel référent contacter ?", "Quelle ressource est critique ?", "Quelle preuve manque ?", "Quelle note préparer ?"].map((question) => (
+            <button key={question} onClick={() => setMessage(`IA ${selectedQuay}: ${question} Réponse simulée: ${territory.recommendedAction}`)} className="rounded-2xl bg-cyan-50 px-3 py-2 text-left text-xs font-black text-cyan-950">{question}</button>
+          ))}
+        </div>
+      </CompactPanel>
+    );
+  }
+
+  function PendingActions() {
+    return (
+      <CompactPanel title="Actions en attente" subtitle="Générées par simulation">
+        <div className="grid gap-2">
+          {pendingActions.filter((item) => item.quay === selectedQuay).slice(0, 5).map((action) => (
+            <button key={action.id} onClick={() => setStatusById((items) => ({ ...items, [action.id]: "Vu" }))} className="rounded-2xl bg-slate-50 p-3 text-left">
+              <span className="block text-sm font-black">{action.title}</span>
+              <span className="mt-1 block text-xs font-semibold text-slate-500">{action.type} · {statusById[action.id] ?? action.status}</span>
+            </button>
+          ))}
+          {!pendingActions.some((item) => item.quay === selectedQuay) && <p className="rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-500">Aucune action ouverte pour ce quai. Lancez une vérification, une note ou une demande de preuve.</p>}
+        </div>
+      </CompactPanel>
+    );
+  }
+
+  function MetricRibbon() {
+    const compactMetrics = [
+      { label: "Tension", value: territory.tension, tone: "bg-rose-50 text-rose-950" },
+      { label: "Incidents", value: String(incidents.length), tone: "bg-orange-50 text-orange-950" },
+      { label: "Financement", value: metric.pendingFunding, tone: "bg-amber-50 text-amber-950" },
+      { label: "Ressources", value: String(metric.criticalResources), tone: "bg-emerald-50 text-emerald-950" },
+      { label: "Programmes", value: String(territory.programs), tone: "bg-cyan-50 text-cyan-950" },
+      { label: "Preuves", value: String(metric.validatedProofs), tone: "bg-teal-50 text-teal-950" },
+      { label: "Référents", value: String(metric.referentsAvailable), tone: "bg-sky-50 text-sky-950" },
+      { label: "MAJ", value: metric.lastUpdate, tone: "bg-stone-50 text-stone-950" }
+    ];
+
+    return (
+      <section className="grid gap-2 md:grid-cols-4 xl:grid-cols-8">
+        {compactMetrics.map((item) => (
+          <div key={item.label} className={`rounded-2xl border border-white p-3 shadow-sm ${item.tone}`}>
+            <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] opacity-60">{item.label}</p>
+            <p className="mt-1 truncate text-sm font-black">{item.value}</p>
           </div>
-        </CompactPanel>
-        <CompactPanel title="Actions en attente" subtitle="Trace du parcours">
-          <div className="grid gap-2">
-            {pendingActions.length === 0 ? <p className="text-sm font-semibold text-slate-500">Aucune action générée pour l'instant.</p> : pendingActions.map((action) => (
-              <div key={action.id} className="rounded-2xl bg-slate-50 p-3">
-                <p className="text-sm font-black text-slate-900">{action.label}</p>
-                <p className="text-xs font-bold text-slate-500">{action.type} · {action.quay}</p>
-              </div>
-            ))}
-          </div>
-        </CompactPanel>
-      </aside>
+        ))}
+      </section>
+    );
+  }
+
+  function TracePanel() {
+    return (
+      <CompactPanel title="Trace" subtitle="Note et preuve liées">
+        <p className="text-sm font-black text-slate-900">{proofs[0]?.source ?? "Preuve à compléter"}</p>
+        <p className="mt-1 text-xs font-semibold text-slate-500">{proofs[0]?.level ?? "À collecter"} · {proofs[0]?.date ?? metric.lastUpdate}</p>
+        <p className="mt-4 rounded-2xl bg-cyan-50 p-3 text-sm font-bold text-cyan-950">{generatedNote}</p>
+      </CompactPanel>
+    );
+  }
+
+  function MiniBarStack() {
+    const segments = [
+      { label: "Programmes", value: territory.programs, color: "bg-cyan-600" },
+      { label: "Incidents", value: Math.max(1, incidents.length), color: "bg-rose-500" },
+      { label: "Ressources", value: Math.max(1, metric.criticalResources), color: "bg-emerald-500" }
+    ];
+    const total = segments.reduce((sum, item) => sum + item.value, 0);
+    return (
+      <div className="rounded-2xl bg-white p-4">
+        <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Répartition quai</p>
+        <div className="mt-4 flex h-4 overflow-hidden rounded-full bg-slate-100">
+          {segments.map((item) => <span key={item.label} className={item.color} style={{ width: `${(item.value / total) * 100}%` }} />)}
+        </div>
+        <div className="mt-4 grid gap-2">
+          {segments.map((item) => <Row key={item.label} label={item.label} value={String(item.value)} />)}
+        </div>
+      </div>
+    );
+  }
+
+  function BudgetBars() {
+    const planned = parseInt(budget.planned, 10);
+    const committed = parseInt(budget.committed, 10);
+    const consumed = parseInt(budget.consumed, 10);
+    return (
+      <div className="grid gap-3">
+        <ProgressLine label="Prévu" value={100} amount={budget.planned} tone="bg-cyan-700" />
+        <ProgressLine label="Engagé" value={(committed / planned) * 100} amount={budget.committed} tone="bg-teal-500" />
+        <ProgressLine label="Consommé" value={(consumed / planned) * 100} amount={budget.consumed} tone="bg-amber-400" />
+        <p className="rounded-2xl bg-rose-50 p-3 text-sm font-bold text-rose-950">{statusById[budget.id] ?? budget.status}: {budget.variance}</p>
+      </div>
     );
   }
 }
 
-function ModuleQuestion({ title, question, message }: { title: string; question: string; message: string }) {
+function ModuleQuestion({ title, question, quay, message }: { title: string; question: string; quay: string; message: string }) {
   return (
     <section className="rounded-[1.75rem] bg-gradient-to-br from-cyan-950 via-teal-900 to-emerald-800 p-5 text-white shadow-xl shadow-cyan-950/10">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">{title}</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">{title} · {quay}</p>
           <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">{question}</h2>
         </div>
         <p className="max-w-md rounded-2xl bg-white/10 p-3 text-sm font-bold leading-6 text-white/75 ring-1 ring-white/10">{message}</p>
@@ -415,87 +468,51 @@ function ModuleQuestion({ title, question, message }: { title: string; question:
   );
 }
 
-function QuaySelector({ selectedQuayId, onSelect }: { selectedQuayId: string; onSelect: (id: string) => void }) {
+function RadialMetric({ label, value, suffix, tone }: { label: string; value: number; suffix: string; tone: MinistryTone }) {
   return (
-    <section className="rounded-[1.25rem] border border-cyan-100 bg-white p-3 shadow-sm">
-      <div className="flex flex-wrap gap-2">
-        {quayProfiles.map((quay) => (
-          <button key={quay.id} onClick={() => onSelect(quay.id)} className={`rounded-full px-4 py-2 text-sm font-black transition ${selectedQuayId === quay.id ? "bg-cyan-700 text-white" : "bg-slate-50 text-slate-600 hover:bg-cyan-50"}`}>
-            {quay.name} <span className="ml-1 opacity-70">{quay.priorityScore}</span>
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function VisualMetric({ insight, variant }: { insight: Insight; variant: "donut" | "bar" }) {
-  const progress = insight.progress ?? 50;
-  return (
-    <div className={`rounded-[1.25rem] border p-4 ${toneClass[insight.tone]}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] opacity-70">{insight.label}</p>
-          <p className="mt-2 text-2xl font-black">{insight.value}</p>
-          <p className="mt-1 line-clamp-2 text-xs font-bold opacity-70">{insight.detail}</p>
+    <div className={`rounded-[1.25rem] border p-4 ${seaTone[tone]}`}>
+      <div className="flex items-center gap-4">
+        <div className="grid h-20 w-20 place-items-center rounded-full" style={{ background: `conic-gradient(#0891b2 ${value * 3.6}deg, rgba(255,255,255,.85) 0deg)` }}>
+          <div className="grid h-14 w-14 place-items-center rounded-full bg-white text-sm font-black">{value}</div>
         </div>
-        {variant === "donut" ? <Donut value={progress} tone={insight.tone} small /> : <MiniBars value={progress} tone={insight.tone} />}
+        <div><p className="text-xs font-black uppercase tracking-[0.14em] opacity-70">{label}</p><p className="mt-2 text-2xl font-black">{suffix}</p></div>
       </div>
     </div>
   );
 }
 
-function Donut({ value, label, tone, small = false }: { value: number; label?: string; tone: MinistryTone; small?: boolean }) {
+function DonutMetric({ label, value, detail }: { label: string; value: number; detail: string }) {
   return (
-    <div className={`grid ${small ? "h-16 w-16" : "h-36 w-36"} place-items-center rounded-full bg-white shadow-inner`} style={{ background: `conic-gradient(currentColor ${Math.min(value, 100)}%, rgba(255,255,255,0.7) 0)` }}>
-      <div className={`${small ? "h-11 w-11 text-xs" : "h-24 w-24 text-lg"} grid place-items-center rounded-full bg-white font-black ${toneClass[tone]}`}>{value}%{label ? <span className="block text-[0.65rem]">{label}</span> : null}</div>
-    </div>
-  );
-}
-
-function MiniBars({ value, tone }: { value: number; tone: MinistryTone }) {
-  return (
-    <div className="grid h-16 w-16 items-end gap-1 grid-cols-4">
-      {[38, 58, 74, value].map((bar, index) => <span key={index} className={`rounded-t ${fillClass[tone]}`} style={{ height: `${Math.max(18, Math.min(bar, 96))}%` }} />)}
-    </div>
-  );
-}
-
-function ProgressRow({ label, value, max, tone }: { label: string; value: number; max: number; tone: MinistryTone }) {
-  const percent = Math.round((value / max) * 100);
-  return <div><div className="mb-1 flex justify-between text-xs font-black text-slate-500"><span>{label}</span><span>{value} M FCFA</span></div><div className="h-3 overflow-hidden rounded-full bg-slate-100"><span className={`block h-3 rounded-full ${fillClass[tone]}`} style={{ width: `${percent}%` }} /></div></div>;
-}
-
-function MiniStat({ label, value, tone }: { label: string; value: string; tone: MinistryTone }) {
-  return <div className={`rounded-2xl border p-3 ${toneClass[tone]}`}><p className="text-xs font-black uppercase opacity-60">{label}</p><p className="mt-1 text-xl font-black">{value}</p></div>;
-}
-
-function ReferentCard({ referent, status, onAction }: { referent: QuayReferent; status?: string; onAction: () => void }) {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-      <div className="flex gap-3">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-cyan-700 to-emerald-500 text-sm font-black text-white">{referent.name.split(" ").map((part) => part[0]).join("").slice(0, 2)}</div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div><p className="font-black text-slate-950">{referent.name}</p><p className="text-xs font-bold text-slate-500">{referent.role} · confiance {referent.trust}</p></div>
-            <span className="rounded-full bg-white px-2 py-1 text-[0.65rem] font-black text-cyan-900">{status ?? referent.availability}</span>
-          </div>
-          <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">Besoin : {referent.needs}. Dernier CR : {referent.lastReport}.</p>
-          <button onClick={onAction} className="mt-3 rounded-full bg-cyan-700 px-3 py-2 text-xs font-black text-white">{referent.action}</button>
+    <div className="rounded-[1.25rem] border border-teal-200 bg-teal-50 p-4 text-teal-950">
+      <div className="flex items-center gap-4">
+        <div className="grid h-20 w-20 place-items-center rounded-full" style={{ background: `conic-gradient(#0f766e ${value * 3.6}deg, #ccfbf1 0deg)` }}>
+          <div className="grid h-14 w-14 place-items-center rounded-full bg-white text-sm font-black">{value}%</div>
         </div>
+        <div><p className="text-xs font-black uppercase tracking-[0.14em] opacity-70">{label}</p><p className="mt-2 text-sm font-bold">{detail}</p></div>
       </div>
     </div>
   );
 }
 
-function CompactPanel({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+function SparkMetric({ label, values, detail }: { label: string; values: number[]; detail: string }) {
+  const max = Math.max(...values, 1);
+  return (
+    <div className="rounded-[1.25rem] border border-cyan-200 bg-white p-4 text-cyan-950">
+      <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-700">{label}</p>
+      <div className="mt-4 flex h-12 items-end gap-1">
+        {values.map((value, index) => <span key={`${value}-${index}`} className="w-full rounded-t bg-cyan-600" style={{ height: `${22 + (value / max) * 70}%` }} />)}
+      </div>
+      <p className="mt-3 text-sm font-bold text-slate-600">{detail}</p>
+    </div>
+  );
+}
+
+function CompactPanel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <section className="rounded-[1.35rem] border border-cyan-100 bg-white p-4 shadow-sm">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-black text-slate-950">{title}</h3>
-          <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-slate-400">{subtitle}</p>
-        </div>
+      <div className="mb-4">
+        <h3 className="text-lg font-black text-slate-950">{title}</h3>
+        <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-slate-400">{subtitle}</p>
       </div>
       {children}
     </section>
@@ -511,6 +528,42 @@ function ActionStrip({ primary, secondary, onPrimary, onSecondary }: { primary: 
   );
 }
 
+function DataTable({ headers, rows }: { headers: string[]; rows: React.ReactNode[][] }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-100">
+      <table className="w-full min-w-[42rem] text-left text-sm">
+        <thead className="bg-slate-50 text-xs uppercase tracking-[0.12em] text-slate-500">
+          <tr>{headers.map((header) => <th key={header} className="p-3 font-black">{header}</th>)}</tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100 bg-white">
+          {rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex} className="p-3 font-semibold text-slate-700">{cell}</td>)}</tr>)}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ProgressLine({ label, value, amount, tone }: { label: string; value: number; amount: string; tone: string }) {
+  return (
+    <div>
+      <div className="flex justify-between text-xs font-black uppercase tracking-[0.12em] text-slate-500"><span>{label}</span><span>{amount}</span></div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-2 rounded-full ${tone}`} style={{ width: `${Math.min(100, value)}%` }} /></div>
+    </div>
+  );
+}
+
+function Chip({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-2xl bg-white p-3"><p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</p><p className="mt-1 text-xl font-black text-cyan-950">{value}</p></div>;
+}
+
+function QuaySelector({ selected, onSelect }: { selected: string; onSelect: (quay: string) => void }) {
+  return (
+    <select value={selected} onChange={(event) => onSelect(event.target.value)} className="rounded-full border border-cyan-200 bg-white px-4 py-2 text-sm font-black text-cyan-950">
+      {ministryTerritories.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}
+    </select>
+  );
+}
+
 function Row({ label, value }: { label: string; value: string }) {
-  return <div className="flex items-center justify-between gap-4 border-b border-slate-100 py-2 text-sm font-bold"><span className="text-slate-500">{label}</span><span className="text-right text-slate-950">{value}</span></div>;
+  return <div className="flex items-center justify-between gap-4 border-b border-slate-100 py-2"><span className="text-slate-500">{label}</span><span className="text-right text-slate-950">{value}</span></div>;
 }
