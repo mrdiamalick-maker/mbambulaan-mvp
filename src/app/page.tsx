@@ -8,7 +8,7 @@ export default function Home() {
       <PublicNav />
       <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:py-24">
         <div>
-          <StatusBadge tone="blue">Solution B2B data & coordination</StatusBadge>
+          <StatusBadge tone="blue">Écosystème numérique au service de la pêche artisanale</StatusBadge>
           <h1 className="mt-6 max-w-4xl text-5xl font-black tracking-tight sm:text-7xl">
             Transformer les signaux terrain en décisions coordonnées.
           </h1>
@@ -28,19 +28,26 @@ export default function Home() {
           <div className="rounded-[1.5rem] bg-gradient-to-br from-cyan-900 via-teal-800 to-emerald-700 p-5 text-white">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Aperçu solution</p>
-                <h2 className="mt-2 text-2xl font-black">Données · Analyse · Action</h2>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Flux de décision</p>
+                <h2 className="mt-2 text-2xl font-black">Signal terrain → décision publique</h2>
               </div>
               <StatusBadge tone="amber">Tension forte</StatusBadge>
             </div>
-            <div className="mt-6 h-40 rounded-2xl border border-white/15 bg-[radial-gradient(circle_at_25%_25%,rgba(255,255,255,0.22),transparent_22%),linear-gradient(135deg,rgba(255,255,255,0.14),rgba(255,255,255,0.04))] p-4">
-              <div className="relative h-full">
-                {["Joal", "Mbour", "Kayar", "Saint-Louis"].map((quai, index) => (
-                  <span key={quai} className="absolute rounded-full bg-white px-2 py-1 text-[0.68rem] font-black text-cyan-950" style={{ left: `${18 + index * 19}%`, top: `${18 + (index % 2) * 42}%` }}>
-                    {quai}
+            <div className="mt-6 grid gap-3">
+              {[
+                ["1", "Signal terrain", "Une alerte remonte d'un quai ou d'un relais."],
+                ["2", "Analyse territoriale", "Mbàmbulaan relie tension, acteurs, programmes et preuves."],
+                ["3", "Coordination", "Le bon service suit la bonne action avec le bon partenaire."],
+                ["4", "Décision / rapport", "Une note sobre est préparée pour arbitrage."]
+              ].map(([step, title, text]) => (
+                <div key={title} className="grid grid-cols-[2.25rem_1fr] gap-3 rounded-2xl bg-white/10 p-3 ring-1 ring-white/10">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white text-xs font-black text-cyan-950">{step}</span>
+                  <span>
+                    <span className="block text-sm font-black">{title}</span>
+                    <span className="block text-xs font-semibold leading-5 text-white/70">{text}</span>
                   </span>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {globalKpis.map((kpi) => (
@@ -72,22 +79,28 @@ export default function Home() {
           <StatusBadge tone="green">Cas d'usage</StatusBadge>
           <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950">Une même plateforme, des décisions différentes selon l'acteur.</h2>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="overflow-hidden rounded-[1.75rem] border border-cyan-100 bg-white shadow-sm">
+          <div className="grid bg-cyan-950 px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-cyan-50 md:grid-cols-[1fr_1.2fr_1.1fr]">
+            <span>Profil</span>
+            <span>Ce qu'il doit voir</span>
+            <span>Décision facilitée</span>
+          </div>
           {[
-            ["Ministère", "Prioriser les territoires, programmes et financements."],
-            ["ONG", "Suivre actions, preuves et reporting bailleur."],
-            ["Collectivité", "Coordonner les urgences locales et partenaires."],
-            ["Organisation", "Structurer membres, demandes collectives et plaidoyer."],
-            ["Mareyeur", "Organiser flux, qualité, froid et retraits."],
-            ["Exportateur", "Réduire le risque supply avant engagement."],
-            ["Investisseur", "Lire les segments payeurs, risques et roadmap."],
-            ["Partenaire", "Accéder uniquement aux modules autorisés."]
-          ].map(([title, text]) => (
-            <SectionCard key={title} title={title} description={text}>
-              <Link href="/demo" className="text-sm font-black text-cyan-700">Qualifier ce cas</Link>
-            </SectionCard>
+            ["Ministère", "Territoires, tensions, budgets, ressources, incidents, preuves.", "Arbitrer et prioriser l'action publique."],
+            ["ONG / Programme", "Actions, bénéficiaires, preuves terrain, risques et reporting.", "Rendre compte sans perdre le fil terrain."],
+            ["Collectivité", "Quais locaux, urgences, partenaires, notes mairie.", "Coordonner une réponse locale."],
+            ["Organisation professionnelle", "Membres, demandes collectives, dossiers partenaires.", "Défendre une priorité avec preuves."],
+            ["Entreprise / exportateur", "Supply qualifié, risques, conditions logistiques.", "Décider sans catalogue public."],
+            ["Investisseur / associé", "Segments payeurs, offres, pipeline, risques, roadmap.", "Comprendre le potentiel vendable."]
+          ].map(([profile, visible, decision]) => (
+            <div key={profile} className="grid gap-2 border-t border-cyan-100 px-5 py-4 text-sm md:grid-cols-[1fr_1.2fr_1.1fr] md:items-center">
+              <p className="font-black text-slate-950">{profile}</p>
+              <p className="font-semibold leading-6 text-slate-600">{visible}</p>
+              <p className="font-bold leading-6 text-cyan-900">{decision}</p>
+            </div>
           ))}
         </div>
+        <Link href="/demo/etat" className="mt-5 inline-flex rounded-full bg-cyan-700 px-5 py-3 text-sm font-black text-white">Voir le scénario Ministère</Link>
       </section>
 
       <section id="cartographie" className="mx-auto grid max-w-7xl gap-6 px-5 pb-16 sm:px-8 lg:grid-cols-[1fr_0.8fr]">
