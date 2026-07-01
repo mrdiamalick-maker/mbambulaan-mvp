@@ -7,8 +7,8 @@ export default function DemoPage() {
       <PublicNav />
       <PageIntro
         eyebrow="Qualification d'essai"
-        title="Quel problème voulez-vous résoudre avec Mbàmbulaan ?"
-        description="La démo qualifie votre profil, votre territoire et la valeur à montrer. Elle ne donne pas accès à tout le produit publiquement."
+        title="Choisir le scénario qui montre la bonne décision."
+        description="La démo qualifie votre profil, votre territoire et la valeur à montrer. Elle ne donne pas accès à tout le produit publiquement : elle révèle le parcours utile pour comprendre Mbàmbulaan."
       >
         <div className="flex flex-wrap gap-3">
           <StatusBadge tone="blue">Données terrain</StatusBadge>
@@ -20,9 +20,9 @@ export default function DemoPage() {
         <SectionCard title="1. Choisir le profil" description="Chaque profil voit un scénario adapté, pas une interface complète.">
           <RoleSelector />
         </SectionCard>
-        <SectionCard title="2. Choisir la valeur à voir" description="Le parcours montre uniquement le problème métier prioritaire.">
+        <SectionCard title="2. Voir le parcours utile" description="Le parcours montre uniquement le problème métier prioritaire.">
           <div className="grid gap-3">
-            {["Cartographier une tension", "Coordonner une action", "Suivre une preuve", "Préparer un rapport", "Cadrer un essai"].map((step, index) => (
+            {["Signal terrain", "Analyse territoriale", "Coordination", "Action prioritaire", "Trace et rapport"].map((step, index) => (
               <div key={step} className="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-cyan-100">
                 <span className="grid h-9 w-9 place-items-center rounded-full bg-cyan-700 text-xs font-black text-white">{index + 1}</span>
                 <p className="font-black text-slate-900">{step}</p>
@@ -30,7 +30,7 @@ export default function DemoPage() {
             ))}
           </div>
         </SectionCard>
-        <SectionCard title="3. Demander un essai" description="Après qualification, le prospect peut demander un essai ou cadrer un pilote.">
+        <SectionCard title="3. Cadrer l'essai" description="Après qualification, le prospect peut demander un essai ou cadrer un pilote.">
           <p className="text-sm font-semibold leading-6 text-slate-600">
             L'espace privé simulé reste un support de présentation. Dans le produit réel, chaque utilisateur ne voit que son espace selon ses droits.
           </p>
