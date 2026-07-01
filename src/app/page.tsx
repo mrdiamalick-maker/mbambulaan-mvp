@@ -2,11 +2,10 @@ import Link from "next/link";
 import { SectionCard, StatusBadge } from "@/components/premium/PremiumComponents";
 
 const flow = [
-  ["Question", "Que se passe-t-il sur le terrain ?"],
-  ["Insight", "Où agir, avec quelle preuve ?"],
-  ["Exploration", "Quels quais, acteurs, budgets ou incidents ?"],
-  ["Action", "Quelle décision préparer ?"],
-  ["Trace", "Quelle preuve conserver ?"]
+  ["Signal terrain", "Un incident, une tension ou une donnée remonte depuis un quai."],
+  ["Analyse territoriale", "Mbàmbulaan relie quai, programme, budget, ressource et preuve."],
+  ["Coordination", "Les référents, institutions et partenaires voient l’action utile."],
+  ["Décision / rapport", "Une note, une action et une trace restent documentées."]
 ];
 
 const useCases = [
@@ -42,14 +41,16 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_0.86fr] lg:items-center lg:py-24">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-80 bg-[radial-gradient(circle_at_20%_20%,rgba(6,182,212,0.22),transparent_28%),radial-gradient(circle_at_82%_14%,rgba(16,185,129,0.18),transparent_30%)]" />
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[0.92fr_1fr] lg:items-center lg:py-24">
         <div>
-          <StatusBadge tone="blue">Écosystème numérique au service de la pêche artisanale</StatusBadge>
+          <StatusBadge tone="blue">Solution B2B de coordination territoriale</StatusBadge>
           <h1 className="mt-6 max-w-4xl text-5xl font-black tracking-tight sm:text-7xl">
-            Voir, prioriser et documenter l’action terrain.
+            Transformer les signaux terrain en décisions traçables.
           </h1>
           <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-slate-600">
-            Mbàmbulaan transforme les signaux des quais en décisions coordonnées pour les institutions, programmes, collectivités et partenaires.
+            Mbàmbulaan aide les institutions, collectivités, programmes et partenaires à passer d’informations dispersées à une action coordonnée, documentée et défendable.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href="/demo" className="rounded-full bg-cyan-700 px-6 py-3 text-center text-sm font-black text-white shadow-sm shadow-cyan-900/20">
@@ -59,11 +60,45 @@ export default function Home() {
               Se connecter
             </Link>
           </div>
+          <div className="mt-8 grid gap-3 text-sm font-bold text-slate-600 sm:grid-cols-3">
+            <p className="rounded-2xl bg-white/80 p-3 ring-1 ring-cyan-100">Pas une marketplace.</p>
+            <p className="rounded-2xl bg-white/80 p-3 ring-1 ring-cyan-100">Pas un tableau de bord générique.</p>
+            <p className="rounded-2xl bg-white/80 p-3 ring-1 ring-cyan-100">Un système de coordination.</p>
+          </div>
         </div>
 
         <div className="rounded-[2rem] border border-cyan-100 bg-white p-4 shadow-xl shadow-cyan-950/10">
           <div className="rounded-[1.5rem] bg-gradient-to-br from-cyan-950 via-teal-900 to-emerald-800 p-5 text-white">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">Lecture progressive</p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">Aperçu analytique</p>
+                <h2 className="mt-2 text-2xl font-black">Vision nationale → quai → action → trace</h2>
+              </div>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black ring-1 ring-white/15">Simulation</span>
+            </div>
+            <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_0.9fr]">
+              <div className="relative min-h-80 overflow-hidden rounded-[1.25rem] bg-[radial-gradient(circle_at_24%_20%,rgba(34,211,238,0.24),transparent_26%),linear-gradient(145deg,rgba(255,255,255,0.16),rgba(255,255,255,0.06))] ring-1 ring-white/10">
+                <div className="absolute left-[30%] top-8 h-[84%] w-10 rounded-full border-l-4 border-cyan-200/40" />
+                {[
+                  ["Saint-Louis", "Forte", 24, 12, "bg-amber-300"],
+                  ["Kayar", "Forte", 38, 36, "bg-amber-300"],
+                  ["Dakar", "Faible", 30, 48, "bg-emerald-300"],
+                  ["Mbour", "Moyenne", 50, 64, "bg-yellow-300"],
+                  ["Joal", "Critique", 58, 76, "bg-rose-400"]
+                ].map(([name, level, x, y, tone]) => (
+                  <div key={name} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${x}%`, top: `${y}%` }}>
+                    <span className={`block rounded-full border-4 border-white ${tone} ${name === "Joal" ? "h-10 w-10 shadow-lg shadow-rose-500/30" : "h-7 w-7"}`} />
+                    <span className="mt-1 block -translate-x-1/3 rounded-full bg-white/90 px-2 py-1 text-[0.65rem] font-black text-cyan-950">{name}</span>
+                    <span className="sr-only">{level}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="grid gap-3">
+                <MetricPreview label="Priorité Joal" value="92" suffix="/100" />
+                <MetricPreview label="Budget exécuté" value="61" suffix="%" />
+                <MetricPreview label="Preuves validées" value="5" suffix="" />
+              </div>
+            </div>
             <div className="mt-5 grid gap-3">
               {flow.map(([label, text], index) => (
                 <div key={label} className="grid grid-cols-[2.35rem_1fr] gap-3 rounded-2xl bg-white/10 p-3 ring-1 ring-white/10">
@@ -78,20 +113,21 @@ export default function Home() {
             <div className="mt-5 rounded-2xl bg-white p-4 text-cyan-950">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-700">Exemple</p>
               <p className="mt-2 text-2xl font-black">Joal critique</p>
-              <p className="mt-1 text-sm font-bold text-slate-600">Froid, budget et preuve terrain convergent vers une note d’arbitrage.</p>
+              <p className="mt-1 text-sm font-bold text-slate-600">Froid, budget, référents et preuve terrain convergent vers une note d’arbitrage.</p>
             </div>
           </div>
+        </div>
         </div>
       </section>
 
       <section id="solution" className="mx-auto grid max-w-7xl gap-5 px-5 pb-16 sm:px-8 lg:grid-cols-3">
-        <SectionCard title="Question" description="Chaque vue commence par une décision à éclairer.">
-          <p className="text-sm font-semibold leading-6 text-slate-600">Pas de dashboard générique : un problème institutionnel, une lecture, une prochaine action.</p>
+        <SectionCard title="Lire" description="Unifier des signaux terrain dispersés.">
+          <p className="text-sm font-semibold leading-6 text-slate-600">Quais, budgets, incidents, ressources et preuves sont reliés dans une même lecture opérationnelle.</p>
         </SectionCard>
-        <SectionCard title="Insight" description="La plateforme relie territoire, acteur, budget, ressource, incident et preuve.">
-          <p className="text-sm font-semibold leading-6 text-slate-600">Les signaux deviennent des priorités visibles, comparables et défendables.</p>
+        <SectionCard title="Décider" description="Transformer la lecture en priorité concrète.">
+          <p className="text-sm font-semibold leading-6 text-slate-600">La plateforme indique ce qu’il faut regarder, pourquoi c’est important et quelle action lancer.</p>
         </SectionCard>
-        <SectionCard title="Trace" description="Chaque décision peut produire une note, une preuve ou un historique.">
+        <SectionCard title="Tracer" description="Conserver la preuve et préparer le rapport.">
           <p className="text-sm font-semibold leading-6 text-slate-600">L’IA assiste. L’humain valide. La décision reste documentée.</p>
         </SectionCard>
       </section>
@@ -156,5 +192,21 @@ export default function Home() {
         </div>
       </section>
     </main>
+  );
+}
+
+function MetricPreview({ label, value, suffix }: { label: string; value: string; suffix: string }) {
+  const numeric = Number(value);
+  const degrees = Number.isFinite(numeric) ? Math.min(100, numeric) * 3.6 : 0;
+
+  return (
+    <div className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/10">
+      <div className="flex items-center gap-3">
+        <span className="grid h-14 w-14 place-items-center rounded-full" style={{ background: `conic-gradient(#67e8f9 ${degrees}deg, rgba(255,255,255,.18) 0deg)` }}>
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-cyan-950 text-xs font-black text-white">{value}{suffix}</span>
+        </span>
+        <span className="text-sm font-black text-white/85">{label}</span>
+      </div>
+    </div>
   );
 }
