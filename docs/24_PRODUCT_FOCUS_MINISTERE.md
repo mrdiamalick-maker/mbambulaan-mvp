@@ -6,7 +6,7 @@ La solution progresse, mais il faut maintenant arreter de tout traiter en meme t
 
 Premier espace prioritaire : Ministere.
 
-Si le Ministere accede a Mbambulaan, il ne doit pas voir une interface admin. Il doit voir une solution qui l'aide a maitriser la peche artisanale : suivi, cartographie, alertes, programmes, financement, conflits, preuves, notes et aide a la decision.
+Si le Ministere accede a Mbambulaan, il ne doit pas voir une interface admin. Il doit voir une solution qui l'aide a maitriser la peche artisanale : suivi, cartographie, alertes, programmes, budgets, financements, ressources, incidents, conflits, preuves, notes et aide a la decision.
 
 ## Positionnement
 
@@ -34,7 +34,14 @@ Hypotheses fortes :
 - tensions locales mal remontees ;
 - manque de cartographie operationnelle ;
 - reporting lent ;
-- decision dependante de notes manuelles.
+- decision dependante de notes manuelles ;
+- suivi budgetaire difficile par programme, territoire ou partenaire ;
+- manque de visibilite sur l'execution budgetaire et les ecarts ;
+- suivi incomplet des financements octroyes ou promis ;
+- mauvaise lecture des ressources humaines et materielles disponibles ;
+- obsolescence des equipements, outils et infrastructures ;
+- incidents terrain mal historises ;
+- difficulte a relier budget, programme, ressource, incident et resultat.
 
 Mbambulaan doit repondre a ces douleurs.
 
@@ -47,6 +54,10 @@ Valeur vendable :
 - maitrise territoriale ;
 - meilleure priorisation ;
 - suivi des programmes ;
+- suivi budgetaire et alertes d'ecart ;
+- suivi des financements octroyes, consommes ou en retard ;
+- suivi des ressources humaines, materielles et infrastructures ;
+- detection de l'obsolescence et des incidents ;
 - reduction des doublons ;
 - meilleure gestion des tensions ;
 - rapports plus rapides ;
@@ -61,11 +72,13 @@ Valeur vendable :
 3. Territoires
 4. Tensions et alertes
 5. Programmes
-6. Financements
-7. Acteurs
-8. Notes et rapports
-9. Preuves
-10. Parametres et acces
+6. Budgets et financements
+7. Ressources et infrastructures
+8. Incidents et obsolescence
+9. Acteurs
+10. Notes et rapports
+11. Preuves
+12. Parametres et acces
 
 Chaque menu doit afficher un vrai module different.
 
@@ -82,9 +95,12 @@ Afficher :
 - decisions attendues ;
 - alertes majeures ;
 - programmes a risque ;
+- alertes budgetaires ;
+- ressources critiques ;
+- incidents ouverts ;
 - synthese IA simulee.
 
-Actions : generer synthese, marquer decision, ouvrir zone critique.
+Actions : generer synthese, marquer decision, ouvrir zone critique, ouvrir alerte budgetaire.
 
 ### Carte des quais
 
@@ -99,6 +115,8 @@ Afficher :
 - signaux recents ;
 - programmes actifs ;
 - financements ;
+- ressources ou infrastructures critiques ;
+- incidents ;
 - panneau detail.
 
 Actions : prioriser zone, demander verification, generer note, ouvrir fiche territoire.
@@ -107,7 +125,7 @@ Actions : prioriser zone, demander verification, generer note, ouvrir fiche terr
 
 Objectif : comparer et prioriser les zones.
 
-Afficher : classement, score priorite, tension, volume, acteurs, preuve, action recommandee.
+Afficher : classement, score priorite, tension, volume, acteurs, preuve, budget engage, incidents, action recommandee.
 
 Actions : classer priorite, affecter suivi, exporter liste.
 
@@ -115,7 +133,7 @@ Actions : classer priorite, affecter suivi, exporter liste.
 
 Objectif : suivre conflits, risques, urgences et signaux sensibles.
 
-Afficher : alertes, severite, territoire, responsable, statut, delai.
+Afficher : alertes, severite, territoire, responsable, statut, delai, impact potentiel.
 
 Actions : changer statut, assigner responsable, creer note d'alerte.
 
@@ -123,23 +141,39 @@ Actions : changer statut, assigner responsable, creer note d'alerte.
 
 Objectif : suivre les interventions publiques et partenaires.
 
-Afficher : portefeuille programmes, territoire, budget, avancement, partenaire, risque de doublon.
+Afficher : portefeuille programmes, territoire, budget, execution, avancement, partenaire, risque de doublon, indicateurs attendus.
 
 Actions : detecter doublon, ouvrir programme, marquer risque, generer point suivi.
 
-### Financements
+### Budgets et financements
 
-Objectif : suivre les demandes, priorites et montants.
+Objectif : suivre les budgets, financements octroyes et ecarts.
 
-Afficher : dossiers, montants, urgence, preuve, programme associe, statut.
+Afficher : budget prevu, budget engage, budget consomme, taux execution, partenaire, territoire, programme, statut, retard, preuve.
 
-Actions : prioriser dossier, demander preuve, preparer arbitrage.
+Actions : prioriser dossier, demander justification, demander preuve, preparer arbitrage, signaler ecart.
+
+### Ressources et infrastructures
+
+Objectif : savoir quelles ressources existent, ou elles sont, et dans quel etat.
+
+Afficher : ressources humaines, agents, relais, materiel, froid, quais, equipements, etat, localisation, responsable, disponibilite.
+
+Actions : affecter ressource, declarer indisponibilite, demander maintenance, relier ressource a programme.
+
+### Incidents et obsolescence
+
+Objectif : suivre les incidents, pannes, equipements obsoletes et risques operationnels.
+
+Afficher : incident, type, territoire, gravite, ressource touchee, date, responsable, statut, prochaine action.
+
+Actions : declarer incident, changer statut, demander verification, creer note d'urgence, relier incident a financement.
 
 ### Acteurs
 
 Objectif : voir qui agit ou influence chaque zone.
 
-Afficher : services, communes, ONG, organisations, relais, mareyeurs, exportateurs.
+Afficher : services, communes, ONG, organisations, relais, mareyeurs, exportateurs, agents, partenaires techniques.
 
 Actions : ouvrir fiche, filtrer par territoire, affecter contact.
 
@@ -147,15 +181,15 @@ Actions : ouvrir fiche, filtrer par territoire, affecter contact.
 
 Objectif : gagner du temps sur la production de notes.
 
-Afficher : notes brouillon, notes pretes, rapports, destinataire, statut.
+Afficher : notes brouillon, notes pretes, rapports, destinataire, statut, source de donnees.
 
-Actions : generer note IA simulee, passer en validation, archiver.
+Actions : generer note IA simulee, passer en validation, archiver, lier note a budget ou incident.
 
 ### Preuves
 
 Objectif : savoir ce qui est fiable.
 
-Afficher : source, niveau de preuve, territoire, date, validation.
+Afficher : source, niveau de preuve, territoire, date, validation, donnee liee, decision liee.
 
 Actions : demander verification terrain, valider preuve, relier preuve a decision.
 
@@ -177,7 +211,11 @@ Ajouter une logique IA simulee visible :
 - preparation de note ;
 - resume territoire ;
 - alerte sur donnees obsoletes ;
-- questions rapides : Que se passe-t-il a Joal ? Quels programmes sont a risque ? Quelles zones prioriser ?
+- alerte sur ecart budgetaire ;
+- detection de financement bloque ou sous-utilise ;
+- detection de ressource critique ou obsolete ;
+- resume incident ;
+- questions rapides : Que se passe-t-il a Joal ? Quels programmes sont a risque ? Quelles zones prioriser ? Quels budgets sont en retard ? Quelles ressources sont critiques ?
 
 Ne pas surpromettre. Afficher `IA simulee - donnees mockees` si necessaire.
 
