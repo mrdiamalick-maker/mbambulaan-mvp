@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ministryActors,
-  ministryAiModules,
   ministryBudgetLines,
   ministryIncidents,
   ministryInitialPendingActions,
@@ -28,6 +27,8 @@ const modules = [
   { id: "resources", label: "Ressources et acteurs", question: "Quels moyens et référents mobiliser ?" },
   { id: "proofs", label: "Notes, preuves et accès", question: "Quelle décision peut être documentée ?" }
 ] as const;
+
+const aiCapabilityNames = ["Synthèse", "Alertes", "Notes", "Recherche assistée"] as const;
 
 type ModuleId = (typeof modules)[number]["id"];
 
@@ -62,8 +63,9 @@ export function MinistryInstitutionalSpace() {
   const [statusById, setStatusById] = useState<Record<string, string>>({});
   const [priorityBoost, setPriorityBoost] = useState<Record<string, number>>({});
   const [pendingActions, setPendingActions] = useState<MinistryPendingAction[]>(ministryInitialPendingActions);
-  const [aiEnabled, setAiEnabled] = useState<Record<string, boolean>>(
-    Object.fromEntries(ministryAiModules.map((module) => [module.name, module.status !== "Désactivée"]))
+  const [aiMasterEnabled, setAiMasterEnabled] = useState(true);
+  const [aiCapabilities, setAiCapabilities] = useState<Record<(typeof aiCapabilityNames)[number], boolean>>(
+    Object.fromEntries(aiCapabilityNames.map((name) => [name, name !== "Recherche assistée"])) as Record<(typeof aiCapabilityNames)[number], boolean>
   );
 
   const module = modules.find((item) => item.id === active) ?? modules[0];
@@ -78,19 +80,27 @@ export function MinistryInstitutionalSpace() {
   const filteredTerritories = ministryTerritories.filter((item) => tensionFilter === "Toutes" || item.tension === tensionFilter);
 
   const aiInsight = useMemo(() => {
+    if (!aiMasterEnabled) {
+      return `${selectedQuay}: mode manuel actif. Les KPIs, actions et traces restent fonctionnels sans IA. Dernière mise à jour: ${metric.lastUpdate}.`;
+    }
+    if (!aiCapabilities["Synthèse"]) {
+      return `${selectedQuay}: synthèse IA désactivée. Consultez les KPIs, référents et preuves pour préparer la décision.`;
+    }
     const risk = incidents[0]?.title ?? resources[0]?.state ?? "aucun incident bloquant";
     const missing = proofs.length ? "preuve disponible" : "preuve terrain à compléter";
-    return `${selectedQuay}: priorité ${metric.priorityScore}/100. Risque principal: ${risk}. ${territory.recommendedAction} Donnée clé: ${missing}.`;
-  }, [incidents, metric.priorityScore, proofs.length, selectedQuay, resources, territory.recommendedAction]);
+    const note = aiCapabilities["Notes"] ? "Note assistée prête à préparer." : "Notes IA désactivées, brouillon manuel disponible.";
+    return `${selectedQuay}: priorité ${metric.priorityScore}/100. Risque principal: ${risk}. ${territory.recommendedAction} Donnée clé: ${missing}. ${note}`;
+  }, [aiCapabilities, aiMasterEnabled, incidents, metric.lastUpdate, metric.priorityScore, proofs.length, selectedQuay, resources, territory.recommendedAction]);
 
   function addAction(title: string, type: string, status = "À traiter") {
     const action = { id: `act-${Date.now()}-${pendingActions.length}`, title, quay: selectedQuay, type, status };
     setPendingActions((items) => [action, ...items].slice(0, 8));
-    setMessage(`${title}. Simulation MVP - action non connectée au backend`);
+    setMessage(`${title}. ${aiMasterEnabled ? "IA simulée disponible pour enrichir la synthèse." : "Mode manuel, sans enrichissement IA."} Simulation MVP - action non connectée au backend`);
   }
 
   function prepareNote(context = selectedQuay) {
-    setGeneratedNote(`Note ${context}: priorité ${metric.priorityScore}/100, financement ${metric.pendingFunding}, référent ${referents[0]?.name ?? "à désigner"}, preuve ${proofs[0]?.level ?? "à compléter"}.`);
+    const prefix = aiMasterEnabled && aiCapabilities["Notes"] ? "Note assistée" : "Brouillon manuel";
+    setGeneratedNote(`${prefix} ${context}: priorité ${metric.priorityScore}/100, financement ${metric.pendingFunding}, référent ${referents[0]?.name ?? "à désigner"}, preuve ${proofs[0]?.level ?? "à compléter"}.`);
     addAction(`Note d'arbitrage préparée pour ${context}`, "Note", "Préparée");
   }
 
@@ -100,7 +110,7 @@ export function MinistryInstitutionalSpace() {
   }
 
   function signalBudgetGap() {
-    setStatusById((items) => ({ ...items, [budget.id]: "Écart signalé" }));
+    setStatusById((items) => ({ ...items, [budget.id]: aiMasterEnabled && aiCapabilities["Alertes"] ? "Écart signalé + alerte IA" : "Écart signalé" }));
     setGeneratedNote(`Arbitrage budget ${selectedQuay}: écart signalé sur ${budget.program}, preuve ${budget.proof}, partenaire ${budget.partner}.`);
     addAction(`Écart budget signalé: ${budget.program}`, "Budget", "Écart signalé");
   }
@@ -133,8 +143,8 @@ export function MinistryInstitutionalSpace() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4faf9] text-slate-950">
-      <header className="border-b border-cyan-100 bg-white/95 px-5 py-4 backdrop-blur sm:px-8">
+    <main className="min-h-screen bg-[linear-gradient(180deg,#eefbf9_0%,#f8fbf7_42%,#fffaf0_100%)] text-slate-950">
+      <header className="border-b border-cyan-100 bg-white/95 px-5 py-5 backdrop-blur sm:px-8">
         <div className="mx-auto flex max-w-[94rem] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-700 text-sm font-black text-white">Mb</Link>
@@ -151,7 +161,7 @@ export function MinistryInstitutionalSpace() {
         </div>
       </header>
 
-      <section className="mx-auto grid max-w-[94rem] gap-5 px-5 py-5 sm:px-8">
+      <section className="mx-auto grid max-w-[94rem] gap-8 px-5 py-8 sm:px-8">
         <div className="rounded-[1.5rem] border border-cyan-100 bg-white p-3 shadow-sm">
           <div className="flex gap-2 overflow-x-auto pb-1">
             {modules.map((item) => (
@@ -172,9 +182,10 @@ export function MinistryInstitutionalSpace() {
 
         <MetricRibbon />
 
-        <div className="grid gap-5 xl:grid-cols-[1fr_23rem]">
-          <div className="grid gap-5">{renderExploration()}</div>
-          <aside className="grid content-start gap-4">
+        <div className="grid gap-7 xl:grid-cols-[1fr_25rem]">
+          <div className="grid gap-7">{renderExploration()}</div>
+          <aside className="grid content-start gap-5 xl:sticky xl:top-6">
+            <AiGovernancePanel />
             <AiRail />
             <PendingActions />
             <TracePanel />
@@ -293,16 +304,7 @@ export function MinistryInstitutionalSpace() {
           <DataTable headers={["Source", "Niveau", "Validation", "Décision"]} rows={(proofs.length ? proofs : ministryProofs.slice(0, 2)).map((proof) => [proof.source, proof.level, statusById[proof.id] ?? proof.validation, proof.linkedDecision])} />
           <ActionStrip primary="Valider preuve" secondary={["Demander vérification", "Générer note"]} onPrimary={validateProof} onSecondary={(item) => item.includes("note") ? prepareNote(selectedQuay) : requestFieldCheck()} />
         </CompactPanel>
-        <CompactPanel title="Gouvernance IA" subtitle="IA assiste, humain valide">
-          <div className="grid gap-2">
-            {ministryAiModules.slice(0, 5).map((item) => (
-              <button key={item.name} onClick={() => setAiEnabled((values) => ({ ...values, [item.name]: !values[item.name] }))} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3 text-left">
-                <span><span className="block text-sm font-black">{item.name}</span><span className="block text-xs font-semibold text-slate-500">{item.control}</span></span>
-                <span className={`rounded-full px-2 py-1 text-[0.65rem] font-black ${aiEnabled[item.name] ? "bg-emerald-100 text-emerald-900" : "bg-slate-200 text-slate-600"}`}>{aiEnabled[item.name] ? item.status : "Désactivée"}</span>
-              </button>
-            ))}
-          </div>
-        </CompactPanel>
+        <AiGovernancePanel />
       </section>
     );
   }
@@ -360,9 +362,38 @@ export function MinistryInstitutionalSpace() {
     return (
       <CompactPanel title="IA Mbàmbulaan" subtitle="Données mockées · humain valide">
         <p className="text-sm font-bold leading-6 text-slate-700">{aiInsight}</p>
+        <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-xs font-black leading-5 text-amber-950">IA simulée - données mockées. L'humain valide.</p>
         <div className="mt-3 grid gap-2">
           {["Pourquoi ce quai est prioritaire ?", "Quel financement est bloqué ?", "Quel référent contacter ?", "Quelle ressource est critique ?", "Quelle preuve manque ?", "Quelle note préparer ?"].map((question) => (
-            <button key={question} onClick={() => setMessage(`IA ${selectedQuay}: ${question} Réponse simulée: ${territory.recommendedAction}`)} className="rounded-2xl bg-cyan-50 px-3 py-2 text-left text-xs font-black text-cyan-950">{question}</button>
+            <button key={question} onClick={() => setMessage(aiMasterEnabled ? `IA ${selectedQuay}: ${question} Réponse simulée: ${territory.recommendedAction}` : `IA désactivée: ${question} reste traitable via les données et actions manuelles.`)} className={`rounded-2xl px-3 py-2 text-left text-xs font-black ${aiMasterEnabled ? "bg-cyan-50 text-cyan-950" : "bg-slate-100 text-slate-500"}`}>{question}</button>
+          ))}
+        </div>
+      </CompactPanel>
+    );
+  }
+
+  function AiGovernancePanel() {
+    return (
+      <CompactPanel title="Gouvernance IA" subtitle="Activable, contrôlée, simulée">
+        <button onClick={() => setAiMasterEnabled((enabled) => !enabled)} className={`flex w-full items-center justify-between rounded-2xl p-3 text-left ${aiMasterEnabled ? "bg-emerald-50 text-emerald-950" : "bg-slate-100 text-slate-600"}`}>
+          <span>
+            <span className="block text-sm font-black">IA Mbàmbulaan</span>
+            <span className="block text-xs font-semibold">{aiMasterEnabled ? "Activée pour enrichir synthèses, alertes et notes." : "Désactivée: les parcours restent fonctionnels."}</span>
+          </span>
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-black">{aiMasterEnabled ? "Activée" : "Désactivée"}</span>
+        </button>
+        <div className="mt-3 grid gap-2">
+          {aiCapabilityNames.map((name) => (
+            <label key={name} className={`flex items-center justify-between rounded-2xl border p-3 text-sm font-black ${aiMasterEnabled ? "border-cyan-100 bg-white text-slate-800" : "border-slate-100 bg-slate-50 text-slate-400"}`}>
+              <span>{name}</span>
+              <input
+                type="checkbox"
+                checked={aiCapabilities[name]}
+                disabled={!aiMasterEnabled}
+                onChange={() => setAiCapabilities((items) => ({ ...items, [name]: !items[name] }))}
+                className="h-4 w-4 accent-cyan-700"
+              />
+            </label>
           ))}
         </div>
       </CompactPanel>
@@ -509,8 +540,8 @@ function SparkMetric({ label, values, detail }: { label: string; values: number[
 
 function CompactPanel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-[1.35rem] border border-cyan-100 bg-white p-4 shadow-sm">
-      <div className="mb-4">
+    <section className="rounded-[1.75rem] border border-cyan-100 bg-white p-5 shadow-sm shadow-cyan-950/5">
+      <div className="mb-5">
         <h3 className="text-lg font-black text-slate-950">{title}</h3>
         <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-slate-400">{subtitle}</p>
       </div>
