@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Mbàmbulaan MVP",
-  description: "Plateforme de coordination pour les acteurs de la filiere halieutique."
+  title: "Mbàmbulaan — Coordination de la pêche artisanale",
+  description: "Infrastructure numérique de coordination pour la pêche artisanale sénégalaise."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
