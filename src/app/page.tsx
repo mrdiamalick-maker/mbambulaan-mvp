@@ -17,6 +17,12 @@ const useCases = [
   ["Investisseur", "Segments, offres, roadmap", "Lire le potentiel", "Data room"]
 ];
 
+const proofPoints = [
+  ["5 quais pilotes", "Joal, Kayar, Mbour, Saint-Louis, Dakar"],
+  ["1 chaîne lisible", "Signal → décision → trace"],
+  ["0 image externe", "Visuels internes, contrôlés, explicables"]
+];
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#f4faf9] text-slate-950">
@@ -53,8 +59,8 @@ export default function Home() {
             Mbàmbulaan aide les institutions, collectivités, programmes et partenaires à passer d’informations dispersées à une action coordonnée, documentée et défendable.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/demo" className="rounded-full bg-cyan-700 px-6 py-3 text-center text-sm font-black text-white shadow-sm shadow-cyan-900/20">
-              Demander un essai
+            <Link href="/demo" className="rounded-full bg-gradient-to-r from-cyan-700 to-teal-600 px-6 py-3 text-center text-sm font-black text-white shadow-lg shadow-cyan-900/20">
+              Demander un essai pilote
             </Link>
             <Link href="/espace-prive" className="rounded-full border border-cyan-200 bg-white px-6 py-3 text-center text-sm font-black text-cyan-950">
               Se connecter
@@ -65,6 +71,14 @@ export default function Home() {
             <p className="rounded-2xl bg-white/80 p-3 ring-1 ring-cyan-100">Pas un tableau de bord générique.</p>
             <p className="rounded-2xl bg-white/80 p-3 ring-1 ring-cyan-100">Un système de coordination.</p>
           </div>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            {proofPoints.map(([value, label]) => (
+              <div key={value} className="rounded-3xl border border-cyan-100 bg-white/90 p-4 shadow-sm">
+                <p className="text-2xl font-black text-cyan-950">{value}</p>
+                <p className="mt-1 text-xs font-bold leading-5 text-slate-500">{label}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="rounded-[2rem] border border-cyan-100 bg-white p-4 shadow-xl shadow-cyan-950/10">
@@ -74,7 +88,7 @@ export default function Home() {
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">Aperçu analytique</p>
                 <h2 className="mt-2 text-2xl font-black">Vision nationale → quai → action → trace</h2>
               </div>
-              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black ring-1 ring-white/15">Simulation</span>
+              <span className="rounded-full bg-cyan-100 px-3 py-1 text-xs font-black text-cyan-950 ring-1 ring-white/15">Pilote Ministère</span>
             </div>
             <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_0.9fr]">
               <div className="relative min-h-80 overflow-hidden rounded-[1.25rem] bg-[radial-gradient(circle_at_24%_20%,rgba(34,211,238,0.24),transparent_26%),linear-gradient(145deg,rgba(255,255,255,0.16),rgba(255,255,255,0.06))] ring-1 ring-white/10">
@@ -97,6 +111,10 @@ export default function Home() {
                 <MetricPreview label="Priorité Joal" value="92" suffix="/100" />
                 <MetricPreview label="Budget exécuté" value="61" suffix="%" />
                 <MetricPreview label="Preuves validées" value="5" suffix="" />
+                <div className="rounded-2xl bg-white p-4 text-cyan-950">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-700">IA gouvernée</p>
+                  <p className="mt-2 text-sm font-black">Synthèse, alertes et notes assistées. L’humain valide.</p>
+                </div>
               </div>
             </div>
             <div className="mt-5 grid gap-3">
@@ -130,6 +148,20 @@ export default function Home() {
         <SectionCard title="Tracer" description="Conserver la preuve et préparer le rapport.">
           <p className="text-sm font-semibold leading-6 text-slate-600">L’IA assiste. L’humain valide. La décision reste documentée.</p>
         </SectionCard>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 pb-16 sm:px-8">
+        <div className="rounded-[2rem] border border-cyan-100 bg-white p-5 shadow-sm">
+          <div className="grid gap-4 lg:grid-cols-4">
+            {flow.map(([label, text], index) => (
+              <div key={`workflow-${label}`} className="rounded-[1.25rem] bg-gradient-to-br from-cyan-50 to-emerald-50 p-4">
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-cyan-700 text-xs font-black text-white">{index + 1}</span>
+                <p className="mt-4 text-lg font-black text-cyan-950">{label}</p>
+                <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section id="cas-usages" className="mx-auto max-w-7xl px-5 pb-16 sm:px-8">
@@ -171,8 +203,8 @@ export default function Home() {
         </SectionCard>
         <SectionCard title="Espace privé Ministère" description="Le premier espace de référence est une solution institutionnelle de pilotage et de coordination.">
           <div className="rounded-[1.25rem] bg-gradient-to-br from-cyan-50 to-emerald-50 p-5">
-            <p className="text-4xl font-black text-cyan-950">3 zones</p>
-            <p className="mt-2 text-sm font-bold text-slate-600">Joal, Mbour et Saint-Louis demandent une lecture prioritaire.</p>
+            <p className="text-4xl font-black text-cyan-950">5 quais</p>
+            <p className="mt-2 text-sm font-bold text-slate-600">Un filtre central pour passer de la vision nationale à l’action locale documentée.</p>
             <Link href="/espace-prive/etat" className="mt-5 inline-flex rounded-full bg-cyan-700 px-5 py-3 text-sm font-black text-white">
               Entrer dans l’espace Ministère
             </Link>
