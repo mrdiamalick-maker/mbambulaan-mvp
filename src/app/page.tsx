@@ -9,12 +9,54 @@ const flow = [
 ];
 
 const useCases = [
-  ["Ministère", "Tensions, budgets, incidents", "Arbitrer une priorité", "Pilotage institutionnel"],
-  ["Collectivité", "Quais locaux, urgences", "Coordonner une réponse", "Territoire"],
-  ["ONG / Programme", "Actions, preuves, risques", "Rendre compte", "Programme"],
-  ["Organisation", "Membres, demandes, preuves", "Défendre un dossier", "Plaidoyer"],
-  ["Entreprise", "Supply qualifié, risques", "Décider sans catalogue public", "Flux privé"],
-  ["Investisseur", "Segments, offres, roadmap", "Lire le potentiel", "Data room"]
+  {
+    actor: "Ministère",
+    signal: "Quais, pêches du jour, tensions et budgets",
+    decision: "Arbitrer une priorité territoriale",
+    module: "Pilotage institutionnel",
+    metric: "5 quais",
+    tone: "from-cyan-700 to-teal-600"
+  },
+  {
+    actor: "Collectivité",
+    signal: "Alertes locales, référents et preuves",
+    decision: "Coordonner une réponse terrain",
+    module: "Territoire",
+    metric: "3 zones",
+    tone: "from-emerald-600 to-teal-500"
+  },
+  {
+    actor: "ONG / Programme",
+    signal: "Actions, risques, justificatifs",
+    decision: "Rendre compte sans perdre la trace",
+    module: "Programme",
+    metric: "6 dossiers",
+    tone: "from-amber-500 to-orange-400"
+  },
+  {
+    actor: "Organisation",
+    signal: "Demandes membres, conflits, besoins",
+    decision: "Défendre un dossier documenté",
+    module: "Coordination",
+    metric: "12 signaux",
+    tone: "from-sky-600 to-cyan-500"
+  },
+  {
+    actor: "Entreprise",
+    signal: "Flux qualifiés, qualité, risques",
+    decision: "Décider sans catalogue public",
+    module: "Flux privé",
+    metric: "4 flux",
+    tone: "from-teal-700 to-emerald-500"
+  },
+  {
+    actor: "Investisseur",
+    signal: "Segments, offres, roadmap et traction",
+    decision: "Lire le potentiel de déploiement",
+    module: "Data room",
+    metric: "3 scénarios",
+    tone: "from-slate-700 to-cyan-700"
+  }
 ];
 
 const proofPoints = [
@@ -42,7 +84,7 @@ export default function Home() {
           </nav>
           <div className="flex items-center gap-2">
             <Link href="/espace-prive" className="hidden rounded-full border border-cyan-200 bg-white px-4 py-2 text-sm font-black text-cyan-950 sm:inline-flex">Se connecter</Link>
-            <Link href="/demo" className="rounded-full bg-cyan-700 px-4 py-2 text-sm font-black text-white">Demander un essai</Link>
+            <Link href="/demo" className="rounded-full bg-cyan-700 px-4 py-2 text-sm font-black text-white">Demander un essai pilote</Link>
           </div>
         </div>
       </header>
@@ -172,21 +214,42 @@ export default function Home() {
           </div>
           <Link href="/demo/etat" className="rounded-full bg-cyan-700 px-5 py-3 text-sm font-black text-white">Voir le scénario Ministère</Link>
         </div>
-        <div className="overflow-hidden rounded-[1.5rem] border border-cyan-100 bg-white shadow-sm">
-          <div className="grid bg-cyan-950 px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-cyan-50 md:grid-cols-[0.85fr_1fr_1fr_0.85fr]">
-            <span>Acteur</span>
-            <span>Lecture</span>
-            <span>Décision</span>
-            <span>Module</span>
+        <div className="rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-white via-cyan-50/70 to-emerald-50 p-4 shadow-sm">
+          <div className="grid gap-4 lg:grid-cols-3">
+            {useCases.map((item, index) => (
+              <article key={item.actor} className="group overflow-hidden rounded-[1.5rem] border border-white bg-white/82 p-4 shadow-sm shadow-cyan-950/5">
+                <div className="flex items-start justify-between gap-3">
+                  <span className={`grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br ${item.tone} text-sm font-black text-white shadow-sm`}>{index + 1}</span>
+                  <span className="rounded-full bg-cyan-50 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.12em] text-cyan-900">{item.module}</span>
+                </div>
+                <h3 className="mt-5 text-xl font-black tracking-tight text-slate-950">{item.actor}</h3>
+                <div className="mt-4 grid gap-3">
+                  <div className="rounded-2xl bg-gradient-to-br from-cyan-50 to-white p-3">
+                    <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-cyan-700">Lecture utile</p>
+                    <p className="mt-1 text-sm font-semibold leading-6 text-slate-600">{item.signal}</p>
+                  </div>
+                  <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-white p-3">
+                    <p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-emerald-700">Décision facilitée</p>
+                    <p className="mt-1 text-sm font-black leading-6 text-slate-800">{item.decision}</p>
+                  </div>
+                </div>
+                <div className="mt-4 flex items-center gap-3">
+                  <span className="text-3xl font-black text-cyan-950">{item.metric}</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-cyan-50">
+                    <span className={`block h-full rounded-full bg-gradient-to-r ${item.tone}`} style={{ width: `${56 + index * 6}%` }} />
+                  </span>
+                </div>
+              </article>
+            ))}
           </div>
-          {useCases.map(([actor, read, decision, module]) => (
-            <div key={actor} className="grid gap-2 border-t border-cyan-100 px-5 py-4 text-sm md:grid-cols-[0.85fr_1fr_1fr_0.85fr] md:items-center">
-              <p className="font-black">{actor}</p>
-              <p className="font-semibold text-slate-600">{read}</p>
-              <p className="font-bold text-cyan-900">{decision}</p>
-              <p className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-900">{module}</p>
-            </div>
-          ))}
+          <div className="mt-5 grid gap-3 rounded-[1.5rem] bg-cyan-950 p-4 text-white lg:grid-cols-[1fr_1fr_1fr_0.9fr]">
+            {["Signal terrain", "Analyse territoriale", "Action coordonnée", "Trace conservée"].map((item, index) => (
+              <div key={item} className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-white text-xs font-black text-cyan-950">{index + 1}</span>
+                <span className="text-sm font-black">{item}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
