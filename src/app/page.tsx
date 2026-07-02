@@ -14,7 +14,7 @@ const useCases = [
     signal: "Quais, pêches du jour, tensions et budgets",
     decision: "Arbitrer une priorité territoriale",
     module: "Pilotage institutionnel",
-    metric: "5 quais",
+    metric: "7 régions",
     tone: "from-cyan-700 to-teal-600"
   },
   {
@@ -60,7 +60,7 @@ const useCases = [
 ];
 
 const proofPoints = [
-  ["5 quais pilotes", "Joal, Kayar, Mbour, Saint-Louis, Dakar"],
+  ["7 régions suivies", "Dakar, Saint-Louis, Thiès, Fatick, Ziguinchor, Louga, Kaolack"],
   ["1 chaîne lisible", "Signal → décision → trace"],
   ["0 image externe", "Visuels internes, contrôlés, explicables"]
 ];
@@ -79,7 +79,7 @@ export default function Home() {
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-bold text-slate-600 md:flex">
             <Link href="#solution">Solution</Link>
-            <Link href="#cas-usages">Cas d&apos;usage</Link>
+            <Link href="#cas-usages">Cas d'usage</Link>
             <Link href="#cartographie">Aperçu</Link>
           </nav>
           <div className="flex items-center gap-2">
@@ -266,8 +266,8 @@ export default function Home() {
         </SectionCard>
         <SectionCard title="Espace privé Ministère" description="Le premier espace de référence est une solution institutionnelle de pilotage et de coordination.">
           <div className="rounded-[1.25rem] bg-gradient-to-br from-cyan-50 to-emerald-50 p-5">
-            <p className="text-4xl font-black text-cyan-950">5 quais</p>
-            <p className="mt-2 text-sm font-bold text-slate-600">Un filtre central pour passer de la vision nationale à l’action locale documentée.</p>
+            <p className="text-4xl font-black text-cyan-950">7 régions</p>
+            <p className="mt-2 text-sm font-bold text-slate-600">Un filtre régional pour passer de la vision nationale aux quais, actions et traces documentées.</p>
             <Link href="/espace-prive/etat" className="mt-5 inline-flex rounded-full bg-cyan-700 px-5 py-3 text-sm font-black text-white">
               Entrer dans l’espace Ministère
             </Link>
@@ -275,12 +275,17 @@ export default function Home() {
         </SectionCard>
       </section>
 
-      <footer className="bg-gradient-to-r from-cyan-950 via-teal-900 to-emerald-900 px-5 py-10 text-white sm:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 text-center md:flex-row md:items-center md:justify-between md:text-left">
-          <p className="text-lg font-black">Mbàmbulaan</p>
-          <p className="text-sm font-semibold text-cyan-100">© {new Date().getFullYear()} Mbàmbulaan, une solution de Epic conseil, tous droits réservés.</p>
+      <section className="border-t border-cyan-100 bg-gradient-to-r from-cyan-950 via-teal-900 to-emerald-900 px-5 py-10 text-white sm:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-base font-black">Mbàmbulaan</p>
+            <p className="mt-1 text-sm font-semibold text-cyan-100/75">Écosystème numérique au service de la pêche artisanale.</p>
+          </div>
+          <p className="text-sm font-bold text-cyan-100/80">
+            © 2026 Mbàmbulaan, une solution de Epic conseil, tous droits réservés.
+          </p>
         </div>
-      </footer>
+      </section>
     </main>
   );
 }
