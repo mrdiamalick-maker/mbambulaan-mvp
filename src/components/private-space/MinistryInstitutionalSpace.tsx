@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ministryActors,
   ministryBudgetLines,
   ministryIncidents,
   ministryInitialPendingActions,
@@ -19,18 +18,7 @@ import {
   type MinistryTone
 } from "@/data/ministrySpace";
 
-const modules = [
-  { id: "national", label: "Vue nationale", question: "Que doit savoir le Ministère aujourd'hui ?" },
-  { id: "map", label: "Carte et territoires", question: "Quel quai prioriser et pourquoi ?" },
-  { id: "alerts", label: "Alertes et incidents", question: "Qu'est-ce qui demande une réaction rapide ?" },
-  { id: "budgets", label: "Programmes et budgets", question: "Quel financement pose problème ?" },
-  { id: "resources", label: "Ressources et acteurs", question: "Quels moyens et référents mobiliser ?" },
-  { id: "proofs", label: "Notes, preuves et accès", question: "Quelle décision peut être documentée ?" }
-] as const;
-
 const aiCapabilityNames = ["Synthèse", "Alertes", "Notes", "Recherche assistée"] as const;
-
-type ModuleId = (typeof modules)[number]["id"];
 
 const seaTone: Record<MinistryTone, string> = {
   blue: "border-cyan-200 bg-cyan-50 text-cyan-950",
@@ -55,7 +43,6 @@ function metricTone(metric: MinistryQuayMetric): MinistryTone {
 }
 
 export function MinistryInstitutionalSpace() {
-  const [active, setActive] = useState<ModuleId>("national");
   const [selectedQuay, setSelectedQuay] = useState("Joal");
   const [tensionFilter, setTensionFilter] = useState("Toutes");
   const [message, setMessage] = useState("IA simulée - données mockées. L'humain valide chaque décision.");
@@ -68,7 +55,6 @@ export function MinistryInstitutionalSpace() {
     Object.fromEntries(aiCapabilityNames.map((name) => [name, name !== "Recherche assistée"])) as Record<(typeof aiCapabilityNames)[number], boolean>
   );
 
-  const module = modules.find((item) => item.id === active) ?? modules[0];
   const territory = ministryTerritories.find((item) => item.name === selectedQuay) ?? ministryTerritories[0];
   const metricBase = ministryQuayMetrics.find((item) => item.quay === selectedQuay) ?? ministryQuayMetrics[0];
   const metric = { ...metricBase, priorityScore: Math.min(100, metricBase.priorityScore + (priorityBoost[selectedQuay] ?? 0)) };
@@ -144,13 +130,13 @@ export function MinistryInstitutionalSpace() {
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#eefbf9_0%,#f8fbf7_42%,#fffaf0_100%)] text-slate-950">
-      <header className="border-b border-cyan-100 bg-white/95 px-5 py-5 backdrop-blur sm:px-8">
+      <header className="border-b border-cyan-100 bg-white/95 px-5 py-6 backdrop-blur sm:px-8">
         <div className="mx-auto flex max-w-[94rem] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-700 text-sm font-black text-white">Mb</Link>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">Ministère des Pêches · espace privé</p>
-              <h1 className="text-2xl font-black tracking-tight">Pilotage institutionnel par quai</h1>
+              <h1 className="text-2xl font-black tracking-tight">Espace institutionnel de pilotage par quai</h1>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -161,18 +147,30 @@ export function MinistryInstitutionalSpace() {
         </div>
       </header>
 
-      <section className="mx-auto grid max-w-[94rem] gap-8 px-5 py-8 sm:px-8">
-        <div className="rounded-[1.5rem] border border-cyan-100 bg-white p-3 shadow-sm">
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {modules.map((item) => (
-              <button key={item.id} onClick={() => setActive(item.id)} className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition ${active === item.id ? "bg-cyan-700 text-white" : "bg-slate-50 text-slate-600 hover:bg-cyan-50 hover:text-cyan-950"}`}>
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
+      <section className="mx-auto grid max-w-[94rem] gap-10 px-5 py-8 sm:px-8">
+        <ModuleQuestion title="Vision nationale" question="Passer d'une lecture nationale à une action locale documentée." quay={selectedQuay} message={message} />
 
-        <ModuleQuestion title={module.label} question={module.question} quay={selectedQuay} message={message} />
+        <section className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
+          <CompactPanel title="Synthèse nationale" subtitle="Situation du portefeuille pilote">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Chip label="Quais suivis" value="5" />
+              <Chip label="Zones critiques" value="3" />
+              <Chip label="Actions ouvertes" value={String(pendingActions.length)} />
+            </div>
+            <p className="mt-5 rounded-3xl bg-gradient-to-br from-cyan-50 to-emerald-50 p-4 text-sm font-bold leading-6 text-cyan-950">
+              Le Ministère visualise les quais pilotes, choisit un territoire, mobilise les référents, déclenche une action et conserve une trace exploitable.
+            </p>
+          </CompactPanel>
+          <CompactPanel title={`Quai sélectionné : ${selectedQuay}`} subtitle={`${territory.commune} · ${territory.zone}`}>
+            <div className="grid gap-2 text-sm font-bold text-slate-700">
+              <Row label="Tension" value={territory.tension} />
+              <Row label="Risque dominant" value={territory.mainRisk} />
+              <Row label="Action recommandée" value={territory.recommendedAction} />
+            </div>
+          </CompactPanel>
+        </section>
+
+        <QuayFilterPanel />
 
         <section className="grid gap-3 md:grid-cols-3">
           <RadialMetric label="Priorité quai" value={metric.priorityScore} suffix="/100" tone={metricTone(metric)} />
@@ -182,49 +180,85 @@ export function MinistryInstitutionalSpace() {
 
         <MetricRibbon />
 
-        <div className="grid gap-7 xl:grid-cols-[1fr_25rem]">
-          <div className="grid gap-7">{renderExploration()}</div>
-          <aside className="grid content-start gap-5 xl:sticky xl:top-6">
+        <MapView />
+
+        <section className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
+          <CompactPanel title="Actions principales" subtitle="Chaque action laisse une trace visible">
+            <ActionStrip primary="Prioriser quai" secondary={["Vérifier terrain", "Générer note"]} onPrimary={prioritizeQuay} onSecondary={(item) => item.includes("terrain") ? requestFieldCheck() : prepareNote(selectedQuay)} />
+            <ActionStrip primary="Signaler écart budget" secondary={["Demander maintenance", "Valider preuve"]} onPrimary={signalBudgetGap} onSecondary={(item) => item.includes("maintenance") ? requestMaintenance(resources[0]?.name ?? "Ressource critique", resources[0]?.id ?? `res-${selectedQuay}`) : validateProof()} />
+          </CompactPanel>
+          <PendingActions />
+        </section>
+
+        <ReferentsPanel />
+
+        <section className="grid gap-5">
+          <div>
+            <h2 className="text-2xl font-black tracking-tight text-slate-950">Programmes, budgets, incidents et ressources</h2>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-600">Les blocs ci-dessous changent avec le quai sélectionné et gardent les actions reliées à une preuve ou une note.</p>
+          </div>
+          <BudgetView />
+          <IncidentView />
+          <ResourceView />
+        </section>
+
+        <section className="grid gap-5">
+          <div>
+            <h2 className="text-2xl font-black tracking-tight text-slate-950">Preuves, notes et trace</h2>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-600">La décision ne reste pas seulement une lecture : elle produit une preuve, une action en attente ou un brouillon de note.</p>
+          </div>
+          <div className="grid gap-5 lg:grid-cols-[1fr_0.82fr]">
+            <ProofView />
+            <TracePanel />
+          </div>
+        </section>
+
+        <section className="grid gap-5">
+          <div>
+            <h2 className="text-2xl font-black tracking-tight text-slate-950">IA Mbàmbulaan gouvernée</h2>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-600">L’IA assiste les synthèses, alertes et notes lorsque le Ministère l’active. Elle ne décide jamais.</p>
+          </div>
+          <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
             <AiGovernancePanel />
             <AiRail />
-            <PendingActions />
-            <TracePanel />
-          </aside>
-        </div>
+          </div>
+        </section>
       </section>
     </main>
   );
 
-  function renderExploration() {
-    if (active === "map") return <MapView />;
-    if (active === "alerts") return <IncidentView />;
-    if (active === "budgets") return <BudgetView />;
-    if (active === "resources") return <ResourceView />;
-    if (active === "proofs") return <ProofView />;
-    return <NationalView />;
-  }
-
-  function NationalView() {
+  function QuayFilterPanel() {
     return (
-      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <CompactPanel title="Lecture quai" subtitle="Sélection dynamique">
-          <div className="grid gap-3 lg:grid-cols-[1fr_0.8fr]">
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-cyan-700">{territory.zone}</p>
-              <h3 className="mt-2 text-3xl font-black">{selectedQuay}</h3>
-              <p className="mt-2 text-sm font-bold text-slate-600">{territory.mainRisk}</p>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Chip label="Incidents" value={String(incidents.length)} />
-                <Chip label="Ressources" value={String(metric.criticalResources)} />
-                <Chip label="Preuves" value={String(metric.validatedProofs)} />
-                <Chip label="Référents" value={String(metric.referentsAvailable)} />
-              </div>
-            </div>
-            <MiniBarStack />
+      <section className="rounded-[2rem] border border-cyan-100 bg-white p-5 shadow-sm shadow-cyan-950/5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Filtre central</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">Choisir un quai de pêche</h2>
           </div>
-          <ActionStrip primary="Prioriser quai" secondary={["Vérifier terrain", "Générer note"]} onPrimary={prioritizeQuay} onSecondary={(item) => item.includes("terrain") ? requestFieldCheck() : prepareNote(selectedQuay)} />
-        </CompactPanel>
-        <ReferentsPanel />
+          <p className="max-w-xl text-sm font-semibold leading-6 text-slate-600">
+            Le choix du quai met à jour les KPIs, la carte, la fiche, les budgets, incidents, ressources, preuves, référents, actions et synthèse.
+          </p>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-5">
+          {ministryTerritories.map((item) => {
+            const selected = item.name === selectedQuay;
+            return (
+              <button
+                key={item.name}
+                type="button"
+                onClick={() => setSelectedQuay(item.name)}
+                className={`rounded-[1.25rem] border p-4 text-left transition ${selected ? "border-cyan-600 bg-gradient-to-br from-cyan-700 to-teal-600 text-white shadow-lg shadow-cyan-900/15" : "border-cyan-100 bg-gradient-to-br from-cyan-50 to-emerald-50 text-cyan-950 hover:border-cyan-300"}`}
+              >
+                <span className="flex items-center justify-between gap-3">
+                  <span className="text-lg font-black">{item.name}</span>
+                  <span className={`h-3 w-3 rounded-full ${tensionDot(item.tension)}`} />
+                </span>
+                <span className={`mt-2 block text-xs font-black uppercase tracking-[0.12em] ${selected ? "text-cyan-50" : "text-cyan-700"}`}>{item.tension}</span>
+                <span className={`mt-2 block text-xs font-semibold leading-5 ${selected ? "text-white/75" : "text-slate-600"}`}>{item.mainRisk}</span>
+              </button>
+            );
+          })}
+        </div>
       </section>
     );
   }
@@ -299,12 +333,11 @@ export function MinistryInstitutionalSpace() {
 
   function ProofView() {
     return (
-      <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+      <section className="grid gap-4">
         <CompactPanel title="Trace décisionnelle" subtitle={`${selectedQuay} · preuves et note`}>
           <DataTable headers={["Source", "Niveau", "Validation", "Décision"]} rows={(proofs.length ? proofs : ministryProofs.slice(0, 2)).map((proof) => [proof.source, proof.level, statusById[proof.id] ?? proof.validation, proof.linkedDecision])} />
           <ActionStrip primary="Valider preuve" secondary={["Demander vérification", "Générer note"]} onPrimary={validateProof} onSecondary={(item) => item.includes("note") ? prepareNote(selectedQuay) : requestFieldCheck()} />
         </CompactPanel>
-        <AiGovernancePanel />
       </section>
     );
   }
@@ -314,7 +347,7 @@ export function MinistryInstitutionalSpace() {
       <CompactPanel title="Référents terrain" subtitle="Points d’ancrage de coordination">
         <div className="grid gap-2">
           {(referents.length ? referents : ministryReferents.slice(0, 3)).map((referent) => (
-            <div key={referent.id} className="rounded-2xl bg-slate-50 p-3">
+            <div key={referent.id} className="rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-emerald-50 p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-black">{referent.name}</p>
@@ -405,12 +438,12 @@ export function MinistryInstitutionalSpace() {
       <CompactPanel title="Actions en attente" subtitle="Générées par simulation">
         <div className="grid gap-2">
           {pendingActions.filter((item) => item.quay === selectedQuay).slice(0, 5).map((action) => (
-            <button key={action.id} onClick={() => setStatusById((items) => ({ ...items, [action.id]: "Vu" }))} className="rounded-2xl bg-slate-50 p-3 text-left">
+            <button key={action.id} onClick={() => setStatusById((items) => ({ ...items, [action.id]: "Vu" }))} className="rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50 to-emerald-50 p-3 text-left transition hover:border-cyan-300">
               <span className="block text-sm font-black">{action.title}</span>
               <span className="mt-1 block text-xs font-semibold text-slate-500">{action.type} · {statusById[action.id] ?? action.status}</span>
             </button>
           ))}
-          {!pendingActions.some((item) => item.quay === selectedQuay) && <p className="rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-500">Aucune action ouverte pour ce quai. Lancez une vérification, une note ou une demande de preuve.</p>}
+          {!pendingActions.some((item) => item.quay === selectedQuay) && <p className="rounded-2xl border border-cyan-100 bg-cyan-50 p-3 text-sm font-bold text-cyan-900">Aucune action ouverte pour ce quai. Lancez une vérification, une note ou une demande de preuve.</p>}
         </div>
       </CompactPanel>
     );
@@ -447,26 +480,6 @@ export function MinistryInstitutionalSpace() {
         <p className="mt-1 text-xs font-semibold text-slate-500">{proofs[0]?.level ?? "À collecter"} · {proofs[0]?.date ?? metric.lastUpdate}</p>
         <p className="mt-4 rounded-2xl bg-cyan-50 p-3 text-sm font-bold text-cyan-950">{generatedNote}</p>
       </CompactPanel>
-    );
-  }
-
-  function MiniBarStack() {
-    const segments = [
-      { label: "Programmes", value: territory.programs, color: "bg-cyan-600" },
-      { label: "Incidents", value: Math.max(1, incidents.length), color: "bg-rose-500" },
-      { label: "Ressources", value: Math.max(1, metric.criticalResources), color: "bg-emerald-500" }
-    ];
-    const total = segments.reduce((sum, item) => sum + item.value, 0);
-    return (
-      <div className="rounded-2xl bg-white p-4">
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Répartition quai</p>
-        <div className="mt-4 flex h-4 overflow-hidden rounded-full bg-slate-100">
-          {segments.map((item) => <span key={item.label} className={item.color} style={{ width: `${(item.value / total) * 100}%` }} />)}
-        </div>
-        <div className="mt-4 grid gap-2">
-          {segments.map((item) => <Row key={item.label} label={item.label} value={String(item.value)} />)}
-        </div>
-      </div>
     );
   }
 
@@ -553,20 +566,20 @@ function CompactPanel({ title, subtitle, children }: { title: string; subtitle: 
 function ActionStrip({ primary, secondary, onPrimary, onSecondary }: { primary: string; secondary: string[]; onPrimary: () => void; onSecondary: (item: string) => void }) {
   return (
     <div className="mt-4 flex flex-wrap gap-2">
-      <button onClick={onPrimary} className="rounded-full bg-cyan-700 px-4 py-2 text-sm font-black text-white">{primary}</button>
-      {secondary.slice(0, 2).map((item) => <button key={item} onClick={() => onSecondary(item)} className="rounded-full border border-cyan-200 bg-white px-4 py-2 text-sm font-black text-cyan-950">{item}</button>)}
+      <button onClick={onPrimary} className="rounded-full bg-gradient-to-r from-cyan-700 to-teal-600 px-4 py-2 text-sm font-black text-white shadow-sm shadow-cyan-900/15">{primary}</button>
+      {secondary.slice(0, 2).map((item) => <button key={item} onClick={() => onSecondary(item)} className="rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-black text-cyan-950 transition hover:border-teal-300 hover:bg-teal-50">{item}</button>)}
     </div>
   );
 }
 
 function DataTable({ headers, rows }: { headers: string[]; rows: React.ReactNode[][] }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-100">
+    <div className="overflow-hidden rounded-2xl border border-cyan-100">
       <table className="w-full min-w-[42rem] text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase tracking-[0.12em] text-slate-500">
+        <thead className="bg-cyan-50 text-xs uppercase tracking-[0.12em] text-cyan-900">
           <tr>{headers.map((header) => <th key={header} className="p-3 font-black">{header}</th>)}</tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 bg-white">
+        <tbody className="divide-y divide-cyan-50 bg-white">
           {rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex} className="p-3 font-semibold text-slate-700">{cell}</td>)}</tr>)}
         </tbody>
       </table>
@@ -584,7 +597,7 @@ function ProgressLine({ label, value, amount, tone }: { label: string; value: nu
 }
 
 function Chip({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl bg-white p-3"><p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</p><p className="mt-1 text-xl font-black text-cyan-950">{value}</p></div>;
+  return <div className="rounded-2xl border border-cyan-100 bg-gradient-to-br from-white to-cyan-50 p-3"><p className="text-xs font-black uppercase tracking-[0.12em] text-cyan-700/70">{label}</p><p className="mt-1 text-xl font-black text-cyan-950">{value}</p></div>;
 }
 
 function QuaySelector({ selected, onSelect }: { selected: string; onSelect: (quay: string) => void }) {
