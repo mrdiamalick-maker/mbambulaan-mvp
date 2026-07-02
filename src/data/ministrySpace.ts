@@ -109,6 +109,42 @@ export type MinistryPendingAction = {
   status: string;
 };
 
+export type MinistryDailyCatch = {
+  quay: string;
+  tonnage: number;
+  landings: number;
+  sevenDayVariation: string;
+  unusualSignal: string;
+  coldStatus: string;
+  species: {
+    name: string;
+    volume: number;
+    tone: MinistryTone;
+  }[];
+};
+
+export type MinistrySensitiveSpeciesSignal = {
+  id: string;
+  species: string;
+  status: "Sensible" | "Sous pression" | "Protégée" | "À surveiller";
+  signals: number;
+  quay: string;
+  action: string;
+  criticality: "Faible" | "Moyenne" | "Haute" | "Critique";
+};
+
+export type MinistryConflictReport = {
+  id: string;
+  type: string;
+  declarant: string;
+  quay: string;
+  criticality: "Faible" | "Moyenne" | "Haute" | "Critique";
+  status: string;
+  recommendedAction: string;
+  referent: string;
+  trace: string;
+};
+
 export const ministryKpis: MinistryKpi[] = [
   { label: "Territoires critiques", value: "3", detail: "Joal, Mbour, Saint-Louis", tone: "red" },
   { label: "Programmes à risque", value: "6", detail: "2 chevauchements détectés", tone: "amber" },
@@ -300,4 +336,93 @@ export const ministryReferents: MinistryReferent[] = [
 export const ministryInitialPendingActions: MinistryPendingAction[] = [
   { id: "act-initial-joal", title: "Vérifier preuve froid Joal", quay: "Joal", type: "Vérification", status: "À traiter" },
   { id: "act-initial-mbour", title: "Compléter preuves caisses Mbour", quay: "Mbour", type: "Preuve", status: "À traiter" }
+];
+
+export const ministryDailyCatches: MinistryDailyCatch[] = [
+  {
+    quay: "Joal",
+    tonnage: 18.6,
+    landings: 14,
+    sevenDayVariation: "+22%",
+    unusualSignal: "Volume sardinelle supérieur à la moyenne, froid à confirmer",
+    coldStatus: "Froid partiel",
+    species: [
+      { name: "Sardinelle", volume: 7.2, tone: "blue" },
+      { name: "Thiof", volume: 3.1, tone: "amber" },
+      { name: "Poulpe", volume: 2.4, tone: "green" },
+      { name: "Cymbium / yet", volume: 1.8, tone: "slate" }
+    ]
+  },
+  {
+    quay: "Kayar",
+    tonnage: 12.4,
+    landings: 9,
+    sevenDayVariation: "+11%",
+    unusualSignal: "Débarquements ralentis par tension carburant",
+    coldStatus: "À surveiller",
+    species: [
+      { name: "Yabboy", volume: 4.6, tone: "blue" },
+      { name: "Maquereau", volume: 3.3, tone: "green" },
+      { name: "Dorade", volume: 1.9, tone: "amber" }
+    ]
+  },
+  {
+    quay: "Mbour",
+    tonnage: 15.8,
+    landings: 12,
+    sevenDayVariation: "-4%",
+    unusualSignal: "Qualité transport à documenter sur caisses",
+    coldStatus: "Stable",
+    species: [
+      { name: "Sardinelle", volume: 5.1, tone: "blue" },
+      { name: "Sole", volume: 2.7, tone: "green" },
+      { name: "Crevette", volume: 1.5, tone: "amber" },
+      { name: "Capitaine", volume: 1.4, tone: "slate" }
+    ]
+  },
+  {
+    quay: "Saint-Louis",
+    tonnage: 21.2,
+    landings: 16,
+    sevenDayVariation: "+18%",
+    unusualSignal: "Volume élevé et conflit zone à vérifier",
+    coldStatus: "Correct",
+    species: [
+      { name: "Capitaine", volume: 5.9, tone: "green" },
+      { name: "Sardinelle", volume: 5.2, tone: "blue" },
+      { name: "Mulet", volume: 2.8, tone: "slate" },
+      { name: "Thiof", volume: 1.6, tone: "amber" }
+    ]
+  },
+  {
+    quay: "Dakar",
+    tonnage: 10.3,
+    landings: 8,
+    sevenDayVariation: "+3%",
+    unusualSignal: "Données régulières, signal qualité export à maintenir",
+    coldStatus: "Maîtrisé",
+    species: [
+      { name: "Dorade", volume: 2.7, tone: "green" },
+      { name: "Crevette", volume: 1.9, tone: "amber" },
+      { name: "Sole", volume: 1.5, tone: "blue" }
+    ]
+  }
+];
+
+export const ministrySensitiveSpeciesSignals: MinistrySensitiveSpeciesSignal[] = [
+  { id: "sens-joal-thiof", species: "Thiof", status: "À surveiller", signals: 3, quay: "Joal", action: "Demander vérification terrain et éviter toute conclusion sans contrôle.", criticality: "Haute" },
+  { id: "sens-joal-yet", species: "Cymbium / yet", status: "Sensible", signals: 2, quay: "Joal", action: "Documenter les volumes et joindre une preuve de débarquement.", criticality: "Moyenne" },
+  { id: "sens-kayar-yabboy", species: "Yabboy", status: "Sous pression", signals: 4, quay: "Kayar", action: "Surveiller l'évolution sur 7 jours et demander un relevé tonnage.", criticality: "Haute" },
+  { id: "sens-mbour-crevette", species: "Crevette", status: "À surveiller", signals: 2, quay: "Mbour", action: "Vérification qualité et froid recommandée.", criticality: "Moyenne" },
+  { id: "sens-saint-louis-thiof", species: "Thiof", status: "À surveiller", signals: 2, quay: "Saint-Louis", action: "Croiser avec zone de débarquement et note partenaire.", criticality: "Moyenne" },
+  { id: "sens-dakar-dorade", species: "Dorade", status: "À surveiller", signals: 1, quay: "Dakar", action: "Maintenir le suivi qualité export, aucune alerte scientifique.", criticality: "Faible" }
+];
+
+export const ministryConflictReports: MinistryConflictReport[] = [
+  { id: "conf-joal-acces", type: "Conflit accès quai", declarant: "Organisation professionnelle", quay: "Joal", criticality: "Haute", status: "À arbitrer", recommendedAction: "Affecter référent et demander vérification terrain.", referent: "Ousmane Ndiaye", trace: "Signal terrain Joal-2026-07-02" },
+  { id: "conf-joal-froid", type: "Froid indisponible", declarant: "Mareyeur", quay: "Joal", criticality: "Critique", status: "Ouvert", recommendedAction: "Demander contrôle froid et note d'urgence.", referent: "Awa Diouf", trace: "Trace froid Joal" },
+  { id: "conf-kayar-carburant", type: "Tension carburant", declarant: "Pêcheur", quay: "Kayar", criticality: "Haute", status: "En cours", recommendedAction: "Demander compte rendu carburant.", referent: "Cheikh Fall", trace: "Compte rendu attendu" },
+  { id: "conf-mbour-paiement", type: "Retard paiement", declarant: "Mareyeur", quay: "Mbour", criticality: "Moyenne", status: "À qualifier", recommendedAction: "Créer note et affecter suivi programme.", referent: "Mariama Ba", trace: "Signal déclaratif" },
+  { id: "conf-saint-louis-zone", type: "Conflit zone de débarquement", declarant: "Relais local", quay: "Saint-Louis", criticality: "Haute", status: "Ouvert", recommendedAction: "Préparer arbitrage partenaire.", referent: "Abdoulaye Dia", trace: "Signal zone Saint-Louis" },
+  { id: "conf-dakar-qualite", type: "Contrôle qualité", declarant: "Relais qualité", quay: "Dakar", criticality: "Faible", status: "Surveillé", recommendedAction: "Maintenir suivi et consolider méthode.", referent: "Babacar Faye", trace: "Journal qualité" }
 ];
