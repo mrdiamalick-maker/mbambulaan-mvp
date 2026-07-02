@@ -79,7 +79,7 @@ export default function Home() {
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-bold text-slate-600 md:flex">
             <Link href="#solution">Solution</Link>
-            <Link href="#cas-usages">Cas d'usage</Link>
+            <Link href="#cas-usages">Cas d&apos;usage</Link>
             <Link href="#cartographie">Aperçu</Link>
           </nav>
           <div className="flex items-center gap-2">
@@ -275,17 +275,12 @@ export default function Home() {
         </SectionCard>
       </section>
 
-      <section className="bg-gradient-to-r from-cyan-950 via-teal-900 to-emerald-900 px-5 py-14 text-white sm:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Démo qualifiée</p>
-            <h2 className="mt-2 text-3xl font-black">Montrer le bon espace privé au bon décideur.</h2>
-          </div>
-          <Link href="/demo" className="rounded-full bg-white px-6 py-3 text-center text-sm font-black text-slate-950">
-            Lancer la démo
-          </Link>
+      <footer className="bg-gradient-to-r from-cyan-950 via-teal-900 to-emerald-900 px-5 py-10 text-white sm:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 text-center md:flex-row md:items-center md:justify-between md:text-left">
+          <p className="text-lg font-black">Mbàmbulaan</p>
+          <p className="text-sm font-semibold text-cyan-100">© {new Date().getFullYear()} Mbàmbulaan, une solution de Epic conseil, tous droits réservés.</p>
         </div>
-      </section>
+      </footer>
     </main>
   );
 }
