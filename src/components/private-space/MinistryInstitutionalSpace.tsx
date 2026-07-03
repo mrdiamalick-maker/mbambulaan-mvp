@@ -167,7 +167,7 @@ Statut : Brouillon à valider.`);
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <p className="max-w-2xl text-sm font-semibold text-slate-600"><span className="block text-lg font-black text-slate-950">{active.name}</span>{active.region} · {active.commune} · {active.lat}, {active.lng}</p>
               <select value={active.id} onChange={(event) => setQuayId(event.target.value)} className="rounded-full border border-cyan-200 bg-white px-4 py-2 text-sm font-black text-cyan-950">
-                {quays.map((quay) => <option key={quay.id} value={quay.name}>{quay.name}</option>)}
+                {quays.map((quay) => <option key={quay.id} value={quay.id}>{quay.name}</option>)}
               </select>
             </div>
           </Panel>
