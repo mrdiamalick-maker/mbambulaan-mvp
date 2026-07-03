@@ -31,3 +31,39 @@ a {
   background: #bae6fd;
   color: #0f172a;
 }
+
+/* Mbàmbulaan status markers: keep the useful color signal, remove heavy pill boxes. */
+span[class*="before:bg-"][class*="rounded-full"][class*="uppercase"] {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  letter-spacing: 0.035em !important;
+  text-transform: none !important;
+}
+
+span[class*="before:bg-"][class*="rounded-full"][class*="uppercase"]::before {
+  height: 0.5rem !important;
+  width: 0.5rem !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.92);
+}
+
+span[class*="before:bg-rose"] {
+  color: #9f1239 !important;
+}
+
+span[class*="before:bg-amber"] {
+  color: #92400e !important;
+}
+
+span[class*="before:bg-yellow"] {
+  color: #854d0e !important;
+}
+
+span[class*="before:bg-cyan"] {
+  color: #155e75 !important;
+}
+
+span[class*="before:bg-emerald"] {
+  color: #047857 !important;
+}
