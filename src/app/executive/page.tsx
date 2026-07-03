@@ -1,36 +1,5 @@
-import { ExecutiveView } from "@/components/executive/ExecutivePanels";
-import { SliceDecisionStrip } from "@/components/slice/SliceDecisionStrip";
-import { getArrivages } from "@/lib/arrivages";
-import { getBesoins } from "@/lib/besoins";
-import { computeDashboardMetrics, computeMatching } from "@/lib/coordination";
-import { computeDaySimulation, createDaySimulationNotifications } from "@/lib/daySimulation";
-import { computeExecutiveSummary } from "@/lib/executive";
-import { computeCoordinationEngine } from "@/lib/mvpSlice";
-import { createNotifications } from "@/lib/notifications";
+import { ModuleGateNotice } from "@/components/premium/ModuleGateNotice";
 
 export default function ExecutivePage() {
-  const arrivages = getArrivages();
-  const besoins = getBesoins();
-  const opportunites = computeMatching(arrivages, besoins);
-  const dashboardData = computeDashboardMetrics(arrivages, besoins, opportunites);
-  const daySimulation = computeDaySimulation(arrivages, besoins, opportunites);
-  const notifications = [
-    ...createNotifications(arrivages, besoins, opportunites, dashboardData),
-    ...createDaySimulationNotifications(daySimulation.events)
-  ];
-  const executive = computeExecutiveSummary({
-    arrivages,
-    besoins,
-    opportunites,
-    transactions: daySimulation.transactions,
-    notifications
-  });
-  const slice = computeCoordinationEngine();
-
-  return (
-    <>
-      <SliceDecisionStrip active="report" slice={slice} />
-      <ExecutiveView executive={executive} />
-    </>
-  );
+  return <ModuleGateNotice moduleName="Vue exécutive" />;
 }
