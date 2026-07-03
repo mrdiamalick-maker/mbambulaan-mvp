@@ -39,7 +39,15 @@ const watchSignals = [
 const fmt = (region: MinistryRegionName) => region === "Tout" ? "Toutes les régions" : region;
 const sum = (quays: MinistryRegionalQuay[], key: "tonnage" | "landings" | "incidents" | "conflicts" | "proofs") => quays.reduce((total, quay) => total + quay[key], 0);
 const tensionColor = (level: string) => level === "Critique" ? "bg-rose-500" : level === "Forte" ? "bg-amber-400" : level === "Moyenne" ? "bg-yellow-300" : "bg-emerald-400";
-const badgeTone = (level: string) => level === "Critique" ? "bg-rose-100 text-rose-950 ring-rose-200" : level === "Forte" ? "bg-amber-100 text-amber-950 ring-amber-200" : level === "Moyenne" ? "bg-yellow-100 text-yellow-950 ring-yellow-200" : "bg-emerald-100 text-emerald-950 ring-emerald-200";
+const badgeTone = (level: string) => level === "Critique"
+  ? { dot: "bg-rose-500", pill: "border-rose-200 bg-rose-50/85 text-rose-950" }
+  : level === "Forte" || level === "attention"
+    ? { dot: "bg-amber-500", pill: "border-amber-200 bg-amber-50/85 text-amber-950" }
+    : level === "Moyenne"
+      ? { dot: "bg-yellow-400", pill: "border-yellow-200 bg-yellow-50/85 text-yellow-950" }
+      : level === "info"
+        ? { dot: "bg-cyan-500", pill: "border-cyan-200 bg-cyan-50/85 text-cyan-950" }
+        : { dot: "bg-emerald-500", pill: "border-emerald-200 bg-emerald-50/85 text-emerald-950" };
 
 export function MinistryInstitutionalSpace() {
   const [region, setRegion] = useState<MinistryRegionName>("Tout");
@@ -119,8 +127,8 @@ Statut : Brouillon à valider.`);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.16),transparent_30%),linear-gradient(180deg,#eefbf8_0%,#f8fbfa_38%,#fff6e4_100%)] text-slate-950">
-      <header className="overflow-hidden border-b border-cyan-100 bg-white/90 px-4 py-6 backdrop-blur sm:px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-[82rem] min-w-0 flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+      <header className="overflow-hidden border-b border-cyan-100 bg-white/90 px-3 py-6 backdrop-blur sm:px-5 lg:px-6">
+        <div className="mx-auto flex w-full max-w-[90rem] min-w-0 flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-700 text-sm font-black text-white">Mb</Link>
             <div>
@@ -129,17 +137,17 @@ Statut : Brouillon à valider.`);
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => prepareNote(active, "Point de coordination")} className="rounded-full bg-cyan-700 px-4 py-2 text-sm font-black text-white">Préparer le point de coordination</button>
-            <button onClick={() => act(`export-${region}`, "Synthèse exportée", `Synthèse exportée : ${scopeLabel}`)} className="rounded-full border border-cyan-200 bg-white px-4 py-2 text-sm font-black text-cyan-950">Exporter la synthèse</button>
+            <button onClick={() => prepareNote(active, "Point de coordination")} className="rounded-full bg-gradient-to-r from-cyan-700 via-teal-600 to-emerald-600 px-4 py-2 text-sm font-black text-white shadow-[0_12px_28px_rgba(8,145,178,0.22)]">Préparer le point de coordination</button>
+            <button onClick={() => act(`export-${region}`, "Synthèse exportée", `Synthèse exportée : ${scopeLabel}`)} className="rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-black text-cyan-950 shadow-sm">Exporter la synthèse</button>
           </div>
         </div>
       </header>
 
-      <section className="mx-auto grid w-full max-w-[82rem] min-w-0 gap-6 overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
-        <nav className="sticky top-0 z-20 min-w-0 rounded-[1.75rem] border border-cyan-100 bg-white/90 p-3 shadow-[0_18px_50px_rgba(8,145,178,0.10)] backdrop-blur">
+      <section className="mx-auto grid w-full max-w-[90rem] min-w-0 gap-6 overflow-hidden px-3 py-8 sm:px-5 lg:px-6">
+        <nav className="sticky top-0 z-20 min-w-0 rounded-[1.75rem] border border-cyan-100 bg-gradient-to-r from-white/95 via-cyan-50/90 to-emerald-50/80 p-3 shadow-[0_18px_50px_rgba(8,145,178,0.12)] backdrop-blur">
           <div className="flex min-w-0 flex-wrap gap-2">
             {navItems.map(([href, label]) => (
-              <a key={href} href={`#${href}`} className="rounded-full border border-cyan-100 bg-gradient-to-r from-white to-cyan-50/60 px-4 py-2 text-xs font-black text-cyan-950 transition hover:border-cyan-300 hover:from-cyan-50 hover:to-emerald-50">
+              <a key={href} href={`#${href}`} className="rounded-full border border-cyan-200 bg-white/90 px-4 py-2 text-xs font-black text-cyan-950 shadow-sm transition hover:border-teal-300 hover:bg-teal-50">
                 {label}
               </a>
             ))}
@@ -149,7 +157,7 @@ Statut : Brouillon à valider.`);
         <Band id="territoire" n="01" l="Lecture territoriale" t="Choisir la région, puis le quai de travail" s="Le filtre Région / Tout pilote toute la page. La synthèse suivante dépend directement de cette lecture.">
           <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {ministryRegions.map((item) => (
-              <button key={item} onClick={() => chooseRegion(item)} className={`rounded-[1.2rem] border p-4 text-left transition ${region === item ? "border-cyan-500 bg-cyan-700 text-white shadow-md" : "border-slate-200 bg-white text-cyan-950 hover:border-cyan-200 hover:bg-cyan-50/60"}`}>
+              <button key={item} onClick={() => chooseRegion(item)} className={`rounded-[1.2rem] border p-4 text-left transition ${region === item ? "border-cyan-500 bg-gradient-to-br from-cyan-700 via-teal-600 to-emerald-600 text-white shadow-[0_18px_35px_rgba(8,145,178,0.20)]" : "border-cyan-100 bg-gradient-to-br from-white to-cyan-50/60 text-cyan-950 hover:border-cyan-300 hover:to-emerald-50"}`}>
                 <span className="block text-base font-black">{fmt(item)}</span>
                 <span className="mt-2 block text-xs font-black uppercase">{item === "Tout" ? ministryRegionalQuays.length : ministryRegionalQuays.filter((quay) => quay.region === item).length} quai(s)</span>
               </button>
@@ -159,21 +167,21 @@ Statut : Brouillon à valider.`);
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <p className="max-w-2xl text-sm font-semibold text-slate-600"><span className="block text-lg font-black text-slate-950">{active.name}</span>{active.region} · {active.commune} · {active.lat}, {active.lng}</p>
               <select value={active.id} onChange={(event) => setQuayId(event.target.value)} className="rounded-full border border-cyan-200 bg-white px-4 py-2 text-sm font-black text-cyan-950">
-                {quays.map((quay) => <option key={quay.id} value={quay.id}>{quay.name}</option>)}
+                {quays.map((quay) => <option key={quay.id} value={quay.name}>{quay.name}</option>)}
               </select>
             </div>
           </Panel>
         </Band>
 
         <Band id="synthese" n="02" l="Synthèse de pilotage" t={`Synthèse exécutive · ${scopeLabel}`} s={`Lecture adaptée au filtre actif : ${scopeLabel}.`}>
-          <div className="rounded-[2rem] border border-cyan-100 bg-white p-6 shadow-sm">
+          <div className="rounded-[2rem] border border-cyan-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(236,254,255,0.72),rgba(236,253,245,0.58))] p-6 shadow-[0_20px_60px_rgba(8,145,178,0.09)]">
             <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
               <div>
                 <div className="flex gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">Lecture active · {region === "Tout" ? "vision multi-régions" : `région ${region}`}</p><Hint text="La synthèse réagit immédiatement au filtre territorial." /></div>
                 <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-5xl">Ce qu’il faut regarder maintenant</h2>
                 <p className="mt-4 max-w-2xl text-sm font-bold text-slate-600">{currentPriority ? `${currentPriority.name} : ${currentPriority.tension.toLowerCase()}, ${currentPriority.incidents + currentPriority.conflicts} alerte(s), ${currentPriority.pendingFunding} à suivre.` : "Aucun quai prioritaire dans la sélection."}</p>
               </div>
-              <p className="max-w-md rounded-2xl bg-cyan-50 p-4 text-sm font-bold text-cyan-950 ring-1 ring-cyan-100">Dernier point de coordination : {trace[0]}</p>
+              <p className="max-w-md rounded-2xl bg-gradient-to-br from-cyan-700 to-teal-700 p-4 text-sm font-bold text-white shadow-[0_16px_34px_rgba(8,145,178,0.20)]">Dernier point de coordination : {trace[0]}</p>
             </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <Metric label="Quais visibles" value={String(quays.length)} hint={hints.region} />
@@ -351,7 +359,7 @@ function Hint({ text }: { text: string }) {
 }
 
 function Metric({ label, value, hint, small }: { label: string; value: string; hint: string; small?: boolean }) {
-  return <div className="min-w-0 rounded-2xl border border-cyan-100 bg-gradient-to-br from-white to-cyan-50/70 p-4"><div className="flex justify-between gap-2"><p className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-cyan-800/70">{label}</p><Hint text={hint} /></div><p className={`${small ? "text-sm leading-5" : "text-2xl"} mt-2 break-words font-black text-slate-950`}>{value}</p></div>;
+  return <div className="min-w-0 rounded-2xl border border-cyan-100 bg-gradient-to-br from-white via-cyan-50/70 to-emerald-50/55 p-4 shadow-sm"><div className="flex justify-between gap-2"><p className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-cyan-800/80">{label}</p><Hint text={hint} /></div><p className={`${small ? "text-sm leading-5" : "text-2xl"} mt-2 break-words font-black text-cyan-950`}>{value}</p><div className="mt-3 h-1 rounded-full bg-gradient-to-r from-cyan-600 via-teal-400 to-emerald-400" /></div>;
 }
 
 function QuayLine({ quay, onClick }: { quay: MinistryRegionalQuay; onClick: () => void }) {
@@ -368,11 +376,11 @@ function Bars({ quays, max }: { quays: MinistryRegionalQuay[]; max: number }) {
 }
 
 function Seafood({ quay, onClick }: { quay: MinistryRegionalQuay; onClick: () => void }) {
-  return <article className="min-w-0 rounded-2xl border border-cyan-100 bg-white/90 p-4"><div className="flex min-w-0 justify-between gap-3"><div className="min-w-0"><p className="truncate font-black">{quay.name}</p><p className="text-xs font-bold text-slate-500">{quay.landings} débarquements · {quay.sevenDayVariation}</p></div><span className={`shrink-0 rounded-full px-3 py-1 text-[0.65rem] font-black ring-1 ${badgeTone(quay.tension)}`}>{quay.tension}</span></div><p className="mt-3 text-2xl font-black text-cyan-950">{quay.tonnage} t</p><p className="mt-2 break-words text-xs font-semibold text-slate-600">{quay.mainSpecies.join(", ")}</p><SmallButton onClick={onClick}>Demander relevé</SmallButton></article>;
+  return <article className="min-w-0 rounded-2xl border border-cyan-100 bg-white/90 p-4 shadow-sm"><div className="flex min-w-0 justify-between gap-3"><div className="min-w-0"><p className="truncate font-black">{quay.name}</p><p className="text-xs font-bold text-slate-500">{quay.landings} débarquements · {quay.sevenDayVariation}</p></div><StatusPill label={quay.tension} /></div><p className="mt-3 text-2xl font-black text-cyan-950">{quay.tonnage} t</p><p className="mt-2 break-words text-xs font-semibold text-slate-600">{quay.mainSpecies.join(", ")}</p><SmallButton onClick={onClick}>Demander relevé</SmallButton></article>;
 }
 
 function Signal({ quay, label, focus, onAction }: { quay: MinistryRegionalQuay; label: string; focus: boolean; onAction: (action: string) => void }) {
-  return <div className={`mb-3 rounded-2xl border border-amber-100 bg-white p-4 ${focus ? "ring-2 ring-amber-300" : ""}`}><div className="flex justify-between gap-3"><div><p className="font-black">{label}</p><p className="text-xs font-bold text-slate-500">{quay.name} · {quay.region}</p></div><span className={`rounded-full px-3 py-1 text-[0.65rem] font-black ring-1 ${badgeTone(quay.tension)}`}>{quay.tension}</span></div><p className="mt-3 text-sm font-semibold text-slate-600">Signal à vérifier · données mockées · vérification humaine requise.</p><Actions primary="Vérifier" secondary={["Créer note", "Ajouter trace"]} onAction={onAction} /></div>;
+  return <div className={`mb-3 rounded-2xl border border-amber-100 bg-gradient-to-br from-white to-amber-50/45 p-4 ${focus ? "ring-2 ring-amber-300" : ""}`}><div className="flex justify-between gap-3"><div><p className="font-black">{label}</p><p className="text-xs font-bold text-slate-500">{quay.name} · {quay.region}</p></div><StatusPill label={quay.tension} /></div><p className="mt-3 text-sm font-semibold text-slate-600">Signal à vérifier · données mockées · vérification humaine requise.</p><Actions primary="Vérifier" secondary={["Créer note", "Ajouter trace"]} onAction={onAction} /></div>;
 }
 
 function Referent({ quay, status, onClick }: { quay: MinistryRegionalQuay; status: string; onClick: () => void }) {
@@ -384,11 +392,11 @@ function Table({ headers, rows }: { headers: string[]; rows: ReactNode[][] }) {
 }
 
 function Actions({ primary, secondary, onAction }: { primary: string; secondary: string[]; onAction: (action: string) => void }) {
-  return <div className="mt-4 flex flex-wrap gap-2"><button onClick={() => onAction(primary)} className="rounded-full bg-cyan-700 px-4 py-2 text-sm font-black text-white">{primary}</button>{secondary.map((action) => <button key={action} onClick={() => onAction(action)} className="rounded-full border border-cyan-200 bg-white px-4 py-2 text-sm font-black text-cyan-950">{action}</button>)}</div>;
+  return <div className="mt-4 flex flex-wrap gap-2"><button onClick={() => onAction(primary)} className="rounded-full bg-gradient-to-r from-cyan-700 via-teal-600 to-emerald-600 px-4 py-2 text-sm font-black text-white shadow-[0_12px_24px_rgba(8,145,178,0.18)]">{primary}</button>{secondary.map((action) => <button key={action} onClick={() => onAction(action)} className="rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-black text-cyan-950 shadow-sm">{action}</button>)}</div>;
 }
 
 function SmallButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
-  return <button onClick={onClick} className="mt-3 rounded-full bg-cyan-700 px-3 py-1.5 text-xs font-black text-white">{children}</button>;
+  return <button onClick={onClick} className="mt-3 rounded-full bg-gradient-to-r from-cyan-700 to-teal-600 px-3 py-1.5 text-xs font-black text-white shadow-sm">{children}</button>;
 }
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -404,6 +412,10 @@ function Suggestion({ title, actions, onAction }: { title: string; actions: stri
 }
 
 function WatchSignal({ signal, aiEnabled, onAction }: { signal: (typeof watchSignals)[number]; aiEnabled: boolean; onAction: (action: string) => void }) {
-  const tone = signal[3] === "critique" ? "bg-rose-100 text-rose-950 ring-rose-200" : signal[3] === "attention" ? "bg-amber-100 text-amber-950 ring-amber-200" : "bg-cyan-100 text-cyan-950 ring-cyan-200";
-  return <article className="rounded-2xl border border-slate-200 bg-white p-4"><div className="flex justify-between gap-3"><div><p className="text-sm font-black">{signal[0]}</p><p className="text-xs font-bold text-slate-500">{signal[1]} · {signal[2] === "Tout" ? "national" : signal[2]}</p></div><span className={`rounded-full px-3 py-1 text-[0.65rem] font-black ring-1 ${tone}`}>{signal[3]}</span></div><p className="mt-3 text-xs font-semibold text-slate-600">Source mockée : {signal[4]}</p>{aiEnabled && <p className="mt-3 rounded-2xl bg-cyan-50/80 p-3 text-xs font-black text-cyan-950 ring-1 ring-cyan-100">Lecture IA : signal à relier à une note ou à une vérification humaine.</p>}<Actions primary="Ajouter à la synthèse" secondary={["Créer action", "Vérifier", "Inclure note"]} onAction={onAction} /></article>;
+  return <article className="rounded-2xl border border-cyan-100 bg-gradient-to-br from-white to-cyan-50/45 p-4 shadow-sm"><div className="flex justify-between gap-3"><div><p className="text-sm font-black">{signal[0]}</p><p className="text-xs font-bold text-slate-500">{signal[1]} · {signal[2] === "Tout" ? "national" : signal[2]}</p></div><StatusPill label={signal[3]} /></div><p className="mt-3 text-xs font-semibold text-slate-600">Source mockée : {signal[4]}</p>{aiEnabled && <p className="mt-3 rounded-2xl bg-cyan-50/80 p-3 text-xs font-black text-cyan-950 ring-1 ring-cyan-100">Lecture IA : signal à relier à une note ou à une vérification humaine.</p>}<Actions primary="Ajouter à la synthèse" secondary={["Créer action", "Vérifier", "Inclure note"]} onAction={onAction} /></article>;
+}
+
+function StatusPill({ label }: { label: string }) {
+  const tone = badgeTone(label);
+  return <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.64rem] font-black uppercase tracking-[0.08em] shadow-sm ${tone.pill}`}><span className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />{label}</span>;
 }
