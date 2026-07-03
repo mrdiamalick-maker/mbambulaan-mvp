@@ -118,9 +118,9 @@ Statut : Brouillon à valider.`);
     : "Mode manuel : lire, filtrer, agir, préparer une note et tracer restent disponibles sans assistance IA.";
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#f8fbfa_0%,#f7fbf8_50%,#fffaf0_100%)] text-slate-950">
-      <header className="border-b border-slate-200 bg-white/95 px-5 py-6 sm:px-8">
-        <div className="mx-auto flex max-w-[86rem] flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_8%_0%,rgba(34,211,238,0.16),transparent_30%),linear-gradient(180deg,#eefbf8_0%,#f8fbfa_38%,#fff6e4_100%)] text-slate-950">
+      <header className="overflow-hidden border-b border-cyan-100 bg-white/90 px-4 py-6 backdrop-blur sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-[82rem] min-w-0 flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-700 text-sm font-black text-white">Mb</Link>
             <div>
@@ -135,11 +135,11 @@ Statut : Brouillon à valider.`);
         </div>
       </header>
 
-      <section className="mx-auto grid max-w-[86rem] gap-6 px-5 py-8 sm:px-8">
-        <nav className="sticky top-0 z-20 rounded-[1.75rem] border border-slate-200 bg-white/90 p-3 shadow-sm backdrop-blur">
-          <div className="flex gap-2 overflow-x-auto">
+      <section className="mx-auto grid w-full max-w-[82rem] min-w-0 gap-6 overflow-hidden px-4 py-8 sm:px-6 lg:px-8">
+        <nav className="sticky top-0 z-20 min-w-0 rounded-[1.75rem] border border-cyan-100 bg-white/90 p-3 shadow-[0_18px_50px_rgba(8,145,178,0.10)] backdrop-blur">
+          <div className="flex min-w-0 flex-wrap gap-2">
             {navItems.map(([href, label]) => (
-              <a key={href} href={`#${href}`} className="whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 transition hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-950">
+              <a key={href} href={`#${href}`} className="rounded-full border border-cyan-100 bg-gradient-to-r from-white to-cyan-50/60 px-4 py-2 text-xs font-black text-cyan-950 transition hover:border-cyan-300 hover:from-cyan-50 hover:to-emerald-50">
                 {label}
               </a>
             ))}
@@ -147,7 +147,7 @@ Statut : Brouillon à valider.`);
         </nav>
 
         <Band id="territoire" n="01" l="Lecture territoriale" t="Choisir la région, puis le quai de travail" s="Le filtre Région / Tout pilote toute la page. La synthèse suivante dépend directement de cette lecture.">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {ministryRegions.map((item) => (
               <button key={item} onClick={() => chooseRegion(item)} className={`rounded-[1.2rem] border p-4 text-left transition ${region === item ? "border-cyan-500 bg-cyan-700 text-white shadow-md" : "border-slate-200 bg-white text-cyan-950 hover:border-cyan-200 hover:bg-cyan-50/60"}`}>
                 <span className="block text-base font-black">{fmt(item)}</span>
@@ -186,7 +186,7 @@ Statut : Brouillon à valider.`);
               <Metric label="Note active" value={noteStatus} hint={hints.note} small />
             </div>
           </div>
-          <div className="grid gap-4 xl:grid-cols-[1fr_0.85fr]">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
             <Panel title="Quais à regarder en priorité" subtitle="Classement sans moyenne réductrice" hint={hints.score}>
               {priorityQuays.slice(0, 5).map((quay) => <QuayLine key={quay.id} quay={quay} onClick={() => setQuayId(quay.id)} />)}
             </Panel>
@@ -201,7 +201,7 @@ Statut : Brouillon à valider.`);
         </Band>
 
         <Band id="production" n="03" l="Production et alertes" t="Production, carte et signaux critiques" s="Les volumes, points de carte, espèces sensibles et incidents respectent le filtre régional.">
-          <div className="grid gap-4 xl:grid-cols-[1fr_23rem]">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,23rem)]">
             <Panel title="Carte stylisée des quais" subtitle={`${quays.length} point(s) affiché(s)`} hint="Coordonnées mockées, sans API externe.">
               <div className="relative min-h-[29rem] overflow-hidden rounded-[1.5rem] bg-[radial-gradient(circle_at_18%_18%,rgba(20,184,166,0.10),transparent_30%),linear-gradient(140deg,#ffffff,#edf8f6_52%,#fff7e8)]">
                 <div className="absolute left-[25%] top-8 h-[86%] w-10 rounded-full border-l-4 border-cyan-200/70" />
@@ -222,7 +222,7 @@ Statut : Brouillon à valider.`);
               {volumeQuays.slice(0, 6).map((quay) => <Seafood key={quay.id} quay={quay} onClick={() => act(`tonnage-${quay.id}`, "Relevé demandé", `Relevé tonnage demandé : ${quay.name}`)} />)}
             </div>
           </Panel>
-          <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
             <Panel title="Espèces sensibles" subtitle="Signaux à vérifier" hint="Signal à vérifier avant décision. Données mockées.">
               {(speciesSignals.length ? speciesSignals : quays.slice(0, 2).map((quay) => ({ quay, species: "Aucune alerte" }))).slice(0, 6).map(({ quay, species }) => (
                 <Signal key={`${quay.id}-${species}`} quay={quay} label={species} focus={focus === "species"} onAction={(action) => action === "Créer note" ? prepareNote(quay, `Note de vigilance ${species}`) : act(`${action}-${quay.id}-${species}`, action, `${action} : ${species} · ${quay.name}`)} />
@@ -235,7 +235,7 @@ Statut : Brouillon à valider.`);
         </Band>
 
         <Band id="programmes" n="04" l="Programmes et moyens" t="Budgets, ressources et programmes régionaux" s="Chaque ligne appartient au périmètre filtré.">
-          <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <Panel title="Budgets à suivre" subtitle="Par quai" hint="Dossiers où une justification ou une pièce peut être demandée.">
               <Table headers={["Quai", "Programme", "Exécution", "Financement", "Action"]} rows={priorityQuays.slice(0, 7).map((quay) => [quay.name, `${quay.programs} programme(s)`, `${quay.budgetExecution}%`, quay.pendingFunding, <SmallButton key={quay.id} onClick={() => prepareNote(quay)}>Arbitrage</SmallButton>])} />
             </Panel>
@@ -246,7 +246,7 @@ Statut : Brouillon à valider.`);
         </Band>
 
         <Band id="coordination" n="05" l="Coordination terrain" t="Référents et actions suivies" s="Les référents sont des points d’ancrage terrain, pas des contacts CRM.">
-          <div className="grid gap-4 xl:grid-cols-[1fr_0.72fr]">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.72fr)]">
             <Panel title="Référents par quai" subtitle={scopeLabel} hint={hints.referents}>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {quays.slice(0, 9).map((quay) => <Referent key={quay.id} quay={quay} status={status[`report-${quay.id}`] ?? "Disponible"} onClick={() => act(`report-${quay.id}`, "Compte rendu demandé", `Compte rendu demandé : ${quay.name}`)} />)}
@@ -259,7 +259,7 @@ Statut : Brouillon à valider.`);
         </Band>
 
         <Band id="traces" n="06" l="Justificatifs, notes et traces" t="Décision documentée" s="Les pièces de suivi et brouillons suivent le périmètre régional ou le quai actif.">
-          <div className="grid gap-5 lg:grid-cols-[1fr_0.85fr]">
+          <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
             <Panel title="Justificatifs et traces" subtitle={scopeLabel} hint={hints.pieces}>
               <Table headers={["Quai", "Niveau", "Pièces", "Trace utile"]} rows={quays.slice(0, 8).map((quay) => [quay.name, quay.proofLevel, String(quay.proofs), quay.recommendedAction])} />
             </Panel>
@@ -271,7 +271,7 @@ Statut : Brouillon à valider.`);
         </Band>
 
         <Band id="assistance" n="07" l="Assistance IA et veille" t="IA gouvernée et veille filière" s="La veille respecte le filtre Région / Tout. L’IA assiste, l’humain décide.">
-          <div className="grid gap-5 lg:grid-cols-[0.78fr_1.22fr]">
+          <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
             <Panel title="Gouvernance IA" subtitle="Activable, contrôlée, simulée" hint={hints.ia}>
               <button onClick={() => setAiEnabled((value) => !value)} className={`flex w-full items-center justify-between rounded-2xl p-3 text-left ${aiEnabled ? "bg-emerald-50 text-emerald-950" : "bg-slate-100 text-slate-600"}`}>
                 <span><span className="block text-sm font-black">Activer IA Mbàmbulaan</span><span className="block text-xs font-semibold">{aiEnabled ? "Enrichit synthèses, alertes et notes." : "Mode manuel complet."}</span></span>
@@ -321,10 +321,10 @@ Statut : Brouillon à valider.`);
 
 function Band({ id, n, l, t, s, children }: { id: string; n: string; l: string; t: string; s: string; children: ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-28 grid gap-5 rounded-[2rem] border border-slate-200/80 bg-white/85 p-4 shadow-sm sm:p-6">
+    <section id={id} className="scroll-mt-28 grid min-w-0 gap-5 overflow-hidden rounded-[2rem] border border-cyan-100/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(236,253,245,0.56),rgba(236,254,255,0.40))] p-4 shadow-[0_18px_70px_rgba(8,145,178,0.08)] sm:p-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">{n} · {l}</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-teal-700">{n} · {l}</p>
           <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{t}</h2>
         </div>
         <p className="max-w-xl text-sm font-semibold leading-6 text-slate-600">{s}</p>
@@ -336,7 +336,7 @@ function Band({ id, n, l, t, s, children }: { id: string; n: string; l: string; 
 
 function Panel({ title, subtitle, hint, children }: { title: string; subtitle: string; hint?: string; children: ReactNode }) {
   return (
-    <section className="rounded-[1.65rem] border border-slate-200 bg-white/95 p-5 shadow-sm">
+    <section className="min-w-0 overflow-hidden rounded-[1.65rem] border border-cyan-100 bg-white/90 p-5 shadow-sm">
       <div className="mb-5 flex justify-between gap-3">
         <div><h3 className="text-lg font-black">{title}</h3><p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-cyan-700/70">{subtitle}</p></div>
         {hint && <Hint text={hint} />}
@@ -351,16 +351,16 @@ function Hint({ text }: { text: string }) {
 }
 
 function Metric({ label, value, hint, small }: { label: string; value: string; hint: string; small?: boolean }) {
-  return <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4"><div className="flex justify-between gap-2"><p className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-slate-500">{label}</p><Hint text={hint} /></div><p className={`${small ? "text-sm leading-5" : "text-2xl"} mt-2 font-black text-slate-950`}>{value}</p></div>;
+  return <div className="min-w-0 rounded-2xl border border-cyan-100 bg-gradient-to-br from-white to-cyan-50/70 p-4"><div className="flex justify-between gap-2"><p className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-cyan-800/70">{label}</p><Hint text={hint} /></div><p className={`${small ? "text-sm leading-5" : "text-2xl"} mt-2 break-words font-black text-slate-950`}>{value}</p></div>;
 }
 
 function QuayLine({ quay, onClick }: { quay: MinistryRegionalQuay; onClick: () => void }) {
-  return <button onClick={onClick} className="mb-2 grid w-full gap-2 rounded-2xl bg-slate-50 p-3 text-left ring-1 ring-slate-100"><span className="flex justify-between text-sm font-black"><span>{quay.name}</span><span>{quay.priorityScore}/100</span></span><span className="h-2 rounded-full bg-white"><span className={`block h-full rounded-full ${tensionColor(quay.tension)}`} style={{ width: `${quay.priorityScore}%` }} /></span></button>;
+  return <button onClick={onClick} className="mb-2 grid w-full min-w-0 gap-2 rounded-2xl bg-cyan-50/70 p-3 text-left ring-1 ring-cyan-100"><span className="flex min-w-0 justify-between gap-3 text-sm font-black"><span className="truncate">{quay.name}</span><span>{quay.priorityScore}/100</span></span><span className="h-2 rounded-full bg-white"><span className={`block h-full rounded-full ${tensionColor(quay.tension)}`} style={{ width: `${quay.priorityScore}%` }} /></span></button>;
 }
 
 function Gauge({ label, value }: { label: string; value: number }) {
   const tone = value >= 80 ? "from-rose-500 to-orange-400" : value >= 65 ? "from-amber-400 to-yellow-300" : "from-emerald-400 to-teal-400";
-  return <div className="mb-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100"><div className="flex items-end justify-between"><p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-700">{label}</p><p className="text-3xl font-black">{value}</p></div><div className="mt-3 h-3 rounded-full bg-white ring-1 ring-slate-100"><div className={`h-full rounded-full bg-gradient-to-r ${tone}`} style={{ width: `${value}%` }} /></div><p className="mt-2 text-xs font-bold text-slate-500">simulation · validation humaine</p></div>;
+  return <div className="mb-4 min-w-0 rounded-2xl bg-gradient-to-br from-cyan-50/80 to-emerald-50/60 p-4 ring-1 ring-cyan-100"><div className="flex items-end justify-between gap-3"><p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-800">{label}</p><p className="text-3xl font-black">{value}</p></div><div className="mt-3 h-3 rounded-full bg-white ring-1 ring-cyan-100"><div className={`h-full rounded-full bg-gradient-to-r ${tone}`} style={{ width: `${value}%` }} /></div><p className="mt-2 text-xs font-bold text-slate-500">simulation · validation humaine</p></div>;
 }
 
 function Bars({ quays, max }: { quays: MinistryRegionalQuay[]; max: number }) {
@@ -368,7 +368,7 @@ function Bars({ quays, max }: { quays: MinistryRegionalQuay[]; max: number }) {
 }
 
 function Seafood({ quay, onClick }: { quay: MinistryRegionalQuay; onClick: () => void }) {
-  return <article className="rounded-2xl border border-slate-200 bg-white p-4"><div className="flex justify-between gap-3"><div><p className="font-black">{quay.name}</p><p className="text-xs font-bold text-slate-500">{quay.landings} débarquements · {quay.sevenDayVariation}</p></div><span className={`rounded-full px-3 py-1 text-[0.65rem] font-black ring-1 ${badgeTone(quay.tension)}`}>{quay.tension}</span></div><p className="mt-3 text-2xl font-black text-cyan-950">{quay.tonnage} t</p><p className="mt-2 text-xs font-semibold text-slate-600">{quay.mainSpecies.join(", ")}</p><SmallButton onClick={onClick}>Demander relevé</SmallButton></article>;
+  return <article className="min-w-0 rounded-2xl border border-cyan-100 bg-white/90 p-4"><div className="flex min-w-0 justify-between gap-3"><div className="min-w-0"><p className="truncate font-black">{quay.name}</p><p className="text-xs font-bold text-slate-500">{quay.landings} débarquements · {quay.sevenDayVariation}</p></div><span className={`shrink-0 rounded-full px-3 py-1 text-[0.65rem] font-black ring-1 ${badgeTone(quay.tension)}`}>{quay.tension}</span></div><p className="mt-3 text-2xl font-black text-cyan-950">{quay.tonnage} t</p><p className="mt-2 break-words text-xs font-semibold text-slate-600">{quay.mainSpecies.join(", ")}</p><SmallButton onClick={onClick}>Demander relevé</SmallButton></article>;
 }
 
 function Signal({ quay, label, focus, onAction }: { quay: MinistryRegionalQuay; label: string; focus: boolean; onAction: (action: string) => void }) {
@@ -380,7 +380,7 @@ function Referent({ quay, status, onClick }: { quay: MinistryRegionalQuay; statu
 }
 
 function Table({ headers, rows }: { headers: string[]; rows: ReactNode[][] }) {
-  return <div className="overflow-x-auto rounded-2xl border border-slate-200"><table className="w-full min-w-[44rem] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-[0.12em] text-cyan-900"><tr>{headers.map((header) => <th key={header} className="p-3 font-black">{header}</th>)}</tr></thead><tbody className="divide-y divide-slate-100 bg-white">{rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex} className="p-3 font-semibold text-slate-700">{cell}</td>)}</tr>)}</tbody></table></div>;
+  return <div className="max-w-full overflow-x-auto rounded-2xl border border-cyan-100"><table className="w-full min-w-full table-auto text-left text-sm"><thead className="bg-cyan-50/80 text-xs uppercase tracking-[0.12em] text-cyan-900"><tr>{headers.map((header) => <th key={header} className="p-3 font-black">{header}</th>)}</tr></thead><tbody className="divide-y divide-slate-100 bg-white/95">{rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex} className="min-w-0 break-words p-3 font-semibold text-slate-700">{cell}</td>)}</tr>)}</tbody></table></div>;
 }
 
 function Actions({ primary, secondary, onAction }: { primary: string; secondary: string[]; onAction: (action: string) => void }) {
