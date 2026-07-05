@@ -1,5 +1,5 @@
-import { RoleDemoPage } from "@/components/premium/RoleDemoPage";
+import { redirect } from "next/navigation";
 
 export default function MareyeurDemoPage() {
-  return <RoleDemoPage role="mareyeur" />;
+  redirect("/espace-prive/mareyeur");
 }
