@@ -1,6 +1,5 @@
-import { PrivateSpaceClient } from "@/components/private-space/PrivateSpaceClient";
-import { getPrivateSpaceConfig } from "@/data/privateSpaces";
+import { redirect } from "next/navigation";
 
-export default function OrganisationPrivateSpacePage() {
-  return <PrivateSpaceClient config={getPrivateSpaceConfig("organisation")} />;
+export default function Page() {
+  redirect("/demande-demo");
 }
