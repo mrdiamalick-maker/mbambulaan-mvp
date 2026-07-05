@@ -6,7 +6,7 @@ function SiteHeader() {
 }
 
 function SiteFooter() {
-  return <footer className="border-t border-cyan-100 bg-white px-5 py-8 sm:px-8"><div className="mx-auto flex max-w-7xl flex-col gap-3 text-sm font-bold text-slate-600 md:flex-row md:items-center md:justify-between"><p>Mbàmbulaan · Coordination numérique pour la pêche artisanale</p><div className="flex flex-wrap gap-4"><Link href="/demande-demo">Demander un essai</Link><Link href="/espace-prive/etat">Espace ministère</Link></div></div></footer>;
+  return <footer className="border-t border-cyan-100 bg-white px-5 py-8 sm:px-8"><div className="mx-auto flex max-w-7xl text-sm font-bold text-slate-600"><p>© 2026 Mbàmbulaan, une solution de Epic Conseil.</p></div></footer>;
 }
 
 export default function DemandeDemoPage() {
