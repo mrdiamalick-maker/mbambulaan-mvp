@@ -1,5 +1,5 @@
-import { ActorCoordinationInbox } from "@/components/private-space/ActorCoordinationInbox";
+import { redirect } from "next/navigation";
 
 export default function PrivePrivateSpacePage() {
-  return <ActorCoordinationInbox actor="prive" />;
+  redirect("/espace-prive/acteur-prive");
 }
