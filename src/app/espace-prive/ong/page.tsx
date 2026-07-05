@@ -1,6 +1,5 @@
-import { PrivateSpaceClient } from "@/components/private-space/PrivateSpaceClient";
-import { getPrivateSpaceConfig } from "@/data/privateSpaces";
+import { ActorCoordinationInbox } from "@/components/private-space/ActorCoordinationInbox";
 
 export default function OngPrivateSpacePage() {
-  return <PrivateSpaceClient config={getPrivateSpaceConfig("ong")} />;
+  return <ActorCoordinationInbox actor="ong" />;
 }

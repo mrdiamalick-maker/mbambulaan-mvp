@@ -1,5 +1,5 @@
-import { RoleDemoPage } from "@/components/premium/RoleDemoPage";
+import { redirect } from "next/navigation";
 
 export default function OngDemoPage() {
-  return <RoleDemoPage role="ong" />;
+  redirect("/demande-demo");
 }

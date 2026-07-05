@@ -1,6 +1,5 @@
-import { PrivateSpaceClient } from "@/components/private-space/PrivateSpaceClient";
-import { getPrivateSpaceConfig } from "@/data/privateSpaces";
+import { redirect } from "next/navigation";
 
-export default function CollectivitePrivateSpacePage() {
-  return <PrivateSpaceClient config={getPrivateSpaceConfig("collectivite")} />;
+export default function Page() {
+  redirect("/demande-demo");
 }

@@ -1,5 +1,5 @@
-import { RoleDemoPage } from "@/components/premium/RoleDemoPage";
+import { redirect } from "next/navigation";
 
 export default function EtatDemoPage() {
-  return <RoleDemoPage role="etat" />;
+  redirect("/espace-prive/etat");
 }
