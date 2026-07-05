@@ -6,7 +6,22 @@ export const softBtn = "rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2
 
 const card = "min-w-0 overflow-hidden rounded-[1.65rem] border border-cyan-100 bg-white/90 p-5 shadow-sm";
 const tensionColor = (level: string) => level === "Critique" ? "bg-rose-500" : level === "Forte" ? "bg-amber-400" : level === "Moyenne" ? "bg-yellow-300" : "bg-emerald-400";
-const badgeTone = (level: string) => level === "Critique" || level === "critique" ? "border-rose-200 bg-rose-50 text-rose-950 before:bg-rose-500" : level === "Forte" || level === "attention" ? "border-amber-200 bg-amber-50 text-amber-950 before:bg-amber-500" : level === "Moyenne" ? "border-yellow-200 bg-yellow-50 text-yellow-950 before:bg-yellow-400" : level === "info" ? "border-cyan-200 bg-cyan-50 text-cyan-950 before:bg-cyan-500" : "border-emerald-200 bg-emerald-50 text-emerald-950 before:bg-emerald-500";
+const badgeTone = (level: string) => level === "Critique" || level === "critique" ? "border-rose-200 bg-rose-50 text-rose-950 before:bg-rose-500" : level === "Forte" || level === "attention" ? "border-amber-200 bg-amber-50 text-amber-950 before:bg-amber-500" : level === "Moyenne" ? "border-yellow-200 bg-yellow-50 text-yellow-950 before:bg-yellow-400" : level === "info" ? "border-cyan-200 bg-cyan-50 text-cyan-950 before:bg-cyan-500" : "border-emerald-200 bg-emerald-50 text-emerald-500 before:bg-emerald-500";
+
+function routeForAction(action: string) {
+  const value = action.toLowerCase();
+  if (value.includes("note") || value.includes("brouillon") || value.includes("inclure")) return "/espace-prive/etat/parcours/note-arbitrage";
+  if (value.includes("financement") || value.includes("arbitrage") || value.includes("justificatif") || value.includes("prioriser") || value.includes("pièce")) return "/espace-prive/etat/parcours/financement";
+  if (value.includes("vérif") || value.includes("verif") || value.includes("complément") || value.includes("relevé") || value.includes("référent") || value.includes("compte rendu") || value.includes("moyen")) return "/espace-prive/etat/parcours/verification-terrain";
+  if (value.includes("synthèse") || value.includes("action") || value.includes("coordination")) return "/espace-prive/etat/parcours/coordination";
+  return null;
+}
+
+function runThenRoute(action: string, onAction: (action: string) => void) {
+  onAction(action);
+  const route = routeForAction(action);
+  if (route && typeof window !== "undefined") setTimeout(() => { window.location.href = route; }, 120);
+}
 
 export function View({ kicker, title, description, children }: { kicker: string; title: string; description: string; children: ReactNode }) {
   return <section className="grid min-w-0 gap-5 overflow-hidden rounded-[2rem] border border-cyan-100/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(236,253,245,0.56),rgba(236,254,255,0.40))] p-4 shadow-[0_18px_70px_rgba(8,145,178,0.08)] sm:p-6"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-teal-700">{kicker}</p><h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{title}</h2></div><p className="max-w-xl text-sm font-semibold leading-6 text-slate-600">{description}</p></div>{children}</section>;
@@ -76,11 +91,11 @@ export function Table({ headers, rows }: { headers: string[]; rows: ReactNode[][
 }
 
 export function Actions({ primary, secondary, onAction }: { primary: string; secondary: string[]; onAction: (action: string) => void }) {
-  return <div className="mt-4 flex flex-wrap gap-2"><button onClick={() => onAction(primary)} className={btn}>{primary}</button>{secondary.map((action) => <button key={action} onClick={() => onAction(action)} className={softBtn}>{action}</button>)}</div>;
+  return <div className="mt-4 flex flex-wrap gap-2"><button onClick={() => runThenRoute(primary, onAction)} className={btn}>{primary}</button>{secondary.map((action) => <button key={action} onClick={() => runThenRoute(action, onAction)} className={softBtn}>{action}</button>)}</div>;
 }
 
 export function SmallButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
-  return <button onClick={onClick} className="mt-3 rounded-full bg-gradient-to-r from-cyan-700 to-teal-600 px-3 py-1.5 text-xs font-black text-white shadow-sm">{children}</button>;
+  return <button onClick={() => { onClick(); const label = typeof children === "string" ? children : ""; const route = routeForAction(label); if (route && typeof window !== "undefined") setTimeout(() => { window.location.href = route; }, 120); }} className="mt-3 rounded-full bg-gradient-to-r from-cyan-700 to-teal-600 px-3 py-1.5 text-xs font-black text-white shadow-sm">{children}</button>;
 }
 
 export function Row({ label, value }: { label: string; value: string }) {
@@ -100,7 +115,7 @@ export function AiCapability({ title, subtitle, body, data }: { title: string; s
 }
 
 export function DecisionSuggestion({ title, why, data, result, primary, secondary, onPrimary, onSecondary }: { title: string; why: string; data: string[]; result: string; primary: string; secondary: string; onPrimary: () => void; onSecondary: () => void }) {
-  return <article className="rounded-[1.45rem] border border-cyan-100 bg-gradient-to-br from-white via-cyan-50/55 to-emerald-50/35 p-4 shadow-sm"><p className="text-base font-black text-cyan-950">{title}</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{why}</p><div className="mt-3 rounded-2xl bg-white/80 p-3 ring-1 ring-cyan-100"><p className="text-[0.65rem] font-black uppercase tracking-[0.12em] text-cyan-700">Données utilisées</p><div className="mt-2 flex flex-wrap gap-2">{data.map((item) => <span key={item} className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-900">{item}</span>)}</div></div><p className="mt-3 text-xs font-black text-emerald-800">Résultat attendu : {result}</p><div className="mt-4 flex flex-wrap gap-2"><button onClick={onPrimary} className={btn}>{primary}</button><button onClick={onSecondary} className={softBtn}>{secondary}</button></div></article>;
+  return <article className="rounded-[1.45rem] border border-cyan-100 bg-gradient-to-br from-white via-cyan-50/55 to-emerald-50/35 p-4 shadow-sm"><p className="text-base font-black text-cyan-950">{title}</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{why}</p><div className="mt-3 rounded-2xl bg-white/80 p-3 ring-1 ring-cyan-100"><p className="text-[0.65rem] font-black uppercase tracking-[0.12em] text-cyan-700">Données utilisées</p><div className="mt-2 flex flex-wrap gap-2">{data.map((item) => <span key={item} className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-900">{item}</span>)}</div></div><p className="mt-3 text-xs font-black text-emerald-800">Résultat attendu : {result}</p><div className="mt-4 flex flex-wrap gap-2"><button onClick={() => { onPrimary(); const route = routeForAction(primary); if (route && typeof window !== "undefined") setTimeout(() => { window.location.href = route; }, 120); }} className={btn}>{primary}</button><button onClick={() => { onSecondary(); const route = routeForAction(secondary); if (route && typeof window !== "undefined") setTimeout(() => { window.location.href = route; }, 120); }} className={softBtn}>{secondary}</button></div></article>;
 }
 
 export function WatchSignal({ signal, aiEnabled, onAction }: { signal: readonly [string, string, string, string, string]; aiEnabled: boolean; onAction: (action: string) => void }) {
