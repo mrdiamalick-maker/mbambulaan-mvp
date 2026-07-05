@@ -1,5 +1,5 @@
-import { RoleDemoPage } from "@/components/premium/RoleDemoPage";
+import { redirect } from "next/navigation";
 
-export default function CollectiviteDemoPage() {
-  return <RoleDemoPage role="collectivite" />;
+export default function Page() {
+  redirect("/demande-demo");
 }
