@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 import type { MinistryRegionalQuay } from "@/data/ministryRegionalSpace";
 
-export const btn = "rounded-full bg-gradient-to-r from-cyan-700 via-teal-600 to-emerald-600 px-4 py-2 text-sm font-black text-white shadow-[0_12px_24px_rgba(8,145,178,0.18)]";
-export const softBtn = "rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-black text-cyan-950 shadow-sm";
+export const btn = "rounded-full bg-gradient-to-r from-cyan-700 via-teal-600 to-emerald-600 px-4 py-2 text-sm font-black text-white shadow-[0_12px_24px_rgba(8,145,178,0.18)] transition hover:brightness-105";
+export const softBtn = "rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-black text-cyan-950 shadow-sm transition hover:border-cyan-300 hover:bg-white";
 
 const card = "min-w-0 overflow-hidden rounded-[1.65rem] border border-cyan-100 bg-white/90 p-5 shadow-sm";
 const tensionColor = (level: string) => level === "Critique" ? "bg-rose-500" : level === "Forte" ? "bg-amber-400" : level === "Moyenne" ? "bg-yellow-300" : "bg-emerald-400";
-const badgeTone = (level: string) => level === "Critique" || level === "critique" ? "border-rose-200 bg-rose-50 text-rose-950 before:bg-rose-500" : level === "Forte" || level === "attention" ? "border-amber-200 bg-amber-50 text-amber-950 before:bg-amber-500" : level === "Moyenne" ? "border-yellow-200 bg-yellow-50 text-yellow-950 before:bg-yellow-400" : level === "info" ? "border-cyan-200 bg-cyan-50 text-cyan-950 before:bg-cyan-500" : "border-emerald-200 bg-emerald-50 text-emerald-500 before:bg-emerald-500";
+const badgeTone = (level: string) => level === "Critique" || level === "critique" ? "border-rose-200 bg-rose-50 text-rose-950 before:bg-rose-500" : level === "Forte" || level === "attention" ? "border-amber-200 bg-amber-50 text-amber-950 before:bg-amber-500" : level === "Moyenne" ? "border-yellow-200 bg-yellow-50 text-yellow-950 before:bg-yellow-400" : level === "info" ? "border-cyan-200 bg-cyan-50 text-cyan-950 before:bg-cyan-500" : "border-emerald-200 bg-emerald-50 text-emerald-700 before:bg-emerald-500";
 
 function routeForAction(action: string) {
   const value = action.toLowerCase();
@@ -32,7 +32,7 @@ export function Panel({ title, subtitle, hint, children }: { title: string; subt
 }
 
 export function Hint({ text }: { text: string }) {
-  return <span className="group relative inline-flex"><span className="grid h-5 w-5 place-items-center rounded-full bg-cyan-50 text-[0.7rem] font-black text-cyan-800 ring-1 ring-cyan-200">i</span><span className="pointer-events-none absolute right-0 top-7 z-10 hidden w-64 rounded-2xl bg-cyan-950 p-3 text-xs font-semibold leading-5 text-white shadow-xl group-hover:block">{text}</span></span>;
+  return <span className="group relative inline-flex shrink-0"><span className="grid h-6 w-6 place-items-center rounded-full bg-cyan-50 text-[0.72rem] font-black text-cyan-800 ring-1 ring-cyan-200" aria-label="Information">?</span><span className="pointer-events-none absolute right-0 top-8 z-20 hidden w-72 rounded-2xl bg-cyan-950 p-3 text-xs font-semibold leading-5 text-white shadow-xl group-hover:block">{text}</span></span>;
 }
 
 export function Metric({ label, value, hint }: { label: string; value: string; hint: string }) {
@@ -83,45 +83,29 @@ export function ResourceLine({ item, onAction }: { item: { resource: string; ava
 }
 
 export function MiniStat({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl bg-white/80 p-3 ring-1 ring-cyan-100"><p className="text-[0.65rem] font-black uppercase tracking-[0.12em] text-cyan-700">{label}</p><p className="mt-1 break-words text-sm font-black text-cyan-950">{value}</p></div>;
+  return <div className="rounded-2xl bg-white/80 p-3 ring-1 ring-cyan-100"><p className="text-[0.65rem] font-black uppercase tracking-[0.14em] text-cyan-700">{label}</p><p className="mt-1 text-sm font-black text-cyan-950">{value}</p></div>;
+}
+
+export function WatchSignal({ item, onAction }: { item: readonly [string, string, string, string, string]; onAction: (action: string) => void }) {
+  return <article className={`rounded-[1.35rem] border p-4 ${badgeTone(item[3])}`}><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-black">{item[0]}</p><p className="mt-1 text-xs font-bold uppercase tracking-[0.12em]">{item[1]} · {item[2]}</p></div><StatusPill label={item[3]} /></div><p className="mt-3 text-sm font-semibold">Source : {item[4]}</p><Actions primary="Traiter le signal" secondary={["Créer note", "Demander complément", "Ajouter à la synthèse"]} onAction={onAction} /></article>;
 }
 
 export function Table({ headers, rows }: { headers: string[]; rows: ReactNode[][] }) {
-  return <div className="max-w-full overflow-x-auto rounded-2xl border border-cyan-100"><table className="w-full min-w-full table-auto text-left text-sm"><thead className="bg-cyan-50/80 text-xs uppercase tracking-[0.12em] text-cyan-900"><tr>{headers.map((header) => <th key={header} className="p-3 font-black">{header}</th>)}</tr></thead><tbody className="divide-y divide-slate-100 bg-white/95">{rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex} className="min-w-0 break-words p-3 font-semibold text-slate-700">{cell}</td>)}</tr>)}</tbody></table></div>;
-}
-
-export function Actions({ primary, secondary, onAction }: { primary: string; secondary: string[]; onAction: (action: string) => void }) {
-  return <div className="mt-4 flex flex-wrap gap-2"><button onClick={() => runThenRoute(primary, onAction)} className={btn}>{primary}</button>{secondary.map((action) => <button key={action} onClick={() => runThenRoute(action, onAction)} className={softBtn}>{action}</button>)}</div>;
-}
-
-export function SmallButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
-  return <button onClick={() => { onClick(); const label = typeof children === "string" ? children : ""; const route = routeForAction(label); if (route && typeof window !== "undefined") setTimeout(() => { window.location.href = route; }, 120); }} className="mt-3 rounded-full bg-gradient-to-r from-cyan-700 to-teal-600 px-3 py-1.5 text-xs font-black text-white shadow-sm">{children}</button>;
+  return <div className="w-full overflow-x-auto rounded-2xl border border-cyan-100"><table className="min-w-full text-left text-sm"><thead className="bg-cyan-50 text-xs font-black uppercase tracking-[0.12em] text-cyan-900"><tr>{headers.map((header) => <th key={header} className="px-4 py-3">{header}</th>)}</tr></thead><tbody className="divide-y divide-cyan-50 bg-white/80">{rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex} className="px-4 py-3 font-semibold text-slate-700">{cell}</td>)}</tr>)}</tbody></table></div>;
 }
 
 export function Row({ label, value }: { label: string; value: string }) {
-  return <div className="flex justify-between gap-4 border-b border-slate-100 py-2 text-sm font-bold"><span className="text-slate-500">{label}</span><span className="text-right">{value}</span></div>;
+  return <p className="flex justify-between gap-3 border-b border-cyan-50 py-2 text-sm font-bold text-slate-600"><span>{label}</span><b className="text-right text-slate-900">{value}</b></p>;
 }
 
-export function TraceList({ items, message }: { items: string[]; message: string }) {
-  return <div><div className="grid gap-2">{items.map((item, index) => <p key={`${item}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">{item}</p>)}</div><p className="mt-4 rounded-2xl bg-amber-50 p-3 text-xs font-black text-amber-950">{message}</p></div>;
+function Actions({ primary, secondary, onAction }: { primary: string; secondary: string[]; onAction: (action: string) => void }) {
+  return <div className="mt-4 flex flex-wrap gap-2"><button onClick={() => runThenRoute(primary, onAction)} className="rounded-full bg-gradient-to-r from-cyan-700 via-teal-600 to-emerald-600 px-3 py-2 text-xs font-black text-white shadow-sm">{primary}</button>{secondary.map((item) => <button key={item} onClick={() => runThenRoute(item, onAction)} className="rounded-full border border-cyan-100 bg-white px-3 py-2 text-xs font-black text-cyan-950 shadow-sm">{item}</button>)}</div>;
 }
 
-export function AiModeCard({ title, items, active }: { title: string; items: string[]; active: boolean }) {
-  return <article className={`rounded-[1.35rem] border p-4 ${active ? "border-cyan-300 bg-gradient-to-br from-cyan-50 via-white to-emerald-50 shadow-sm" : "border-slate-200 bg-white/70"}`}><div className="flex items-center justify-between gap-3"><p className="font-black">{title}</p><StatusPill label={active ? "Actif" : "Disponible"} /></div><ul className="mt-3 grid gap-2">{items.map((item) => <li key={item} className="flex gap-2 text-sm font-bold text-slate-700"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-cyan-500" />{item}</li>)}</ul></article>;
-}
-
-export function AiCapability({ title, subtitle, body, data }: { title: string; subtitle: string; body: string; data: string[] }) {
-  return <Panel title={title} subtitle={subtitle}><p className="rounded-2xl bg-gradient-to-br from-cyan-50/90 to-white p-4 text-sm font-bold leading-6 text-cyan-950 ring-1 ring-cyan-100">{body}</p><div className="mt-3 flex flex-wrap gap-2">{data.map((item) => <span key={item} className="rounded-full border border-cyan-100 bg-white px-3 py-1.5 text-xs font-black text-cyan-900">{item}</span>)}</div></Panel>;
-}
-
-export function DecisionSuggestion({ title, why, data, result, primary, secondary, onPrimary, onSecondary }: { title: string; why: string; data: string[]; result: string; primary: string; secondary: string; onPrimary: () => void; onSecondary: () => void }) {
-  return <article className="rounded-[1.45rem] border border-cyan-100 bg-gradient-to-br from-white via-cyan-50/55 to-emerald-50/35 p-4 shadow-sm"><p className="text-base font-black text-cyan-950">{title}</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{why}</p><div className="mt-3 rounded-2xl bg-white/80 p-3 ring-1 ring-cyan-100"><p className="text-[0.65rem] font-black uppercase tracking-[0.12em] text-cyan-700">Données utilisées</p><div className="mt-2 flex flex-wrap gap-2">{data.map((item) => <span key={item} className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-black text-cyan-900">{item}</span>)}</div></div><p className="mt-3 text-xs font-black text-emerald-800">Résultat attendu : {result}</p><div className="mt-4 flex flex-wrap gap-2"><button onClick={() => { onPrimary(); const route = routeForAction(primary); if (route && typeof window !== "undefined") setTimeout(() => { window.location.href = route; }, 120); }} className={btn}>{primary}</button><button onClick={() => { onSecondary(); const route = routeForAction(secondary); if (route && typeof window !== "undefined") setTimeout(() => { window.location.href = route; }, 120); }} className={softBtn}>{secondary}</button></div></article>;
-}
-
-export function WatchSignal({ signal, aiEnabled, onAction }: { signal: readonly [string, string, string, string, string]; aiEnabled: boolean; onAction: (action: string) => void }) {
-  return <article className="rounded-2xl border border-cyan-100 bg-gradient-to-br from-white to-cyan-50/45 p-4 shadow-sm"><div className="flex justify-between gap-3"><div><p className="text-sm font-black">{signal[0]}</p><p className="text-xs font-bold text-slate-500">{signal[1]} · {signal[2] === "Tout" ? "national" : signal[2]}</p></div><StatusPill label={signal[3]} /></div><p className="mt-3 text-xs font-semibold text-slate-600">Source mockée : {signal[4]}</p>{aiEnabled && <p className="mt-3 rounded-2xl bg-cyan-50/80 p-3 text-xs font-black text-cyan-950 ring-1 ring-cyan-100">Lecture IA : signal à relier à une note ou à une vérification humaine.</p>}<Actions primary="Ajouter à la synthèse" secondary={["Créer action", "Vérifier", "Inclure note"]} onAction={onAction} /></article>;
+function SmallButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+  return <button onClick={onClick} className="mt-4 rounded-full bg-gradient-to-r from-cyan-700 via-teal-600 to-emerald-600 px-3 py-2 text-xs font-black text-white shadow-sm">{children}</button>;
 }
 
 export function StatusPill({ label }: { label: string }) {
-  return <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.64rem] font-black uppercase tracking-[0.08em] shadow-sm before:h-1.5 before:w-1.5 before:rounded-full ${badgeTone(label)}`}>{label}</span>;
+  return <span className={`relative inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[0.68rem] font-black uppercase tracking-[0.08em] before:h-1.5 before:w-1.5 before:rounded-full ${badgeTone(label)}`}>{label}</span>;
 }
