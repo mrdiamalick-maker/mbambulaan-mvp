@@ -69,10 +69,18 @@ export function Field({ label, children }: { label: string; children: ReactNode 
 export const selectClass = "w-full rounded-2xl border border-cyan-100 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100";
 export const inputClass = "w-full rounded-2xl border border-cyan-100 bg-white px-3 py-2.5 text-sm font-bold normal-case tracking-normal text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100";
 
-export function MinistryMap({ quays, pirogues, alerts, selectedId, selectedKind, onSelectQuay, onSelectPirogue }: {
+type MapViewMode = "quays" | "pirogues";
+
+function sumLandingVolume(items: Landing[]) {
+  return items.reduce((total, landing) => total + landing.volumeTons, 0).toFixed(1);
+}
+
+export function MinistryMap({ viewMode, quays, pirogues, alerts, landings, selectedId, selectedKind, onSelectQuay, onSelectPirogue }: {
+  viewMode: MapViewMode;
   quays: Quay[];
   pirogues: Pirogue[];
   alerts: MapAlert[];
+  landings: Landing[];
   selectedId: string;
   selectedKind: "quay" | "pirogue";
   onSelectQuay: (id: string) => void;
@@ -102,6 +110,11 @@ export function MinistryMap({ quays, pirogues, alerts, selectedId, selectedKind,
       <path d="M43 2 C49 10 46 20 50 29 C56 42 50 49 57 59 C64 70 55 80 65 98" fill="none" stroke="#f8fafc" strokeWidth="1.25" filter="url(#softShadow)" />
       <path d="M44 3 C50 12 47 20 52 29 C57 39 52 49 59 60 C64 68 58 77 66 96" fill="none" stroke="#083344" strokeWidth="0.35" strokeDasharray="1.2 1.4" opacity="0.5" />
       <path d="M54 67 L101 67 L101 76 L56 76 C58 73 58 70 54 67 Z" fill="#053047" opacity="0.42" />
+      {viewMode === "pirogues" ? pirogues.map((pirogue) => {
+        const quay = quays.find((item) => item.id === pirogue.quayId);
+        if (!quay) return null;
+        return <path key={`track-${pirogue.id}`} d={`M ${quay.x} ${quay.y} C ${quay.x - 5} ${quay.y - 1}, ${pirogue.x + 4} ${pirogue.y + 1}, ${pirogue.x} ${pirogue.y}`} fill="none" stroke="#a5f3fc" strokeWidth="0.45" strokeDasharray="1.2 1.6" opacity="0.8" />;
+      }) : null}
       <text x="73" y="13" fill="#365314" fontSize="3.2" fontWeight="800">SÉNÉGAL</text>
       <text x="6" y="18" fill="#cffafe" fontSize="2.9" fontWeight="800">OCÉAN ATLANTIQUE</text>
       <text x="52" y="9" fill="#134e4a" fontSize="2.35" fontWeight="800">Saint-Louis</text>
@@ -113,10 +126,10 @@ export function MinistryMap({ quays, pirogues, alerts, selectedId, selectedKind,
 
     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:52px_52px] opacity-20" />
 
-    <div className="absolute left-4 top-4 z-40 max-w-[17rem] rounded-2xl border border-white/15 bg-slate-950/35 p-3 backdrop-blur-md">
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Carte du littoral sénégalais</p>
-      <p className="mt-1 text-lg font-black">Quais, pirogues et alertes</p>
-      <p className="mt-2 text-xs font-bold leading-5 text-cyan-50/90">Représentation simplifiée pour la démonstration. Les coordonnées sont simulées.</p>
+    <div className="absolute left-4 top-4 z-40 max-w-[18rem] rounded-2xl border border-white/15 bg-slate-950/35 p-3 backdrop-blur-md">
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">{viewMode === "quays" ? "Vue quais" : "Vue pirogues"}</p>
+      <p className="mt-1 text-lg font-black">{viewMode === "quays" ? "Quais, espèces et débarquements" : "Positions, immatriculations et déclarations"}</p>
+      <p className="mt-2 text-xs font-bold leading-5 text-cyan-50/90">Données simulées. Les quais sont sur le littoral, les pirogues en mer.</p>
     </div>
 
     <div className="absolute right-4 top-4 z-40 rounded-2xl border border-white/15 bg-white/12 p-3 text-xs font-black backdrop-blur-md">
@@ -131,17 +144,27 @@ export function MinistryMap({ quays, pirogues, alerts, selectedId, selectedKind,
       return <span key={alert.id} className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border ${alert.level === "urgent" ? "border-rose-200 bg-rose-400/25 shadow-[0_0_30px_rgba(251,113,133,.5)]" : "border-amber-200 bg-amber-300/25 shadow-[0_0_26px_rgba(252,211,77,.35)]"}`} style={{ left: `${quay.x}%`, top: `${quay.y}%`, width: 72, height: 72 }} title={alert.title} />;
     })}
 
-    {pirogues.map((pirogue) => <button key={pirogue.id} onClick={() => onSelectPirogue(pirogue.id)} className={`absolute z-30 -translate-x-1/2 -translate-y-1/2 rounded-full border px-2.5 py-1.5 text-[10px] font-black shadow-lg transition ${selectedKind === "pirogue" && selectedId === pirogue.id ? "border-white bg-white text-cyan-950 shadow-[0_0_0_5px_rgba(255,255,255,.2)]" : "border-white/70 bg-cyan-100 text-cyan-950 hover:bg-white"}`} style={{ left: `${pirogue.x}%`, top: `${pirogue.y}%` }} title={pirogue.registration}>{pirogue.registration}</button>)}
+    {quays.map((quay) => {
+      const quayLandings = landings.filter((landing) => landing.quayId === quay.id);
+      return <button key={quay.id} onClick={() => onSelectQuay(quay.id)} className={`absolute z-40 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 p-1.5 transition ${viewMode === "pirogues" ? "opacity-70" : "opacity-100"} ${selectedKind === "quay" && selectedId === quay.id ? "border-white bg-cyan-300 shadow-[0_0_0_9px_rgba(34,211,238,.24),0_0_34px_rgba(34,211,238,.9)]" : quay.level === "urgent" ? "border-white bg-rose-400 shadow-[0_0_24px_rgba(251,113,133,.78)]" : quay.level === "surveillance" ? "border-white bg-amber-300 shadow-[0_0_22px_rgba(252,211,77,.6)]" : "border-white bg-emerald-300 shadow-[0_0_18px_rgba(110,231,183,.52)]"}`} style={{ left: `${quay.x}%`, top: `${quay.y}%` }} aria-label={`Sélectionner ${quay.name}`}>
+        <span className="block h-3.5 w-3.5 rounded-full bg-white" />
+        <span className="absolute left-6 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-cyan-100 bg-white px-2.5 py-1 text-[11px] font-black text-cyan-950 shadow-lg">{quay.name}</span>
+        {viewMode === "quays" ? <span className="absolute left-6 top-8 whitespace-nowrap rounded-full border border-white/50 bg-cyan-950/80 px-2 py-1 text-[10px] font-black text-white shadow-lg">{quayLandings.length} débarq. · {sumLandingVolume(quayLandings)} t</span> : null}
+      </button>;
+    })}
 
-    {quays.map((quay) => <button key={quay.id} onClick={() => onSelectQuay(quay.id)} className={`absolute z-40 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 p-1.5 transition ${selectedKind === "quay" && selectedId === quay.id ? "border-white bg-cyan-300 shadow-[0_0_0_9px_rgba(34,211,238,.24),0_0_34px_rgba(34,211,238,.9)]" : quay.level === "urgent" ? "border-white bg-rose-400 shadow-[0_0_24px_rgba(251,113,133,.78)]" : quay.level === "surveillance" ? "border-white bg-amber-300 shadow-[0_0_22px_rgba(252,211,77,.6)]" : "border-white bg-emerald-300 shadow-[0_0_18px_rgba(110,231,183,.52)]"}`} style={{ left: `${quay.x}%`, top: `${quay.y}%` }} aria-label={`Sélectionner ${quay.name}`}>
-      <span className="block h-3.5 w-3.5 rounded-full bg-white" />
-      <span className="absolute left-6 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-cyan-100 bg-white px-2.5 py-1 text-[11px] font-black text-cyan-950 shadow-lg">{quay.name}</span>
-    </button>)}
+    {viewMode === "pirogues" ? pirogues.map((pirogue) => {
+      const landing = landings.find((item) => item.pirogueIds.includes(pirogue.id));
+      return <button key={pirogue.id} onClick={() => onSelectPirogue(pirogue.id)} className={`absolute z-50 -translate-x-1/2 -translate-y-1/2 rounded-full border px-2.5 py-1.5 text-[10px] font-black shadow-lg transition ${selectedKind === "pirogue" && selectedId === pirogue.id ? "border-white bg-white text-cyan-950 shadow-[0_0_0_5px_rgba(255,255,255,.2)]" : pirogue.level === "urgent" ? "border-white bg-rose-100 text-rose-950 hover:bg-white" : "border-white/70 bg-cyan-100 text-cyan-950 hover:bg-white"}`} style={{ left: `${pirogue.x}%`, top: `${pirogue.y}%` }} title={pirogue.registration}>
+        {pirogue.registration}
+        {landing ? <span className="ml-1 rounded-full bg-cyan-800 px-1.5 py-0.5 text-[9px] text-white">{landing.time}</span> : null}
+      </button>;
+    }) : null}
 
     <div className="absolute bottom-4 left-4 right-4 z-50 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-slate-950/35 p-3 text-xs font-black backdrop-blur-md">
       <div className="flex flex-wrap gap-2">
-        <span className="rounded-full bg-white px-3 py-2 text-cyan-950">Quai</span>
-        <span className="rounded-full bg-cyan-100 px-3 py-2 text-cyan-950">Pirogue immatriculée</span>
+        <span className="rounded-full bg-white px-3 py-2 text-cyan-950">Quai sur le littoral</span>
+        {viewMode === "pirogues" ? <span className="rounded-full bg-cyan-100 px-3 py-2 text-cyan-950">Pirogue immatriculée</span> : <span className="rounded-full bg-cyan-100 px-3 py-2 text-cyan-950">Débarquements par quai</span>}
         <span className="rounded-full bg-amber-300/80 px-3 py-2 text-amber-950">À surveiller</span>
         <span className="rounded-full bg-rose-400/85 px-3 py-2 text-white">Urgent</span>
       </div>
@@ -194,6 +217,6 @@ export function DataRow({ label, value }: { label: string; value: string }) {
   return <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-1.5 last:border-b-0"><span className="text-slate-500">{label}</span><span className="max-w-[68%] text-right text-slate-900">{value}</span></div>;
 }
 
-function DataPoint({ label, value }: { label: string; value: string }) {
+function DataPoint({ label, value }: { label: string }) {
   return <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-3"><p className="text-xs font-black uppercase tracking-[0.1em] text-cyan-700">{label}</p><p className="mt-1 text-base font-black text-cyan-950">{value}</p></div>;
 }
