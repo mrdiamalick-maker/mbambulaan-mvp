@@ -1,5 +1,5 @@
-import { MinistryInstitutionalSpace } from "@/components/private-space/MinistryInstitutionalSpace";
+import { MinistryControlTower } from "@/components/private-space/MinistryControlTower";
 
 export default function EtatPrivateSpacePage() {
-  return <MinistryInstitutionalSpace />;
+  return <MinistryControlTower />;
 }
