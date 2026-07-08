@@ -55,7 +55,7 @@ type LevelFilter = "Tous" | "Normal" | "À surveiller" | "Urgent";
 type SelectedItem = {
   kind: "quay" | "pirogue";
   id: string;
-};
+} | null;
 
 const levelByLabel: Record<Exclude<LevelFilter, "Tous">, Level> = {
   Normal: "normal",
@@ -71,7 +71,7 @@ export function MinistryControlTower() {
   const [mapType, setMapType] = useState<MapItemType>("Tous");
   const [level, setLevel] = useState<LevelFilter>("Tous");
   const [species, setSpecies] = useState<SpeciesFilter>(allSpecies);
-  const [selected, setSelected] = useState<SelectedItem>({ kind: "quay", id: "joal" });
+  const [selected, setSelected] = useState<SelectedItem>(null);
 
   const selectedLevel = level === "Tous" ? null : levelByLabel[level];
   const normalizedSearch = search.trim().toLowerCase();
@@ -114,8 +114,8 @@ export function MinistryControlTower() {
   const visibleQuays = mapType === "Pirogues" ? filteredQuays.filter((quay) => filteredPirogues.some((pirogue) => pirogue.quayId === quay.id)) : filteredQuays;
   const visiblePirogues = mapType === "Quais" || mapType === "Débarquements" || mapType === "Espèces" ? [] : filteredPirogues;
   const visibleAlerts = mapType === "Alertes" || mapType === "Tous" ? filteredAlerts : [];
-  const selectedQuay = selected.kind === "quay" ? getQuayById(selected.id) : getQuayById(pirogues.find((pirogue) => pirogue.id === selected.id)?.quayId ?? "joal");
-  const selectedPirogue = selected.kind === "pirogue" ? pirogues.find((pirogue) => pirogue.id === selected.id) : null;
+  const selectedPirogue = selected?.kind === "pirogue" ? pirogues.find((pirogue) => pirogue.id === selected.id) ?? null : null;
+  const selectedQuay = selected?.kind === "quay" ? getQuayById(selected.id) : selectedPirogue ? getQuayById(selectedPirogue.quayId) : getQuayById("joal");
   const selectedQuayLandings = filteredLandings.filter((landing) => landing.quayId === selectedQuay.id);
   const selectedQuayPirogues = filteredPirogues.filter((pirogue) => pirogue.quayId === selectedQuay.id);
   const selectedQuayAlerts = filteredAlerts.filter((alert) => alert.quayId === selectedQuay.id);
@@ -135,6 +135,7 @@ export function MinistryControlTower() {
     setMapType("Tous");
     setLevel("Tous");
     setSpecies(allSpecies);
+    setSelected(null);
   }
 
   return <main className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#ecfeff_0%,#f8fafc_42%,#fff7ed_100%)] text-slate-950">
@@ -207,23 +208,29 @@ function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, ma
   mapStats: { quays: number; landings: number; pirogues: number; alerts: number; species: number };
 }) {
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="Carte & supervision" title="Voir la filière sur une carte" description="Filtrer les régions, quais, pirogues, débarquements, espèces et alertes. Les projets et les indicateurs sont volontairement séparés de cette vue." />
+    <SectionHeader eyebrow="Carte & supervision" title="Voir la filière sur une carte" description="Filtrer les régions, quais, pirogues, débarquements, espèces et alertes. Le détail s'affiche uniquement après sélection d'un point sur la carte." />
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><StatCard label="Quais affichés" value={String(mapStats.quays)} detail="Selon les filtres actifs." /><StatCard label="Débarquements du jour" value={String(mapStats.landings)} detail="Déclarations consultables." /><StatCard label="Pirogues actives" value={String(mapStats.pirogues)} detail="Immatriculations visibles." /><StatCard label="Alertes en cours" value={String(mapStats.alerts)} detail="Alertes à vérifier." /><StatCard label="Espèces déclarées" value={String(mapStats.species)} detail="Espèces présentes dans les débarquements." /></div>
-    <div className="grid gap-5 xl:grid-cols-[18rem_minmax(0,1fr)_22rem]">
-      <ShellCard className="xl:sticky xl:top-5 xl:self-start">
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Filtres</p>
-        <div className="mt-4 grid gap-4">
-          <Field label="Recherche"><input value={search} onChange={(event) => setSearch(event.target.value)} className={inputClass} placeholder="Rechercher un quai ou une pirogue" /></Field>
-          <Field label="Région"><select value={region} onChange={(event) => setRegion(event.target.value as RegionFilter)} className={selectClass}><option>{allRegions}</option>{regions.map((item) => <option key={item}>{item}</option>)}</select></Field>
-          <Field label="Quai"><select value={quayId} onChange={(event) => setQuayId(event.target.value)} className={selectClass}><option value={allQuays}>Tous</option>{quays.map((quay) => <option key={quay.id} value={quay.id}>{quay.name}</option>)}</select></Field>
-          <Field label="Type"><select value={mapType} onChange={(event) => setMapType(event.target.value as MapItemType)} className={selectClass}>{mapTypes.map((item) => <option key={item}>{item}</option>)}</select></Field>
-          <Field label="Niveau"><select value={level} onChange={(event) => setLevel(event.target.value as LevelFilter)} className={selectClass}>{levelOptions.map((item) => <option key={item}>{item}</option>)}</select></Field>
-          <Field label="Espèce"><select value={species} onChange={(event) => setSpecies(event.target.value)} className={selectClass}><option>{allSpecies}</option>{speciesOptions.map((item) => <option key={item}>{item}</option>)}</select></Field>
-          <button onClick={resetFilters} className={secondaryButton}>Réinitialiser les filtres</button>
+    <ShellCard>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+        <Field label="Recherche"><input value={search} onChange={(event) => setSearch(event.target.value)} className={inputClass} placeholder="Rechercher un quai ou une pirogue" /></Field>
+        <Field label="Région"><select value={region} onChange={(event) => setRegion(event.target.value as RegionFilter)} className={selectClass}><option>{allRegions}</option>{regions.map((item) => <option key={item}>{item}</option>)}</select></Field>
+        <Field label="Quai"><select value={quayId} onChange={(event) => setQuayId(event.target.value)} className={selectClass}><option value={allQuays}>Tous</option>{quays.map((quay) => <option key={quay.id} value={quay.id}>{quay.name}</option>)}</select></Field>
+        <Field label="Type"><select value={mapType} onChange={(event) => setMapType(event.target.value as MapItemType)} className={selectClass}>{mapTypes.map((item) => <option key={item}>{item}</option>)}</select></Field>
+        <Field label="Niveau"><select value={level} onChange={(event) => setLevel(event.target.value as LevelFilter)} className={selectClass}>{levelOptions.map((item) => <option key={item}>{item}</option>)}</select></Field>
+        <Field label="Espèce"><select value={species} onChange={(event) => setSpecies(event.target.value)} className={selectClass}><option>{allSpecies}</option>{speciesOptions.map((item) => <option key={item}>{item}</option>)}</select></Field>
+        <div className="flex items-end"><button onClick={resetFilters} className={`${secondaryButton} w-full`}>Réinitialiser</button></div>
+      </div>
+    </ShellCard>
+    <div className="grid min-w-0 gap-5">
+      <MinistryMap quays={visibleQuays} pirogues={visiblePirogues} alerts={visibleAlerts} selectedId={selected?.id ?? ""} selectedKind={selected?.kind ?? "quay"} onSelectQuay={(id) => setSelected({ kind: "quay", id })} onSelectPirogue={(id) => setSelected({ kind: "pirogue", id })} />
+      {selected ? <div className="grid gap-3 rounded-3xl border border-cyan-100 bg-white p-4 shadow-[0_18px_48px_rgba(8,145,178,0.10)]">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Détail sélectionné</p>
+          <button onClick={() => setSelected(null)} className="rounded-full border border-cyan-100 px-3 py-1 text-xs font-black text-cyan-900">Fermer</button>
         </div>
-      </ShellCard>
-      <div className="grid min-w-0 gap-5"><MinistryMap quays={visibleQuays} pirogues={visiblePirogues} alerts={visibleAlerts} selectedId={selected.id} selectedKind={selected.kind} onSelectQuay={(id) => setSelected({ kind: "quay", id })} onSelectPirogue={(id) => setSelected({ kind: "pirogue", id })} /><ShellCard><SectionHeader eyebrow="Liste filtrée" title="Quais et activité du jour" description="La table reprend uniquement les quais visibles avec leurs débarquements, volumes, pirogues, espèces et alertes." /><CompactQuayTable rows={tableRows} /></ShellCard></div>
-      {selected.kind === "pirogue" && selectedPirogue ? <PirogueDetail pirogue={selectedPirogue} quay={selectedQuay} /> : <QuayDetail quay={selectedQuay} landings={selectedQuayLandings} pirogues={selectedQuayPirogues} alerts={selectedQuayAlerts} />}
+        {selected.kind === "pirogue" && selectedPirogue ? <PirogueDetail pirogue={selectedPirogue} quay={selectedQuay} /> : <QuayDetail quay={selectedQuay} landings={selectedQuayLandings} pirogues={selectedQuayPirogues} alerts={selectedQuayAlerts} />}
+      </div> : <p className="rounded-2xl border border-dashed border-cyan-200 bg-cyan-50/60 p-4 text-sm font-bold text-cyan-950">Cliquez sur un quai ou une pirogue sur la carte pour afficher le détail.</p>}
+      <ShellCard><SectionHeader eyebrow="Liste filtrée" title="Quais et activité du jour" description="La table reprend uniquement les quais visibles avec leurs débarquements, volumes, pirogues, espèces et alertes." /><CompactQuayTable rows={tableRows} /></ShellCard>
     </div>
   </section>;
 }
