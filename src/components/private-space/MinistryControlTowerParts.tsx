@@ -78,35 +78,74 @@ export function MinistryMap({ quays, pirogues, alerts, selectedId, selectedKind,
   onSelectQuay: (id: string) => void;
   onSelectPirogue: (id: string) => void;
 }) {
-  return <div className="relative min-h-[34rem] overflow-hidden rounded-3xl border border-cyan-200 bg-[linear-gradient(135deg,#082f49_0%,#075985_40%,#0f766e_100%)] p-4 text-white shadow-2xl shadow-cyan-950/20">
-    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:46px_46px] opacity-35" />
-    <div className="absolute inset-y-7 left-[34%] w-[17%] rounded-[52%_42%_48%_55%] bg-gradient-to-b from-[#f0dfb1] via-[#a89d68] to-[#4f7f68] opacity-95" />
-    <div className="absolute left-[27%] top-[10%] rounded-full border border-white/20 px-3 py-1 text-xs font-black text-cyan-50">Saint-Louis</div>
-    <div className="absolute left-[41%] top-[44%] rounded-full border border-white/20 px-3 py-1 text-xs font-black text-cyan-50">Dakar / Thiès</div>
-    <div className="absolute left-[20%] top-[84%] rounded-full border border-white/20 px-3 py-1 text-xs font-black text-cyan-50">Ziguinchor</div>
-    <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-75" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M38 5 C46 20 40 35 48 50 C56 65 49 78 58 95" fill="none" stroke="rgba(255,255,255,.45)" strokeWidth="0.5" strokeDasharray="1.6 2.1" />
-      <path d="M18 18 C34 28 50 45 68 76" fill="none" stroke="rgba(103,232,249,.38)" strokeWidth="0.35" strokeDasharray="2 2" />
+  return <div className="relative min-h-[42rem] overflow-hidden rounded-[2rem] border border-cyan-200 bg-[#053047] text-white shadow-2xl shadow-cyan-950/20">
+    <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="ocean" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor="#06364f" />
+          <stop offset="48%" stopColor="#075985" />
+          <stop offset="100%" stopColor="#0f766e" />
+        </linearGradient>
+        <linearGradient id="land" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor="#f3e4b7" />
+          <stop offset="52%" stopColor="#d5b56d" />
+          <stop offset="100%" stopColor="#5f8b65" />
+        </linearGradient>
+        <filter id="softShadow">
+          <feDropShadow dx="0" dy="1" stdDeviation="1.3" floodColor="#042f2e" floodOpacity="0.45" />
+        </filter>
+      </defs>
+      <rect width="100" height="100" fill="url(#ocean)" />
+      <path d="M0 82 C18 74 26 63 39 55 C55 45 70 27 100 12 L100 100 L0 100 Z" fill="#0e7490" opacity="0.18" />
+      <path d="M0 18 C16 24 28 34 37 45 C49 59 63 68 100 80" fill="none" stroke="#67e8f9" strokeWidth="0.28" strokeDasharray="2 2" opacity="0.38" />
+      <path d="M43 2 C49 10 46 20 50 29 C56 42 50 49 57 59 C64 70 55 80 65 98 L100 98 L100 2 Z" fill="url(#land)" opacity="0.97" />
+      <path d="M43 2 C49 10 46 20 50 29 C56 42 50 49 57 59 C64 70 55 80 65 98" fill="none" stroke="#f8fafc" strokeWidth="1.25" filter="url(#softShadow)" />
+      <path d="M44 3 C50 12 47 20 52 29 C57 39 52 49 59 60 C64 68 58 77 66 96" fill="none" stroke="#083344" strokeWidth="0.35" strokeDasharray="1.2 1.4" opacity="0.5" />
+      <path d="M54 67 L101 67 L101 76 L56 76 C58 73 58 70 54 67 Z" fill="#053047" opacity="0.42" />
+      <text x="73" y="13" fill="#365314" fontSize="3.2" fontWeight="800">SÉNÉGAL</text>
+      <text x="6" y="18" fill="#cffafe" fontSize="2.9" fontWeight="800">OCÉAN ATLANTIQUE</text>
+      <text x="52" y="9" fill="#134e4a" fontSize="2.35" fontWeight="800">Saint-Louis</text>
+      <text x="59" y="36" fill="#134e4a" fontSize="2.35" fontWeight="800">Louga</text>
+      <text x="61" y="49" fill="#134e4a" fontSize="2.35" fontWeight="800">Thiès</text>
+      <text x="62" y="56" fill="#134e4a" fontSize="2.35" fontWeight="800">Dakar</text>
+      <text x="70" y="88" fill="#134e4a" fontSize="2.35" fontWeight="800">Casamance</text>
     </svg>
+
+    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:52px_52px] opacity-20" />
+
+    <div className="absolute left-4 top-4 z-40 max-w-[17rem] rounded-2xl border border-white/15 bg-slate-950/35 p-3 backdrop-blur-md">
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Carte du littoral sénégalais</p>
+      <p className="mt-1 text-lg font-black">Quais, pirogues et alertes</p>
+      <p className="mt-2 text-xs font-bold leading-5 text-cyan-50/90">Représentation simplifiée pour la démonstration. Les coordonnées sont simulées.</p>
+    </div>
+
+    <div className="absolute right-4 top-4 z-40 rounded-2xl border border-white/15 bg-white/12 p-3 text-xs font-black backdrop-blur-md">
+      <p className="text-cyan-100">N</p>
+      <div className="mx-auto mt-1 h-8 w-0.5 bg-white/80" />
+      <p className="mt-1 text-cyan-100">S</p>
+    </div>
+
     {alerts.map((alert) => {
       const quay = quays.find((item) => item.id === alert.quayId);
       if (!quay) return null;
-      return <span key={alert.id} className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border ${alert.level === "urgent" ? "border-rose-200 bg-rose-400/25" : "border-amber-200 bg-amber-300/20"}`} style={{ left: `${quay.x}%`, top: `${quay.y}%`, width: 58, height: 58 }} title={alert.title} />;
+      return <span key={alert.id} className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border ${alert.level === "urgent" ? "border-rose-200 bg-rose-400/25 shadow-[0_0_30px_rgba(251,113,133,.5)]" : "border-amber-200 bg-amber-300/25 shadow-[0_0_26px_rgba(252,211,77,.35)]"}`} style={{ left: `${quay.x}%`, top: `${quay.y}%`, width: 72, height: 72 }} title={alert.title} />;
     })}
-    {pirogues.map((pirogue) => <button key={pirogue.id} onClick={() => onSelectPirogue(pirogue.id)} className={`absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border px-2 py-1 text-[10px] font-black shadow-lg transition ${selectedKind === "pirogue" && selectedId === pirogue.id ? "border-white bg-white text-cyan-950" : "border-white/50 bg-cyan-200/85 text-cyan-950 hover:bg-white"}`} style={{ left: `${pirogue.x}%`, top: `${pirogue.y}%` }} title={pirogue.registration}>{pirogue.registration}</button>)}
-    {quays.map((quay) => <button key={quay.id} onClick={() => onSelectQuay(quay.id)} className={`absolute z-30 -translate-x-1/2 -translate-y-1/2 rounded-full border p-1 transition ${selectedKind === "quay" && selectedId === quay.id ? "border-white bg-cyan-300 shadow-[0_0_0_8px_rgba(34,211,238,.24),0_0_28px_rgba(34,211,238,.85)]" : quay.level === "urgent" ? "border-rose-100 bg-rose-400 shadow-[0_0_20px_rgba(251,113,133,.68)]" : quay.level === "surveillance" ? "border-amber-100 bg-amber-300 shadow-[0_0_18px_rgba(252,211,77,.58)]" : "border-emerald-100 bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,.48)]"}`} style={{ left: `${quay.x}%`, top: `${quay.y}%` }} aria-label={`Sélectionner ${quay.name}`}>
+
+    {pirogues.map((pirogue) => <button key={pirogue.id} onClick={() => onSelectPirogue(pirogue.id)} className={`absolute z-30 -translate-x-1/2 -translate-y-1/2 rounded-full border px-2.5 py-1.5 text-[10px] font-black shadow-lg transition ${selectedKind === "pirogue" && selectedId === pirogue.id ? "border-white bg-white text-cyan-950 shadow-[0_0_0_5px_rgba(255,255,255,.2)]" : "border-white/70 bg-cyan-100 text-cyan-950 hover:bg-white"}`} style={{ left: `${pirogue.x}%`, top: `${pirogue.y}%` }} title={pirogue.registration}>{pirogue.registration}</button>)}
+
+    {quays.map((quay) => <button key={quay.id} onClick={() => onSelectQuay(quay.id)} className={`absolute z-40 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 p-1.5 transition ${selectedKind === "quay" && selectedId === quay.id ? "border-white bg-cyan-300 shadow-[0_0_0_9px_rgba(34,211,238,.24),0_0_34px_rgba(34,211,238,.9)]" : quay.level === "urgent" ? "border-white bg-rose-400 shadow-[0_0_24px_rgba(251,113,133,.78)]" : quay.level === "surveillance" ? "border-white bg-amber-300 shadow-[0_0_22px_rgba(252,211,77,.6)]" : "border-white bg-emerald-300 shadow-[0_0_18px_rgba(110,231,183,.52)]"}`} style={{ left: `${quay.x}%`, top: `${quay.y}%` }} aria-label={`Sélectionner ${quay.name}`}>
       <span className="block h-3.5 w-3.5 rounded-full bg-white" />
-      <span className="absolute left-5 top-1/2 hidden -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2 py-1 text-[11px] font-black text-cyan-950 shadow sm:block">{quay.name}</span>
+      <span className="absolute left-6 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-cyan-100 bg-white px-2.5 py-1 text-[11px] font-black text-cyan-950 shadow-lg">{quay.name}</span>
     </button>)}
-    <div className="absolute left-4 top-4 rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-md">
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Carte littorale</p>
-      <p className="mt-1 text-xl font-black">Quais et pirogues</p>
-    </div>
-    <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2 text-xs font-black">
-      <span className="rounded-full bg-white/15 px-3 py-2 backdrop-blur">Quai</span>
-      <span className="rounded-full bg-cyan-200/85 px-3 py-2 text-cyan-950">Pirogue</span>
-      <span className="rounded-full bg-amber-300/25 px-3 py-2">À surveiller</span>
-      <span className="rounded-full bg-rose-400/25 px-3 py-2">Urgent</span>
+
+    <div className="absolute bottom-4 left-4 right-4 z-50 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-slate-950/35 p-3 text-xs font-black backdrop-blur-md">
+      <div className="flex flex-wrap gap-2">
+        <span className="rounded-full bg-white px-3 py-2 text-cyan-950">Quai</span>
+        <span className="rounded-full bg-cyan-100 px-3 py-2 text-cyan-950">Pirogue immatriculée</span>
+        <span className="rounded-full bg-amber-300/80 px-3 py-2 text-amber-950">À surveiller</span>
+        <span className="rounded-full bg-rose-400/85 px-3 py-2 text-white">Urgent</span>
+      </div>
+      <span className="rounded-full border border-white/20 px-3 py-2 text-cyan-50">Échelle visuelle simulée · Littoral nord-sud</span>
     </div>
   </div>;
 }
