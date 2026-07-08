@@ -3,163 +3,261 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
-  assistedInsights,
-  awarenessCampaigns,
   communityNeeds,
-  fundingModels,
-  impactProjects,
-  liveSignals,
-  ministryPossibilities,
-  ministryQuays,
-  partnerOpportunities,
+  communityProjects,
+  dashboardMetrics,
+  getQuayById,
+  landings,
+  levelOptions,
+  mapAlerts,
+  mapTypes,
   partners,
-  pilotPirogues,
-  preventionSignals,
-  proofSentences,
-  sensitiveZones,
+  pendingActions,
+  pirogues,
+  quays,
+  regions,
+  speciesOptions,
   trainingPrograms,
-  type ModuleId
+  type Level,
+  type MapItemType,
+  type ModuleId,
+  type Region
 } from "@/data/ministryControlTowerData";
 import {
-  AssistedPanel,
   Badge,
-  ControlMap,
-  DataRow,
-  LiveFeed,
+  CompactQuayTable,
+  Field,
+  MinistryMap,
   ModuleTabs,
   NeedCard,
-  PartnerCard,
-  PartnerOpportunityCard,
-  PreventionSignalCard,
-  ProgramCard,
+  PirogueDetail,
   ProjectCard,
-  QuayPanel,
+  QuayDetail,
   SectionHeader,
   ShellCard,
   StatCard,
+  TrainingCard,
+  inputClass,
   primaryButton,
-  secondaryButton
+  secondaryButton,
+  selectClass
 } from "./MinistryControlTowerParts";
 
-const mapFilters = ["Tous", "Alertes", "Signaux", "Besoins", "Pirogues"] as const;
-type MapFilter = (typeof mapFilters)[number];
+const allRegions = "Toutes";
+const allQuays = "Tous";
+const allSpecies = "Toutes";
+
+type RegionFilter = Region | typeof allRegions;
+type QuayFilter = string | typeof allQuays;
+type SpeciesFilter = string | typeof allSpecies;
+type LevelFilter = "Tous" | "Normal" | "À surveiller" | "Urgent";
+
+type SelectedItem = {
+  kind: "quay" | "pirogue";
+  id: string;
+};
+
+const levelByLabel: Record<Exclude<LevelFilter, "Tous">, Level> = {
+  Normal: "normal",
+  "À surveiller": "surveillance",
+  Urgent: "urgent"
+};
 
 export function MinistryControlTower() {
   const [activeModule, setActiveModule] = useState<ModuleId>("map");
-  const [selectedQuayId, setSelectedQuayId] = useState("joal");
-  const [mapFilter, setMapFilter] = useState<MapFilter>("Tous");
-  const [activityLog, setActivityLog] = useState<string[]>([
-    "Session institutionnelle ouverte : carte nationale de supervision.",
-    "Lecture prudente active : les signaux sensibles sont à qualifier humainement."
-  ]);
+  const [search, setSearch] = useState("");
+  const [region, setRegion] = useState<RegionFilter>(allRegions);
+  const [quayId, setQuayId] = useState<QuayFilter>(allQuays);
+  const [mapType, setMapType] = useState<MapItemType>("Tous");
+  const [level, setLevel] = useState<LevelFilter>("Tous");
+  const [species, setSpecies] = useState<SpeciesFilter>(allSpecies);
+  const [selected, setSelected] = useState<SelectedItem>({ kind: "quay", id: "joal" });
 
-  const selectedQuay = ministryQuays.find((quay) => quay.id === selectedQuayId) ?? ministryQuays[0];
-  const selectedInsight = useMemo(() => assistedInsights.find((insight) => insight.quayId === selectedQuay.id) ?? assistedInsights[0], [selectedQuay.id]);
-  const visibleQuays = useMemo(() => {
-    if (mapFilter === "Alertes") return ministryQuays.filter((quay) => quay.alerts > 0);
-    if (mapFilter === "Signaux") return ministryQuays.filter((quay) => quay.signalsToQualify.length > 0);
-    if (mapFilter === "Besoins") return ministryQuays.filter((quay) => quay.communityNeed.length > 0);
-    return ministryQuays;
-  }, [mapFilter]);
-  const totalLandings = ministryQuays.reduce((total, quay) => total + quay.landings, 0);
-  const totalSignals = ministryQuays.reduce((total, quay) => total + quay.signalsToQualify.length, 0) + preventionSignals.length;
-  const activeAlerts = ministryQuays.reduce((total, quay) => total + quay.alerts, 0);
-  const totalNeeds = communityNeeds.length + ministryQuays.filter((quay) => quay.communityNeed).length;
-  const piroguesForMap = mapFilter === "Pirogues" ? pilotPirogues : pilotPirogues.filter((pirogue) => pirogue.quayId === selectedQuay.id || pirogue.signal);
-  const projectsReady = impactProjects.filter((project) => project.status.includes("Prêt") || project.status.includes("Documenté") || project.status.includes("Prioritaire"));
-  const participants = trainingPrograms.reduce((total, program) => total + program.participants, 0);
-  const potentialBudget = impactProjects.reduce((total, project) => total + Number(project.budget.replace(/[^0-9]/g, "")), 0);
+  const selectedLevel = level === "Tous" ? null : levelByLabel[level];
+  const normalizedSearch = search.trim().toLowerCase();
 
-  function recordAction(action: string) {
-    setActivityLog((items) => [`${action} · ${selectedQuay.name}`, ...items].slice(0, 6));
+  const filteredQuays = useMemo(() => quays.filter((quay) => {
+    const matchRegion = region === allRegions || quay.region === region;
+    const matchQuay = quayId === allQuays || quay.id === quayId;
+    const matchLevel = !selectedLevel || quay.level === selectedLevel;
+    const matchSpecies = species === allSpecies || quay.species.includes(species);
+    const matchSearch = !normalizedSearch || [quay.name, quay.region, quay.commune, ...quay.species].join(" ").toLowerCase().includes(normalizedSearch);
+    return matchRegion && matchQuay && matchLevel && matchSpecies && matchSearch;
+  }), [normalizedSearch, quayId, region, selectedLevel, species]);
+
+  const filteredQuayIds = useMemo(() => new Set(filteredQuays.map((quay) => quay.id)), [filteredQuays]);
+
+  const filteredPirogues = useMemo(() => pirogues.filter((pirogue) => {
+    const quay = getQuayById(pirogue.quayId);
+    const matchBase = filteredQuayIds.has(pirogue.quayId);
+    const matchLevel = !selectedLevel || pirogue.level === selectedLevel;
+    const matchSearch = !normalizedSearch || [pirogue.registration, pirogue.status, pirogue.lastPosition, pirogue.declaredActivity, quay.name].join(" ").toLowerCase().includes(normalizedSearch);
+    return matchBase && matchLevel && matchSearch;
+  }), [filteredQuayIds, normalizedSearch, selectedLevel]);
+
+  const filteredLandings = useMemo(() => landings.filter((landing) => {
+    const quay = getQuayById(landing.quayId);
+    const matchBase = filteredQuayIds.has(landing.quayId);
+    const matchSpecies = species === allSpecies || landing.species.includes(species);
+    const matchSearch = !normalizedSearch || [landing.status, quay.name, ...landing.species].join(" ").toLowerCase().includes(normalizedSearch);
+    return matchBase && matchSpecies && matchSearch;
+  }), [filteredQuayIds, normalizedSearch, species]);
+
+  const filteredAlerts = useMemo(() => mapAlerts.filter((alert) => {
+    const quay = getQuayById(alert.quayId);
+    const matchBase = filteredQuayIds.has(alert.quayId);
+    const matchLevel = !selectedLevel || alert.level === selectedLevel;
+    const matchSearch = !normalizedSearch || [alert.title, alert.source, alert.nextAction, quay.name].join(" ").toLowerCase().includes(normalizedSearch);
+    return matchBase && matchLevel && matchSearch;
+  }), [filteredQuayIds, normalizedSearch, selectedLevel]);
+
+  const visibleQuays = mapType === "Pirogues" ? filteredQuays.filter((quay) => filteredPirogues.some((pirogue) => pirogue.quayId === quay.id)) : filteredQuays;
+  const visiblePirogues = mapType === "Quais" || mapType === "Débarquements" || mapType === "Espèces" ? [] : filteredPirogues;
+  const visibleAlerts = mapType === "Alertes" || mapType === "Tous" ? filteredAlerts : [];
+  const selectedQuay = selected.kind === "quay" ? getQuayById(selected.id) : getQuayById(pirogues.find((pirogue) => pirogue.id === selected.id)?.quayId ?? "joal");
+  const selectedPirogue = selected.kind === "pirogue" ? pirogues.find((pirogue) => pirogue.id === selected.id) : null;
+  const selectedQuayLandings = filteredLandings.filter((landing) => landing.quayId === selectedQuay.id);
+  const selectedQuayPirogues = filteredPirogues.filter((pirogue) => pirogue.quayId === selectedQuay.id);
+  const selectedQuayAlerts = filteredAlerts.filter((alert) => alert.quayId === selectedQuay.id);
+  const declaredSpecies = new Set(filteredLandings.flatMap((landing) => landing.species));
+
+  const tableRows = visibleQuays.map((quay) => ({
+    quay,
+    landings: filteredLandings.filter((landing) => landing.quayId === quay.id),
+    pirogues: filteredPirogues.filter((pirogue) => pirogue.quayId === quay.id),
+    alerts: filteredAlerts.filter((alert) => alert.quayId === quay.id)
+  }));
+
+  function resetFilters() {
+    setSearch("");
+    setRegion(allRegions);
+    setQuayId(allQuays);
+    setMapType("Tous");
+    setLevel("Tous");
+    setSpecies(allSpecies);
   }
 
-  return <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.18),transparent_30%),radial-gradient(circle_at_85%_18%,rgba(16,185,129,0.14),transparent_26%),linear-gradient(180deg,#edfdfa_0%,#f8fbfa_45%,#fff7e7_100%)] text-slate-950">
-    <header className="border-b border-cyan-100 bg-white/88 px-4 py-5 backdrop-blur sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-[96rem] flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+  return <main className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#ecfeff_0%,#f8fafc_42%,#fff7ed_100%)] text-slate-950">
+    <header className="border-b border-cyan-100 bg-white/92 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-[96rem] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/" className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-cyan-800 to-emerald-600 text-sm font-black text-white shadow-lg shadow-cyan-900/15">Mb</Link>
+          <Link href="/" className="grid h-11 w-11 place-items-center rounded-2xl bg-cyan-800 text-sm font-black text-white">Mb</Link>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">Ministère des Pêches · hub souverain</p>
-            <h1 className="text-2xl font-black tracking-tight sm:text-3xl">Tour de contrôle de la pêche artisanale</h1>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Ministère des Pêches</p>
+            <h1 className="text-2xl font-black tracking-tight sm:text-3xl">Suivi des quais de pêche artisanale</h1>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => recordAction("Note ministère préparée")} className={primaryButton}>Préparer une note ministère</button>
-          <button onClick={() => recordAction("Demande de vérification institutionnelle ouverte")} className={secondaryButton}>Demander vérification</button>
+          <button className={primaryButton}>Créer une alerte</button>
+          <button className={secondaryButton}>Exporter la synthèse</button>
           <Link href="/espace-prive" className={secondaryButton}>Retour accès</Link>
         </div>
       </div>
     </header>
 
     <section className="mx-auto grid w-full max-w-[96rem] gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-[2.4rem] border border-cyan-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(236,254,255,0.75),rgba(240,253,250,0.56))] p-6 shadow-[0_22px_70px_rgba(8,145,178,0.13)]">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-end">
+      <ShellCard className="bg-gradient-to-br from-white via-cyan-50 to-emerald-50">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-end">
           <div>
-            <Badge tone="info">Tour de contrôle de la pêche artisanale</Badge>
-            <h2 className="mt-4 max-w-5xl text-4xl font-black tracking-tight sm:text-6xl">Visualiser les quais, suivre les débarquements, écouter les communautés et orienter les financements.</h2>
-            <p className="mt-5 max-w-3xl text-lg font-bold leading-8 text-slate-600">Mbàmbulaan donne au ministère une lecture territoriale vivante de la filière. La cartographie devient le point d'entrée de la coordination. Les communautés donnent le sens de l'action. Le pilotage prouve l'impact.</p>
+            <Badge>Application métier</Badge>
+            <h2 className="mt-4 max-w-4xl text-4xl font-black tracking-tight sm:text-5xl">Carte des quais, pirogues, débarquements et alertes terrain.</h2>
+            <p className="mt-4 max-w-3xl text-base font-bold leading-7 text-slate-600">Cette interface aide un agent ministère à voir la situation du jour, filtrer les informations, consulter un quai ou une pirogue, puis organiser les besoins terrain et le suivi des actions.</p>
           </div>
-          <ShellCard className="bg-gradient-to-br from-cyan-950 via-cyan-800 to-emerald-700 text-white">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Lecture ministère</p>
-            <p className="mt-3 text-2xl font-black">Outil souverain de supervision, coordination communautaire, prévention, projets et preuve.</p>
-            <p className="mt-4 text-sm font-bold leading-6 text-cyan-50">L'outil ne remplace pas les services compétents : il améliore la coordination et la lecture territoriale.</p>
-          </ShellCard>
+          <div className="rounded-3xl border border-cyan-100 bg-white p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Aujourd'hui</p>
+            <p className="mt-2 text-3xl font-black text-slate-950">{quays.length} quais suivis</p>
+            <p className="mt-2 text-sm font-bold leading-6 text-slate-600">Données locales simulées pour démonstration. Les décisions restent validées par les services compétents.</p>
+          </div>
         </div>
         <div className="mt-6"><ModuleTabs active={activeModule} onChange={setActiveModule} /></div>
-      </section>
+      </ShellCard>
 
-      {activeModule === "map" ? <MapModule selectedQuay={selectedQuay} selectedInsight={selectedInsight} visibleQuays={visibleQuays} piroguesForMap={piroguesForMap} mapFilter={mapFilter} onFilter={setMapFilter} onSelectQuay={setSelectedQuayId} onCommunity={() => setActiveModule("community")} onProof={() => setActiveModule("proof")} stats={{ totalLandings, totalSignals, activeAlerts, totalNeeds }} /> : null}
-      {activeModule === "community" ? <CommunityModule onProof={() => setActiveModule("proof")} potentialBudget={potentialBudget} /> : null}
-      {activeModule === "proof" ? <ProofModule selectedQuay={selectedQuay} activityLog={activityLog} projectsReady={projectsReady.length} participants={participants} potentialBudget={potentialBudget} onRecord={recordAction} /> : null}
+      {activeModule === "map" ? <MapModule search={search} setSearch={setSearch} region={region} setRegion={setRegion} quayId={quayId} setQuayId={setQuayId} mapType={mapType} setMapType={setMapType} level={level} setLevel={setLevel} species={species} setSpecies={setSpecies} resetFilters={resetFilters} visibleQuays={visibleQuays} visiblePirogues={visiblePirogues} visibleAlerts={visibleAlerts} selected={selected} setSelected={setSelected} selectedQuay={selectedQuay} selectedPirogue={selectedPirogue} selectedQuayLandings={selectedQuayLandings} selectedQuayPirogues={selectedQuayPirogues} selectedQuayAlerts={selectedQuayAlerts} tableRows={tableRows} mapStats={{ quays: visibleQuays.length, landings: filteredLandings.length, pirogues: filteredPirogues.length, alerts: filteredAlerts.length, species: declaredSpecies.size }} /> : null}
+      {activeModule === "community" ? <CommunityModule /> : null}
+      {activeModule === "tracking" ? <TrackingModule /> : null}
     </section>
   </main>;
 }
 
-function MapModule({ selectedQuay, selectedInsight, visibleQuays, piroguesForMap, mapFilter, onFilter, onSelectQuay, onCommunity, onProof, stats }: {
-  selectedQuay: typeof ministryQuays[number];
-  selectedInsight: typeof assistedInsights[number];
-  visibleQuays: typeof ministryQuays;
-  piroguesForMap: typeof pilotPirogues;
-  mapFilter: MapFilter;
-  onFilter: (filter: MapFilter) => void;
-  onSelectQuay: (id: string) => void;
-  onCommunity: () => void;
-  onProof: () => void;
-  stats: { totalLandings: number; totalSignals: number; activeAlerts: number; totalNeeds: number };
+function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, mapType, setMapType, level, setLevel, species, setSpecies, resetFilters, visibleQuays, visiblePirogues, visibleAlerts, selected, setSelected, selectedQuay, selectedPirogue, selectedQuayLandings, selectedQuayPirogues, selectedQuayAlerts, tableRows, mapStats }: {
+  search: string;
+  setSearch: (value: string) => void;
+  region: RegionFilter;
+  setRegion: (value: RegionFilter) => void;
+  quayId: QuayFilter;
+  setQuayId: (value: QuayFilter) => void;
+  mapType: MapItemType;
+  setMapType: (value: MapItemType) => void;
+  level: LevelFilter;
+  setLevel: (value: LevelFilter) => void;
+  species: SpeciesFilter;
+  setSpecies: (value: SpeciesFilter) => void;
+  resetFilters: () => void;
+  visibleQuays: typeof quays;
+  visiblePirogues: typeof pirogues;
+  visibleAlerts: typeof mapAlerts;
+  selected: SelectedItem;
+  setSelected: (value: SelectedItem) => void;
+  selectedQuay: typeof quays[number];
+  selectedPirogue: typeof pirogues[number] | null;
+  selectedQuayLandings: typeof landings;
+  selectedQuayPirogues: typeof pirogues;
+  selectedQuayAlerts: typeof mapAlerts;
+  tableRows: Array<{ quay: typeof quays[number]; landings: typeof landings; pirogues: typeof pirogues; alerts: typeof mapAlerts }>;
+  mapStats: { quays: number; landings: number; pirogues: number; alerts: number; species: number };
 }) {
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="01 · Carte nationale de supervision" title="Voir, détecter et qualifier géographiquement" description="La carte ne détaille pas les projets : elle révèle les quais, les pirogues pilotes, les zones sensibles et les signaux à vérifier. Les besoins sont ensuite instruits dans la couche communautaire." />
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6"><StatCard label="Quais supervisés" value={String(ministryQuays.length)} detail="Points de coordination actifs sur le littoral." /><StatCard label="Débarquements" value={String(stats.totalLandings)} detail="Activité déclarée pour la journée." /><StatCard label="Pirogues pilotes" value={String(pilotPirogues.length)} detail="Suivi déclaratif, non sécuritaire." /><StatCard label="Alertes actives" value={String(stats.activeAlerts)} detail="Situations à qualifier avec prudence." tone="attention" /><StatCard label="Signaux à qualifier" value={String(stats.totalSignals)} detail="Signaux terrain et maritimes." tone="forte" /><StatCard label="Besoins terrain" value={String(stats.totalNeeds)} detail="Demandes communautaires signalées." /></div>
-    <div className="flex flex-wrap gap-2">{mapFilters.map((filter) => <button key={filter} onClick={() => onFilter(filter)} className={mapFilter === filter ? primaryButton : secondaryButton}>{filter}</button>)}</div>
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]"><ControlMap quays={visibleQuays} pirogues={piroguesForMap} zones={sensitiveZones} selectedId={selectedQuay.id} onSelect={onSelectQuay} /><QuayPanel quay={selectedQuay} onCommunity={onCommunity} onProof={onProof} /></div>
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]"><LiveFeed items={liveSignals} /><AssistedPanel insight={selectedInsight} /></div>
-    <ShellCard><SectionHeader eyebrow="Signaux maritimes atypiques" title="Situations nécessitant qualification" description="Ces signaux sont présentés comme des demandes de vérification institutionnelle. Aucun signal n'est une accusation automatique." /><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{preventionSignals.map((signal) => <PreventionSignalCard key={signal.id} signal={signal} />)}</div></ShellCard>
+    <SectionHeader eyebrow="Carte & supervision" title="Voir la filière sur une carte" description="Filtrer les régions, quais, pirogues, débarquements, espèces et alertes. Les projets et les indicateurs sont volontairement séparés de cette vue." />
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><StatCard label="Quais affichés" value={String(mapStats.quays)} detail="Selon les filtres actifs." /><StatCard label="Débarquements du jour" value={String(mapStats.landings)} detail="Déclarations consultables." /><StatCard label="Pirogues actives" value={String(mapStats.pirogues)} detail="Immatriculations visibles." /><StatCard label="Alertes en cours" value={String(mapStats.alerts)} detail="Alertes à vérifier." /><StatCard label="Espèces déclarées" value={String(mapStats.species)} detail="Espèces présentes dans les débarquements." /></div>
+    <div className="grid gap-5 xl:grid-cols-[18rem_minmax(0,1fr)_22rem]">
+      <ShellCard className="xl:sticky xl:top-5 xl:self-start">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Filtres</p>
+        <div className="mt-4 grid gap-4">
+          <Field label="Recherche"><input value={search} onChange={(event) => setSearch(event.target.value)} className={inputClass} placeholder="Rechercher un quai ou une pirogue" /></Field>
+          <Field label="Région"><select value={region} onChange={(event) => setRegion(event.target.value as RegionFilter)} className={selectClass}><option>{allRegions}</option>{regions.map((item) => <option key={item}>{item}</option>)}</select></Field>
+          <Field label="Quai"><select value={quayId} onChange={(event) => setQuayId(event.target.value)} className={selectClass}><option value={allQuays}>Tous</option>{quays.map((quay) => <option key={quay.id} value={quay.id}>{quay.name}</option>)}</select></Field>
+          <Field label="Type"><select value={mapType} onChange={(event) => setMapType(event.target.value as MapItemType)} className={selectClass}>{mapTypes.map((item) => <option key={item}>{item}</option>)}</select></Field>
+          <Field label="Niveau"><select value={level} onChange={(event) => setLevel(event.target.value as LevelFilter)} className={selectClass}>{levelOptions.map((item) => <option key={item}>{item}</option>)}</select></Field>
+          <Field label="Espèce"><select value={species} onChange={(event) => setSpecies(event.target.value)} className={selectClass}><option>{allSpecies}</option>{speciesOptions.map((item) => <option key={item}>{item}</option>)}</select></Field>
+          <button onClick={resetFilters} className={secondaryButton}>Réinitialiser les filtres</button>
+        </div>
+      </ShellCard>
+      <div className="grid min-w-0 gap-5"><MinistryMap quays={visibleQuays} pirogues={visiblePirogues} alerts={visibleAlerts} selectedId={selected.id} selectedKind={selected.kind} onSelectQuay={(id) => setSelected({ kind: "quay", id })} onSelectPirogue={(id) => setSelected({ kind: "pirogue", id })} /><ShellCard><SectionHeader eyebrow="Liste filtrée" title="Quais et activité du jour" description="La table reprend uniquement les quais visibles avec leurs débarquements, volumes, pirogues, espèces et alertes." /><CompactQuayTable rows={tableRows} /></ShellCard></div>
+      {selected.kind === "pirogue" && selectedPirogue ? <PirogueDetail pirogue={selectedPirogue} quay={selectedQuay} /> : <QuayDetail quay={selectedQuay} landings={selectedQuayLandings} pirogues={selectedQuayPirogues} alerts={selectedQuayAlerts} />}
+    </div>
   </section>;
 }
 
-function CommunityModule({ onProof, potentialBudget }: { onProof: () => void; potentialBudget: number }) {
+function CommunityModule() {
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="02 · Communautés, programmes & impact" title="Transformer les besoins terrain en actions utiles et finançables" description="Mbàmbulaan ne remonte pas seulement des problèmes. La plateforme transforme les signaux du terrain en programmes structurés, finançables, suivis et mesurables." />
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><StatCard label="Besoins remontés" value={String(communityNeeds.length)} detail="Froid, sécurité, qualité, jeunes et transformation." tone="attention" /><StatCard label="Projets à financer" value={String(impactProjects.length)} detail="Initiatives communautaires structurables." /><StatCard label="Campagnes" value={String(awarenessCampaigns.length)} detail="Prévention, sécurité et pêche durable." /><StatCard label="Montant potentiel" value={`${potentialBudget} M`} detail="Budget mocké à présenter aux partenaires." tone="forte" /></div>
-    <ShellCard><SectionHeader eyebrow="A · Besoins remontés du terrain" title="Les communautés donnent le sens de l'action" description="Chaque besoin peut être qualifié, transformé en projet ou préparé en note courte pour arbitrage." /><div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{communityNeeds.map((need) => <NeedCard key={need.id} need={need} />)}</div></ShellCard>
-    <ShellCard><SectionHeader eyebrow="B · Projets communautaires à financer" title="Initiatives à impact et dossiers partenaires" description="Les besoins les plus clairs deviennent des projets finançables avec porteur, impact, budget, maturité et partenaire cible." /><div className="grid gap-4 lg:grid-cols-2">{impactProjects.map((project) => <ProjectCard key={project.id} project={project} />)}</div></ShellCard>
-    <ShellCard><SectionHeader eyebrow="C · Formations, sensibilisation & prévention" title="Transformer la prévention en action mesurable" description="Les formations et campagnes permettent de transformer la prévention en action mesurable, avec publics, partenaires et indicateurs." /><div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{trainingPrograms.map((program) => <ProgramCard key={program.id} program={program} />)}</div></ShellCard>
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]"><ShellCard><SectionHeader eyebrow="D · Partenaires et financements" title="Orienter les partenaires vers les initiatives utiles" description="Les partenaires peuvent être orientés vers les initiatives les plus utiles, documentées et vérifiables." /><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{partners.map((partner) => <PartnerCard key={partner.id} partner={partner} />)}</div><div className="mt-5 grid gap-3 md:grid-cols-2">{partnerOpportunities.map((opportunity) => <PartnerOpportunityCard key={opportunity.id} opportunity={opportunity} />)}</div></ShellCard><ShellCard className="bg-gradient-to-br from-cyan-950 via-teal-800 to-emerald-700 text-white"><p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Pourquoi un partenaire financerait ?</p><ul className="mt-4 grid gap-3 text-sm font-bold leading-6 text-cyan-50">{["impact social mesurable", "sécurité en mer", "insertion économique des jeunes", "autonomisation des femmes", "réduction des pertes post-capture", "pêche durable", "souveraineté alimentaire", "professionnalisation des acteurs"].map((item) => <li key={item} className="rounded-2xl bg-white/10 px-3 py-2">{item}</li>)}</ul><button onClick={onProof} className="mt-5 rounded-full bg-white px-5 py-3 text-sm font-black text-cyan-950">Voir la preuve d'impact</button></ShellCard></div>
+    <SectionHeader eyebrow="Communautés & programmes" title="Voir les besoins terrain et organiser les actions" description="Cette section est séparée de la carte. Elle sert à suivre les besoins, projets, formations et partenaires liés aux communautés." />
+    <ShellCard><SectionHeader eyebrow="Besoins terrain" title="Demandes remontées par les quais et communautés" description="Chaque besoin indique les acteurs concernés, l'urgence, le statut et la prochaine action." /><div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{communityNeeds.map((need) => <NeedCard key={need.id} need={need} />)}</div></ShellCard>
+    <ShellCard><SectionHeader eyebrow="Projets communautaires" title="Actions à préparer ou à financer" description="Les projets sont décrits avec territoire, porteur, bénéficiaires, budget estimé, statut et partenaire cible." /><div className="grid gap-4 lg:grid-cols-2">{communityProjects.map((project) => <ProjectCard key={project.id} project={project} />)}</div></ShellCard>
+    <ShellCard><SectionHeader eyebrow="Formations & sensibilisation" title="Programmes utiles pour les acteurs terrain" description="Sécurité en mer, hygiène, chaîne de froid, traçabilité, métiers bleus, pêche durable et référents communautaires." /><div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{trainingPrograms.map((program) => <TrainingCard key={program.id} program={program} />)}</div></ShellCard>
+    <ShellCard><SectionHeader eyebrow="Partenaires" title="Organisations mobilisables" description="ONG, collectivités, bailleurs, entreprises privées, programmes publics et organisations professionnelles." /><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">{partners.map((partner) => <article key={partner.id} className="rounded-2xl border border-cyan-100 bg-cyan-50/50 p-4"><p className="text-base font-black text-cyan-950">{partner.name}</p><p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-cyan-700">{partner.family}</p><p className="mt-3 text-sm font-bold leading-6 text-slate-600">{partner.usefulFor}</p><p className="mt-3 text-xs font-black text-slate-500">{partner.territory}</p></article>)}</div></ShellCard>
   </section>;
 }
 
-function ProofModule({ selectedQuay, activityLog, projectsReady, participants, potentialBudget, onRecord }: { selectedQuay: typeof ministryQuays[number]; activityLog: string[]; projectsReady: number; participants: number; potentialBudget: number; onRecord: (action: string) => void }) {
-  const proofInsight = assistedInsights.find((insight) => insight.module === "proof") ?? assistedInsights[0];
+function TrackingModule() {
+  const volumeByQuay = quays.slice(0, 6);
+  const maxVolume = Math.max(...volumeByQuay.map((quay) => quay.volumeTons));
+  const projectStatuses = ["Prioritaire", "À cadrer", "Documenté", "À compléter"];
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="03 · Pilotage & preuve institutionnelle" title="Mesurer, arbitrer, suivre et prouver l'impact" description="Le pilotage ne remplace pas le terrain : il aide à prioriser, arbitrer, coordonner les partenaires et documenter les résultats." />
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6"><StatCard label="Volumes suivis" value={`${ministryQuays.reduce((total, quay) => total + quay.volumeTons, 0).toFixed(1)} t`} detail="Synthèse des débarquements mockés." /><StatCard label="Projets prêts" value={String(projectsReady)} detail="Dossiers présentables à court terme." tone="forte" /><StatCard label="Participants" value={String(participants)} detail="Formations et campagnes planifiées." /><StatCard label="Partenaires" value={String(partners.length)} detail="Familles mobilisables." /><StatCard label="Montants" value={`${potentialBudget} M`} detail="Potentiel de financement mocké." /><StatCard label="Signaux qualifiés" value={String(preventionSignals.length)} detail="À vérifier avec prudence." tone="attention" /></div>
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]"><ShellCard><SectionHeader eyebrow="Lecture d'arbitrage" title="Indicateurs qui appellent une décision" description="Chaque KPI doit aider à choisir une action, pas simplement afficher une valeur." /><div className="grid gap-3">{proofSentences.map((sentence) => <div key={sentence} className="rounded-2xl border border-cyan-100 bg-cyan-50/65 p-4 text-sm font-black leading-6 text-cyan-950">{sentence}</div>)}</div><div className="mt-5 grid gap-3 md:grid-cols-2"><ProofLine label="Besoins transformés en programme" value={`${communityNeeds.length} besoins`} detail="Froid, sécurité, qualité, insertion et transformation." /><ProofLine label="Campagnes planifiées" value={`${trainingPrograms.length} campagnes`} detail="Prévention, sécurité, qualité et référents." /><ProofLine label="Niveaux de preuve" value="déclaratif / partiel / validé" detail="Les pièces orientent la qualité de décision." /><ProofLine label="Actions en attente" value={activityLog.length.toString()} detail="Traces simulées de coordination et arbitrage." /></div></ShellCard><AssistedPanel insight={proofInsight} /></div>
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"><ShellCard><p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Actions ministère</p><h3 className="mt-2 text-2xl font-black text-slate-950">Suite institutionnelle sur {selectedQuay.name}</h3><p className="mt-3 text-sm font-bold leading-6 text-slate-600">Les projets prêts à financer doivent être présentés aux partenaires dans un format court et vérifiable.</p><div className="mt-5 flex flex-wrap gap-2"><button onClick={() => onRecord("Fiche partenaire préparée")} className={primaryButton}>Préparer fiche partenaire</button><button onClick={() => onRecord("Note d'arbitrage ajoutée")} className={secondaryButton}>Aide à la note ministère</button><button onClick={() => onRecord("Point programme planifié")} className={secondaryButton}>Planifier point programme</button></div><div className="mt-5 grid gap-2">{fundingModels.map((model) => <div key={model.id} className="rounded-2xl border border-cyan-100 bg-white/70 p-3"><p className="text-sm font-black text-cyan-950">{model.label}</p><p className="mt-1 text-xs font-bold leading-5 text-slate-600">{model.description}</p></div>)}</div></ShellCard><ShellCard><p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Traces récentes</p><div className="mt-4 grid gap-3">{activityLog.map((item) => <div key={item} className="rounded-2xl border border-emerald-100 bg-emerald-50/65 p-3 text-sm font-black text-emerald-950">{item}</div>)}</div><p className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-950">En V1, Mbàmbulaan préfigure une lecture assistée. En V2, l'IA pourra accélérer la synthèse, la qualification et la préparation des notes, toujours avec validation humaine.</p></ShellCard></div>
-    <ShellCard><SectionHeader eyebrow="Ce que Mbàmbulaan rend possible" title="Une infrastructure finançable, pas seulement utilisable" description="Le ministère peut superviser, écouter, orienter, documenter et prouver l'impact à l'échelle des territoires." /><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{ministryPossibilities.map((possibility) => <div key={possibility} className="rounded-2xl border border-cyan-100 bg-white/75 p-3 text-sm font-black leading-5 text-cyan-950">{possibility}</div>)}</div></ShellCard>
+    <SectionHeader eyebrow="Indicateurs & suivi" title="Suivre les chiffres clés et l'avancement" description="Chaque indicateur est relié à une action ou à un détail opérationnel. L'objectif est de suivre la journée, pas de décorer la page." />
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{dashboardMetrics.map((metric) => <StatCard key={metric.id} label={metric.label} value={metric.value} detail={metric.detail} action={metric.action} />)}</div>
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+      <ShellCard><SectionHeader eyebrow="Activité de pêche" title="Volumes par quai" description="Lecture simple des volumes déclarés aujourd'hui." /><div className="grid gap-3">{volumeByQuay.map((quay) => <div key={quay.id} className="grid gap-2"><div className="flex justify-between text-sm font-black"><span>{quay.name}</span><span>{quay.volumeTons} t</span></div><div className="h-3 overflow-hidden rounded-full bg-cyan-50"><div className="h-full rounded-full bg-gradient-to-r from-cyan-700 to-emerald-500" style={{ width: `${Math.round((quay.volumeTons / maxVolume) * 100)}%` }} /></div></div>)}</div></ShellCard>
+      <ShellCard><SectionHeader eyebrow="Alertes" title="Répartition par niveau" description="Les alertes urgentes doivent déclencher une vérification terrain." /><div className="grid gap-3"><StatusLine label="Urgent" value={mapAlerts.filter((alert) => alert.level === "urgent").length} level="urgent" /><StatusLine label="À surveiller" value={mapAlerts.filter((alert) => alert.level === "surveillance").length} level="surveillance" /><StatusLine label="Normal" value={mapAlerts.filter((alert) => alert.level === "normal").length} level="normal" /></div></ShellCard>
+    </div>
+    <div className="grid gap-6 xl:grid-cols-2">
+      <ShellCard><SectionHeader eyebrow="Besoins & projets" title="Statut des projets communautaires" description="Suivi rapide des projets à préparer, prioriser ou compléter." /><div className="grid gap-3">{projectStatuses.map((status) => <div key={status} className="flex items-center justify-between rounded-2xl border border-cyan-100 bg-white p-3"><span className="text-sm font-black text-slate-800">{status}</span><span className="rounded-full bg-cyan-50 px-3 py-1 text-sm font-black text-cyan-900">{communityProjects.filter((project) => project.status === status).length}</span></div>)}</div></ShellCard>
+      <ShellCard><SectionHeader eyebrow="Formations & campagnes" title="Planning des prochaines sessions" description="Sessions à planifier ou confirmer avec les partenaires." /><div className="grid gap-3">{trainingPrograms.slice(0, 5).map((program) => <div key={program.id} className="rounded-2xl border border-cyan-100 bg-white p-3"><p className="text-sm font-black text-slate-950">{program.title}</p><p className="mt-1 text-xs font-bold text-slate-500">{program.region} · {program.period} · {program.expectedParticipants} participants</p></div>)}</div></ShellCard>
+    </div>
+    <ShellCard><SectionHeader eyebrow="Actions en attente" title="Actions à reprendre cette semaine" description="Liste courte pour que l'agent sache quoi traiter après consultation." /><div className="grid gap-3 lg:grid-cols-2">{pendingActions.map((action) => <article key={action.id} className="rounded-2xl border border-cyan-100 bg-white p-4"><div className="flex items-start justify-between gap-3"><h3 className="text-base font-black text-slate-950">{action.action}</h3><Badge level={action.level} /></div><p className="mt-2 text-sm font-bold text-slate-600">{action.owner} · {action.territory}</p><p className="mt-3 text-xs font-black text-cyan-800">Échéance : {action.dueDate} · {action.status}</p></article>)}</div></ShellCard>
+    <ShellCard className="bg-slate-50"><p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Aide à la synthèse - bientôt</p><p className="mt-2 text-sm font-bold leading-6 text-slate-600">L'assistance IA n'est pas au centre de cette V1. Elle pourra plus tard aider à préparer une synthèse, toujours avec validation humaine.</p></ShellCard>
   </section>;
 }
 
-function ProofLine({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return <div className="rounded-[1.35rem] border border-cyan-100 bg-white/80 p-4"><DataRow label={label} value={value} /><p className="mt-3 text-xs font-bold leading-5 text-slate-500">{detail}</p></div>;
+function StatusLine({ label, value, level }: { label: string; value: number; level: Level }) {
+  return <div className="flex items-center justify-between rounded-2xl border border-cyan-100 bg-white p-3"><span className="text-sm font-black text-slate-800">{label}</span><Badge level={level}>{String(value)}</Badge></div>;
 }
