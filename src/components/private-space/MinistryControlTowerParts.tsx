@@ -217,6 +217,6 @@ export function DataRow({ label, value }: { label: string; value: string }) {
   return <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-1.5 last:border-b-0"><span className="text-slate-500">{label}</span><span className="max-w-[68%] text-right text-slate-900">{value}</span></div>;
 }
 
-function DataPoint({ label, value }: { label: string }) {
+function DataPoint({ label, value }: { label: string; value: string }) {
   return <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-3"><p className="text-xs font-black uppercase tracking-[0.1em] text-cyan-700">{label}</p><p className="mt-1 text-base font-black text-cyan-950">{value}</p></div>;
 }
