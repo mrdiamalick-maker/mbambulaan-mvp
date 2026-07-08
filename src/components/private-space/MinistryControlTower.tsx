@@ -51,6 +51,7 @@ type RegionFilter = Region | typeof allRegions;
 type QuayFilter = string | typeof allQuays;
 type SpeciesFilter = string | typeof allSpecies;
 type LevelFilter = "Tous" | "Normal" | "À surveiller" | "Urgent";
+type MapViewMode = "quays" | "pirogues";
 
 type SelectedItem = {
   kind: "quay" | "pirogue";
@@ -173,14 +174,14 @@ export function MinistryControlTower() {
         <div className="mt-6"><ModuleTabs active={activeModule} onChange={setActiveModule} /></div>
       </ShellCard>
 
-      {activeModule === "map" ? <MapModule search={search} setSearch={setSearch} region={region} setRegion={setRegion} quayId={quayId} setQuayId={setQuayId} mapType={mapType} setMapType={setMapType} level={level} setLevel={setLevel} species={species} setSpecies={setSpecies} resetFilters={resetFilters} visibleQuays={visibleQuays} visiblePirogues={visiblePirogues} visibleAlerts={visibleAlerts} selected={selected} setSelected={setSelected} selectedQuay={selectedQuay} selectedPirogue={selectedPirogue} selectedQuayLandings={selectedQuayLandings} selectedQuayPirogues={selectedQuayPirogues} selectedQuayAlerts={selectedQuayAlerts} tableRows={tableRows} mapStats={{ quays: visibleQuays.length, landings: filteredLandings.length, pirogues: filteredPirogues.length, alerts: filteredAlerts.length, species: declaredSpecies.size }} /> : null}
+      {activeModule === "map" ? <MapModule search={search} setSearch={setSearch} region={region} setRegion={setRegion} quayId={quayId} setQuayId={setQuayId} mapType={mapType} setMapType={setMapType} level={level} setLevel={setLevel} species={species} setSpecies={setSpecies} resetFilters={resetFilters} visibleQuays={visibleQuays} visiblePirogues={visiblePirogues} visibleAlerts={visibleAlerts} filteredLandings={filteredLandings} selected={selected} setSelected={setSelected} selectedQuay={selectedQuay} selectedPirogue={selectedPirogue} selectedQuayLandings={selectedQuayLandings} selectedQuayPirogues={selectedQuayPirogues} selectedQuayAlerts={selectedQuayAlerts} tableRows={tableRows} mapStats={{ quays: visibleQuays.length, landings: filteredLandings.length, pirogues: filteredPirogues.length, alerts: filteredAlerts.length, species: declaredSpecies.size }} /> : null}
       {activeModule === "community" ? <CommunityModule /> : null}
       {activeModule === "tracking" ? <TrackingModule /> : null}
     </section>
   </main>;
 }
 
-function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, mapType, setMapType, level, setLevel, species, setSpecies, resetFilters, visibleQuays, visiblePirogues, visibleAlerts, selected, setSelected, selectedQuay, selectedPirogue, selectedQuayLandings, selectedQuayPirogues, selectedQuayAlerts, tableRows, mapStats }: {
+function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, mapType, setMapType, level, setLevel, species, setSpecies, resetFilters, visibleQuays, visiblePirogues, visibleAlerts, filteredLandings, selected, setSelected, selectedQuay, selectedPirogue, selectedQuayLandings, selectedQuayPirogues, selectedQuayAlerts, tableRows, mapStats }: {
   search: string;
   setSearch: (value: string) => void;
   region: RegionFilter;
@@ -197,6 +198,7 @@ function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, ma
   visibleQuays: typeof quays;
   visiblePirogues: typeof pirogues;
   visibleAlerts: typeof mapAlerts;
+  filteredLandings: typeof landings;
   selected: SelectedItem;
   setSelected: (value: SelectedItem) => void;
   selectedQuay: typeof quays[number];
@@ -207,22 +209,40 @@ function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, ma
   tableRows: Array<{ quay: typeof quays[number]; landings: typeof landings; pirogues: typeof pirogues; alerts: typeof mapAlerts }>;
   mapStats: { quays: number; landings: number; pirogues: number; alerts: number; species: number };
 }) {
+  const [mapView, setMapView] = useState<MapViewMode>("quays");
+
+  function chooseQuayView() {
+    setMapView("quays");
+    if (mapType === "Pirogues") setMapType("Tous");
+    setSelected(null);
+  }
+
+  function choosePirogueView() {
+    setMapView("pirogues");
+    setMapType("Pirogues");
+    setSelected(null);
+  }
+
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="Carte & supervision" title="Voir la filière sur une carte" description="Filtrer les régions, quais, pirogues, débarquements, espèces et alertes. Le détail s'affiche uniquement après sélection d'un point sur la carte." />
+    <SectionHeader eyebrow="Carte & supervision" title="Voir la filière sur une carte" description="Vue quais pour lire l'activité des points de débarquement. Vue pirogues pour suivre les immatriculations, positions simulées et déclarations." />
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><StatCard label="Quais affichés" value={String(mapStats.quays)} detail="Selon les filtres actifs." /><StatCard label="Débarquements du jour" value={String(mapStats.landings)} detail="Déclarations consultables." /><StatCard label="Pirogues actives" value={String(mapStats.pirogues)} detail="Immatriculations visibles." /><StatCard label="Alertes en cours" value={String(mapStats.alerts)} detail="Alertes à vérifier." /><StatCard label="Espèces déclarées" value={String(mapStats.species)} detail="Espèces présentes dans les débarquements." /></div>
     <ShellCard>
+      <div className="mb-4 grid gap-3 md:grid-cols-2">
+        <button onClick={chooseQuayView} className={`rounded-2xl border p-4 text-left transition ${mapView === "quays" ? "border-cyan-700 bg-cyan-800 text-white" : "border-cyan-100 bg-cyan-50 text-cyan-950"}`}><p className="text-base font-black">Vue quais</p><p className="mt-1 text-xs font-bold opacity-85">Quais, espèces, volumes et débarquements par quai.</p></button>
+        <button onClick={choosePirogueView} className={`rounded-2xl border p-4 text-left transition ${mapView === "pirogues" ? "border-cyan-700 bg-cyan-800 text-white" : "border-cyan-100 bg-cyan-50 text-cyan-950"}`}><p className="text-base font-black">Vue pirogues</p><p className="mt-1 text-xs font-bold opacity-85">Immatriculations, positions simulées, trajectoires et déclarations.</p></button>
+      </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
         <Field label="Recherche"><input value={search} onChange={(event) => setSearch(event.target.value)} className={inputClass} placeholder="Rechercher un quai ou une pirogue" /></Field>
         <Field label="Région"><select value={region} onChange={(event) => setRegion(event.target.value as RegionFilter)} className={selectClass}><option>{allRegions}</option>{regions.map((item) => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Quai"><select value={quayId} onChange={(event) => setQuayId(event.target.value)} className={selectClass}><option value={allQuays}>Tous</option>{quays.map((quay) => <option key={quay.id} value={quay.id}>{quay.name}</option>)}</select></Field>
-        <Field label="Type"><select value={mapType} onChange={(event) => setMapType(event.target.value as MapItemType)} className={selectClass}>{mapTypes.map((item) => <option key={item}>{item}</option>)}</select></Field>
+        <Field label="Type"><select value={mapType} onChange={(event) => { const next = event.target.value as MapItemType; setMapType(next); if (next === "Pirogues") setMapView("pirogues"); if (next === "Quais" || next === "Débarquements" || next === "Espèces") setMapView("quays"); }} className={selectClass}>{mapTypes.map((item) => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Niveau"><select value={level} onChange={(event) => setLevel(event.target.value as LevelFilter)} className={selectClass}>{levelOptions.map((item) => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Espèce"><select value={species} onChange={(event) => setSpecies(event.target.value)} className={selectClass}><option>{allSpecies}</option>{speciesOptions.map((item) => <option key={item}>{item}</option>)}</select></Field>
         <div className="flex items-end"><button onClick={resetFilters} className={`${secondaryButton} w-full`}>Réinitialiser</button></div>
       </div>
     </ShellCard>
     <div className="grid min-w-0 gap-5">
-      <MinistryMap quays={visibleQuays} pirogues={visiblePirogues} alerts={visibleAlerts} selectedId={selected?.id ?? ""} selectedKind={selected?.kind ?? "quay"} onSelectQuay={(id) => setSelected({ kind: "quay", id })} onSelectPirogue={(id) => setSelected({ kind: "pirogue", id })} />
+      <MinistryMap viewMode={mapView} quays={visibleQuays} pirogues={visiblePirogues} alerts={visibleAlerts} landings={filteredLandings} selectedId={selected?.id ?? ""} selectedKind={selected?.kind ?? "quay"} onSelectQuay={(id) => setSelected({ kind: "quay", id })} onSelectPirogue={(id) => setSelected({ kind: "pirogue", id })} />
       {selected ? <div className="grid gap-3 rounded-3xl border border-cyan-100 bg-white p-4 shadow-[0_18px_48px_rgba(8,145,178,0.10)]">
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Détail sélectionné</p>
