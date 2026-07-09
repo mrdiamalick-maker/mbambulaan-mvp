@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   communityNeeds,
@@ -23,12 +22,12 @@ import {
   type ModuleId,
   type Region
 } from "@/data/ministryControlTowerData";
+import { ProductShell } from "./ProductShell";
 import {
   Badge,
   CompactQuayTable,
   Field,
   MinistryMap,
-  ModuleTabs,
   PirogueDetail,
   QuayDetail,
   SectionHeader,
@@ -127,6 +126,12 @@ export function MinistryControlTower() {
     alerts: filteredAlerts.filter((alert) => alert.quayId === quay.id)
   }));
 
+  const shellKpis = [
+    { label: "Quais", value: String(quays.length), detail: "Littoral pilote suivi" },
+    { label: "Débarquements", value: String(landings.length), detail: "Déclarations récentes" },
+    { label: "Alertes", value: String(mapAlerts.length), detail: "Situations à vérifier" }
+  ];
+
   function resetFilters() {
     setSearch("");
     setRegion(allRegions);
@@ -137,46 +142,11 @@ export function MinistryControlTower() {
     setSelected(null);
   }
 
-  return <main className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f5f8fa_0%,#eef4f6_42%,#f8f2e7_100%)] text-slate-950">
-    <header className="border-b border-slate-200/80 bg-white/94 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-[96rem] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="grid h-11 w-11 place-items-center rounded-2xl bg-[#0b3142] text-sm font-black text-white shadow-sm">Mb</Link>
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Ministère des Pêches</p>
-            <h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Console opérationnelle pêche artisanale</h1>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button className={primaryButton}>Créer une alerte</button>
-          <button className={secondaryButton}>Exporter la synthèse</button>
-          <Link href="/espace-prive" className={secondaryButton}>Retour accès</Link>
-        </div>
-      </div>
-    </header>
-
-    <section className="mx-auto grid w-full max-w-[96rem] gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <section className="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
-        <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
-          <div>
-            <Badge>Premium Maritime Operations Console</Badge>
-            <h2 className="mt-4 max-w-5xl text-4xl font-black tracking-[-0.04em] text-slate-950 sm:text-5xl">Superviser la journée, agir sur le terrain, suivre les décisions.</h2>
-            <p className="mt-4 max-w-3xl text-base font-semibold leading-7 text-slate-600">Une interface métier pour localiser les quais, suivre les pirogues, consulter les débarquements, prioriser les alertes et organiser les programmes terrain.</p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Situation simulée</p>
-            <p className="mt-2 text-3xl font-black text-slate-950">{quays.length} quais suivis</p>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{landings.length} débarquements récents · {mapAlerts.length} alertes ouvertes · {pirogues.length} pirogues visibles.</p>
-          </div>
-        </div>
-        <div className="border-t border-slate-100 bg-slate-50/65 p-4 sm:p-5"><ModuleTabs active={activeModule} onChange={setActiveModule} /></div>
-      </section>
-
-      {activeModule === "map" ? <MapModule search={search} setSearch={setSearch} region={region} setRegion={setRegion} quayId={quayId} setQuayId={setQuayId} mapType={mapType} setMapType={setMapType} level={level} setLevel={setLevel} species={species} setSpecies={setSpecies} resetFilters={resetFilters} visibleQuays={visibleQuays} visiblePirogues={visiblePirogues} visibleAlerts={visibleAlerts} filteredLandings={filteredLandings} selected={selected} setSelected={setSelected} selectedQuay={selectedQuay} selectedPirogue={selectedPirogue} selectedPirogueLandings={selectedPirogueLandings} selectedQuayLandings={selectedQuayLandings} selectedQuayPirogues={selectedQuayPirogues} selectedQuayAlerts={selectedQuayAlerts} tableRows={tableRows} mapStats={{ quays: visibleQuays.length, landings: filteredLandings.length, pirogues: filteredPirogues.length, alerts: filteredAlerts.length, species: declaredSpecies.size }} /> : null}
-      {activeModule === "community" ? <CommunityModule /> : null}
-      {activeModule === "tracking" ? <TrackingModule /> : null}
-    </section>
-  </main>;
+  return <ProductShell activeModule={activeModule} onModuleChange={setActiveModule} kpis={shellKpis}>
+    {activeModule === "map" ? <MapModule search={search} setSearch={setSearch} region={region} setRegion={setRegion} quayId={quayId} setQuayId={setQuayId} mapType={mapType} setMapType={setMapType} level={level} setLevel={setLevel} species={species} setSpecies={setSpecies} resetFilters={resetFilters} visibleQuays={visibleQuays} visiblePirogues={visiblePirogues} visibleAlerts={visibleAlerts} filteredLandings={filteredLandings} selected={selected} setSelected={setSelected} selectedQuay={selectedQuay} selectedPirogue={selectedPirogue} selectedPirogueLandings={selectedPirogueLandings} selectedQuayLandings={selectedQuayLandings} selectedQuayPirogues={selectedQuayPirogues} selectedQuayAlerts={selectedQuayAlerts} tableRows={tableRows} mapStats={{ quays: visibleQuays.length, landings: filteredLandings.length, pirogues: filteredPirogues.length, alerts: filteredAlerts.length, species: declaredSpecies.size }} /> : null}
+    {activeModule === "community" ? <CommunityModule /> : null}
+    {activeModule === "tracking" ? <TrackingModule /> : null}
+  </ProductShell>;
 }
 
 function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, mapType, setMapType, level, setLevel, species, setSpecies, resetFilters, visibleQuays, visiblePirogues, visibleAlerts, filteredLandings, selected, setSelected, selectedQuay, selectedPirogue, selectedPirogueLandings, selectedQuayLandings, selectedQuayPirogues, selectedQuayAlerts, tableRows, mapStats }: {
@@ -223,7 +193,7 @@ function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, ma
   }
 
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="Carte & supervision" title="Lire la filière sur le littoral" description="La carte distingue ce qui est à terre, les quais, et ce qui est en mer, les pirogues. Les débarquements sont visibles dans les deux lectures métier." />
+    <SectionHeader eyebrow="Cartographie high-level" title="Lire la filière sur le littoral" description="Vue quais pour comprendre l’activité à terre. Vue pirogues pour suivre les immatriculations et les déclarations en mer. La carte reste prête pour une future intégration Leaflet ou MapLibre." />
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><StatCard label="Quais affichés" value={String(mapStats.quays)} detail="Selon les filtres actifs." /><StatCard label="Débarquements" value={String(mapStats.landings)} detail="Déclarations consultables." /><StatCard label="Pirogues actives" value={String(mapStats.pirogues)} detail="Immatriculations visibles." /><StatCard label="Alertes" value={String(mapStats.alerts)} detail="Situations à vérifier." /><StatCard label="Espèces" value={String(mapStats.species)} detail="Espèces déclarées." /></div>
     <ShellCard className="bg-white/92">
       <div className="grid gap-4 xl:grid-cols-[22rem_minmax(0,1fr)] xl:items-end">
@@ -259,15 +229,15 @@ function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, ma
 function CommunityModule() {
   const urgentNeeds = [...communityNeeds].sort((a, b) => Number(b.urgency === "urgent") - Number(a.urgency === "urgent"));
   const pipeline = [
-    { label: "Besoin remonté", count: communityNeeds.length, detail: "Demandes terrain à qualifier" },
-    { label: "Qualification", count: communityNeeds.filter((need) => need.status.includes("documenter") || need.status.includes("cadrer")).length + 1, detail: "Informations à compléter" },
-    { label: "Programme", count: communityProjects.length, detail: "Dossiers en préparation" },
-    { label: "Partenaire", count: partners.length, detail: "Acteurs mobilisables" },
-    { label: "Action", count: communityProjects.filter((project) => project.status === "Documenté" || project.status === "Prioritaire").length, detail: "Décisions prêtes" }
+    { label: "Besoin terrain", count: communityNeeds.length, detail: "Signal remonté" },
+    { label: "Qualification", count: communityNeeds.filter((need) => need.status.includes("documenter") || need.status.includes("cadrer")).length + 1, detail: "Priorité établie" },
+    { label: "Programme", count: communityProjects.length, detail: "Réponse structurée" },
+    { label: "Partenaire", count: partners.length, detail: "Ressource mobilisable" },
+    { label: "Action", count: communityProjects.filter((project) => project.status === "Documenté" || project.status === "Prioritaire").length, detail: "Suivi impact" }
   ];
 
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="Communautés & programmes" title="Transformer les besoins terrain en actions" description="Un besoin est qualifié, relié à un programme, rapproché d'un partenaire puis suivi jusqu'à la décision." />
+    <SectionHeader eyebrow="Valorisation communautaire" title="Transformer les besoins terrain en programmes suivis" description="Le module relie besoin, qualification, programme, partenaire, action et suivi d’impact sans créer une marketplace." />
     <div className="grid gap-6 xl:grid-cols-[22rem_minmax(0,1fr)_23rem]">
       <ShellCard>
         <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Priorités terrain</p>
@@ -283,8 +253,8 @@ function CommunityModule() {
 
       <div className="grid gap-6">
         <ShellCard>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Workflow opérationnel</p>
-          <h3 className="mt-2 text-2xl font-black text-slate-950">Du besoin à l'action</h3>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Workflow de valorisation</p>
+          <h3 className="mt-2 text-2xl font-black text-slate-950">Du besoin à l’action</h3>
           <div className="mt-5 grid gap-3 md:grid-cols-5">
             {pipeline.map((step, index) => <div key={step.label} className="relative rounded-xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-3xl font-black text-slate-950">{step.count}</p>
@@ -346,7 +316,7 @@ function TrackingModule() {
   const urgentActions = pendingActions.filter((action) => action.level !== "normal");
 
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="Indicateurs & suivi" title="Suivre la journée et traiter les priorités" description="Un poste de suivi quotidien : situation du jour, volumes, alertes prioritaires, actions en retard et synthèse opérationnelle." />
+    <SectionHeader eyebrow="Pilotage high-level" title="Suivre la journée et préparer l’export" description="KPI, alertes, volumes, actions, synthèse et export sont regroupés dans un poste de pilotage lisible." />
     <ShellCard className="border-[#0b3142] bg-[#0b3142] text-white">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-end">
         <div>
@@ -362,8 +332,8 @@ function TrackingModule() {
 
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]">
       <ShellCard>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Activité pêche</p>
-        <h3 className="mt-2 text-2xl font-black text-slate-950">Volumes par quai</h3>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Volumes par quai</p>
+        <h3 className="mt-2 text-2xl font-black text-slate-950">Activité de pêche</h3>
         <div className="mt-5 grid gap-4">
           {quays.map((quay) => <div key={quay.id} className="grid gap-2">
             <div className="flex items-center justify-between gap-3 text-sm font-black"><span>{quay.name}</span><span>{quay.volumeTons} t · {quay.landingsToday} débarq.</span></div>
@@ -374,7 +344,7 @@ function TrackingModule() {
 
       <div className="grid gap-6">
         <ShellCard className="border-rose-200 bg-rose-50/70">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-rose-700">À traiter maintenant</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-rose-700">Alertes prioritaires</p>
           <h3 className="mt-2 text-2xl font-black text-slate-950">{urgentAlerts.length} alerte urgente</h3>
           <div className="mt-4 grid gap-3">
             {[...urgentAlerts, ...watchAlerts].slice(0, 4).map((alert) => <article key={alert.id} className="rounded-xl border border-white bg-white p-3">
