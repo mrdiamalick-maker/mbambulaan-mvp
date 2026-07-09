@@ -29,14 +29,11 @@ import {
   Field,
   MinistryMap,
   ModuleTabs,
-  NeedCard,
   PirogueDetail,
-  ProjectCard,
   QuayDetail,
   SectionHeader,
   ShellCard,
   StatCard,
-  TrainingCard,
   inputClass,
   primaryButton,
   secondaryButton,
@@ -256,35 +253,168 @@ function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, ma
 }
 
 function CommunityModule() {
+  const urgentNeeds = [...communityNeeds].sort((a, b) => Number(b.urgency === "urgent") - Number(a.urgency === "urgent"));
+  const pipeline = [
+    { label: "Besoin remonté", count: communityNeeds.length, detail: "Demandes terrain à qualifier" },
+    { label: "À documenter", count: communityNeeds.filter((need) => need.status.includes("documenter") || need.status.includes("cadrer")).length + 1, detail: "Informations à compléter" },
+    { label: "À financer", count: communityProjects.filter((project) => project.status.includes("cadrer") || project.status.includes("compléter")).length, detail: "Dossiers à présenter" },
+    { label: "Planifié", count: trainingPrograms.filter((program) => program.status.includes("planifier") || program.status.includes("confirmer")).length, detail: "Formations à caler" },
+    { label: "En cours", count: communityProjects.filter((project) => project.status === "Documenté" || project.status === "Prioritaire").length, detail: "Actions prêtes" }
+  ];
+
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="Communautés & programmes" title="Voir les besoins terrain et organiser les actions" description="Cette section est séparée de la carte. Elle sert à suivre les besoins, projets, formations et partenaires liés aux communautés." />
-    <ShellCard><SectionHeader eyebrow="Besoins terrain" title="Demandes remontées par les quais et communautés" description="Chaque besoin indique les acteurs concernés, l'urgence, le statut et la prochaine action." /><div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{communityNeeds.map((need) => <NeedCard key={need.id} need={need} />)}</div></ShellCard>
-    <ShellCard><SectionHeader eyebrow="Projets communautaires" title="Actions à préparer ou à financer" description="Les projets sont décrits avec territoire, porteur, bénéficiaires, budget estimé, statut et partenaire cible." /><div className="grid gap-4 lg:grid-cols-2">{communityProjects.map((project) => <ProjectCard key={project.id} project={project} />)}</div></ShellCard>
-    <ShellCard><SectionHeader eyebrow="Formations & sensibilisation" title="Programmes utiles pour les acteurs terrain" description="Sécurité en mer, hygiène, chaîne de froid, traçabilité, métiers bleus, pêche durable et référents communautaires." /><div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{trainingPrograms.map((program) => <TrainingCard key={program.id} program={program} />)}</div></ShellCard>
-    <ShellCard><SectionHeader eyebrow="Partenaires" title="Organisations mobilisables" description="ONG, collectivités, bailleurs, entreprises privées, programmes publics et organisations professionnelles." /><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">{partners.map((partner) => <article key={partner.id} className="rounded-2xl border border-cyan-100 bg-cyan-50/50 p-4"><p className="text-base font-black text-cyan-950">{partner.name}</p><p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-cyan-700">{partner.family}</p><p className="mt-3 text-sm font-bold leading-6 text-slate-600">{partner.usefulFor}</p><p className="mt-3 text-xs font-black text-slate-500">{partner.territory}</p></article>)}</div></ShellCard>
+    <SectionHeader eyebrow="Communautés & programmes" title="Transformer les besoins terrain en actions" description="Un besoin remonte du terrain, il est qualifié, transformé en programme, relié à un partenaire puis suivi jusqu'à l'action." />
+    <div className="grid gap-6 xl:grid-cols-[22rem_minmax(0,1fr)_23rem]">
+      <ShellCard className="bg-gradient-to-b from-white to-amber-50/50">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-700">Priorités terrain</p>
+        <h3 className="mt-2 text-2xl font-black text-slate-950">Besoins à traiter</h3>
+        <div className="mt-5 grid gap-3">
+          {urgentNeeds.slice(0, 5).map((need) => <article key={need.id} className="rounded-2xl border border-amber-100 bg-white p-4">
+            <div className="flex items-start justify-between gap-3"><h4 className="text-base font-black text-slate-950">{need.need}</h4><Badge level={need.urgency} /></div>
+            <p className="mt-2 text-sm font-bold text-slate-600">{need.place} · {need.actors}</p>
+            <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-950">Prochaine action : {need.nextAction}</p>
+          </article>)}
+        </div>
+      </ShellCard>
+
+      <div className="grid gap-6">
+        <ShellCard>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Pipeline programmes</p>
+          <h3 className="mt-2 text-2xl font-black text-slate-950">Du besoin à l'action</h3>
+          <div className="mt-5 grid gap-3 md:grid-cols-5">
+            {pipeline.map((step, index) => <div key={step.label} className="relative rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+              <p className="text-3xl font-black text-cyan-950">{step.count}</p>
+              <p className="mt-2 text-sm font-black text-slate-950">{step.label}</p>
+              <p className="mt-1 text-xs font-bold leading-5 text-slate-500">{step.detail}</p>
+              {index < pipeline.length - 1 ? <span className="absolute -right-2 top-1/2 hidden h-4 w-4 -translate-y-1/2 rotate-45 border-r border-t border-cyan-200 bg-cyan-50 md:block" /> : null}
+            </div>)}
+          </div>
+        </ShellCard>
+
+        <ShellCard>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div><p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Programmes actifs</p><h3 className="mt-2 text-2xl font-black text-slate-950">Actions à préparer</h3></div>
+            <button className={primaryButton}>Préparer une fiche programme</button>
+          </div>
+          <div className="mt-5 grid gap-3 lg:grid-cols-2">
+            {communityProjects.map((project) => <article key={project.id} className="rounded-2xl border border-cyan-100 bg-white p-4">
+              <div className="flex items-start justify-between gap-3"><h4 className="text-lg font-black text-slate-950">{project.project}</h4><span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-900">{project.status}</span></div>
+              <div className="mt-3 grid gap-2 text-sm font-bold text-slate-700">
+                <DataPair label="Territoire" value={project.territory} />
+                <DataPair label="Porteur" value={project.owner} />
+                <DataPair label="Budget" value={project.estimatedBudget} />
+                <DataPair label="Partenaire cible" value={project.targetPartner} />
+              </div>
+            </article>)}
+          </div>
+        </ShellCard>
+      </div>
+
+      <div className="grid gap-6">
+        <ShellCard className="bg-gradient-to-br from-cyan-950 to-emerald-800 text-white">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Prochaine décision</p>
+          <h3 className="mt-2 text-2xl font-black">Prioriser les besoins sécurité et froid</h3>
+          <p className="mt-3 text-sm font-bold leading-6 text-cyan-50">Les besoins urgents à Saint-Louis, Kayar et Mbour doivent être transformés en notes courtes avec partenaire cible.</p>
+          <div className="mt-5 grid gap-2">
+            <button className="rounded-full bg-white px-4 py-3 text-sm font-black text-cyan-950">Créer une note d'action</button>
+            <button className="rounded-full border border-white/25 px-4 py-3 text-sm font-black text-white">Voir les besoins urgents</button>
+          </div>
+        </ShellCard>
+        <ShellCard>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Partenaires mobilisables</p>
+          <div className="mt-4 grid gap-3">
+            {partners.slice(0, 5).map((partner) => <article key={partner.id} className="rounded-2xl border border-cyan-100 bg-cyan-50/50 p-3">
+              <p className="text-sm font-black text-cyan-950">{partner.name}</p>
+              <p className="mt-1 text-xs font-bold leading-5 text-slate-600">{partner.usefulFor}</p>
+            </article>)}
+          </div>
+        </ShellCard>
+      </div>
+    </div>
   </section>;
 }
 
 function TrackingModule() {
-  const volumeByQuay = quays.slice(0, 6);
-  const maxVolume = Math.max(...volumeByQuay.map((quay) => quay.volumeTons));
-  const projectStatuses = ["Prioritaire", "À cadrer", "Documenté", "À compléter"];
+  const totalVolume = quays.reduce((total, quay) => total + quay.volumeTons, 0);
+  const urgentAlerts = mapAlerts.filter((alert) => alert.level === "urgent");
+  const watchAlerts = mapAlerts.filter((alert) => alert.level === "surveillance");
+  const maxVolume = Math.max(...quays.map((quay) => quay.volumeTons));
+  const urgentActions = pendingActions.filter((action) => action.level !== "normal");
+
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="Indicateurs & suivi" title="Suivre les chiffres clés et l'avancement" description="Chaque indicateur est relié à une action ou à un détail opérationnel. L'objectif est de suivre la journée, pas de décorer la page." />
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">{dashboardMetrics.map((metric) => <StatCard key={metric.id} label={metric.label} value={metric.value} detail={metric.detail} action={metric.action} />)}</div>
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-      <ShellCard><SectionHeader eyebrow="Activité de pêche" title="Volumes par quai" description="Lecture simple des volumes déclarés aujourd'hui." /><div className="grid gap-3">{volumeByQuay.map((quay) => <div key={quay.id} className="grid gap-2"><div className="flex justify-between text-sm font-black"><span>{quay.name}</span><span>{quay.volumeTons} t</span></div><div className="h-3 overflow-hidden rounded-full bg-cyan-50"><div className="h-full rounded-full bg-gradient-to-r from-cyan-700 to-emerald-500" style={{ width: `${Math.round((quay.volumeTons / maxVolume) * 100)}%` }} /></div></div>)}</div></ShellCard>
-      <ShellCard><SectionHeader eyebrow="Alertes" title="Répartition par niveau" description="Les alertes urgentes doivent déclencher une vérification terrain." /><div className="grid gap-3"><StatusLine label="Urgent" value={mapAlerts.filter((alert) => alert.level === "urgent").length} level="urgent" /><StatusLine label="À surveiller" value={mapAlerts.filter((alert) => alert.level === "surveillance").length} level="surveillance" /><StatusLine label="Normal" value={mapAlerts.filter((alert) => alert.level === "normal").length} level="normal" /></div></ShellCard>
+    <SectionHeader eyebrow="Indicateurs & suivi" title="Suivre la journée et traiter les priorités" description="Cette page sert à savoir ce qui se passe, ce qui bloque et ce qu'il faut reprendre maintenant." />
+    <ShellCard className="bg-gradient-to-br from-cyan-950 via-cyan-800 to-emerald-700 text-white">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-end">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Situation du jour</p>
+          <h3 className="mt-3 text-4xl font-black tracking-tight">{landings.length} débarquements déclarés · {totalVolume.toFixed(1)} tonnes suivies</h3>
+          <p className="mt-3 max-w-3xl text-sm font-bold leading-6 text-cyan-50">Les volumes sont concentrés sur Mbour, Joal et Kayar. Les alertes urgentes restent liées à Saint-Louis et à la validation de certaines déclarations.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+          {dashboardMetrics.slice(2, 5).map((metric) => <div key={metric.id} className="rounded-2xl bg-white/12 p-4 backdrop-blur"><p className="text-xs font-black uppercase tracking-[0.12em] text-cyan-100">{metric.label}</p><p className="mt-1 text-2xl font-black">{metric.value}</p><p className="mt-1 text-xs font-bold text-cyan-50">{metric.action}</p></div>)}
+        </div>
+      </div>
+    </ShellCard>
+
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]">
+      <ShellCard>
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Activité pêche</p>
+        <h3 className="mt-2 text-2xl font-black text-slate-950">Volumes par quai</h3>
+        <div className="mt-5 grid gap-4">
+          {quays.map((quay) => <div key={quay.id} className="grid gap-2">
+            <div className="flex items-center justify-between gap-3 text-sm font-black"><span>{quay.name}</span><span>{quay.volumeTons} t · {quay.landingsToday} débarq.</span></div>
+            <div className="h-4 overflow-hidden rounded-full bg-cyan-50"><div className="h-full rounded-full bg-gradient-to-r from-cyan-700 to-emerald-500" style={{ width: `${Math.round((quay.volumeTons / maxVolume) * 100)}%` }} /></div>
+          </div>)}
+        </div>
+      </ShellCard>
+
+      <div className="grid gap-6">
+        <ShellCard className="border-rose-100 bg-rose-50/50">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-rose-700">À traiter maintenant</p>
+          <h3 className="mt-2 text-2xl font-black text-slate-950">{urgentAlerts.length} alerte urgente</h3>
+          <div className="mt-4 grid gap-3">
+            {[...urgentAlerts, ...watchAlerts].slice(0, 4).map((alert) => <article key={alert.id} className="rounded-2xl border border-white bg-white p-3">
+              <div className="flex items-start justify-between gap-3"><p className="text-sm font-black text-slate-950">{alert.title}</p><Badge level={alert.level} /></div>
+              <p className="mt-2 text-xs font-bold leading-5 text-slate-600">{alert.nextAction}</p>
+            </article>)}
+          </div>
+        </ShellCard>
+        <ShellCard>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Actions en retard</p>
+          <div className="mt-4 grid gap-3">
+            {urgentActions.map((action) => <article key={action.id} className="rounded-2xl border border-cyan-100 bg-white p-3">
+              <div className="flex items-start justify-between gap-3"><p className="text-sm font-black text-slate-950">{action.action}</p><Badge level={action.level} /></div>
+              <p className="mt-2 text-xs font-bold text-slate-500">{action.owner} · {action.dueDate}</p>
+            </article>)}
+          </div>
+        </ShellCard>
+      </div>
     </div>
+
     <div className="grid gap-6 xl:grid-cols-2">
-      <ShellCard><SectionHeader eyebrow="Besoins & projets" title="Statut des projets communautaires" description="Suivi rapide des projets à préparer, prioriser ou compléter." /><div className="grid gap-3">{projectStatuses.map((status) => <div key={status} className="flex items-center justify-between rounded-2xl border border-cyan-100 bg-white p-3"><span className="text-sm font-black text-slate-800">{status}</span><span className="rounded-full bg-cyan-50 px-3 py-1 text-sm font-black text-cyan-900">{communityProjects.filter((project) => project.status === status).length}</span></div>)}</div></ShellCard>
-      <ShellCard><SectionHeader eyebrow="Formations & campagnes" title="Planning des prochaines sessions" description="Sessions à planifier ou confirmer avec les partenaires." /><div className="grid gap-3">{trainingPrograms.slice(0, 5).map((program) => <div key={program.id} className="rounded-2xl border border-cyan-100 bg-white p-3"><p className="text-sm font-black text-slate-950">{program.title}</p><p className="mt-1 text-xs font-bold text-slate-500">{program.region} · {program.period} · {program.expectedParticipants} participants</p></div>)}</div></ShellCard>
+      <ShellCard>
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Débarquements récents</p>
+        <div className="mt-4 grid gap-3">
+          {landings.map((landing) => {
+            const quay = getQuayById(landing.quayId);
+            return <article key={landing.id} className="grid gap-3 rounded-2xl border border-cyan-100 bg-white p-4 sm:grid-cols-[7rem_minmax(0,1fr)_7rem] sm:items-center">
+              <p className="text-lg font-black text-cyan-900">{landing.time}</p>
+              <div><p className="font-black text-slate-950">{quay.name}</p><p className="text-sm font-bold text-slate-500">{landing.species.join(", ")}</p></div>
+              <p className="text-right text-sm font-black text-slate-700">{landing.volumeTons} t</p>
+            </article>;
+          })}
+        </div>
+      </ShellCard>
+      <ShellCard>
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">Synthèse opérationnelle</p>
+        <div className="mt-4 grid gap-3">
+          {["Confirmer le retour de SL-PI-1188 avant fin de journée.", "Prioriser la panne froid de Mbour avant extension aux mareyeurs.", "Préparer une fiche courte sur le besoin de glace Joal / Mbour.", "Vérifier les débarquements incomplets avant export de synthèse."].map((item) => <div key={item} className="rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4 text-sm font-black leading-6 text-cyan-950">{item}</div>)}
+        </div>
+      </ShellCard>
     </div>
-    <ShellCard><SectionHeader eyebrow="Actions en attente" title="Actions à reprendre cette semaine" description="Liste courte pour que l'agent sache quoi traiter après consultation." /><div className="grid gap-3 lg:grid-cols-2">{pendingActions.map((action) => <article key={action.id} className="rounded-2xl border border-cyan-100 bg-white p-4"><div className="flex items-start justify-between gap-3"><h3 className="text-base font-black text-slate-950">{action.action}</h3><Badge level={action.level} /></div><p className="mt-2 text-sm font-bold text-slate-600">{action.owner} · {action.territory}</p><p className="mt-3 text-xs font-black text-cyan-800">Échéance : {action.dueDate} · {action.status}</p></article>)}</div></ShellCard>
-    <ShellCard className="bg-slate-50"><p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Aide à la synthèse - bientôt</p><p className="mt-2 text-sm font-bold leading-6 text-slate-600">L'assistance IA n'est pas au centre de cette V1. Elle pourra plus tard aider à préparer une synthèse, toujours avec validation humaine.</p></ShellCard>
   </section>;
 }
 
-function StatusLine({ label, value, level }: { label: string; value: number; level: Level }) {
-  return <div className="flex items-center justify-between rounded-2xl border border-cyan-100 bg-white p-3"><span className="text-sm font-black text-slate-800">{label}</span><Badge level={level}>{String(value)}</Badge></div>;
+function DataPair({ label, value }: { label: string; value: string }) {
+  return <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-1.5 last:border-b-0"><span className="text-slate-500">{label}</span><span className="max-w-[65%] text-right text-slate-900">{value}</span></div>;
 }
