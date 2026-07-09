@@ -160,12 +160,12 @@ export function MinistryMap({ viewMode, quays, pirogues, alerts, landings, selec
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_22%,rgba(125,211,252,0.18),transparent_30%),radial-gradient(circle_at_70%_72%,rgba(45,212,191,0.14),transparent_30%)]" />
 
     <div className="absolute left-4 right-4 top-4 z-40 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-      <div className="max-w-2xl rounded-2xl border border-white/15 bg-slate-950/58 p-4 backdrop-blur-md">
+      <div className="max-w-2xl rounded-2xl border border-white/15 bg-slate-950/60 p-4 backdrop-blur-md">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">{viewMode === "quays" ? "Vue quais" : "Vue pirogues"}</p>
         <h3 className="mt-1 text-xl font-black tracking-tight text-white">{viewMode === "quays" ? "Activité à terre et débarquements" : "Pirogues en mer et trajectoires déclarées"}</h3>
         <p className="mt-2 text-xs font-semibold leading-5 text-slate-300">Prototype cartographique sans dépendance payante. Les données conservent lat/lng et coordonnées visuelles pour une future intégration Leaflet ou MapLibre.</p>
       </div>
-      <div className="flex flex-wrap items-start gap-2 rounded-2xl border border-white/15 bg-slate-950/45 p-3 backdrop-blur-md lg:justify-end">
+      <div className="flex flex-wrap items-start gap-2 rounded-2xl border border-white/15 bg-slate-950/50 p-3 backdrop-blur-md lg:justify-end">
         <MapChip active>Quais</MapChip>
         <MapChip active={viewMode === "pirogues"}>Pirogues</MapChip>
         <MapChip active={landings.length > 0}>Débarquements</MapChip>
@@ -180,7 +180,7 @@ export function MinistryMap({ viewMode, quays, pirogues, alerts, landings, selec
       <MapStat label="Alertes" value={String(alerts.length)} />
     </div>
 
-    <div className="absolute right-4 top-[9.2rem] z-40 hidden rounded-2xl border border-white/15 bg-slate-950/45 p-3 text-center text-xs font-black backdrop-blur-md sm:block">
+    <div className="absolute right-4 top-[9.2rem] z-40 hidden rounded-2xl border border-white/15 bg-slate-950/50 p-3 text-center text-xs font-black backdrop-blur-md sm:block">
       <p className="text-slate-300">N</p>
       <div className="mx-auto my-1 h-10 w-0.5 bg-white/70" />
       <p className="text-slate-300">S</p>
@@ -189,7 +189,7 @@ export function MinistryMap({ viewMode, quays, pirogues, alerts, landings, selec
     {alerts.map((alert) => {
       const quay = quays.find((item) => item.id === alert.quayId);
       if (!quay) return null;
-      return <button key={alert.id} onClick={() => onSelectQuay(quay.id)} className={`absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border transition hover:scale-105 ${alert.level === "urgent" ? "border-rose-100 bg-rose-500/22 shadow-[0_0_42px_rgba(244,63,94,.56)]" : "border-amber-100 bg-amber-300/20 shadow-[0_0_34px_rgba(245,158,11,.4)]"}`} style={{ left: `${quay.x}%`, top: `${quay.y}%`, width: 88, height: 88 }} title={alert.title} aria-label={`Alerte ${alert.title}`} />;
+      return <button key={alert.id} onClick={() => onSelectQuay(quay.id)} className={`absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border transition hover:scale-105 ${alert.level === "urgent" ? "border-rose-100 bg-rose-500/25 shadow-[0_0_42px_rgba(244,63,94,.56)]" : "border-amber-100 bg-amber-300/20 shadow-[0_0_34px_rgba(245,158,11,.4)]"}`} style={{ left: `${quay.x}%`, top: `${quay.y}%`, width: 88, height: 88 }} title={alert.title} aria-label={`Alerte ${alert.title}`} />;
     })}
 
     {landings.map((landing, index) => {
@@ -206,10 +206,10 @@ export function MinistryMap({ viewMode, quays, pirogues, alerts, landings, selec
       const quayLandings = landings.filter((landing) => landing.quayId === quay.id);
       const quayVolume = getQuayVolume(quay.id, landings);
       const isSelected = selectedKind === "quay" && selectedId === quay.id;
-      return <button key={quay.id} onClick={() => onSelectQuay(quay.id)} className={`absolute z-40 -translate-x-1/2 -translate-y-1/2 rounded-xl border p-1.5 transition hover:scale-105 ${viewMode === "pirogues" ? "opacity-78" : "opacity-100"} ${isSelected ? "border-white bg-white text-slate-950 shadow-[0_0_0_9px_rgba(226,232,240,.22),0_0_34px_rgba(255,255,255,.65)]" : pointStyles[quay.level]}`} style={{ left: `${quay.x}%`, top: `${quay.y}%` }} aria-label={`Sélectionner ${quay.name}`}>
+      return <button key={quay.id} onClick={() => onSelectQuay(quay.id)} className={`absolute z-40 -translate-x-1/2 -translate-y-1/2 rounded-xl border p-1.5 transition hover:scale-105 ${viewMode === "pirogues" ? "opacity-80" : "opacity-100"} ${isSelected ? "border-white bg-white text-slate-950 shadow-[0_0_0_9px_rgba(226,232,240,.22),0_0_34px_rgba(255,255,255,.65)]" : pointStyles[quay.level]}`} style={{ left: `${quay.x}%`, top: `${quay.y}%` }} aria-label={`Sélectionner ${quay.name}`}>
         <span className="block h-3.5 w-3.5 rounded-md bg-white/95" />
         <span className="absolute left-7 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black text-slate-950 shadow-md shadow-slate-950/10">{quay.name}</span>
-        {viewMode === "quays" ? <span className="absolute left-7 top-8 whitespace-nowrap rounded-xl border border-white/15 bg-slate-950/88 px-2 py-1 text-[10px] font-black text-white shadow-sm">{quayLandings.length} débarq. · {quayVolume.toFixed(1)} t · {quay.activePirogues} pirogues</span> : null}
+        {viewMode === "quays" ? <span className="absolute left-7 top-8 whitespace-nowrap rounded-xl border border-white/15 bg-slate-950/90 px-2 py-1 text-[10px] font-black text-white shadow-sm">{quayLandings.length} débarq. · {quayVolume.toFixed(1)} t · {quay.activePirogues} pirogues</span> : null}
       </button>;
     })}
 
@@ -238,7 +238,7 @@ export function MinistryMap({ viewMode, quays, pirogues, alerts, landings, selec
       <p className="mt-4 text-xs font-bold leading-5 text-slate-600">{selectedPirogue ? selectedPirogue.declaredActivity : selectedQuay.species.join(", ")}</p>
     </div> : null}
 
-    <div className="absolute bottom-4 left-4 right-4 z-50 grid gap-3 rounded-2xl border border-white/15 bg-slate-950/62 p-3 text-xs font-black backdrop-blur-md xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+    <div className="absolute bottom-4 left-4 right-4 z-50 grid gap-3 rounded-2xl border border-white/15 bg-slate-950/65 p-3 text-xs font-black backdrop-blur-md xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
       <div className="flex flex-wrap gap-2">
         <span className="rounded-lg bg-white px-3 py-2 text-slate-950">Quai sur littoral</span>
         {viewMode === "pirogues" ? <span className="rounded-lg bg-sky-100 px-3 py-2 text-sky-950">Pirogue en mer</span> : <span className="rounded-lg bg-sky-100 px-3 py-2 text-sky-950">Débarquement</span>}
