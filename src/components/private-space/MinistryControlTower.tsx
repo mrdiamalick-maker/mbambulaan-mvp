@@ -117,6 +117,7 @@ export function MinistryControlTower() {
   const selectedQuayLandings = filteredLandings.filter((landing) => landing.quayId === selectedQuay.id);
   const selectedQuayPirogues = filteredPirogues.filter((pirogue) => pirogue.quayId === selectedQuay.id);
   const selectedQuayAlerts = filteredAlerts.filter((alert) => alert.quayId === selectedQuay.id);
+  const selectedPirogueLandings = selectedPirogue ? filteredLandings.filter((landing) => landing.pirogueIds.includes(selectedPirogue.id)) : [];
   const declaredSpecies = new Set(filteredLandings.flatMap((landing) => landing.species));
 
   const tableRows = visibleQuays.map((quay) => ({
@@ -136,49 +137,49 @@ export function MinistryControlTower() {
     setSelected(null);
   }
 
-  return <main className="min-h-screen overflow-x-hidden bg-[#eef2f5] text-slate-950">
-    <header className="border-b border-slate-800 bg-[#0b1f33] px-4 py-4 text-white sm:px-6 lg:px-8">
+  return <main className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f5f8fa_0%,#eef4f6_42%,#f8f2e7_100%)] text-slate-950">
+    <header className="border-b border-slate-200/80 bg-white/94 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-[96rem] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/" className="grid h-11 w-11 place-items-center border border-white/20 bg-white/10 text-sm font-black text-white">Mb</Link>
+          <Link href="/" className="grid h-11 w-11 place-items-center rounded-2xl bg-[#0b3142] text-sm font-black text-white shadow-sm">Mb</Link>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Ministère des Pêches</p>
-            <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">Espace opérationnel pêche artisanale</h1>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Ministère des Pêches</p>
+            <h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Console opérationnelle pêche artisanale</h1>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button className="border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white hover:text-slate-950">Créer une alerte</button>
-          <button className="border border-white/20 bg-transparent px-4 py-2.5 text-sm font-black text-white transition hover:bg-white hover:text-slate-950">Exporter la synthèse</button>
-          <Link href="/espace-prive" className="border border-white/20 bg-transparent px-4 py-2.5 text-sm font-black text-white transition hover:bg-white hover:text-slate-950">Retour accès</Link>
+          <button className={primaryButton}>Créer une alerte</button>
+          <button className={secondaryButton}>Exporter la synthèse</button>
+          <Link href="/espace-prive" className={secondaryButton}>Retour accès</Link>
         </div>
       </div>
     </header>
 
     <section className="mx-auto grid w-full max-w-[96rem] gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <ShellCard className="border-slate-300 bg-white">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-end">
+      <section className="overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+        <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
           <div>
-            <Badge>Centre de coordination</Badge>
-            <h2 className="mt-4 max-w-4xl text-4xl font-black tracking-[-0.035em] text-slate-950 sm:text-5xl">Carte, programmes terrain et suivi quotidien de la filière.</h2>
-            <p className="mt-4 max-w-3xl text-base font-semibold leading-7 text-slate-600">Un espace institutionnel pour localiser les quais, suivre les pirogues, lire les débarquements, prioriser les besoins terrain et traiter les alertes.</p>
+            <Badge>Premium Maritime Operations Console</Badge>
+            <h2 className="mt-4 max-w-5xl text-4xl font-black tracking-[-0.04em] text-slate-950 sm:text-5xl">Superviser la journée, agir sur le terrain, suivre les décisions.</h2>
+            <p className="mt-4 max-w-3xl text-base font-semibold leading-7 text-slate-600">Une interface métier pour localiser les quais, suivre les pirogues, consulter les débarquements, prioriser les alertes et organiser les programmes terrain.</p>
           </div>
-          <div className="border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Aujourd'hui</p>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Situation simulée</p>
             <p className="mt-2 text-3xl font-black text-slate-950">{quays.length} quais suivis</p>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">Données simulées pour démonstration. Les décisions restent validées par les services compétents.</p>
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{landings.length} débarquements récents · {mapAlerts.length} alertes ouvertes · {pirogues.length} pirogues visibles.</p>
           </div>
         </div>
-        <div className="mt-6"><ModuleTabs active={activeModule} onChange={setActiveModule} /></div>
-      </ShellCard>
+        <div className="border-t border-slate-100 bg-slate-50/65 p-4 sm:p-5"><ModuleTabs active={activeModule} onChange={setActiveModule} /></div>
+      </section>
 
-      {activeModule === "map" ? <MapModule search={search} setSearch={setSearch} region={region} setRegion={setRegion} quayId={quayId} setQuayId={setQuayId} mapType={mapType} setMapType={setMapType} level={level} setLevel={setLevel} species={species} setSpecies={setSpecies} resetFilters={resetFilters} visibleQuays={visibleQuays} visiblePirogues={visiblePirogues} visibleAlerts={visibleAlerts} filteredLandings={filteredLandings} selected={selected} setSelected={setSelected} selectedQuay={selectedQuay} selectedPirogue={selectedPirogue} selectedQuayLandings={selectedQuayLandings} selectedQuayPirogues={selectedQuayPirogues} selectedQuayAlerts={selectedQuayAlerts} tableRows={tableRows} mapStats={{ quays: visibleQuays.length, landings: filteredLandings.length, pirogues: filteredPirogues.length, alerts: filteredAlerts.length, species: declaredSpecies.size }} /> : null}
+      {activeModule === "map" ? <MapModule search={search} setSearch={setSearch} region={region} setRegion={setRegion} quayId={quayId} setQuayId={setQuayId} mapType={mapType} setMapType={setMapType} level={level} setLevel={setLevel} species={species} setSpecies={setSpecies} resetFilters={resetFilters} visibleQuays={visibleQuays} visiblePirogues={visiblePirogues} visibleAlerts={visibleAlerts} filteredLandings={filteredLandings} selected={selected} setSelected={setSelected} selectedQuay={selectedQuay} selectedPirogue={selectedPirogue} selectedPirogueLandings={selectedPirogueLandings} selectedQuayLandings={selectedQuayLandings} selectedQuayPirogues={selectedQuayPirogues} selectedQuayAlerts={selectedQuayAlerts} tableRows={tableRows} mapStats={{ quays: visibleQuays.length, landings: filteredLandings.length, pirogues: filteredPirogues.length, alerts: filteredAlerts.length, species: declaredSpecies.size }} /> : null}
       {activeModule === "community" ? <CommunityModule /> : null}
       {activeModule === "tracking" ? <TrackingModule /> : null}
     </section>
   </main>;
 }
 
-function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, mapType, setMapType, level, setLevel, species, setSpecies, resetFilters, visibleQuays, visiblePirogues, visibleAlerts, filteredLandings, selected, setSelected, selectedQuay, selectedPirogue, selectedQuayLandings, selectedQuayPirogues, selectedQuayAlerts, tableRows, mapStats }: {
+function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, mapType, setMapType, level, setLevel, species, setSpecies, resetFilters, visibleQuays, visiblePirogues, visibleAlerts, filteredLandings, selected, setSelected, selectedQuay, selectedPirogue, selectedPirogueLandings, selectedQuayLandings, selectedQuayPirogues, selectedQuayAlerts, tableRows, mapStats }: {
   search: string;
   setSearch: (value: string) => void;
   region: RegionFilter;
@@ -200,6 +201,7 @@ function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, ma
   setSelected: (value: SelectedItem) => void;
   selectedQuay: typeof quays[number];
   selectedPirogue: typeof pirogues[number] | null;
+  selectedPirogueLandings: typeof landings;
   selectedQuayLandings: typeof landings;
   selectedQuayPirogues: typeof pirogues;
   selectedQuayAlerts: typeof mapAlerts;
@@ -221,33 +223,35 @@ function MapModule({ search, setSearch, region, setRegion, quayId, setQuayId, ma
   }
 
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="Carte & supervision" title="Voir la filière sur une carte" description="Vue quais pour lire l'activité des points de débarquement. Vue pirogues pour suivre les immatriculations, positions simulées et déclarations." />
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><StatCard label="Quais affichés" value={String(mapStats.quays)} detail="Selon les filtres actifs." /><StatCard label="Débarquements du jour" value={String(mapStats.landings)} detail="Déclarations consultables." /><StatCard label="Pirogues actives" value={String(mapStats.pirogues)} detail="Immatriculations visibles." /><StatCard label="Alertes en cours" value={String(mapStats.alerts)} detail="Alertes à vérifier." /><StatCard label="Espèces déclarées" value={String(mapStats.species)} detail="Espèces présentes dans les débarquements." /></div>
-    <ShellCard>
-      <div className="mb-4 grid gap-2 md:grid-cols-2">
-        <button onClick={chooseQuayView} className={`border p-4 text-left transition ${mapView === "quays" ? "border-[#0b1f33] bg-[#0b1f33] text-white" : "border-slate-200 bg-slate-50 text-slate-950"}`}><p className="text-base font-black">Vue quais</p><p className="mt-1 text-xs font-semibold opacity-85">Quais, espèces, volumes et débarquements par quai.</p></button>
-        <button onClick={choosePirogueView} className={`border p-4 text-left transition ${mapView === "pirogues" ? "border-[#0b1f33] bg-[#0b1f33] text-white" : "border-slate-200 bg-slate-50 text-slate-950"}`}><p className="text-base font-black">Vue pirogues</p><p className="mt-1 text-xs font-semibold opacity-85">Immatriculations, positions simulées, trajectoires et déclarations.</p></button>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
-        <Field label="Recherche"><input value={search} onChange={(event) => setSearch(event.target.value)} className={inputClass} placeholder="Rechercher un quai ou une pirogue" /></Field>
-        <Field label="Région"><select value={region} onChange={(event) => setRegion(event.target.value as RegionFilter)} className={selectClass}><option>{allRegions}</option>{regions.map((item) => <option key={item}>{item}</option>)}</select></Field>
-        <Field label="Quai"><select value={quayId} onChange={(event) => setQuayId(event.target.value)} className={selectClass}><option value={allQuays}>Tous</option>{quays.map((quay) => <option key={quay.id} value={quay.id}>{quay.name}</option>)}</select></Field>
-        <Field label="Type"><select value={mapType} onChange={(event) => { const next = event.target.value as MapItemType; setMapType(next); if (next === "Pirogues") setMapView("pirogues"); if (next === "Quais" || next === "Débarquements" || next === "Espèces") setMapView("quays"); }} className={selectClass}>{mapTypes.map((item) => <option key={item}>{item}</option>)}</select></Field>
-        <Field label="Niveau"><select value={level} onChange={(event) => setLevel(event.target.value as LevelFilter)} className={selectClass}>{levelOptions.map((item) => <option key={item}>{item}</option>)}</select></Field>
-        <Field label="Espèce"><select value={species} onChange={(event) => setSpecies(event.target.value)} className={selectClass}><option>{allSpecies}</option>{speciesOptions.map((item) => <option key={item}>{item}</option>)}</select></Field>
-        <div className="flex items-end"><button onClick={resetFilters} className={`${secondaryButton} w-full`}>Réinitialiser</button></div>
+    <SectionHeader eyebrow="Carte & supervision" title="Lire la filière sur le littoral" description="La carte distingue ce qui est à terre, les quais, et ce qui est en mer, les pirogues. Les débarquements sont visibles dans les deux lectures métier." />
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><StatCard label="Quais affichés" value={String(mapStats.quays)} detail="Selon les filtres actifs." /><StatCard label="Débarquements" value={String(mapStats.landings)} detail="Déclarations consultables." /><StatCard label="Pirogues actives" value={String(mapStats.pirogues)} detail="Immatriculations visibles." /><StatCard label="Alertes" value={String(mapStats.alerts)} detail="Situations à vérifier." /><StatCard label="Espèces" value={String(mapStats.species)} detail="Espèces déclarées." /></div>
+    <ShellCard className="bg-white/92">
+      <div className="grid gap-4 xl:grid-cols-[22rem_minmax(0,1fr)] xl:items-end">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+          <button onClick={chooseQuayView} className={`rounded-2xl border p-4 text-left transition ${mapView === "quays" ? "border-[#0b3142] bg-[#0b3142] text-white shadow-lg shadow-cyan-950/15" : "border-slate-200 bg-slate-50 text-slate-950 hover:border-cyan-300"}`}><p className="text-base font-black">Vue quais</p><p className="mt-1 text-xs font-semibold opacity-85">Volumes, espèces et débarquements par quai.</p></button>
+          <button onClick={choosePirogueView} className={`rounded-2xl border p-4 text-left transition ${mapView === "pirogues" ? "border-[#0b3142] bg-[#0b3142] text-white shadow-lg shadow-cyan-950/15" : "border-slate-200 bg-slate-50 text-slate-950 hover:border-cyan-300"}`}><p className="text-base font-black">Vue pirogues</p><p className="mt-1 text-xs font-semibold opacity-85">Positions, immatriculations et déclarations.</p></button>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
+          <Field label="Recherche"><input value={search} onChange={(event) => setSearch(event.target.value)} className={inputClass} placeholder="Rechercher un quai ou une pirogue" /></Field>
+          <Field label="Région"><select value={region} onChange={(event) => setRegion(event.target.value as RegionFilter)} className={selectClass}><option>{allRegions}</option>{regions.map((item) => <option key={item}>{item}</option>)}</select></Field>
+          <Field label="Quai"><select value={quayId} onChange={(event) => setQuayId(event.target.value)} className={selectClass}><option value={allQuays}>Tous</option>{quays.map((quay) => <option key={quay.id} value={quay.id}>{quay.name}</option>)}</select></Field>
+          <Field label="Type"><select value={mapType} onChange={(event) => { const next = event.target.value as MapItemType; setMapType(next); if (next === "Pirogues") setMapView("pirogues"); if (next === "Quais" || next === "Débarquements" || next === "Espèces") setMapView("quays"); }} className={selectClass}>{mapTypes.map((item) => <option key={item}>{item}</option>)}</select></Field>
+          <Field label="Niveau"><select value={level} onChange={(event) => setLevel(event.target.value as LevelFilter)} className={selectClass}>{levelOptions.map((item) => <option key={item}>{item}</option>)}</select></Field>
+          <Field label="Espèce"><select value={species} onChange={(event) => setSpecies(event.target.value)} className={selectClass}><option>{allSpecies}</option>{speciesOptions.map((item) => <option key={item}>{item}</option>)}</select></Field>
+          <div className="flex items-end"><button onClick={resetFilters} className={`${secondaryButton} w-full`}>Réinitialiser</button></div>
+        </div>
       </div>
     </ShellCard>
     <div className="grid min-w-0 gap-5">
       <MinistryMap viewMode={mapView} quays={visibleQuays} pirogues={visiblePirogues} alerts={visibleAlerts} landings={filteredLandings} selectedId={selected?.id ?? ""} selectedKind={selected?.kind ?? "quay"} onSelectQuay={(id) => setSelected({ kind: "quay", id })} onSelectPirogue={(id) => setSelected({ kind: "pirogue", id })} />
-      {selected ? <div className="grid gap-3 border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
+      {selected ? <div className="rounded-[1.35rem] border border-slate-200 bg-white p-4 shadow-[0_18px_50px_rgba(15,23,42,0.07)]">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Détail sélectionné</p>
-          <button onClick={() => setSelected(null)} className="border border-slate-300 px-3 py-1 text-xs font-black text-slate-800">Fermer</button>
+          <button onClick={() => setSelected(null)} className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-black text-slate-800 hover:bg-slate-50">Fermer</button>
         </div>
-        {selected.kind === "pirogue" && selectedPirogue ? <PirogueDetail pirogue={selectedPirogue} quay={selectedQuay} /> : <QuayDetail quay={selectedQuay} landings={selectedQuayLandings} pirogues={selectedQuayPirogues} alerts={selectedQuayAlerts} />}
-      </div> : <p className="border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-bold text-slate-700">Cliquez sur un quai ou une pirogue sur la carte pour afficher le détail.</p>}
-      <ShellCard><SectionHeader eyebrow="Liste filtrée" title="Quais et activité du jour" description="La table reprend uniquement les quais visibles avec leurs débarquements, volumes, pirogues, espèces et alertes." /><CompactQuayTable rows={tableRows} /></ShellCard>
+        {selected.kind === "pirogue" && selectedPirogue ? <PirogueDetail pirogue={selectedPirogue} quay={selectedQuay} landings={selectedPirogueLandings} /> : <QuayDetail quay={selectedQuay} landings={selectedQuayLandings} pirogues={selectedQuayPirogues} alerts={selectedQuayAlerts} />}
+      </div> : <p className="rounded-[1.15rem] border border-dashed border-slate-300 bg-white/70 p-4 text-sm font-bold text-slate-700">Cliquez sur un quai ou une pirogue sur la carte pour afficher le panneau de détail.</p>}
+      <ShellCard><SectionHeader eyebrow="Liste filtrée" title="Quais et activité du jour" description="La table reprend les quais visibles avec leurs débarquements, volumes, pirogues, espèces et alertes." /><CompactQuayTable rows={tableRows} /></ShellCard>
     </div>
   </section>;
 }
@@ -256,33 +260,33 @@ function CommunityModule() {
   const urgentNeeds = [...communityNeeds].sort((a, b) => Number(b.urgency === "urgent") - Number(a.urgency === "urgent"));
   const pipeline = [
     { label: "Besoin remonté", count: communityNeeds.length, detail: "Demandes terrain à qualifier" },
-    { label: "À documenter", count: communityNeeds.filter((need) => need.status.includes("documenter") || need.status.includes("cadrer")).length + 1, detail: "Informations à compléter" },
-    { label: "À financer", count: communityProjects.filter((project) => project.status.includes("cadrer") || project.status.includes("compléter")).length, detail: "Dossiers à présenter" },
-    { label: "Planifié", count: trainingPrograms.filter((program) => program.status.includes("planifier") || program.status.includes("confirmer")).length, detail: "Formations à caler" },
-    { label: "En cours", count: communityProjects.filter((project) => project.status === "Documenté" || project.status === "Prioritaire").length, detail: "Actions prêtes" }
+    { label: "Qualification", count: communityNeeds.filter((need) => need.status.includes("documenter") || need.status.includes("cadrer")).length + 1, detail: "Informations à compléter" },
+    { label: "Programme", count: communityProjects.length, detail: "Dossiers en préparation" },
+    { label: "Partenaire", count: partners.length, detail: "Acteurs mobilisables" },
+    { label: "Action", count: communityProjects.filter((project) => project.status === "Documenté" || project.status === "Prioritaire").length, detail: "Décisions prêtes" }
   ];
 
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="Communautés & programmes" title="Transformer les besoins terrain en actions" description="Un besoin remonte du terrain, il est qualifié, transformé en programme, relié à un partenaire puis suivi jusqu'à l'action." />
+    <SectionHeader eyebrow="Communautés & programmes" title="Transformer les besoins terrain en actions" description="Un besoin est qualifié, relié à un programme, rapproché d'un partenaire puis suivi jusqu'à la décision." />
     <div className="grid gap-6 xl:grid-cols-[22rem_minmax(0,1fr)_23rem]">
       <ShellCard>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Priorités terrain</p>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Priorités terrain</p>
         <h3 className="mt-2 text-2xl font-black text-slate-950">Besoins à traiter</h3>
         <div className="mt-5 grid gap-3">
-          {urgentNeeds.slice(0, 5).map((need) => <article key={need.id} className="border border-slate-200 bg-slate-50 p-4">
+          {urgentNeeds.slice(0, 5).map((need) => <article key={need.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <div className="flex items-start justify-between gap-3"><h4 className="text-base font-black text-slate-950">{need.need}</h4><Badge level={need.urgency} /></div>
             <p className="mt-2 text-sm font-semibold text-slate-600">{need.place} · {need.actors}</p>
-            <p className="mt-3 border-l-4 border-amber-500 bg-white px-3 py-2 text-xs font-black text-slate-800">Prochaine action : {need.nextAction}</p>
+            <p className="mt-3 rounded-lg border-l-4 border-amber-500 bg-white px-3 py-2 text-xs font-black text-slate-800">Prochaine action : {need.nextAction}</p>
           </article>)}
         </div>
       </ShellCard>
 
       <div className="grid gap-6">
         <ShellCard>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Pipeline programmes</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Workflow opérationnel</p>
           <h3 className="mt-2 text-2xl font-black text-slate-950">Du besoin à l'action</h3>
           <div className="mt-5 grid gap-3 md:grid-cols-5">
-            {pipeline.map((step, index) => <div key={step.label} className="relative border border-slate-200 bg-slate-50 p-4">
+            {pipeline.map((step, index) => <div key={step.label} className="relative rounded-xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-3xl font-black text-slate-950">{step.count}</p>
               <p className="mt-2 text-sm font-black text-slate-950">{step.label}</p>
               <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{step.detail}</p>
@@ -293,12 +297,12 @@ function CommunityModule() {
 
         <ShellCard>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Programmes actifs</p><h3 className="mt-2 text-2xl font-black text-slate-950">Actions à préparer</h3></div>
+            <div><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Programmes actifs</p><h3 className="mt-2 text-2xl font-black text-slate-950">Actions à préparer</h3></div>
             <button className={primaryButton}>Préparer une fiche programme</button>
           </div>
           <div className="mt-5 grid gap-3 lg:grid-cols-2">
-            {communityProjects.map((project) => <article key={project.id} className="border border-slate-200 bg-white p-4">
-              <div className="flex items-start justify-between gap-3"><h4 className="text-lg font-black text-slate-950">{project.project}</h4><span className="border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-black text-slate-700">{project.status}</span></div>
+            {communityProjects.map((project) => <article key={project.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3"><h4 className="text-lg font-black text-slate-950">{project.project}</h4><span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-black text-slate-700">{project.status}</span></div>
               <div className="mt-3 grid gap-2 text-sm font-bold text-slate-700">
                 <DataPair label="Territoire" value={project.territory} />
                 <DataPair label="Porteur" value={project.owner} />
@@ -311,19 +315,19 @@ function CommunityModule() {
       </div>
 
       <div className="grid gap-6">
-        <ShellCard className="border-slate-800 bg-[#0b1f33] text-white">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Prochaine décision</p>
-          <h3 className="mt-2 text-2xl font-black">Prioriser les besoins sécurité et froid</h3>
-          <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">Les besoins urgents à Saint-Louis, Kayar et Mbour doivent être transformés en notes courtes avec partenaire cible.</p>
+        <ShellCard className="border-[#0b3142] bg-[#0b3142] text-white">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Prochaine décision</p>
+          <h3 className="mt-2 text-2xl font-black">Prioriser sécurité et froid</h3>
+          <p className="mt-3 text-sm font-semibold leading-6 text-cyan-50">Les besoins urgents à Saint-Louis, Kayar et Mbour doivent être transformés en notes courtes avec partenaire cible.</p>
           <div className="mt-5 grid gap-2">
-            <button className="border border-white bg-white px-4 py-3 text-sm font-black text-slate-950">Créer une note d'action</button>
-            <button className="border border-white/25 px-4 py-3 text-sm font-black text-white">Voir les besoins urgents</button>
+            <button className="rounded-xl border border-white bg-white px-4 py-3 text-sm font-black text-slate-950">Créer une note d'action</button>
+            <button className="rounded-xl border border-white/25 px-4 py-3 text-sm font-black text-white">Voir les besoins urgents</button>
           </div>
         </ShellCard>
         <ShellCard>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Partenaires mobilisables</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Partenaires mobilisables</p>
           <div className="mt-4 grid gap-3">
-            {partners.slice(0, 5).map((partner) => <article key={partner.id} className="border border-slate-200 bg-slate-50 p-3">
+            {partners.slice(0, 5).map((partner) => <article key={partner.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <p className="text-sm font-black text-slate-950">{partner.name}</p>
               <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{partner.usefulFor}</p>
             </article>)}
@@ -342,47 +346,47 @@ function TrackingModule() {
   const urgentActions = pendingActions.filter((action) => action.level !== "normal");
 
   return <section className="grid gap-6">
-    <SectionHeader eyebrow="Indicateurs & suivi" title="Suivre la journée et traiter les priorités" description="Cette page sert à savoir ce qui se passe, ce qui bloque et ce qu'il faut reprendre maintenant." />
-    <ShellCard className="border-slate-800 bg-[#0b1f33] text-white">
+    <SectionHeader eyebrow="Indicateurs & suivi" title="Suivre la journée et traiter les priorités" description="Un poste de suivi quotidien : situation du jour, volumes, alertes prioritaires, actions en retard et synthèse opérationnelle." />
+    <ShellCard className="border-[#0b3142] bg-[#0b3142] text-white">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-end">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Situation du jour</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Situation du jour</p>
           <h3 className="mt-3 text-4xl font-black tracking-tight">{landings.length} débarquements déclarés · {totalVolume.toFixed(1)} tonnes suivies</h3>
-          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Les volumes sont concentrés sur Mbour, Joal et Kayar. Les alertes urgentes restent liées à Saint-Louis et à la validation de certaines déclarations.</p>
+          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-cyan-50">Les volumes sont concentrés sur Mbour, Joal et Kayar. Les alertes urgentes restent liées à Saint-Louis et à la validation de certaines déclarations.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-          {dashboardMetrics.slice(2, 5).map((metric) => <div key={metric.id} className="border border-white/15 bg-white/10 p-4"><p className="text-xs font-black uppercase tracking-[0.12em] text-slate-300">{metric.label}</p><p className="mt-1 text-2xl font-black">{metric.value}</p><p className="mt-1 text-xs font-semibold text-slate-300">{metric.action}</p></div>)}
+          {dashboardMetrics.slice(2, 5).map((metric) => <div key={metric.id} className="rounded-xl border border-white/15 bg-white/10 p-4"><p className="text-xs font-black uppercase tracking-[0.12em] text-cyan-100">{metric.label}</p><p className="mt-1 text-2xl font-black">{metric.value}</p><p className="mt-1 text-xs font-semibold text-cyan-50">{metric.action}</p></div>)}
         </div>
       </div>
     </ShellCard>
 
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_25rem]">
       <ShellCard>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Activité pêche</p>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Activité pêche</p>
         <h3 className="mt-2 text-2xl font-black text-slate-950">Volumes par quai</h3>
         <div className="mt-5 grid gap-4">
           {quays.map((quay) => <div key={quay.id} className="grid gap-2">
             <div className="flex items-center justify-between gap-3 text-sm font-black"><span>{quay.name}</span><span>{quay.volumeTons} t · {quay.landingsToday} débarq.</span></div>
-            <div className="h-3 overflow-hidden bg-slate-100"><div className="h-full bg-[#0b1f33]" style={{ width: `${Math.round((quay.volumeTons / maxVolume) * 100)}%` }} /></div>
+            <div className="h-3 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-[#0b3142] to-cyan-500" style={{ width: `${Math.round((quay.volumeTons / maxVolume) * 100)}%` }} /></div>
           </div>)}
         </div>
       </ShellCard>
 
       <div className="grid gap-6">
-        <ShellCard className="border-rose-200 bg-rose-50/60">
+        <ShellCard className="border-rose-200 bg-rose-50/70">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-rose-700">À traiter maintenant</p>
           <h3 className="mt-2 text-2xl font-black text-slate-950">{urgentAlerts.length} alerte urgente</h3>
           <div className="mt-4 grid gap-3">
-            {[...urgentAlerts, ...watchAlerts].slice(0, 4).map((alert) => <article key={alert.id} className="border border-white bg-white p-3">
+            {[...urgentAlerts, ...watchAlerts].slice(0, 4).map((alert) => <article key={alert.id} className="rounded-xl border border-white bg-white p-3">
               <div className="flex items-start justify-between gap-3"><p className="text-sm font-black text-slate-950">{alert.title}</p><Badge level={alert.level} /></div>
               <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">{alert.nextAction}</p>
             </article>)}
           </div>
         </ShellCard>
         <ShellCard>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Actions en retard</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Actions en retard</p>
           <div className="mt-4 grid gap-3">
-            {urgentActions.map((action) => <article key={action.id} className="border border-slate-200 bg-white p-3">
+            {urgentActions.map((action) => <article key={action.id} className="rounded-xl border border-slate-200 bg-white p-3">
               <div className="flex items-start justify-between gap-3"><p className="text-sm font-black text-slate-950">{action.action}</p><Badge level={action.level} /></div>
               <p className="mt-2 text-xs font-semibold text-slate-500">{action.owner} · {action.dueDate}</p>
             </article>)}
@@ -393,11 +397,11 @@ function TrackingModule() {
 
     <div className="grid gap-6 xl:grid-cols-2">
       <ShellCard>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Débarquements récents</p>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Débarquements récents</p>
         <div className="mt-4 grid gap-3">
           {landings.map((landing) => {
             const quay = getQuayById(landing.quayId);
-            return <article key={landing.id} className="grid gap-3 border border-slate-200 bg-white p-4 sm:grid-cols-[7rem_minmax(0,1fr)_7rem] sm:items-center">
+            return <article key={landing.id} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-[7rem_minmax(0,1fr)_7rem] sm:items-center">
               <p className="text-lg font-black text-slate-950">{landing.time}</p>
               <div><p className="font-black text-slate-950">{quay.name}</p><p className="text-sm font-semibold text-slate-500">{landing.species.join(", ")}</p></div>
               <p className="text-right text-sm font-black text-slate-700">{landing.volumeTons} t</p>
@@ -406,9 +410,9 @@ function TrackingModule() {
         </div>
       </ShellCard>
       <ShellCard>
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Synthèse opérationnelle</p>
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-800">Synthèse opérationnelle</p>
         <div className="mt-4 grid gap-3">
-          {["Confirmer le retour de SL-PI-1188 avant fin de journée.", "Prioriser la panne froid de Mbour avant extension aux mareyeurs.", "Préparer une fiche courte sur le besoin de glace Joal / Mbour.", "Vérifier les débarquements incomplets avant export de synthèse."].map((item) => <div key={item} className="border border-slate-200 bg-slate-50 p-4 text-sm font-black leading-6 text-slate-900">{item}</div>)}
+          {["Confirmer le retour de SL-PI-1188 avant fin de journée.", "Prioriser la panne froid de Mbour avant extension aux mareyeurs.", "Préparer une fiche courte sur le besoin de glace Joal / Mbour.", "Vérifier les débarquements incomplets avant export de synthèse."].map((item) => <div key={item} className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-black leading-6 text-slate-900">{item}</div>)}
         </div>
       </ShellCard>
     </div>
