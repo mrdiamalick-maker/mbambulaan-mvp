@@ -1,72 +1,78 @@
 import Link from "next/link";
 
-const modules = [
+const osModules = [
   {
-    title: "Cartographie maritime",
-    description: "Quais, pirogues, débarquements, alertes et détail opérationnel au clic.",
-    stat: "8 quais",
+    title: "Maritime Atlas",
+    description: "Lire les quais, les pirogues, les débarquements et les alertes sur une carte opérationnelle.",
+    signal: "Carte vivante",
+    stat: "8 quais suivis",
   },
   {
-    title: "Valorisation communautaire",
-    description: "Besoins terrain, qualification, programmes, partenaires et suivi d'impact.",
-    stat: "6 besoins",
+    title: "Value Chain & Communities",
+    description: "Relier besoins terrain, programmes, partenaires, formations et actions d'impact.",
+    signal: "Chaîne de valeur",
+    stat: "6 besoins ouverts",
   },
   {
-    title: "Pilotage institutionnel",
-    description: "KPI, volumes, alertes, actions, synthèse de journée et export de preuve.",
-    stat: "10 KPI",
+    title: "Institutional Steering",
+    description: "Piloter les KPI, les volumes, les preuves, les risques et la synthèse institutionnelle.",
+    signal: "Décision publique",
+    stat: "10 indicateurs",
   },
 ];
 
-const journey = [
-  "Lire le littoral",
-  "Identifier une tension",
-  "Qualifier le besoin",
-  "Mobiliser un programme",
-  "Suivre la preuve",
+const operatingFlow = [
+  "Observer le littoral",
+  "Qualifier le signal",
+  "Prioriser l'action",
+  "Coordonner les acteurs",
+  "Conserver la preuve",
 ];
+
+const proofItems = ["Données mockées", "Simulation privée", "Humain valide", "Prêt pour pilote"];
 
 export default function EspacePrivePortalPage() {
   return (
-    <main className="min-h-screen overflow-hidden bg-[#eef6f5] text-slate-950">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_16%_12%,rgba(20,184,166,0.24),transparent_32%),radial-gradient(circle_at_86%_10%,rgba(14,116,144,0.2),transparent_30%),linear-gradient(135deg,#f8fafc_0%,#e6f4f3_52%,#f7eddc_100%)]" />
+    <main className="relative min-h-screen overflow-hidden bg-[#071b22] text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(20,184,166,0.35),transparent_28%),radial-gradient(circle_at_82%_16%,rgba(14,165,233,0.22),transparent_30%),linear-gradient(135deg,#071b22_0%,#0b3142_48%,#103f3f_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[linear-gradient(180deg,transparent,#f5f8f3)]" />
 
-      <header className="border-b border-cyan-950/10 bg-white/82 px-5 py-4 backdrop-blur sm:px-8">
-        <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-4">
+      <header className="relative z-10 border-b border-white/10 bg-white/8 px-5 py-4 backdrop-blur-xl sm:px-8">
+        <div className="mx-auto flex max-w-[94rem] items-center justify-between gap-4">
           <Link href="/" className="flex min-w-0 items-center gap-3">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#07384a] text-sm font-black text-white shadow-sm">Mb</span>
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black text-[#07384a] shadow-sm">Mb</span>
             <span className="min-w-0">
               <span className="block truncate text-base font-black tracking-tight">Mbàmbulaan</span>
-              <span className="hidden text-xs font-bold uppercase tracking-[0.16em] text-cyan-800 sm:block">Espace privé simulé</span>
+              <span className="hidden text-xs font-bold uppercase tracking-[0.16em] text-cyan-100 sm:block">Maritime Coordination OS</span>
             </span>
           </Link>
           <div className="flex items-center gap-2">
-            <Link href="/demande-demo" className="hidden rounded-xl border border-cyan-950/10 bg-white px-4 py-2 text-sm font-black text-slate-800 shadow-sm transition hover:border-cyan-300 hover:bg-cyan-50 sm:inline-flex">Demander une démo</Link>
-            <Link href="/espace-prive/etat" className="rounded-xl bg-[#07384a] px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-[#052c3b]">Ouvrir la console</Link>
+            <Link href="/demande-demo" className="hidden rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-white/15 sm:inline-flex">Demander une démo</Link>
+            <Link href="/espace-prive/etat" className="rounded-xl bg-white px-4 py-2 text-sm font-black text-[#07384a] shadow-sm transition hover:bg-cyan-50">Entrer</Link>
           </div>
         </div>
       </header>
 
-      <section className="mx-auto grid max-w-[90rem] gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-stretch lg:py-14">
+      <section className="relative z-10 mx-auto grid max-w-[94rem] gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_30rem] lg:items-stretch lg:py-14">
         <div className="grid gap-6">
-          <section className="overflow-hidden rounded-[2rem] border border-cyan-950/10 bg-white/90 shadow-[0_34px_100px_rgba(15,23,42,0.10)] backdrop-blur">
-            <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:p-10">
+          <section className="overflow-hidden rounded-[2.25rem] border border-white/12 bg-white/10 shadow-[0_34px_120px_rgba(2,6,23,0.34)] backdrop-blur-xl">
+            <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:p-10">
               <div>
-                <span className="inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-cyan-900">Console privée · Ministère</span>
-                <h1 className="mt-6 max-w-4xl text-5xl font-black tracking-[-0.045em] text-slate-950 sm:text-7xl">Un espace pour piloter la pêche artisanale.</h1>
-                <p className="mt-6 max-w-3xl text-lg font-semibold leading-8 text-slate-600">La console montre comment un signal terrain devient une action coordonnée : carte maritime, besoins communautaires, suivi des preuves et synthèse institutionnelle.</p>
+                <span className="inline-flex rounded-full border border-cyan-200/40 bg-cyan-100/15 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-cyan-50">Reset privé · Coordination maritime</span>
+                <h1 className="mt-6 max-w-5xl text-5xl font-black tracking-[-0.05em] text-white sm:text-7xl">Mbàmbulaan Maritime Coordination OS.</h1>
+                <p className="mt-6 max-w-3xl text-lg font-semibold leading-8 text-cyan-50/86">Un espace privé pour superviser le littoral, relier les communautés à des programmes, coordonner les décisions et produire des preuves institutionnelles.</p>
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <Link href="/espace-prive/etat" className="rounded-2xl bg-[#07384a] px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-[#052c3b]">Entrer dans l'espace Ministère</Link>
-                  <Link href="/devis" className="rounded-2xl border border-cyan-950/10 bg-white px-5 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:border-cyan-300 hover:bg-cyan-50">Cadrer un pilote</Link>
+                  <Link href="/espace-prive/etat" className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-[#07384a] shadow-sm transition hover:bg-cyan-50">Ouvrir le Maritime OS</Link>
+                  <Link href="/devis" className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-white/15">Cadrer un pilote</Link>
                 </div>
               </div>
 
-              <div className="rounded-[1.5rem] border border-cyan-950/10 bg-[#07384a] p-5 text-white shadow-2xl shadow-cyan-950/20">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Parcours produit</p>
+              <div className="rounded-[1.75rem] border border-white/12 bg-slate-950/28 p-5 shadow-2xl shadow-slate-950/20">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Flux de coordination</p>
                 <div className="mt-5 grid gap-3">
-                  {journey.map((item, index) => (
+                  {operatingFlow.map((item, index) => (
                     <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-3">
-                      <span className="grid h-8 w-8 place-items-center rounded-xl bg-white text-xs font-black text-[#07384a]">{index + 1}</span>
+                      <span className="grid h-8 w-8 place-items-center rounded-xl bg-cyan-100 text-xs font-black text-[#07384a]">{index + 1}</span>
                       <p className="text-sm font-black">{item}</p>
                     </div>
                   ))}
@@ -76,37 +82,36 @@ export default function EspacePrivePortalPage() {
           </section>
 
           <section className="grid gap-4 md:grid-cols-3">
-            {modules.map((module) => (
-              <article key={module.title} className="rounded-[1.5rem] border border-cyan-950/10 bg-white/92 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.07)] backdrop-blur">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-800">{module.stat}</p>
-                <h2 className="mt-3 text-xl font-black tracking-tight text-slate-950">{module.title}</h2>
+            {osModules.map((module) => (
+              <article key={module.title} className="rounded-[1.6rem] border border-white/12 bg-white/92 p-5 text-slate-950 shadow-[0_22px_60px_rgba(15,23,42,0.16)] backdrop-blur">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-800">{module.signal}</p>
+                <h2 className="mt-3 text-xl font-black tracking-tight">{module.title}</h2>
                 <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{module.description}</p>
+                <p className="mt-5 rounded-2xl bg-cyan-50 px-4 py-3 text-sm font-black text-cyan-950">{module.stat}</p>
               </article>
             ))}
           </section>
         </div>
 
-        <aside className="grid gap-5 rounded-[2rem] border border-cyan-950/10 bg-white/94 p-5 shadow-[0_34px_100px_rgba(15,23,42,0.12)] backdrop-blur sm:p-6">
-          <div className="rounded-[1.5rem] bg-[linear-gradient(135deg,#07384a,#0f766e)] p-5 text-white">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Accès de démonstration</p>
+        <aside className="grid gap-5 rounded-[2.25rem] border border-white/12 bg-white/94 p-5 text-slate-950 shadow-[0_34px_120px_rgba(2,6,23,0.24)] backdrop-blur-xl sm:p-6">
+          <div className="rounded-[1.75rem] bg-[linear-gradient(135deg,#07384a,#0f766e)] p-5 text-white">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Organisation simulée</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight">Ministère des Pêches</h2>
-            <p className="mt-3 text-sm font-semibold leading-6 text-cyan-50">Données locales simulées. Aucune authentification réelle. Aucune décision automatique.</p>
+            <p className="mt-3 text-sm font-semibold leading-6 text-cyan-50">Accès de démonstration sans authentification réelle. Les données sont locales et les décisions restent humaines.</p>
           </div>
 
-          <div className="grid gap-3">
-            {[
-              ["Carte", "Quais et pirogues visibles sur une carte métier."],
-              ["Actions", "Alertes, programmes et besoins priorisés."],
-              ["Preuves", "Synthèse exportable et traçabilité des décisions."],
-            ].map(([title, text]) => (
-              <div key={title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-sm font-black text-slate-950">{title}</p>
-                <p className="mt-1 text-xs font-bold leading-5 text-slate-500">{text}</p>
-              </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {proofItems.map((item) => (
+              <div key={item} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-black text-slate-800">{item}</div>
             ))}
           </div>
 
-          <Link href="/espace-prive/etat" className="flex w-full items-center justify-center rounded-2xl bg-[#0f766e] px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-[#0b5f5a]">Lancer l'espace privé</Link>
+          <div className="rounded-[1.5rem] border border-cyan-950/10 bg-[#f6fbfa] p-5">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-800">Ce que l'espace montre</p>
+            <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">Une journée maritime coordonnée : carte, tension, besoin, action, preuve et pilotage.</p>
+          </div>
+
+          <Link href="/espace-prive/etat" className="flex w-full items-center justify-center rounded-2xl bg-[#0f766e] px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-[#0b5f5a]">Lancer le Maritime Coordination OS</Link>
         </aside>
       </section>
     </main>
