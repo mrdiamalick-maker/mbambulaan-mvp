@@ -84,6 +84,16 @@ export type PartnerSolicitation = {
   artifactId: string;
 };
 
+export type ProgramAssociation = {
+  id: string;
+  sourceId: string;
+  program: string;
+  owner: string;
+  nextMilestone: string;
+  expectedImpact: string;
+  artifactId: string;
+};
+
 export const maritimeIncidents: IncidentRecord[] = [
   { id: "incident-1", quayId: "mbour", title: "Capacité de froid réduite", category: "Technique", level: "surveillance", openedAt: "09:35", owner: "Maintenance régionale", status: "En vérification" },
   { id: "incident-2", quayId: "saint-louis", title: "Retour de pirogue non confirmé", category: "Sécurité", level: "urgent", openedAt: "10:18", owner: "Cellule quai", status: "Ouvert" },
