@@ -12,6 +12,7 @@ export type WorkflowContext = {
   amount?: string;
   beneficiaries?: string;
   partner?: string;
+  quayId?: string;
 };
 
 type FieldDefinition = {
