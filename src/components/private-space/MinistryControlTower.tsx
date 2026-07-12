@@ -26,6 +26,7 @@ import {
   type FundingRequest,
   type GeneratedArtifact,
   type PartnerSolicitation,
+  type ProgramAssociation,
   type QualifiedNeedRecord,
   type WorkflowKind,
 } from "@/data/ministryValueJourneyData";
@@ -87,6 +88,7 @@ export function MinistryControlTower() {
   const [fundingRequests, setFundingRequests] = useState<FundingRequest[]>([]);
   const [qualifiedNeeds, setQualifiedNeeds] = useState<QualifiedNeedRecord[]>([]);
   const [partnerSolicitations, setPartnerSolicitations] = useState<PartnerSolicitation[]>([]);
+  const [programAssociations, setProgramAssociations] = useState<ProgramAssociation[]>([]);
   const [createdAlerts, setCreatedAlerts] = useState<MapAlert[]>([]);
   const [verifiedIds, setVerifiedIds] = useState<string[]>([]);
   const [activeWorkflow, setActiveWorkflow] = useState<ActiveWorkflow>(null);
@@ -108,7 +110,7 @@ export function MinistryControlTower() {
     const context = activeWorkflow?.context;
     if (artifact.kind === "verification" && context?.sourceId) setVerifiedIds((ids) => Array.from(new Set([context.sourceId!, ...ids])));
     if (artifact.kind === "alert") {
-      const quayId = context?.sourceId && quays.some((quay) => quay.id === context.sourceId) ? context.sourceId : "joal";
+      const quayId = context?.quayId || (context?.sourceId && quays.some((quay) => quay.id === context.sourceId) ? context.sourceId : "joal");
       setCreatedAlerts((items) => [{
         id: `alert-generated-${Date.now()}`,
         quayId,
@@ -159,6 +161,17 @@ export function MinistryControlTower() {
         artifactId: artifact.id,
       }, ...items]);
     }
+    if (artifact.kind === "program") {
+      setProgramAssociations((items) => [{
+        id: `program-link-${Date.now()}`,
+        sourceId: context?.sourceId || "need-1",
+        program: values.program,
+        owner: values.owner,
+        nextMilestone: values.nextMilestone,
+        expectedImpact: values.expectedImpact,
+        artifactId: artifact.id,
+      }, ...items]);
+    }
   }
 
   const workflowProps = activeWorkflow ? { context: activeWorkflow.context, onClose: () => setActiveWorkflow(null), onComplete: completeWorkflow } : null;
@@ -167,7 +180,7 @@ export function MinistryControlTower() {
   return <AppShell topBar={<TopBar notice={systemNotice} onExport={globalExport} />} rail={<NavigationRail active={workspace} onChange={setWorkspace} />}>
     <MobileWorkspaceNav active={workspace} onChange={setWorkspace} />
     {workspace === "map" ? <AtlasMaritime scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} alerts={[...createdAlerts, ...mapAlerts]} verifiedIds={verifiedIds} record={record} openWorkflow={openWorkflow} /> : null}
-    {workspace === "community" ? <FiliereProgrammes scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} qualifiedNeeds={qualifiedNeeds} partnerSolicitations={partnerSolicitations} openWorkflow={openWorkflow} /> : null}
+    {workspace === "community" ? <FiliereProgrammes scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} qualifiedNeeds={qualifiedNeeds} partnerSolicitations={partnerSolicitations} programAssociations={programAssociations} openWorkflow={openWorkflow} /> : null}
     {workspace === "tracking" ? <PilotageInstitutionnel scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} alerts={[...createdAlerts, ...mapAlerts]} record={record} openWorkflow={openWorkflow} /> : null}
     {activeWorkflow && workflowProps ? <WorkflowRenderer kind={activeWorkflow.kind} {...workflowProps} /> : null}
   </AppShell>;
@@ -208,7 +221,7 @@ function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedI
   const selectedAlerts = selectedQuay ? alerts.filter((alert) => alert.quayId === selectedQuay.id) : [];
   const totalVolume = visibleLandings.reduce((sum, landing) => sum + landing.volumeTons, 0);
   const selectedTitle = selectedBoat?.registration ?? selectedQuay?.name ?? "Périmètre actif";
-  const selectedContext: WorkflowContext = { title: selectedTitle, scope: selectedQuay?.name || scope, sourceId: selectedBoat?.id || selectedQuay?.id, description: selectedAlerts[0]?.title || "Information opérationnelle à instruire." };
+  const selectedContext: WorkflowContext = { title: selectedTitle, scope: selectedQuay?.name || scope, sourceId: selectedBoat?.id || selectedQuay?.id, quayId: selectedQuay?.id, description: selectedAlerts[0]?.title || "Information opérationnelle à instruire." };
   const contextRows: Array<[string, string]> = selectedBoat ? [["Immatriculation", selectedBoat.registration], ["Quai rattaché", selectedQuay?.name ?? "—"], ["Position", selectedBoat.lastPosition], ["Déclaration", selectedBoat.lastDeclaration], ["Activité", selectedBoat.declaredActivity]] : selectedQuay ? [["Région", selectedQuay.region], ["Commune", selectedQuay.commune], ["Débarquements", String(selectedLandings.length)], ["Volume déclaré", `${selectedLandings.reduce((sum, item) => sum + item.volumeTons, 0).toFixed(1)} t`], ["Pirogues actives", String(selectedQuay.activePirogues)], ["Preuves générées", String(artifacts.filter((item) => item.scope === selectedQuay.name).length)]] : [];
   const verified = selection?.id ? verifiedIds.includes(selection.id) : false;
 
@@ -236,8 +249,8 @@ function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedI
 
 type WorkflowItem = { id: string; title: string; detail: string; level?: Level; kind: string; owner: string; territory: string; next: string; amount?: number; maturity?: number };
 
-function FiliereProgrammes({ scope, setScope, evidence, artifacts, opportunities, fundingRequests, qualifiedNeeds, partnerSolicitations, openWorkflow }: {
-  scope: Scope; setScope: (scope: Scope) => void; evidence: typeof initialEvidence; artifacts: GeneratedArtifact[]; opportunities: FundingOpportunity[]; fundingRequests: FundingRequest[]; qualifiedNeeds: QualifiedNeedRecord[]; partnerSolicitations: PartnerSolicitation[]; openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
+function FiliereProgrammes({ scope, setScope, evidence, artifacts, opportunities, fundingRequests, qualifiedNeeds, partnerSolicitations, programAssociations, openWorkflow }: {
+  scope: Scope; setScope: (scope: Scope) => void; evidence: typeof initialEvidence; artifacts: GeneratedArtifact[]; opportunities: FundingOpportunity[]; fundingRequests: FundingRequest[]; qualifiedNeeds: QualifiedNeedRecord[]; partnerSolicitations: PartnerSolicitation[]; programAssociations: ProgramAssociation[]; openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>("need-3");
   const scopedNeeds = communityNeeds.filter((need) => scope === "Nationale" || need.region === scope);
@@ -247,9 +260,9 @@ function FiliereProgrammes({ scope, setScope, evidence, artifacts, opportunities
   const totalPotential = scopedOpportunities.reduce((sum, item) => sum + item.estimatedAmount, 0);
   const readyCount = scopedOpportunities.filter((item) => item.status !== "À qualifier").length;
   const needItems: WorkflowItem[] = scopedNeeds.map((need) => ({ id: need.id, title: need.need, detail: `${formatFcfa(opportunities.find((item) => item.needId === need.id)?.estimatedAmount || 0)} · maturité ${needMaturityScores[need.id] || 50}%`, level: need.urgency, kind: "Signal terrain", owner: need.actors, territory: need.place, next: need.nextAction, amount: opportunities.find((item) => item.needId === need.id)?.estimatedAmount, maturity: needMaturityScores[need.id] }));
-  const qualifiedItems = needItems.filter((item) => (item.maturity || 0) >= 65).map((item) => ({ ...item, id: `qual-${item.id}`, kind: "Qualification", detail: `${formatFcfa(item.amount || 0)} · preuve requise`, next: "Créer une demande de financement" }));
-  const programItems: WorkflowItem[] = communityProjects.map((project) => ({ id: project.id, title: project.project, detail: `${project.estimatedBudget} · ${project.status}`, kind: "Programme", owner: project.owner, territory: project.territory, next: project.nextAction }));
-  const partnerItems: WorkflowItem[] = partners.slice(0, 3).map((partner) => ({ id: partner.id, title: partner.name, detail: partner.usefulFor, kind: "Partenaire", owner: partner.family, territory: partner.territory, next: "Mobiliser" }));
+  const qualifiedItems = [...needItems.filter((item) => (item.maturity || 0) >= 65).map((item) => ({ ...item, id: `qual-${item.id}`, kind: "Qualification", detail: `${formatFcfa(item.amount || 0)} · preuve requise`, next: "Créer une demande de financement" })), ...qualifiedNeeds.map((item) => ({ id: item.id, title: communityNeeds.find((need) => need.id === item.sourceNeedId)?.need || "Besoin qualifié", detail: `${formatFcfa(item.estimatedAmount)} · maturité ${item.maturityScore}%`, kind: "Qualification", owner: item.validator, territory: item.community, next: "Créer une demande de financement", amount: item.estimatedAmount, maturity: item.maturityScore }))];
+  const programItems: WorkflowItem[] = [...communityProjects.map((project) => ({ id: project.id, title: project.project, detail: `${project.estimatedBudget} · ${project.status}`, kind: "Programme", owner: project.owner, territory: project.territory, next: project.nextAction })), ...programAssociations.map((item) => ({ id: item.id, title: item.program, detail: `Association validée · jalon ${item.nextMilestone}`, kind: "Programme", owner: item.owner, territory: scope, next: item.expectedImpact }))];
+  const partnerItems: WorkflowItem[] = partners.slice(0, 3).map((partner) => { const solicitation = partnerSolicitations.find((item) => item.partner === partner.name); return { id: partner.id, title: partner.name, detail: solicitation ? `${solicitation.status} · réponse ${solicitation.responseDate}` : partner.usefulFor, kind: "Partenaire", owner: partner.family, territory: partner.territory, next: solicitation ? "Suivre la réponse" : "Mobiliser" }; });
   const actionItems: WorkflowItem[] = pendingActions.slice(0, 3).map((action) => ({ id: action.id, title: action.action, detail: `${action.owner} · ${action.dueDate}`, level: action.level, kind: "Action", owner: action.owner, territory: action.territory, next: "Exécuter" }));
   const impactItems: WorkflowItem[] = scopedOpportunities.slice(0, 3).map((item) => ({ id: `impact-${item.id}`, title: `${item.beneficiaries} acteurs valorisés`, detail: item.expectedImpact, kind: "Impact", owner: item.compatibleFunder, territory: item.territory, next: "Rattacher une preuve" }));
   const columns = [{ id: "signals", title: "Signal terrain", items: needItems }, { id: "qualification", title: "Qualification", items: qualifiedItems }, { id: "program", title: "Programme", items: programItems }, { id: "partner", title: "Partenaire", items: partnerItems }, { id: "action", title: "Action", items: actionItems }, { id: "impact", title: "Impact", items: impactItems }];
@@ -268,7 +281,7 @@ function FiliereProgrammes({ scope, setScope, evidence, artifacts, opportunities
       <section className="border border-[var(--mb-neutral-200)] bg-white"><div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--mb-neutral-200)] px-3 py-2"><div><h3 className="text-[12px] font-bold">Portefeuille de besoins</h3><p className="mt-0.5 text-[9px] text-[var(--mb-neutral-600)]">Besoins chiffrés, maturité et prochaine instruction.</p></div><button onClick={() => openWorkflow("qualification", needContext)} className={primaryButton}>Qualifier un besoin</button></div><DataTable headers={["Besoin", "Territoire", "Catégorie", "Montant estimé", "Maturité", "Action"]} rows={scopedNeeds.map((need) => { const opportunity = opportunities.find((item) => item.needId === need.id); return { id: need.id, cells: [<strong key="need">{need.need}</strong>, need.place, opportunity?.category || "À préciser", <span key="amount" className="font-mono">{formatFcfa(opportunity?.estimatedAmount || 0)}</span>, <span key="score" className="font-mono">{needMaturityScores[need.id] || 50}%</span>, <button key="action" onClick={() => { setSelectedId(need.id); openWorkflow("qualification", { ...needContext, title: need.need, scope: need.place, sourceId: need.id }); }} className="font-bold text-[var(--mb-ocean-600)]">Qualifier</button>] }; })} onRowClick={setSelectedId} /></section>
       <section className="min-w-0 border border-[var(--mb-neutral-200)] bg-white"><div className="flex h-9 items-center justify-between px-3"><h3 className="text-[11px] font-bold">Pipeline de valorisation</h3><span className="font-mono text-[9px] text-[var(--mb-neutral-400)]">BESOIN → IMPACT</span></div><div className="overflow-x-auto"><WorkflowBoard columns={columns} selectedId={selectedId} onSelect={setSelectedId} /></div></section>
       <div className="grid gap-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,.65fr)]">
-        <section className="border border-[var(--mb-neutral-200)] bg-white"><div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--mb-neutral-200)] px-3 py-2"><div><h3 className="text-[12px] font-bold">Opportunités de financement</h3><p className="mt-0.5 text-[9px] text-[var(--mb-neutral-600)]">Rapprochement besoin, bailleur, montant et impact attendu.</p></div><div className="flex gap-2"><button onClick={() => openWorkflow("partner", opportunityContext)} className={primaryButton}>Mobiliser un partenaire</button><button onClick={() => openWorkflow("funding", opportunityContext)} className={primaryButton}>Créer une demande de financement</button></div></div><DataTable headers={["Opportunité", "Bailleur compatible", "Montant", "Bénéficiaires", "Maturité", "État"]} rows={scopedOpportunities.map((item) => ({ id: item.id, cells: [<strong key="title">{item.title}</strong>, item.compatibleFunder, <span key="amount" className="font-mono">{formatFcfa(item.estimatedAmount)}</span>, <span key="beneficiaries" className="font-mono">{item.beneficiaries}</span>, <span key="maturity" className="font-mono">{item.maturityScore}%</span>, <button key="status" onClick={() => setSelectedId(item.id)} className="font-bold text-[var(--mb-ocean-600)]">{item.status}</button>] }))} onRowClick={setSelectedId} /><div className="flex flex-wrap gap-2 border-t border-[var(--mb-neutral-200)] p-3"><button onClick={() => openWorkflow("program", opportunityContext)} className={primaryButton}>Associer un programme</button><span className="self-center text-[9px] text-[var(--mb-neutral-600)]">{partnerSolicitations.length} sollicitation(s) partenaire · {fundingRequests.length} dossier(s) généré(s)</span></div></section>
+        <section className="border border-[var(--mb-neutral-200)] bg-white"><div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--mb-neutral-200)] px-3 py-2"><div><h3 className="text-[12px] font-bold">Opportunités de financement</h3><p className="mt-0.5 text-[9px] text-[var(--mb-neutral-600)]">Rapprochement besoin, bailleur, montant et impact attendu.</p></div><div className="flex gap-2"><button onClick={() => openWorkflow("partner", opportunityContext)} className={primaryButton}>Mobiliser un partenaire</button><button onClick={() => openWorkflow("funding", opportunityContext)} className={primaryButton}>Créer une demande de financement</button></div></div><DataTable headers={["Opportunité", "Bailleur compatible", "Montant", "Bénéficiaires", "Maturité", "État"]} rows={scopedOpportunities.map((item) => ({ id: item.id, cells: [<strong key="title">{item.title}</strong>, item.compatibleFunder, <span key="amount" className="font-mono">{formatFcfa(item.estimatedAmount)}</span>, <span key="beneficiaries" className="font-mono">{item.beneficiaries}</span>, <span key="maturity" className="font-mono">{item.maturityScore}%</span>, <button key="status" onClick={() => setSelectedId(item.id)} className="font-bold text-[var(--mb-ocean-600)]">{item.status}</button>] }))} onRowClick={setSelectedId} /><div className="flex flex-wrap gap-2 border-t border-[var(--mb-neutral-200)] p-3"><button onClick={() => openWorkflow("program", opportunityContext)} className={primaryButton}>Associer un programme</button><span className="self-center text-[9px] text-[var(--mb-neutral-600)]">{partnerSolicitations.length} sollicitation(s) · {programAssociations.length} association(s) programme · {fundingRequests.length} dossier(s)</span></div></section>
         <section className="border border-[var(--mb-neutral-200)] bg-white"><div className="border-b border-[var(--mb-neutral-200)] px-3 py-2"><h3 className="text-[12px] font-bold">Preuves d’impact</h3><p className="mt-0.5 text-[9px] text-[var(--mb-neutral-600)]">Pièces mobilisables dans les dossiers.</p></div><ArtifactRegister artifacts={artifacts.filter((item) => ["qualification", "funding", "partner", "program"].includes(item.kind)).slice(0, 5)} /><EvidenceTimeline items={evidence.slice(0, 3)} /></section>
       </div>
     </div>
