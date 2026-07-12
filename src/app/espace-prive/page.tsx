@@ -1,119 +1,39 @@
 import Link from "next/link";
 
-const osModules = [
-  {
-    title: "Maritime Atlas",
-    description: "Lire les quais, les pirogues, les débarquements et les alertes sur une carte opérationnelle.",
-    signal: "Carte vivante",
-    stat: "8 quais suivis",
-  },
-  {
-    title: "Value Chain & Communities",
-    description: "Relier besoins terrain, programmes, partenaires, formations et actions d'impact.",
-    signal: "Chaîne de valeur",
-    stat: "6 besoins ouverts",
-  },
-  {
-    title: "Institutional Steering",
-    description: "Piloter les KPI, les volumes, les preuves, les risques et la synthèse institutionnelle.",
-    signal: "Décision publique",
-    stat: "10 indicateurs",
-  },
+const spaces = [
+  { number: "01", title: "Atlas maritime", role: "Observer", description: "Quais, pirogues, débarquements, zones et alertes réunis dans une lecture géographique commune.", signal: "8 quais · 5 alertes ouvertes" },
+  { number: "02", title: "Filière & programmes", role: "Coordonner", description: "Les besoins terrain deviennent des programmes qualifiés, reliés à des partenaires et à des preuves.", signal: "6 besoins · 4 programmes" },
+  { number: "03", title: "Pilotage institutionnel", role: "Décider", description: "Situation du jour, risques, arbitrages et exports pour une décision publique documentée.", signal: "10 indicateurs · 3 actions en retard" },
 ];
 
-const operatingFlow = [
-  "Observer le littoral",
-  "Qualifier le signal",
-  "Prioriser l'action",
-  "Coordonner les acteurs",
-  "Conserver la preuve",
+const signals = [
+  { time: "10:18", place: "Saint-Louis", title: "Retour de pirogue à confirmer", level: "Urgent", color: "text-red-700" },
+  { time: "09:58", place: "Joal-Fadiouth", title: "Besoin de glace qualifié", level: "Vigilance", color: "text-amber-700" },
+  { time: "09:35", place: "Mbour", title: "Maintenance froid à coordonner", level: "À traiter", color: "text-[#0f6b7a]" },
 ];
-
-const proofItems = ["Données mockées", "Simulation privée", "Humain valide", "Prêt pour pilote"];
 
 export default function EspacePrivePortalPage() {
-  return (
-    <main className="relative min-h-screen overflow-hidden bg-[#071b22] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(20,184,166,0.35),transparent_28%),radial-gradient(circle_at_82%_16%,rgba(14,165,233,0.22),transparent_30%),linear-gradient(135deg,#071b22_0%,#0b3142_48%,#103f3f_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[linear-gradient(180deg,transparent,#f5f8f3)]" />
+  return <main className="min-h-screen bg-[#eef2f2] text-slate-900">
+    <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-[92rem] items-center justify-between gap-4 px-5 py-4 sm:px-8"><Link href="/" className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center bg-[#062330] text-xs font-black text-white">Mb</span><span><span className="block text-base font-semibold text-[#062330]">Mbàmbulaan</span><span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Coordination maritime</span></span></Link><div className="flex items-center gap-3"><span className="hidden text-xs font-semibold text-slate-500 sm:block">Espace de démonstration</span><Link href="/" className="text-sm font-bold text-[#0f6b7a]">Retour au site</Link></div></div></header>
 
-      <header className="relative z-10 border-b border-white/10 bg-white/8 px-5 py-4 backdrop-blur-xl sm:px-8">
-        <div className="mx-auto flex max-w-[94rem] items-center justify-between gap-4">
-          <Link href="/" className="flex min-w-0 items-center gap-3">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black text-[#07384a] shadow-sm">Mb</span>
-            <span className="min-w-0">
-              <span className="block truncate text-base font-black tracking-tight">Mbàmbulaan</span>
-              <span className="hidden text-xs font-bold uppercase tracking-[0.16em] text-cyan-100 sm:block">Maritime Coordination OS</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/demande-demo" className="hidden rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-white/15 sm:inline-flex">Demander une démo</Link>
-            <Link href="/espace-prive/etat" className="rounded-xl bg-white px-4 py-2 text-sm font-black text-[#07384a] shadow-sm transition hover:bg-cyan-50">Entrer</Link>
-          </div>
-        </div>
-      </header>
-
-      <section className="relative z-10 mx-auto grid max-w-[94rem] gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_30rem] lg:items-stretch lg:py-14">
-        <div className="grid gap-6">
-          <section className="overflow-hidden rounded-[2.25rem] border border-white/12 bg-white/10 shadow-[0_34px_120px_rgba(2,6,23,0.34)] backdrop-blur-xl">
-            <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:p-10">
-              <div>
-                <span className="inline-flex rounded-full border border-cyan-200/40 bg-cyan-100/15 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-cyan-50">Reset privé · Coordination maritime</span>
-                <h1 className="mt-6 max-w-5xl text-5xl font-black tracking-[-0.05em] text-white sm:text-7xl">Mbàmbulaan Maritime Coordination OS.</h1>
-                <p className="mt-6 max-w-3xl text-lg font-semibold leading-8 text-cyan-50/86">Un espace privé pour superviser le littoral, relier les communautés à des programmes, coordonner les décisions et produire des preuves institutionnelles.</p>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Link href="/espace-prive/etat" className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-[#07384a] shadow-sm transition hover:bg-cyan-50">Ouvrir le Maritime OS</Link>
-                  <Link href="/devis" className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-white/15">Cadrer un pilote</Link>
-                </div>
-              </div>
-
-              <div className="rounded-[1.75rem] border border-white/12 bg-slate-950/28 p-5 shadow-2xl shadow-slate-950/20">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Flux de coordination</p>
-                <div className="mt-5 grid gap-3">
-                  {operatingFlow.map((item, index) => (
-                    <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 p-3">
-                      <span className="grid h-8 w-8 place-items-center rounded-xl bg-cyan-100 text-xs font-black text-[#07384a]">{index + 1}</span>
-                      <p className="text-sm font-black">{item}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="grid gap-4 md:grid-cols-3">
-            {osModules.map((module) => (
-              <article key={module.title} className="rounded-[1.6rem] border border-white/12 bg-white/92 p-5 text-slate-950 shadow-[0_22px_60px_rgba(15,23,42,0.16)] backdrop-blur">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-800">{module.signal}</p>
-                <h2 className="mt-3 text-xl font-black tracking-tight">{module.title}</h2>
-                <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{module.description}</p>
-                <p className="mt-5 rounded-2xl bg-cyan-50 px-4 py-3 text-sm font-black text-cyan-950">{module.stat}</p>
-              </article>
-            ))}
-          </section>
+    <section className="mx-auto max-w-[92rem] px-5 py-8 sm:px-8 lg:py-12">
+      <div className="grid overflow-hidden border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,42,55,.09)] lg:grid-cols-[minmax(0,1.3fr)_minmax(22rem,.7fr)]">
+        <div className="border-b border-slate-200 p-6 sm:p-10 lg:border-b-0 lg:border-r lg:p-12">
+          <p className="text-[11px] font-bold uppercase tracking-[0.17em] text-[#0f6b7a]">Accès institutionnel simulé</p>
+          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.035em] text-[#062330] sm:text-6xl">Un espace commun pour observer, coordonner et décider.</h1>
+          <p className="mt-6 max-w-3xl text-base leading-7 text-slate-600">Mbàmbulaan relie la situation maritime, les besoins des communautés et le pilotage institutionnel dans une console privée conçue pour les équipes publiques et leurs partenaires.</p>
+          <div className="mt-8 flex flex-wrap gap-3"><Link href="/espace-prive/etat" className="inline-flex h-11 items-center justify-center bg-[#0b3142] px-5 text-sm font-bold text-white transition hover:bg-[#062330]">Ouvrir l’espace Ministère</Link><Link href="/devis" className="inline-flex h-11 items-center justify-center border border-slate-300 bg-white px-5 text-sm font-bold text-slate-700 hover:bg-slate-50">Cadrer un pilote</Link></div>
+          <div className="mt-10 grid border-y border-slate-200 sm:grid-cols-3">{spaces.map((space) => <article key={space.title} className="border-b border-slate-100 py-5 last:border-b-0 sm:border-b-0 sm:border-r sm:px-5 sm:first:pl-0 sm:last:border-r-0"><div className="flex items-center justify-between"><span className="text-[10px] font-bold text-[#0f6b7a]">{space.number}</span><span className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">{space.role}</span></div><h2 className="mt-4 text-lg font-semibold text-[#102a43]">{space.title}</h2><p className="mt-2 text-sm leading-6 text-slate-600">{space.description}</p><p className="mt-4 text-xs font-bold text-[#0f6b7a]">{space.signal}</p></article>)}</div>
         </div>
 
-        <aside className="grid gap-5 rounded-[2.25rem] border border-white/12 bg-white/94 p-5 text-slate-950 shadow-[0_34px_120px_rgba(2,6,23,0.24)] backdrop-blur-xl sm:p-6">
-          <div className="rounded-[1.75rem] bg-[linear-gradient(135deg,#07384a,#0f766e)] p-5 text-white">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Organisation simulée</p>
-            <h2 className="mt-3 text-3xl font-black tracking-tight">Ministère des Pêches</h2>
-            <p className="mt-3 text-sm font-semibold leading-6 text-cyan-50">Accès de démonstration sans authentification réelle. Les données sont locales et les décisions restent humaines.</p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            {proofItems.map((item) => (
-              <div key={item} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-black text-slate-800">{item}</div>
-            ))}
-          </div>
-
-          <div className="rounded-[1.5rem] border border-cyan-950/10 bg-[#f6fbfa] p-5">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-800">Ce que l'espace montre</p>
-            <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">Une journée maritime coordonnée : carte, tension, besoin, action, preuve et pilotage.</p>
-          </div>
-
-          <Link href="/espace-prive/etat" className="flex w-full items-center justify-center rounded-2xl bg-[#0f766e] px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-[#0b5f5a]">Lancer le Maritime Coordination OS</Link>
+        <aside className="bg-[#f8faf9] p-6 sm:p-8 lg:p-10">
+          <div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Situation simulée</p><h2 className="mt-1 text-xl font-semibold text-[#062330]">Signaux opérationnels</h2></div><span className="inline-flex items-center gap-2 text-[11px] font-bold text-emerald-700"><span className="h-2 w-2 rounded-full bg-emerald-500" />Consolidé</span></div>
+          <div className="mt-6 divide-y divide-slate-200 border-y border-slate-200">{signals.map((signal) => <div key={signal.title} className="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-3 py-4"><p className="text-xs font-bold text-[#0f6b7a]">{signal.time}</p><div><div className="flex items-start justify-between gap-3"><p className="text-sm font-bold text-[#102a43]">{signal.title}</p><span className={`text-[10px] font-bold ${signal.color}`}>● {signal.level}</span></div><p className="mt-1 text-xs text-slate-500">{signal.place}</p></div></div>)}</div>
+          <div className="mt-8 border-l-2 border-[#0f6b7a] bg-white p-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0f6b7a]">Cadre de confiance</p><p className="mt-2 text-sm leading-6 text-slate-600">Les données présentées sont locales et simulées. Mbàmbulaan assiste la lecture et conserve la trace; les agents restent responsables de la vérification et de la décision.</p></div>
+          <Link href="/espace-prive/etat" className="mt-6 flex h-11 w-full items-center justify-between bg-[#0f6b7a] px-4 text-sm font-bold text-white hover:bg-[#0b5260]"><span>Entrer dans la console</span><span>→</span></Link>
         </aside>
-      </section>
-    </main>
-  );
+      </div>
+      <p className="mt-5 text-center text-xs text-slate-500">Simulation Mbàmbulaan · Ministère des Pêches · Données mockées · Validation humaine</p>
+    </section>
+  </main>;
 }
