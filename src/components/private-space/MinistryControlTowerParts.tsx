@@ -9,7 +9,7 @@ export type MapLayerId = "quays" | "pirogues" | "landings" | "alerts";
 
 const levelLabel: Record<Level, string> = { normal: "Vérifié", surveillance: "Vigilance", urgent: "Critique" };
 const levelClass: Record<Level, string> = {
-  normal: "border-[var(--mb-green-600)]/25 bg-[var(--mb-green-600)]/8 text-[var(--mb-green-600)]",
+  normal: "border-[var(--mb-green-600)]/25 bg-[var(--mb-green-600)]/10 text-[var(--mb-green-600)]",
   surveillance: "border-[var(--mb-amber-500)]/30 bg-[var(--mb-amber-500)]/10 text-[#805817]",
   urgent: "border-[var(--mb-red-600)]/30 bg-[var(--mb-red-600)]/10 text-[var(--mb-red-600)]",
 };
@@ -23,7 +23,7 @@ export function StatusBadge({ level = "normal", children }: { level?: Level; chi
 }
 
 export function AppShell({ topBar, rail, children }: { topBar: ReactNode; rail: ReactNode; children: ReactNode }) {
-  return <main className="h-screen overflow-hidden bg-[var(--mb-offwhite)] text-[var(--mb-neutral-900)]"><div className="grid h-full grid-rows-[52px_minmax(0,1fr)] lg:grid-cols-[72px_minmax(0,1fr)] lg:grid-rows-[52px_minmax(0,1fr)]"><div className="col-span-full">{topBar}</div><div className="hidden min-h-0 lg:block">{rail}</div><div className="min-h-0 min-w-0 overflow-auto">{children}</div></div></main>;
+  return <main data-private-console className="h-screen overflow-hidden bg-[var(--mb-offwhite)] text-[var(--mb-neutral-900)]"><div className="grid h-full grid-rows-[52px_minmax(0,1fr)] lg:grid-cols-[72px_minmax(0,1fr)] lg:grid-rows-[52px_minmax(0,1fr)]"><div className="col-span-full">{topBar}</div><div className="hidden min-h-0 lg:block">{rail}</div><div className="min-h-0 min-w-0 overflow-auto">{children}</div></div></main>;
 }
 
 export function TopBar({ notice, onExport }: { notice: string; onExport: () => void }) {
