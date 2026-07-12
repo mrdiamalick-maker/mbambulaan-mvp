@@ -1,13 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --ocean-950: #062330;
-  --ocean-800: #0b5260;
-  --ocean-700: #0f6b7a;
-  --sea-100: #dce9e9;
-  --sand-100: #f3ead2;
+  --mb-white: #ffffff;
+  --mb-offwhite: #f6f5f1;
+  --mb-neutral-100: #edebe5;
+  --mb-neutral-200: #dddad1;
+  --mb-neutral-400: #9c9a93;
+  --mb-neutral-600: #5d5c57;
+  --mb-neutral-900: #1f2422;
+  --mb-navy-900: #0b1f33;
+  --mb-navy-700: #12314f;
+  --mb-navy-500: #1e4a73;
+  --mb-ocean-600: #2a6f8e;
+  --mb-ocean-400: #4c93b0;
+  --mb-bluegray-500: #5c7a8a;
+  --mb-sand-300: #e4d9c2;
+  --mb-green-600: #2f6e4e;
+  --mb-amber-500: #c08a2e;
+  --mb-red-600: #b0402f;
+  --background: var(--mb-offwhite);
+  --foreground: var(--mb-neutral-900);
 }
 
 * {
@@ -24,8 +36,17 @@ body {
   overflow-x: hidden;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, "Segoe UI", Arial, Helvetica, sans-serif;
+  font-size: 13px;
   text-rendering: optimizeLegibility;
+}
+
+.font-mono,
+code,
+kbd,
+samp,
+time {
+  font-family: "IBM Plex Mono", "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
 }
 
 button,
@@ -49,8 +70,12 @@ a {
 }
 
 ::selection {
-  background: #b8d5da;
-  color: #062330;
+  background: var(--mb-sand-300);
+  color: var(--mb-navy-900);
+}
+
+body:has([data-private-console]) > footer {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
