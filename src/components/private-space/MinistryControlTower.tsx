@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   communityNeeds,
   communityProjects,
-  dashboardMetrics,
   getQuayById,
   landings,
   mapAlerts,
@@ -15,157 +13,217 @@ import {
   quays,
   regions,
   trainingPrograms,
-  type ModuleId,
+  type Level,
   type Region,
 } from "@/data/ministryControlTowerData";
 import {
-  controlClass,
+  ActionRegister,
+  AppShell,
+  ContextPanel,
+  DataTable,
+  DecisionPanel,
   EvidenceTimeline,
-  Field,
-  FilterBar,
-  MapWorkspace,
-  MetricBlock,
-  ObjectInspector,
-  Panel,
-  PanelHeading,
-  primaryActionClass,
-  secondaryActionClass,
-  StatusPill,
+  ExportPanel,
+  FilterField,
+  FilterStrip,
+  inputClass,
+  MapCanvas,
+  MetricRow,
+  MobileWorkspaceNav,
+  NavigationRail,
+  primaryButton,
+  ProgramPipeline,
+  secondaryButton,
+  StatusBadge,
+  TopBar,
+  WorkflowBoard,
   WorkspaceHeader,
+  type MapLayerId,
+  type WorkspaceId,
 } from "./MinistryControlTowerParts";
 
-type Selection = { kind: "quay" | "pirogue"; id: string };
-type MapMode = "quays" | "pirogues";
-type RegionFilter = Region | "Toutes";
+type Selection = { kind: "quay" | "pirogue"; id: string } | null;
+type Scope = "Nationale" | Region;
 
-const workspaces: Array<{ id: ModuleId; number: string; label: string; caption: string }> = [
-  { id: "map", number: "01", label: "Atlas maritime", caption: "Observer et vérifier" },
-  { id: "community", number: "02", label: "Filière & programmes", caption: "Qualifier et mobiliser" },
-  { id: "tracking", number: "03", label: "Pilotage institutionnel", caption: "Arbitrer et transmettre" },
-];
-
-const initialTrace = [
-  { time: "10:45", title: "Situation consolidée", detail: "8 quais et 5 alertes intégrés à la lecture nationale." },
-  { time: "10:18", title: "Vérification demandée", detail: "Retour de pirogue à confirmer à Saint-Louis." },
-  { time: "09:58", title: "Signal terrain qualifié", detail: "Besoin de glace documenté à Joal-Fadiouth." },
+const initialEvidence = [
+  { time: "10:45", title: "Consolidation nationale", detail: "Quais, débarquements et alertes regroupés dans la situation du jour." },
+  { time: "10:18", title: "Signal transmis", detail: "Retour de pirogue à confirmer par la cellule locale de Saint-Louis." },
+  { time: "09:58", title: "Besoin qualifié", detail: "Besoin de glace documenté par le relais de Joal-Fadiouth." },
+  { time: "09:35", title: "Incident rattaché", detail: "Panne de froid de Mbour reliée au programme de maintenance." },
 ];
 
 export function MinistryControlTower() {
-  const [activeModule, setActiveModule] = useState<ModuleId>("map");
-  const [region, setRegion] = useState<RegionFilter>("Toutes");
-  const [quayId, setQuayId] = useState("Tous");
-  const [mode, setMode] = useState<MapMode>("quays");
-  const [selection, setSelection] = useState<Selection>({ kind: "quay", id: "joal" });
-  const [trace, setTrace] = useState(initialTrace);
-  const [notice, setNotice] = useState("Les données sont simulées. Toute décision reste soumise à validation humaine.");
-
-  const filteredQuays = useMemo(() => quays.filter((quay) => (region === "Toutes" || quay.region === region) && (quayId === "Tous" || quay.id === quayId)), [quayId, region]);
-  const quayIds = useMemo(() => new Set(filteredQuays.map((quay) => quay.id)), [filteredQuays]);
-  const filteredPirogues = useMemo(() => pirogues.filter((boat) => quayIds.has(boat.quayId)), [quayIds]);
-  const filteredLandings = useMemo(() => landings.filter((landing) => quayIds.has(landing.quayId)), [quayIds]);
-  const filteredAlerts = useMemo(() => mapAlerts.filter((alert) => quayIds.has(alert.quayId)), [quayIds]);
-  const selectedBoat = selection.kind === "pirogue" ? pirogues.find((boat) => boat.id === selection.id) ?? null : null;
-  const selectedQuay = selection.kind === "quay" ? getQuayById(selection.id) : selectedBoat ? getQuayById(selectedBoat.quayId) : filteredQuays[0] ?? quays[0];
-  const visibleVolume = filteredLandings.reduce((sum, landing) => sum + landing.volumeTons, 0);
+  const [workspace, setWorkspace] = useState<WorkspaceId>("map");
+  const [scope, setScope] = useState<Scope>("Nationale");
+  const [evidence, setEvidence] = useState(initialEvidence);
+  const [systemNotice, setSystemNotice] = useState("Dernière synchronisation · 10:45");
 
   function record(title: string, detail: string) {
-    const now = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date());
-    setTrace((items) => [{ time: now, title, detail }, ...items].slice(0, 6));
-    setNotice(`${title} · trace ajoutée au registre de démonstration.`);
+    const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date());
+    setEvidence((items) => [{ time, title, detail }, ...items].slice(0, 8));
+    setSystemNotice(`${title} · action tracée`);
   }
 
-  function changeRegion(value: RegionFilter) {
-    setRegion(value);
-    setQuayId("Tous");
-    const next = value === "Toutes" ? quays[0] : quays.find((quay) => quay.region === value) ?? quays[0];
-    setSelection({ kind: "quay", id: next.id });
+  function exportScope() {
+    record("Export préparé", `Périmètre ${scope} · validation humaine requise avant transmission.`);
   }
 
-  return (
-    <main className="min-h-screen overflow-x-hidden bg-[#eef2f2] text-slate-900">
-      <div className="grid min-h-screen lg:grid-cols-[15.5rem_minmax(0,1fr)]">
-        <WorkspaceRail active={activeModule} onChange={setActiveModule} />
-        <div className="min-w-0">
-          <InstitutionalTopBar notice={notice} onExport={() => record("Synthèse préparée", "Export institutionnel simulé à partir du périmètre actif.")} />
-          <div className="min-w-0 p-3 sm:p-4 lg:p-5">
-            <div className="mx-auto max-w-[106rem] overflow-hidden border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,42,55,.08)]">
-              {activeModule === "map" ? <AtlasMaritime region={region} setRegion={changeRegion} quayId={quayId} setQuayId={setQuayId} mode={mode} setMode={setMode} selection={selection} setSelection={setSelection} quaysVisible={filteredQuays} boatsVisible={filteredPirogues} landingsVisible={filteredLandings} alertsVisible={filteredAlerts} selectedQuay={selectedQuay} selectedBoat={selectedBoat} volume={visibleVolume} record={record} trace={trace} /> : null}
-              {activeModule === "community" ? <FiliereProgrammes record={record} trace={trace} /> : null}
-              {activeModule === "tracking" ? <PilotageInstitutionnel record={record} trace={trace} /> : null}
-            </div>
-          </div>
-        </div>
+  return <AppShell topBar={<TopBar notice={systemNotice} onExport={exportScope} />} rail={<NavigationRail active={workspace} onChange={setWorkspace} />}>
+    <MobileWorkspaceNav active={workspace} onChange={setWorkspace} />
+    {workspace === "map" ? <AtlasMaritime scope={scope} setScope={setScope} evidence={evidence} record={record} onExport={exportScope} /> : null}
+    {workspace === "community" ? <FiliereProgrammes scope={scope} setScope={setScope} evidence={evidence} record={record} onExport={exportScope} /> : null}
+    {workspace === "tracking" ? <PilotageInstitutionnel scope={scope} setScope={setScope} evidence={evidence} record={record} onExport={exportScope} /> : null}
+  </AppShell>;
+}
+
+function AtlasMaritime({ scope, setScope, evidence, record, onExport }: { scope: Scope; setScope: (scope: Scope) => void; evidence: typeof initialEvidence; record: (title: string, detail: string) => void; onExport: () => void }) {
+  const [mode, setMode] = useState<"quays" | "pirogues">("quays");
+  const [quayFilter, setQuayFilter] = useState("Tous");
+  const [statusFilter, setStatusFilter] = useState<"Tous" | Level>("Tous");
+  const [period, setPeriod] = useState("Aujourd’hui");
+  const [selection, setSelection] = useState<Selection>(null);
+  const [layers, setLayers] = useState<Record<MapLayerId, boolean>>({ quays: true, pirogues: true, landings: true, alerts: true });
+
+  const visibleQuays = useMemo(() => quays.filter((quay) => (scope === "Nationale" || quay.region === scope) && (quayFilter === "Tous" || quay.id === quayFilter) && (statusFilter === "Tous" || quay.level === statusFilter)), [quayFilter, scope, statusFilter]);
+  const quayIds = useMemo(() => new Set(visibleQuays.map((quay) => quay.id)), [visibleQuays]);
+  const visiblePirogues = useMemo(() => pirogues.filter((boat) => quayIds.has(boat.quayId) && (statusFilter === "Tous" || boat.level === statusFilter)), [quayIds, statusFilter]);
+  const visibleLandings = useMemo(() => landings.filter((landing) => quayIds.has(landing.quayId)), [quayIds]);
+  const visibleAlerts = useMemo(() => mapAlerts.filter((alert) => quayIds.has(alert.quayId) && (statusFilter === "Tous" || alert.level === statusFilter)), [quayIds, statusFilter]);
+
+  const selectedBoat = selection?.kind === "pirogue" ? pirogues.find((boat) => boat.id === selection.id) ?? null : null;
+  const selectedQuay = selection?.kind === "quay" ? quays.find((quay) => quay.id === selection.id) ?? null : selectedBoat ? getQuayById(selectedBoat.quayId) : null;
+  const selectedLandings = selectedQuay ? landings.filter((landing) => landing.quayId === selectedQuay.id) : [];
+  const selectedAlerts = selectedQuay ? mapAlerts.filter((alert) => alert.quayId === selectedQuay.id) : [];
+  const totalVolume = visibleLandings.reduce((sum, landing) => sum + landing.volumeTons, 0);
+
+  function toggleLayer(layer: MapLayerId) {
+    setLayers((current) => ({ ...current, [layer]: !current[layer] }));
+  }
+
+  function changeScope(next: string) {
+    setScope(next as Scope);
+    setQuayFilter("Tous");
+    setSelection(null);
+  }
+
+  const contextRows: Array<[string, string]> = selectedBoat ? [
+    ["Immatriculation", selectedBoat.registration],
+    ["Quai rattaché", selectedQuay?.name ?? "—"],
+    ["Position", selectedBoat.lastPosition],
+    ["Déclaration", selectedBoat.lastDeclaration],
+    ["Activité", selectedBoat.declaredActivity],
+  ] : selectedQuay ? [
+    ["Région", selectedQuay.region],
+    ["Commune", selectedQuay.commune],
+    ["Débarquements", String(selectedLandings.length)],
+    ["Volume déclaré", `${selectedLandings.reduce((sum, item) => sum + item.volumeTons, 0).toFixed(1)} t`],
+    ["Pirogues actives", String(selectedQuay.activePirogues)],
+    ["Espèces", selectedQuay.species.join(", ")],
+  ] : [];
+
+  return <section className="min-h-full">
+    <WorkspaceHeader title="Atlas maritime" question="Que se passe-t-il sur le littoral et en mer ?" scope={scope} onScopeChange={changeScope} onExport={onExport} />
+    <FilterStrip>
+      <div className="flex rounded-[3px] border border-[var(--mb-neutral-200)] bg-[var(--mb-offwhite)] p-0.5">
+        <button onClick={() => setMode("quays")} className={`h-8 rounded-[2px] px-3 text-[11px] font-bold ${mode === "quays" ? "bg-[var(--mb-navy-700)] text-white" : "text-[var(--mb-neutral-600)]"}`}>Vue quais</button>
+        <button onClick={() => setMode("pirogues")} className={`h-8 rounded-[2px] px-3 text-[11px] font-bold ${mode === "pirogues" ? "bg-[var(--mb-navy-700)] text-white" : "text-[var(--mb-neutral-600)]"}`}>Vue pirogues</button>
       </div>
-    </main>
-  );
-}
+      <FilterField label="Quai"><select value={quayFilter} onChange={(event) => { setQuayFilter(event.target.value); setSelection(event.target.value === "Tous" ? null : { kind: "quay", id: event.target.value }); }} className={inputClass}><option>Tous</option>{quays.filter((quay) => scope === "Nationale" || quay.region === scope).map((quay) => <option key={quay.id} value={quay.id}>{quay.name}</option>)}</select></FilterField>
+      <FilterField label="Statut"><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "Tous" | Level)} className={inputClass}><option>Tous</option><option value="normal">Vérifié</option><option value="surveillance">Vigilance</option><option value="urgent">Critique</option></select></FilterField>
+      <FilterField label="Période"><select value={period} onChange={(event) => setPeriod(event.target.value)} className={inputClass}><option>Aujourd’hui</option><option>7 derniers jours</option><option>30 derniers jours</option></select></FilterField>
+      <div className="ml-auto flex items-center gap-3 px-1 font-mono text-[9px] text-[var(--mb-neutral-600)]"><span>{visibleQuays.length} QUAIS</span><span>{visiblePirogues.length} PIROGUES</span><span>{totalVolume.toFixed(1)} T</span></div>
+    </FilterStrip>
 
-function WorkspaceRail({ active, onChange }: { active: ModuleId; onChange: (module: ModuleId) => void }) {
-  return <aside className="border-b border-white/10 bg-[#062330] text-white lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
-    <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5"><Link href="/" className="grid h-9 w-9 place-items-center border border-white/20 bg-white text-xs font-black text-[#062330]">Mb</Link><div><p className="font-semibold">Mbàmbulaan</p><p className="text-[10px] uppercase tracking-[0.13em] text-slate-300">Coordination maritime</p></div></div>
-      <div className="border-b border-white/10 px-5 py-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Organisation</p><p className="mt-2 text-sm font-semibold">Ministère des Pêches</p><p className="mt-1 text-xs text-slate-400">Démonstration nationale</p></div>
-      <nav className="flex gap-2 overflow-x-auto p-3 lg:grid lg:gap-1 lg:overflow-visible lg:p-3">
-        {workspaces.map((workspace) => <button key={workspace.id} onClick={() => onChange(workspace.id)} className={`min-w-[13rem] border-l-2 px-4 py-3 text-left transition lg:min-w-0 ${active === workspace.id ? "border-[#66c5c9] bg-white/10" : "border-transparent hover:bg-white/5"}`}><span className={`text-[10px] font-bold ${active === workspace.id ? "text-[#8ed8d5]" : "text-slate-500"}`}>{workspace.number}</span><span className="mt-1 block text-sm font-semibold">{workspace.label}</span><span className="mt-1 block text-[11px] text-slate-400">{workspace.caption}</span></button>)}
-      </nav>
-      <div className="mt-auto hidden border-t border-white/10 p-4 lg:block"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Cadre de confiance</p><p className="mt-2 text-xs leading-5 text-slate-400">Simulation sur données locales. Les agents vérifient, documentent et valident.</p><Link href="/espace-prive" className="mt-4 inline-flex text-xs font-bold text-[#8ed8d5]">Quitter l’espace →</Link></div>
+    <div className="grid min-h-[calc(100vh-201px)] min-w-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:grid-rows-[minmax(430px,1fr)_150px]">
+      <div className="min-h-0 border-b border-[var(--mb-neutral-200)] xl:border-r"><MapCanvas mode={mode} layers={layers} onToggleLayer={toggleLayer} quays={visibleQuays} pirogues={visiblePirogues} landings={visibleLandings} alerts={visibleAlerts} selection={selection} onSelectQuay={(id) => setSelection({ kind: "quay", id })} onSelectPirogue={(id) => setSelection({ kind: "pirogue", id })} /></div>
+      <div className="min-h-0 xl:row-span-2"><ContextPanel empty={!selection || !selectedQuay} title={selectedBoat?.registration ?? selectedQuay?.name ?? ""} subtitle={selectedBoat ? selectedBoat.status : selectedQuay ? `Dernier signal · ${selectedQuay.lastUpdated}` : ""} level={selectedBoat?.level ?? selectedQuay?.level} rows={contextRows} actions={[
+        { label: "Vérifier", primary: true, onClick: () => record("Vérification demandée", selectedBoat?.registration ?? selectedQuay?.name ?? "") },
+        { label: "Créer une alerte", onClick: () => record("Alerte créée", `${selectedQuay?.name ?? ""} · ${selectedAlerts[0]?.title ?? "signal à documenter"}`) },
+        { label: "Ouvrir la fiche complète", onClick: () => record("Fiche consultée", selectedBoat?.registration ?? selectedQuay?.name ?? "") },
+        { label: "Exporter la zone", onClick: onExport },
+      ]} /></div>
+      <div className="min-h-0 overflow-auto bg-white xl:border-r"><div className="flex h-9 items-center justify-between border-b border-[var(--mb-neutral-200)] px-3"><h3 className="text-[11px] font-bold text-[var(--mb-navy-900)]">Registre d’événements</h3><span className="font-mono text-[9px] text-[var(--mb-neutral-400)]">{period}</span></div><EvidenceTimeline items={evidence.slice(0, 4)} /></div>
     </div>
-  </aside>;
+  </section>;
 }
 
-function InstitutionalTopBar({ notice, onExport }: { notice: string; onExport: () => void }) {
-  return <header className="border-b border-slate-200 bg-white"><div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-6"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#0f6b7a]">Situation nationale · 12 juillet 2026</p><p className="truncate text-sm font-semibold text-slate-600">{notice}</p></div><div className="flex gap-2"><button onClick={onExport} className={primaryActionClass}>Préparer la synthèse</button><Link href="/espace-prive" className={secondaryActionClass}>Accès</Link></div></div></header>;
-}
+type WorkflowItem = { id: string; title: string; detail: string; level?: Level; kind: string; owner: string; territory: string; next: string };
 
-function AtlasMaritime({ region, setRegion, quayId, setQuayId, mode, setMode, selection, setSelection, quaysVisible, boatsVisible, landingsVisible, alertsVisible, selectedQuay, selectedBoat, volume, record, trace }: {
-  region: RegionFilter; setRegion: (value: RegionFilter) => void; quayId: string; setQuayId: (value: string) => void;
-  mode: MapMode; setMode: (value: MapMode) => void; selection: Selection; setSelection: (value: Selection) => void;
-  quaysVisible: typeof quays; boatsVisible: typeof pirogues; landingsVisible: typeof landings; alertsVisible: typeof mapAlerts;
-  selectedQuay: typeof quays[number]; selectedBoat: typeof pirogues[number] | null; volume: number; record: (title: string, detail: string) => void; trace: typeof initialTrace;
-}) {
-  const selectedLandings = landingsVisible.filter((item) => item.quayId === selectedQuay.id);
-  const selectedAlerts = alertsVisible.filter((item) => item.quayId === selectedQuay.id);
-  const rows: Array<[string, string]> = selectedBoat ? [
-    ["Quai rattaché", selectedQuay.name], ["Position", selectedBoat.lastPosition], ["Déclaration", selectedBoat.lastDeclaration], ["Activité", selectedBoat.declaredActivity],
-  ] : [
-    ["Région", selectedQuay.region], ["Débarquements", String(selectedLandings.length)], ["Volume déclaré", `${selectedLandings.reduce((sum, item) => sum + item.volumeTons, 0).toFixed(1)} t`], ["Pirogues actives", String(selectedQuay.activePirogues)], ["Espèces", selectedQuay.species.join(", ")],
+function FiliereProgrammes({ scope, setScope, evidence, record, onExport }: { scope: Scope; setScope: (scope: Scope) => void; evidence: typeof initialEvidence; record: (title: string, detail: string) => void; onExport: () => void }) {
+  const [selectedId, setSelectedId] = useState<string | null>("need-3");
+  const needItems: WorkflowItem[] = communityNeeds.filter((need) => scope === "Nationale" || need.region === scope).map((need) => ({ id: need.id, title: need.need, detail: `${need.place} · ${need.status}`, level: need.urgency, kind: "Signal terrain", owner: need.actors, territory: need.place, next: need.nextAction }));
+  const qualified: WorkflowItem[] = needItems.slice(0, 3).map((item, index) => ({ ...item, id: `qual-${index}`, kind: "Qualification", detail: index === 0 ? "Preuve terrain reçue" : "Vérification en cours", next: "Qualifier" }));
+  const programItems: WorkflowItem[] = communityProjects.filter((project) => scope === "Nationale" || project.territory.includes(scope)).map((project) => ({ id: project.id, title: project.project, detail: `${project.territory} · ${project.status}`, kind: "Programme", owner: project.owner, territory: project.territory, next: project.nextAction }));
+  const partnerItems: WorkflowItem[] = partners.slice(0, 3).map((partner) => ({ id: partner.id, title: partner.name, detail: partner.usefulFor, kind: "Partenaire", owner: partner.family, territory: partner.territory, next: "Mobiliser" }));
+  const actionItems: WorkflowItem[] = pendingActions.slice(0, 3).map((action) => ({ id: action.id, title: action.action, detail: `${action.owner} · ${action.dueDate}`, level: action.level, kind: "Action", owner: action.owner, territory: action.territory, next: "Exécuter" }));
+  const impactItems: WorkflowItem[] = communityProjects.slice(0, 2).map((project) => ({ id: `impact-${project.id}`, title: `${project.beneficiaries} acteurs ciblés`, detail: project.project, kind: "Impact", owner: project.owner, territory: project.territory, next: "Documenter la preuve" }));
+  const columns = [
+    { id: "signals", title: "Signal terrain", items: needItems },
+    { id: "qualification", title: "Qualification", items: qualified },
+    { id: "program", title: "Programme", items: programItems },
+    { id: "partner", title: "Partenaire", items: partnerItems },
+    { id: "action", title: "Action", items: actionItems },
+    { id: "impact", title: "Impact", items: impactItems },
   ];
-  return <>
-    <WorkspaceHeader eyebrow="Espace 01 · Observation littorale" title="Atlas maritime" description="Localiser l’activité, vérifier un signal et engager l’action appropriée depuis une lecture géographique commune.">
-      <button onClick={() => setMode("quays")} className={mode === "quays" ? primaryActionClass : secondaryActionClass}>Vue quais</button>
-      <button onClick={() => { setMode("pirogues"); const boat = boatsVisible[0]; if (boat) setSelection({ kind: "pirogue", id: boat.id }); }} className={mode === "pirogues" ? primaryActionClass : secondaryActionClass}>Vue pirogues</button>
-    </WorkspaceHeader>
-    <div className="grid border-b border-slate-200 sm:grid-cols-2 xl:grid-cols-4"><MetricBlock label="Périmètre" value={region === "Toutes" ? "National" : region} detail={`${quaysVisible.length} quais actifs`} /><MetricBlock label="Volume visible" value={`${volume.toFixed(1)} t`} detail="Débarquements déclarés" tone="lagoon" /><MetricBlock label="Pirogues suivies" value={String(boatsVisible.length)} detail="Positions déclaratives" tone="sand" /><MetricBlock label="Alertes ouvertes" value={String(alertsVisible.length)} detail="Vérification requise" tone={alertsVisible.length ? "alert" : "ocean"} /></div>
-    <FilterBar><Field label="Région"><select value={region} onChange={(event) => setRegion(event.target.value as RegionFilter)} className={controlClass}><option>Toutes</option>{regions.map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="Quai"><select value={quayId} onChange={(event) => { setQuayId(event.target.value); if (event.target.value !== "Tous") setSelection({ kind: "quay", id: event.target.value }); }} className={controlClass}><option>Tous</option>{quays.filter((quay) => region === "Toutes" || quay.region === region).map((quay) => <option value={quay.id} key={quay.id}>{quay.name}</option>)}</select></Field><div className="ml-auto flex items-center gap-3 py-2 text-[11px] font-semibold text-slate-500"><span className="text-emerald-700">● Normal</span><span className="text-amber-700">● Vigilance</span><span className="text-red-700">● Urgent</span></div></FilterBar>
-    <div className="grid min-w-0 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <MapWorkspace mode={mode} quays={quaysVisible} pirogues={boatsVisible} landings={landingsVisible} alerts={alertsVisible} selectedKind={selection.kind} selectedId={selection.id} onSelectQuay={(id) => setSelection({ kind: "quay", id })} onSelectPirogue={(id) => setSelection({ kind: "pirogue", id })} />
-      <aside className="min-w-0 border-t border-slate-200 xl:border-l xl:border-t-0"><ObjectInspector title={selectedBoat?.registration ?? selectedQuay.name} subtitle={selectedBoat ? selectedBoat.status : `${selectedQuay.commune} · actualisé à ${selectedQuay.lastUpdated}`} level={selectedBoat?.level ?? selectedQuay.level} rows={rows} actions={[{ label: "Demander une vérification", primary: true, onClick: () => record("Vérification demandée", selectedBoat?.registration ?? selectedQuay.name) }, { label: "Créer une alerte", onClick: () => record("Alerte créée", `Signal associé à ${selectedQuay.name}`) }, { label: "Exporter cette zone", onClick: () => record("Zone exportée", selectedQuay.name) }]} /><Panel className="border-x-0 border-b-0"><PanelHeading eyebrow="Décision" title="Prochaine action" /><div className="p-4">{selectedAlerts.length ? selectedAlerts.map((alert) => <div key={alert.id} className="mb-3 border-l-2 border-amber-500 bg-amber-50 p-3"><p className="text-xs font-bold text-amber-950">{alert.title}</p><p className="mt-1 text-[11px] leading-4 text-amber-800">{alert.nextAction}</p></div>) : <p className="text-xs leading-5 text-slate-500">Aucune alerte ouverte. Maintenir la veille terrain.</p>}</div></Panel><Panel className="border-x-0 border-b-0"><PanelHeading eyebrow="Registre" title="Traces récentes" /><EvidenceTimeline items={trace.slice(0, 3)} /></Panel></aside>
+  const allItems = columns.flatMap((column) => column.items);
+  const selected = allItems.find((item) => item.id === selectedId) ?? null;
+  const programs = communityProjects.map((project, index) => ({ id: project.id, title: project.project, territory: project.territory, partner: project.targetPartner, progress: [35, 68, 82, 44][index] ?? 50, due: ["30 j", "12 j", "7 j", "45 j"][index] ?? "30 j" }));
+
+  return <section className="min-h-full">
+    <WorkspaceHeader title="Filière & programmes" question="Comment transformer un signal terrain en programme et impact ?" scope={scope} onScopeChange={(value) => setScope(value as Scope)} onExport={onExport} />
+    <MetricRow metrics={[
+      { label: "Signaux ouverts", value: String(needItems.length), detail: "Remontées terrain" },
+      { label: "À qualifier", value: String(qualified.length), detail: "Vérification attendue", level: "surveillance" },
+      { label: "Programmes actifs", value: String(programItems.length), detail: "Réponses structurées" },
+      { label: "Acteurs ciblés", value: String(communityProjects.reduce((sum, item) => sum + item.beneficiaries, 0)), detail: "Impact estimé" },
+    ]} />
+    <div className="grid min-h-[calc(100vh-234px)] min-w-0 xl:grid-cols-[minmax(0,1fr)_330px] xl:grid-rows-[minmax(310px,1fr)_220px]">
+      <div className="min-w-0 overflow-x-auto border-b border-[var(--mb-neutral-200)] xl:border-r"><div className="flex h-9 items-center justify-between bg-white px-3"><h3 className="text-[11px] font-bold text-[var(--mb-navy-900)]">Flux de coordination</h3><button onClick={() => record("Signal qualifié", selected?.title ?? "Élément sélectionné")} className={primaryButton}>Qualifier</button></div><WorkflowBoard columns={columns} selectedId={selectedId} onSelect={setSelectedId} /></div>
+      <div className="min-h-0 xl:row-span-2"><ContextPanel empty={!selected} title={selected?.title ?? ""} subtitle={selected ? `${selected.kind} · ${selected.territory}` : ""} level={selected?.level} rows={selected ? [["Responsable", selected.owner], ["Territoire", selected.territory], ["Étape", selected.kind], ["Prochaine action", selected.next]] : []} actions={[
+        { label: selected?.kind === "Signal terrain" ? "Qualifier" : "Valider l’étape", primary: true, onClick: () => record("Étape validée", selected?.title ?? "") },
+        { label: "Réassigner", onClick: () => record("Responsable réassigné", selected?.title ?? "") },
+        { label: "Rattacher une preuve", onClick: () => record("Preuve rattachée", selected?.title ?? "") },
+      ]} /></div>
+      <div className="grid min-h-0 overflow-auto bg-white xl:grid-cols-[minmax(0,1.2fr)_minmax(18rem,.8fr)] xl:border-r">
+        <section className="border-b border-[var(--mb-neutral-200)] xl:border-b-0 xl:border-r"><div className="flex h-9 items-center border-b border-[var(--mb-neutral-200)] px-3"><h3 className="text-[11px] font-bold">Programmes actifs</h3></div><ProgramPipeline programs={programs} onSelect={setSelectedId} /></section>
+        <div className="grid content-start gap-2 p-2"><DecisionPanel items={needItems.slice(0, 2).map((item) => ({ id: item.id, title: item.title, detail: item.next, level: item.level ?? "normal", action: "Arbitrer", onAction: () => record("Arbitrage enregistré", item.title) }))} /><section className="border border-[var(--mb-neutral-200)]"><div className="border-b border-[var(--mb-neutral-200)] px-3 py-2 text-[11px] font-bold">Registre de preuve</div><EvidenceTimeline items={evidence.slice(0, 3)} /></section></div>
+      </div>
     </div>
-  </>;
+  </section>;
 }
 
-function FiliereProgrammes({ record, trace }: { record: (title: string, detail: string) => void; trace: typeof initialTrace }) {
-  const stages = [{ label: "Signals reçus", value: communityNeeds.length }, { label: "Qualifiés", value: 4 }, { label: "Programmes", value: communityProjects.length }, { label: "Partenaires", value: partners.length }, { label: "Bénéficiaires", value: communityProjects.reduce((sum, item) => sum + item.beneficiaries, 0) }];
-  return <>
-    <WorkspaceHeader eyebrow="Espace 02 · Transformation du signal" title="Filière & programmes" description="Passer d’un besoin remonté par le terrain à une réponse qualifiée, financée, suivie et documentée."><button onClick={() => record("Fiche action créée", "Nouveau cadrage ouvert depuis la file des besoins.")} className={primaryActionClass}>Créer une fiche action</button></WorkspaceHeader>
-    <div className="grid border-b border-slate-200 sm:grid-cols-5">{stages.map((stage, index) => <div key={stage.label} className="relative border-b border-slate-100 px-4 py-4 sm:border-b-0 sm:border-r"><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500">0{index + 1} · {stage.label}</p><p className="mt-2 text-2xl font-semibold text-[#062330]">{stage.value}</p></div>)}</div>
-    <div className="grid min-w-0 xl:grid-cols-[19rem_minmax(0,1fr)_21rem]">
-      <Panel className="border-0 border-r"><PanelHeading eyebrow="File terrain" title="Besoins à qualifier" />{communityNeeds.map((need) => <button key={need.id} onClick={() => record("Besoin sélectionné", `${need.need} · ${need.place}`)} className="block w-full border-b border-slate-100 px-4 py-4 text-left hover:bg-[#f5faf9]"><div className="flex items-start justify-between gap-2"><p className="text-sm font-bold text-[#102a43]">{need.need}</p><StatusPill level={need.urgency} /></div><p className="mt-2 text-xs text-slate-500">{need.place} · {need.actors}</p><p className="mt-2 text-[11px] font-semibold text-[#0f6b7a]">{need.nextAction} →</p></button>)}</Panel>
-      <Panel className="border-0 border-r"><PanelHeading eyebrow="Programmes" title="Réponses en structuration" /><div className="overflow-x-auto"><table className="w-full min-w-[42rem] border-collapse text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-4 py-3">Programme</th><th className="px-4 py-3">Territoire</th><th className="px-4 py-3">Partenaire</th><th className="px-4 py-3">Budget</th><th className="px-4 py-3">État</th></tr></thead><tbody className="divide-y divide-slate-100">{communityProjects.map((project) => <tr key={project.id} className="hover:bg-[#f5faf9]"><td className="px-4 py-4 font-bold text-[#102a43]">{project.project}</td><td className="px-4 py-4">{project.territory}</td><td className="px-4 py-4">{project.targetPartner}</td><td className="px-4 py-4 font-semibold">{project.estimatedBudget}</td><td className="px-4 py-4"><button onClick={() => record("Programme priorisé", project.project)} className="font-bold text-[#0f6b7a]">{project.status} →</button></td></tr>)}</tbody></table></div><PanelHeading eyebrow="Renforcement" title="Formations programmables" /><div className="grid gap-px bg-slate-100 sm:grid-cols-2">{trainingPrograms.map((program) => <div key={program.id} className="bg-white p-4"><p className="text-sm font-bold text-[#102a43]">{program.title}</p><p className="mt-1 text-xs text-slate-500">{program.region} · {program.expectedParticipants} participants</p><p className="mt-3 text-[11px] font-semibold text-[#0f6b7a]">{program.status}</p></div>)}</div></Panel>
-      <aside><Panel className="border-0 border-b"><PanelHeading eyebrow="Mobilisation" title="Partenaires activables" />{partners.map((partner) => <div key={partner.id} className="border-b border-slate-100 px-4 py-3"><p className="text-xs font-bold text-[#102a43]">{partner.name}</p><p className="mt-1 text-[11px] leading-4 text-slate-500">{partner.usefulFor}</p></div>)}</Panel><Panel className="border-0"><PanelHeading eyebrow="Preuve" title="Dernières traces" /><EvidenceTimeline items={trace.slice(0, 4)} /></Panel></aside>
-    </div>
-  </>;
-}
+function PilotageInstitutionnel({ scope, setScope, evidence, record, onExport }: { scope: Scope; setScope: (scope: Scope) => void; evidence: typeof initialEvidence; record: (title: string, detail: string) => void; onExport: () => void }) {
+  const scopedQuays = quays.filter((quay) => scope === "Nationale" || quay.region === scope);
+  const scopedIds = new Set(scopedQuays.map((quay) => quay.id));
+  const scopedLandings = landings.filter((landing) => scopedIds.has(landing.quayId));
+  const scopedAlerts = mapAlerts.filter((alert) => scopedIds.has(alert.quayId));
+  const totalVolume = scopedQuays.reduce((sum, quay) => sum + quay.volumeTons, 0);
+  const mapLayers: Record<MapLayerId, boolean> = { quays: true, pirogues: false, landings: false, alerts: true };
+  const tableRows = scopedQuays.map((quay) => ({ id: quay.id, cells: [<strong key="name">{quay.name}</strong>, quay.region, <span key="volume" className="font-mono">{quay.volumeTons.toFixed(1)} t</span>, <span key="boats" className="font-mono">{quay.activePirogues}</span>, <StatusBadge key="status" level={quay.level} />] }));
+  const decisions = scopedAlerts.slice(0, 3).map((alert) => ({ id: alert.id, title: alert.title, detail: `${getQuayById(alert.quayId).name} · ${alert.nextAction}`, level: alert.level, action: "Arbitrer", onAction: () => record("Arbitrage enregistré", alert.title) }));
 
-function PilotageInstitutionnel({ record, trace }: { record: (title: string, detail: string) => void; trace: typeof initialTrace }) {
-  const totalVolume = quays.reduce((sum, quay) => sum + quay.volumeTons, 0);
-  const maxVolume = Math.max(...quays.map((quay) => quay.volumeTons));
-  return <>
-    <WorkspaceHeader eyebrow="Espace 03 · Décision publique" title="Pilotage institutionnel" description="Lire la situation du jour, isoler les risques, suivre les décisions et produire une synthèse transmissible."><button onClick={() => record("Note d’arbitrage préparée", "Synthèse simulée soumise à validation humaine.")} className={primaryActionClass}>Préparer une note</button></WorkspaceHeader>
-    <div className="grid border-b border-slate-200 sm:grid-cols-2 xl:grid-cols-4"><MetricBlock label="Volume suivi" value={`${totalVolume.toFixed(1)} t`} detail="8 quais consolidés" /><MetricBlock label="Alertes urgentes" value={String(mapAlerts.filter((item) => item.level === "urgent").length)} detail="Décision attendue" tone="alert" /><MetricBlock label="Programmes actifs" value={String(communityProjects.length)} detail="4 territoires" tone="lagoon" /><MetricBlock label="Actions en retard" value="3" detail="À reprendre cette semaine" tone="sand" /></div>
-    <div className="grid min-w-0 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,.65fr)]">
-      <div className="min-w-0 border-r border-slate-200"><Panel className="border-0 border-b"><PanelHeading eyebrow="Situation du jour" title="Volumes déclarés par quai" /><div className="grid gap-4 p-5">{quays.map((quay) => <div key={quay.id} className="grid grid-cols-[8rem_minmax(0,1fr)_4rem] items-center gap-3"><span className="truncate text-xs font-semibold text-slate-700">{quay.name}</span><div className="h-2 overflow-hidden bg-slate-100"><div className="h-full bg-[#0f6b7a]" style={{ width: `${Math.round((quay.volumeTons / maxVolume) * 100)}%` }} /></div><span className="text-right text-xs font-bold text-[#062330]">{quay.volumeTons} t</span></div>)}</div></Panel><Panel className="border-0"><PanelHeading eyebrow="Opérations" title="Débarquements récents" /><div className="overflow-x-auto"><table className="w-full min-w-[38rem] border-collapse text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-4 py-3">Heure</th><th className="px-4 py-3">Quai</th><th className="px-4 py-3">Espèces</th><th className="px-4 py-3">Volume</th><th className="px-4 py-3">État</th></tr></thead><tbody className="divide-y divide-slate-100">{landings.map((landing) => <tr key={landing.id}><td className="px-4 py-4 font-bold">{landing.time}</td><td className="px-4 py-4">{getQuayById(landing.quayId).name}</td><td className="px-4 py-4">{landing.species.join(", ")}</td><td className="px-4 py-4 font-bold">{landing.volumeTons} t</td><td className="px-4 py-4 text-[#0f6b7a]">{landing.status}</td></tr>)}</tbody></table></div></Panel></div>
-      <aside className="min-w-0"><Panel className="border-0 border-b"><PanelHeading eyebrow="Priorités" title="Actions à engager" />{pendingActions.map((action) => <button key={action.id} onClick={() => record("Action engagée", action.action)} className="block w-full border-b border-slate-100 px-4 py-4 text-left hover:bg-[#f5faf9]"><div className="flex items-start justify-between gap-3"><p className="text-xs font-bold leading-5 text-[#102a43]">{action.action}</p><StatusPill level={action.level} /></div><p className="mt-2 text-[11px] text-slate-500">{action.owner} · {action.dueDate}</p></button>)}</Panel><Panel className="border-0"><PanelHeading eyebrow="Traçabilité" title="Registre de décision" /><EvidenceTimeline items={trace} /></Panel></aside>
+  return <section className="min-h-full">
+    <WorkspaceHeader title="Pilotage institutionnel" question="Quelle décision prendre aujourd’hui ?" scope={scope} onScopeChange={(value) => setScope(value as Scope)} onExport={onExport} />
+    <MetricRow metrics={[
+      { label: "Volume débarqué", value: `${totalVolume.toFixed(1)} t`, detail: "Déclarations consolidées" },
+      { label: "Quais actifs", value: String(scopedQuays.length), detail: "Périmètre sélectionné" },
+      { label: "Alertes critiques", value: String(scopedAlerts.filter((item) => item.level === "urgent").length), detail: "Action immédiate", level: "urgent" },
+      { label: "Programmes en cours", value: String(communityProjects.length), detail: "Suivi interterritorial" },
+    ]} />
+    <div className="grid min-w-0 gap-2 bg-[var(--mb-neutral-100)] p-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,.65fr)]">
+      <div className="grid min-w-0 gap-2">
+        <section className="grid min-h-[290px] border border-[var(--mb-neutral-200)] bg-white lg:grid-cols-[minmax(17rem,.7fr)_minmax(0,1.3fr)]">
+          <div className="min-h-[260px] border-b border-[var(--mb-neutral-200)] lg:border-b-0 lg:border-r"><MapCanvas mode="quays" layers={mapLayers} onToggleLayer={() => undefined} quays={scopedQuays} pirogues={[]} landings={[]} alerts={scopedAlerts} selection={null} onSelectQuay={(id) => record("Quai consulté", getQuayById(id).name)} onSelectPirogue={() => undefined} /></div>
+          <div className="min-w-0"><div className="flex h-9 items-center justify-between border-b border-[var(--mb-neutral-200)] px-3"><h3 className="text-[11px] font-bold">Volumes et activité par quai</h3><span className="font-mono text-[9px] text-[var(--mb-neutral-400)]">TRI · VOLUME</span></div><DataTable headers={["Quai", "Région", "Volume", "Pirogues", "État"]} rows={tableRows} onRowClick={(id) => record("Quai consulté", getQuayById(id).name)} /></div>
+        </section>
+        <section className="border border-[var(--mb-red-600)]/25 bg-[var(--mb-red-600)]/5"><div className="flex h-9 items-center justify-between border-b border-[var(--mb-red-600)]/20 px-3"><h3 className="text-[11px] font-bold text-[var(--mb-red-600)]">Alertes critiques</h3><span className="font-mono text-[10px] text-[var(--mb-red-600)]">{scopedAlerts.length} OUVERTES</span></div><DataTable headers={["Alerte", "Quai", "Source", "Actualisation", "Action requise"]} rows={scopedAlerts.map((alert) => ({ id: alert.id, cells: [<span key="alert" className="font-semibold">{alert.title}</span>, getQuayById(alert.quayId).name, alert.source, <span key="time" className="font-mono">{alert.updatedAt}</span>, <button key="action" onClick={() => record("Alerte traitée", alert.title)} className="font-bold text-[var(--mb-red-600)]">Vérifier</button>] }))} /></section>
+        <ExportPanel onExport={onExport} />
+      </div>
+      <aside className="grid content-start gap-2">
+        <DecisionPanel title="Actions prioritaires" items={decisions} />
+        <section className="border border-[var(--mb-neutral-200)] bg-white"><div className="border-b border-[var(--mb-neutral-200)] px-3 py-2 text-[11px] font-bold">Registre des actions</div><ActionRegister items={pendingActions.map((item) => ({ id: item.id, action: item.action, owner: item.owner, due: item.dueDate, level: item.level }))} onAction={(id) => record("Action mise à jour", pendingActions.find((item) => item.id === id)?.action ?? id)} /></section>
+        <section className="border border-[var(--mb-neutral-200)] bg-white"><div className="border-b border-[var(--mb-neutral-200)] px-3 py-2 text-[11px] font-bold">Registre de preuve</div><EvidenceTimeline items={evidence.slice(0, 5)} /></section>
+      </aside>
     </div>
-  </>;
+  </section>;
 }
