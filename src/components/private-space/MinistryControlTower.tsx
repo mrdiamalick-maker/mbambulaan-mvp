@@ -11,8 +11,6 @@ import {
   pendingActions,
   pirogues,
   quays,
-  regions,
-  trainingPrograms,
   type Level,
   type Region,
 } from "@/data/ministryControlTowerData";
@@ -33,7 +31,6 @@ import {
   NavigationRail,
   primaryButton,
   ProgramPipeline,
-  secondaryButton,
   StatusBadge,
   TopBar,
   WorkflowBoard,
@@ -216,7 +213,7 @@ function PilotageInstitutionnel({ scope, setScope, evidence, record, onExport }:
           <div className="min-h-[260px] border-b border-[var(--mb-neutral-200)] lg:border-b-0 lg:border-r"><MapCanvas mode="quays" layers={mapLayers} onToggleLayer={() => undefined} quays={scopedQuays} pirogues={[]} landings={[]} alerts={scopedAlerts} selection={null} onSelectQuay={(id) => record("Quai consulté", getQuayById(id).name)} onSelectPirogue={() => undefined} /></div>
           <div className="min-w-0"><div className="flex h-9 items-center justify-between border-b border-[var(--mb-neutral-200)] px-3"><h3 className="text-[11px] font-bold">Volumes et activité par quai</h3><span className="font-mono text-[9px] text-[var(--mb-neutral-400)]">TRI · VOLUME</span></div><DataTable headers={["Quai", "Région", "Volume", "Pirogues", "État"]} rows={tableRows} onRowClick={(id) => record("Quai consulté", getQuayById(id).name)} /></div>
         </section>
-        <section className="border border-[var(--mb-red-600)]/25 bg-[var(--mb-red-600)]/5"><div className="flex h-9 items-center justify-between border-b border-[var(--mb-red-600)]/20 px-3"><h3 className="text-[11px] font-bold text-[var(--mb-red-600)]">Alertes critiques</h3><span className="font-mono text-[10px] text-[var(--mb-red-600)]">{scopedAlerts.length} OUVERTES</span></div><DataTable headers={["Alerte", "Quai", "Source", "Actualisation", "Action requise"]} rows={scopedAlerts.map((alert) => ({ id: alert.id, cells: [<span key="alert" className="font-semibold">{alert.title}</span>, getQuayById(alert.quayId).name, alert.source, <span key="time" className="font-mono">{alert.updatedAt}</span>, <button key="action" onClick={() => record("Alerte traitée", alert.title)} className="font-bold text-[var(--mb-red-600)]">Vérifier</button>] }))} /></section>
+        <section className="border border-[var(--mb-red-600)]/25 bg-[var(--mb-red-600)]/5"><div className="flex h-9 items-center justify-between border-b border-[var(--mb-red-600)]/20 px-3"><h3 className="text-[11px] font-bold text-[var(--mb-red-600)]">Alertes critiques</h3><span className="font-mono text-[10px] text-[var(--mb-red-600)]">{scopedAlerts.length} OUVERTES</span></div><DataTable headers={["Alerte", "Quai", "Source", "Actualisation", "Action requise"]} rows={scopedAlerts.map((alert) => ({ id: alert.id, cells: [<span key="alert" className="font-semibold">{alert.title}</span>, getQuayById(alert.quayId).name, alert.source, <span key="time" className="font-mono">{alert.updatedAt}</span>, <button key="action" onClick={() => record("Alerte traitée", alert.title)} className="font-bold text-[var(--mb-ocean-600)]">Vérifier</button>] }))} /></section>
         <ExportPanel onExport={onExport} />
       </div>
       <aside className="grid content-start gap-2">
