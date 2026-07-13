@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const missionLines = [
   ["Atlas maritime", "Observer les quais, les pirogues, les débarquements et les alertes."],
-  ["Filière & programmes", "Qualifier les signaux terrain et coordonner les réponses."],
+  ["Filière & Financement", "Qualifier les besoins, rapprocher les partenaires et produire des dossiers transmissibles."],
   ["Pilotage institutionnel", "Arbitrer, tracer les décisions et préparer les transmissions."],
 ];
 
