@@ -30,21 +30,21 @@ export function TopBar({ notice, onExport }: { notice: string; onExport: () => v
   return <header className="flex h-[52px] items-center justify-between gap-4 border-b border-white/10 bg-[linear-gradient(100deg,var(--mb-navy-900),#0d263d)] px-3 text-white sm:px-4">
     <div className="flex min-w-0 items-center gap-3"><Link href="/" className="grid h-7 w-7 shrink-0 place-items-center rounded-[2px] bg-[var(--mb-sand-300)] text-[10px] font-black text-[var(--mb-navy-900)]">Mb</Link><div className="min-w-0"><p className="truncate text-[12px] font-bold">Console de Coordination Maritime</p><p className="truncate text-[10px] text-white/55">Ministère des Pêches · Pêche artisanale sénégalaise</p></div></div>
     <div className="hidden min-w-0 items-center gap-4 md:flex"><span className="inline-flex items-center gap-2 font-mono text-[10px] text-white/70"><span className="h-1.5 w-1.5 rounded-full bg-[var(--mb-green-600)]" />Sources synchronisées</span><span className="truncate font-mono text-[10px] text-white/55">{notice}</span></div>
-    <button onClick={onExport} className="h-8 shrink-0 rounded-[3px] border border-white/20 px-3 text-[11px] font-bold text-white hover:bg-white/5">Export institutionnel</button>
+    <button onClick={onExport} className="h-8 shrink-0 rounded-[3px] border border-white/20 px-3 text-[11px] font-bold text-white hover:bg-white/5">Exporter le dossier de synthèse</button>
   </header>;
 }
 
 export function NavigationRail({ active, onChange }: { active: WorkspaceId; onChange: (id: WorkspaceId) => void }) {
   const items: Array<{ id: WorkspaceId; code: string; label: string }> = [
     { id: "map", code: "AT", label: "Atlas maritime" },
-    { id: "community", code: "FP", label: "Filière & programmes" },
+    { id: "community", code: "FF", label: "Filière & Financement" },
     { id: "tracking", code: "PI", label: "Pilotage institutionnel" },
   ];
   return <aside className="flex h-full flex-col border-r border-white/10 bg-[linear-gradient(180deg,var(--mb-navy-700),#143653)] text-white"><nav className="grid gap-px py-2">{items.map((item) => <button key={item.id} onClick={() => onChange(item.id)} title={item.label} className={`relative grid h-[68px] place-items-center border-l-2 px-1 transition-colors duration-100 ${active === item.id ? "border-[var(--mb-ocean-400)] bg-white/10" : "border-transparent text-white/55 hover:bg-white/5 hover:text-white"}`}><span className="font-mono text-[12px] font-bold">{item.code}</span><span className="sr-only">{item.label}</span></button>)}</nav><div className="mt-auto border-t border-white/10 p-2"><Link href="/espace-prive" title="Quitter la console" className="grid h-11 place-items-center font-mono text-[10px] text-white/55 hover:text-white">←</Link></div></aside>;
 }
 
 export function MobileWorkspaceNav({ active, onChange }: { active: WorkspaceId; onChange: (id: WorkspaceId) => void }) {
-  const items: Array<[WorkspaceId, string]> = [["map", "Atlas"], ["community", "Filière"], ["tracking", "Pilotage"]];
+  const items: Array<[WorkspaceId, string]> = [["map", "Atlas"], ["community", "Financement"], ["tracking", "Pilotage"]];
   return <nav className="grid grid-cols-3 border-b border-[var(--mb-neutral-200)] bg-[var(--mb-navy-700)] lg:hidden">{items.map(([id, label]) => <button key={id} onClick={() => onChange(id)} className={`h-10 border-b-2 text-[11px] font-bold ${active === id ? "border-[var(--mb-ocean-400)] text-white" : "border-transparent text-white/55"}`}>{label}</button>)}</nav>;
 }
 
@@ -126,5 +126,5 @@ export function ActionRegister({ items, onAction }: { items: Array<{ id: string;
 }
 
 export function ExportPanel({ onExport }: { onExport: () => void }) {
-  return <section className="grid gap-2 border border-[var(--mb-neutral-200)] bg-white p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div><h3 className="text-[11px] font-bold text-[var(--mb-navy-900)]">Export institutionnel</h3><p className="mt-1 text-[9px] text-[var(--mb-neutral-600)]">Situation, décisions, actions et registre de preuve du périmètre actif.</p></div><button onClick={onExport} className={primaryButton}>Préparer l’export</button></section>;
+  return <section className="grid gap-2 border border-[var(--mb-neutral-200)] bg-white p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div><h3 className="text-[11px] font-bold text-[var(--mb-navy-900)]">Dossier de synthèse institutionnelle</h3><p className="mt-1 text-[9px] text-[var(--mb-neutral-600)]">Situation, décisions, financements et registre de preuve du périmètre actif.</p></div><button onClick={onExport} className={primaryButton}>Exporter le dossier de synthèse</button></section>;
 }
