@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import type { GeneratedArtifact, WorkflowKind } from "@/data/ministryValueJourneyData";
 import { primaryButton, secondaryButton, StatusBadge } from "./MinistryControlTowerParts";
+import { artifactToDocument, DocumentPreview, PrintReadyDocumentButton } from "./InstitutionalDocuments";
 
 export type WorkflowContext = {
   title: string;
@@ -64,6 +65,7 @@ export function ProcessDrawer({ kind, title, purpose, context, fields, artifactL
       "",
       "Statut : preuve générée en simulation locale",
     ];
+    const sections = buildDocumentSections(kind, context, values, fields);
     const next: GeneratedArtifact = {
       id: `artifact-${kind}-${Date.now()}`,
       kind,
@@ -72,8 +74,10 @@ export function ProcessDrawer({ kind, title, purpose, context, fields, artifactL
       scope: context.scope,
       validator,
       summary: values.finding || values.justification || values.summary || values.description || purpose,
-      filename,
+      filename: institutionalFilename(kind, context.scope, filename),
       content: lines.join("\n"),
+      documentType: artifactLabel,
+      sections,
     };
     setArtifact(next);
     setPhase("done");
@@ -110,8 +114,8 @@ export function ProcessDrawer({ kind, title, purpose, context, fields, artifactL
 
         {phase === "done" && artifact ? <div className="mt-4 grid gap-4">
           <ProofReceipt artifact={artifact} />
-          <GeneratedArtifactPreview artifact={artifact} />
-          <div className="flex gap-2"><DownloadArtifactButton artifact={artifact} /><button onClick={onClose} className={secondaryButton}>Fermer</button></div>
+          <DocumentPreview document={artifactToDocument(artifact)} />
+          <div className="flex gap-2"><PrintReadyDocumentButton document={artifactToDocument(artifact)} /><button onClick={onClose} className={secondaryButton}>Fermer</button></div>
         </div> : null}
       </div>
     </div>
@@ -119,7 +123,7 @@ export function ProcessDrawer({ kind, title, purpose, context, fields, artifactL
 }
 
 export function VerificationDrawer(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="verification" title="Vérifier l’information" purpose="Recouper le signal, consigner le constat et produire une preuve de fiabilité." artifactLabel="Preuve de vérification" filename="preuve-verification-mbambulaan.txt" fields={[
+  return <ProcessDrawer {...props} kind="verification" title="Lancer une vérification terrain" purpose="Recouper le signal, consigner le constat et produire une preuve de fiabilité." artifactLabel="Preuve de vérification" filename="PreuveVerification" fields={[
     { name: "method", label: "Méthode de vérification", type: "select", required: true, options: ["Vérification terrain", "Déclaration d’acteur", "Recoupement de sources"] },
     { name: "finding", label: "Constat structuré", type: "textarea", required: true, defaultValue: props.context.description || "Information recoupée avec le relais local." },
     { name: "attachment", label: "Pièce jointe simulée", defaultValue: "photo-terrain-horodatee.jpg" },
@@ -127,7 +131,7 @@ export function VerificationDrawer(props: WorkflowWrapperProps) {
 }
 
 export function AlertCreationForm(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="alert" title="Créer une alerte" purpose="Qualifier le risque, assigner un responsable et inscrire l’alerte dans le suivi." artifactLabel="Fiche d’alerte" filename="alerte-operationnelle-mbambulaan.txt" fields={[
+  return <ProcessDrawer {...props} kind="alert" title="Signaler une situation" purpose="Qualifier le risque, assigner un responsable et inscrire l’alerte dans le suivi." artifactLabel="Fiche d’alerte" filename="AlerteOperationnelle" fields={[
     { name: "alertType", label: "Type d’alerte", type: "select", required: true, options: ["Tension de zone", "Écart de déclaration", "Incident technique", "Risque de sécurité"] },
     { name: "severity", label: "Gravité", type: "select", required: true, options: ["Vigilance", "Critique"] },
     { name: "description", label: "Description", type: "textarea", required: true, defaultValue: props.context.description },
@@ -137,7 +141,7 @@ export function AlertCreationForm(props: WorkflowWrapperProps) {
 }
 
 export function QualificationForm(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="qualification" title="Qualifier un besoin" purpose="Transformer une remontée terrain en besoin chiffré, mature et documenté." artifactLabel="Fiche de besoin qualifié" filename="besoin-qualifie-mbambulaan.txt" fields={[
+  return <ProcessDrawer {...props} kind="qualification" title="Qualifier un besoin" purpose="Transformer une remontée terrain en besoin chiffré, mature et documenté." artifactLabel="Fiche de besoin qualifié" filename="BesoinQualifie" fields={[
     { name: "category", label: "Catégorie", type: "select", required: true, options: ["Équipement", "Formation", "Infrastructure", "Financement direct"] },
     { name: "actorsAffected", label: "Acteurs concernés", type: "number", required: true, defaultValue: props.context.beneficiaries || "250" },
     { name: "estimatedAmount", label: "Montant estimé FCFA", type: "number", required: true, defaultValue: props.context.amount || "25000000" },
@@ -148,8 +152,9 @@ export function QualificationForm(props: WorkflowWrapperProps) {
 }
 
 export function FundingRequestForm(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="funding" title="Créer une demande de financement" purpose="Structurer un besoin mature en dossier finançable, validé et transmissible." artifactLabel="Dossier de demande de financement" filename="dossier-financement-mbambulaan.txt" fields={[
+  return <ProcessDrawer {...props} kind="funding" title="Constituer un dossier de financement" purpose="Structurer un besoin mature en dossier éligible, validé et transmissible." artifactLabel="Dossier de financement" filename="DossierFinancement" fields={[
     { name: "sourceNeed", label: "Besoin source", required: true, defaultValue: props.context.title },
+    { name: "estimatedAmount", label: "Montant estimé FCFA", type: "number", required: true, defaultValue: props.context.amount || "50000000" },
     { name: "amountRequested", label: "Montant demandé FCFA", type: "number", required: true, defaultValue: props.context.amount || "50000000" },
     { name: "justification", label: "Justification", type: "textarea", required: true, defaultValue: props.context.description },
     { name: "beneficiaryCount", label: "Nombre de bénéficiaires", type: "number", required: true, defaultValue: props.context.beneficiaries || "400" },
@@ -158,11 +163,13 @@ export function FundingRequestForm(props: WorkflowWrapperProps) {
     { name: "expectedImpact", label: "Impact attendu", type: "textarea", required: true, defaultValue: "Réduire les pertes, sécuriser les revenus et fiabiliser la chaîne de valeur." },
     { name: "requiredDocuments", label: "Pièces requises", type: "textarea", required: true, defaultValue: "Fiche besoin, budget, preuve terrain, liste des bénéficiaires." },
     { name: "ministryUnit", label: "Unité ministérielle responsable", required: true, defaultValue: "Direction de la pêche artisanale" },
+    { name: "maturityScore", label: "Score de maturité / 100", type: "number", required: true, defaultValue: "82" },
+    { name: "eligibilityStatus", label: "Éligibilité", type: "select", required: true, options: ["Éligible au financement", "En instruction", "À qualifier"] },
   ]} />;
 }
 
 export function ProgramAssociationForm(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="program" title="Associer un programme" purpose="Relier le besoin à une réponse existante et fixer le prochain jalon." artifactLabel="Décision d’association programme" filename="association-programme-mbambulaan.txt" fields={[
+  return <ProcessDrawer {...props} kind="program" title="Associer un programme" purpose="Relier le besoin à une réponse existante et fixer le prochain jalon." artifactLabel="Décision d’association programme" filename="AssociationProgramme" fields={[
     { name: "program", label: "Programme sélectionné", type: "select", required: true, options: ["Programme public froid", "Sécurité pirogues", "Pesée et traçabilité", "Métiers bleus"] },
     { name: "matchReason", label: "Motif du rapprochement", type: "textarea", required: true, defaultValue: props.context.description },
     { name: "expectedImpact", label: "Impact attendu", required: true, defaultValue: "Réponse coordonnée et suivi consolidé." },
@@ -172,7 +179,7 @@ export function ProgramAssociationForm(props: WorkflowWrapperProps) {
 }
 
 export function PartnerMobilizationForm(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="partner" title="Mobiliser un partenaire" purpose="Formaliser la contribution attendue et générer une note de sollicitation." artifactLabel="Note de sollicitation partenaire" filename="sollicitation-partenaire-mbambulaan.txt" fields={[
+  return <ProcessDrawer {...props} kind="partner" title="Solliciter un partenaire" purpose="Formaliser la contribution attendue et générer une note de sollicitation." artifactLabel="Note de sollicitation partenaire" filename="SollicitationPartenaire" fields={[
     { name: "partner", label: "Partenaire", required: true, defaultValue: props.context.partner || "Partenaire technique" },
     { name: "supportType", label: "Type d’appui", type: "select", required: true, options: ["Financement", "Appui technique", "Équipement", "Formation"] },
     { name: "requestedContribution", label: "Contribution demandée", required: true, defaultValue: props.context.amount || "Appui à définir" },
@@ -183,7 +190,7 @@ export function PartnerMobilizationForm(props: WorkflowWrapperProps) {
 }
 
 export function InstitutionalNoteBuilder(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="note" title="Préparer une note institutionnelle" purpose="Transformer la situation, les alertes et les opportunités en recommandation écrite." artifactLabel="Note institutionnelle" filename="note-institutionnelle-mbambulaan.txt" fields={[
+  return <ProcessDrawer {...props} kind="note" title="Générer la note au Ministre" purpose="Transformer la situation, les alertes et les opportunités en recommandation écrite." artifactLabel="Note au Ministre" filename="NoteMinistre" fields={[
     { name: "period", label: "Période", type: "select", required: true, options: ["Situation du jour", "7 derniers jours", "30 derniers jours"] },
     { name: "metrics", label: "Indicateurs retenus", type: "textarea", required: true, defaultValue: "Quais actifs, volumes, alertes, vérifications, opportunités de financement." },
     { name: "recommendations", label: "Recommandations", type: "textarea", required: true, defaultValue: props.context.description },
@@ -192,7 +199,7 @@ export function InstitutionalNoteBuilder(props: WorkflowWrapperProps) {
 }
 
 export function ZoneExportForm(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="export-zone" title="Exporter la zone" purpose="Composer un relevé lisible des couches et événements du périmètre sélectionné." artifactLabel="Relevé de zone" filename="export-zone-mbambulaan.txt" fields={[
+  return <ProcessDrawer {...props} kind="export-zone" title="Générer un rapport de zone" purpose="Composer un rapport lisible des couches et événements du périmètre sélectionné." artifactLabel="Rapport de zone" filename="RapportZone" fields={[
     { name: "perimeter", label: "Périmètre", required: true, defaultValue: props.context.scope },
     { name: "period", label: "Période", type: "select", required: true, options: ["Aujourd’hui", "7 derniers jours", "30 derniers jours"] },
     { name: "layers", label: "Couches incluses", type: "textarea", required: true, defaultValue: "Quais, pirogues, débarquements, alertes, incidents." },
@@ -201,7 +208,7 @@ export function ZoneExportForm(props: WorkflowWrapperProps) {
 }
 
 export function FullRecordPanel(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="full-record" title="Ouvrir la fiche complète" purpose="Consulter l’identité, l’historique et les preuves liées à l’objet opérationnel." artifactLabel="Relevé de consultation" filename="fiche-complete-mbambulaan.txt" fields={[
+  return <ProcessDrawer {...props} kind="full-record" title="Voir le dossier complet" purpose="Consulter l’identité, l’historique et les preuves liées à l’objet opérationnel." artifactLabel="Dossier opérationnel" filename="DossierOperationnel" fields={[
     { name: "history", label: "Historique consolidé", type: "textarea", required: true, defaultValue: props.context.description || "Déclaration reçue, contrôle en cours, dernier signal consolidé." },
     { name: "linkedDocuments", label: "Documents liés", defaultValue: "Déclarations, preuves terrain, alertes et débarquements." },
     { name: "consultationReason", label: "Motif de consultation", required: true, defaultValue: "Instruction opérationnelle" },
@@ -209,7 +216,7 @@ export function FullRecordPanel(props: WorkflowWrapperProps) {
 }
 
 export function InstitutionalExportForm(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="institutional-export" title="Export institutionnel" purpose="Générer un livrable structuré pour transmission et archivage." artifactLabel="Export institutionnel" filename="export-institutionnel-mbambulaan.txt" fields={[
+  return <ProcessDrawer {...props} kind="institutional-export" title="Exporter le dossier de synthèse" purpose="Générer un livrable structuré pour transmission et archivage." artifactLabel="Dossier de synthèse" filename="DossierSynthese" fields={[
     { name: "format", label: "Livrable", type: "select", required: true, options: ["Rapport de synthèse", "Registre de preuve", "Registre des opportunités de financement", "Données brutes CSV"] },
     { name: "period", label: "Période", type: "select", required: true, options: ["Situation du jour", "7 derniers jours", "30 derniers jours"] },
     { name: "scope", label: "Portée", required: true, defaultValue: props.context.scope },
@@ -224,7 +231,7 @@ type WorkflowWrapperProps = {
 };
 
 export function ArtifactRegister({ artifacts }: { artifacts: GeneratedArtifact[] }) {
-  return <div className="divide-y divide-[var(--mb-neutral-100)]">{artifacts.map((artifact) => <div key={artifact.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-2.5"><div><p className="text-[10px] font-semibold text-[var(--mb-neutral-900)]">{artifact.title}</p><p className="mt-1 font-mono text-[9px] text-[var(--mb-neutral-600)]">{artifact.createdAt} · {artifact.validator}</p></div><DownloadArtifactButton artifact={artifact} compact /></div>)}</div>;
+  return <div className="divide-y divide-[var(--mb-neutral-100)]">{artifacts.map((artifact) => <div key={artifact.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-2.5"><div><p className="text-[10px] font-semibold text-[var(--mb-neutral-900)]">{artifact.title}</p><p className="mt-1 font-mono text-[9px] text-[var(--mb-neutral-600)]">{artifact.createdAt} · {artifact.validator}</p></div><PrintReadyDocumentButton document={artifactToDocument(artifact)} compact /></div>)}</div>;
 }
 
 function StepIndicator({ steps, current }: { steps: string[]; current: number }) {
@@ -258,24 +265,24 @@ function ProofReceipt({ artifact }: { artifact: GeneratedArtifact }) {
   return <section className="border-l-2 border-[var(--mb-ocean-600)] bg-[var(--mb-foam)] px-3 py-3"><p className="font-mono text-[9px] font-bold text-[var(--mb-ocean-600)]">PREUVE GÉNÉRÉE · {artifact.id}</p><h3 className="mt-1 text-[13px] font-semibold text-[var(--mb-navy-900)]">{artifact.title}</h3><p className="mt-1 text-[10px] leading-4 text-[var(--mb-neutral-600)]">{artifact.summary}</p><p className="mt-2 font-mono text-[9px] text-[var(--mb-neutral-400)]">{artifact.createdAt} · {artifact.validator}</p></section>;
 }
 
-function GeneratedArtifactPreview({ artifact }: { artifact: GeneratedArtifact }) {
-  return <section className="border border-[var(--mb-neutral-200)] bg-white"><h3 className="border-b border-[var(--mb-neutral-200)] px-3 py-2 text-[11px] font-bold">Aperçu du document</h3><pre className="max-h-72 overflow-auto whitespace-pre-wrap p-3 font-mono text-[9px] leading-4 text-[var(--mb-neutral-600)]">{artifact.content}</pre></section>;
-}
-
-function DownloadArtifactButton({ artifact, compact = false }: { artifact: GeneratedArtifact; compact?: boolean }) {
-  function download() {
-    const blob = new Blob([artifact.content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = artifact.filename;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
-  return <button onClick={download} className={compact ? "text-[9px] font-bold text-[var(--mb-ocean-600)] hover:underline" : primaryButton}>{compact ? "Télécharger" : "Télécharger le document"}</button>;
-}
-
 function fieldLabel(fields: FieldDefinition[], key: string) {
   if (key === "validator") return "Validation humaine";
   return fields.find((field) => field.name === key)?.label || key;
+}
+
+function institutionalFilename(kind: WorkflowKind, scope: string, fallback: string) {
+  const date = new Date().toISOString().slice(0, 10);
+  const perimeter = scope.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-");
+  const prefix = kind === "funding" ? "DossierFinancement" : kind === "note" ? "NoteMinistre" : kind === "export-zone" ? "RapportZone" : kind === "institutional-export" ? "DossierSynthese" : fallback;
+  return `Mbambulaan_${prefix}_${perimeter}_${date}.html`;
+}
+
+function buildDocumentSections(kind: WorkflowKind, context: WorkflowContext, values: Record<string, string>, fields: FieldDefinition[]) {
+  const entries = Object.entries(values).filter(([key]) => key !== "validator").map(([key, value]) => ({ label: fieldLabel(fields, key), value }));
+  if (kind === "funding") return [
+    { title: "Besoin et périmètre", items: [{ label: "Besoin source", value: values.sourceNeed }, { label: "Périmètre", value: context.scope }, { label: "Montant estimé", value: `${values.estimatedAmount} FCFA` }, { label: "Montant demandé", value: `${values.amountRequested} FCFA` }] },
+    { title: "Bénéficiaires et partenaire", items: [{ label: "Bénéficiaires", value: `${values.beneficiaryCount} · ${values.beneficiaryType}` }, { label: "Partenaire cible", value: values.targetFunder }, { label: "Unité responsable", value: values.ministryUnit }] },
+    { title: "Éligibilité et impact", items: [{ label: "Maturité", value: `${values.maturityScore}/100` }, { label: "Statut", value: values.eligibilityStatus }, { label: "Impact attendu", value: values.expectedImpact }, { label: "Preuves attachées", value: values.requiredDocuments }] },
+  ];
+  return [{ title: "Objet et décision", items: [{ label: "Objet", value: context.title }, { label: "Périmètre", value: context.scope }, ...entries] }];
 }
