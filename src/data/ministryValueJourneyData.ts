@@ -22,6 +22,8 @@ export type GeneratedArtifact = {
   summary: string;
   filename: string;
   content: string;
+  documentType?: string;
+  sections?: Array<{ title: string; items: Array<{ label: string; value: string }> }>;
 };
 
 export type IncidentRecord = {
@@ -46,7 +48,8 @@ export type FundingOpportunity = {
   beneficiaries: number;
   compatibleFunder: string;
   expectedImpact: string;
-  status: "À qualifier" | "Prête à instruire" | "Dossier généré";
+  compatibilityScore: number;
+  status: "À qualifier" | "Éligible au financement" | "En instruction" | "Dossier généré" | "Transmis" | "Financé";
 };
 
 export type FundingRequest = {
@@ -57,6 +60,8 @@ export type FundingRequest = {
   beneficiaryCount: number;
   targetFunder: string;
   ministryUnit: string;
+  maturityScore: number;
+  eligibilityStatus: "Éligible au financement" | "En instruction" | "Dossier généré" | "Transmis" | "Financé";
   status: "Brouillon" | "Validée" | "Transmise";
   artifactId: string;
 };
@@ -101,10 +106,12 @@ export const maritimeIncidents: IncidentRecord[] = [
 ];
 
 export const initialFundingOpportunities: FundingOpportunity[] = [
-  { id: "fund-op-1", needId: "need-1", title: "Chaîne de froid Joal–Mbour", category: "Infrastructure", territory: "Thiès", estimatedAmount: 85000000, maturityScore: 82, beneficiaries: 680, compatibleFunder: "Programme public froid", expectedImpact: "Réduire les pertes post-débarquement et sécuriser les revenus.", status: "Prête à instruire" },
-  { id: "fund-op-2", needId: "need-2", title: "Sécurité des pirogues de Guet Ndar", category: "Équipement", territory: "Saint-Louis", estimatedAmount: 46000000, maturityScore: 74, beneficiaries: 760, compatibleFunder: "ONG maritime", expectedImpact: "Équiper les capitaines et améliorer la prévention en mer.", status: "Prête à instruire" },
-  { id: "fund-op-3", needId: "need-3", title: "Pesée et traçabilité à Kayar", category: "Équipement", territory: "Thiès", estimatedAmount: 38000000, maturityScore: 88, beneficiaries: 430, compatibleFunder: "Partenaire technique", expectedImpact: "Fiabiliser les volumes et les preuves de commercialisation.", status: "Prête à instruire" },
-  { id: "fund-op-4", needId: "need-6", title: "Parcours métiers bleus Fass Boye", category: "Formation", territory: "Louga", estimatedAmount: 64000000, maturityScore: 61, beneficiaries: 320, compatibleFunder: "Coopération internationale", expectedImpact: "Structurer l'insertion de jeunes dans la chaîne de valeur.", status: "À qualifier" },
+  { id: "fund-op-1", needId: "need-1", title: "Chaîne de froid Joal–Mbour", category: "Infrastructure", territory: "Thiès", estimatedAmount: 1480000000, maturityScore: 82, beneficiaries: 680, compatibleFunder: "Programme public froid", compatibilityScore: 91, expectedImpact: "Réduire les pertes post-débarquement et sécuriser les revenus de 680 acteurs.", status: "Éligible au financement" },
+  { id: "fund-op-2", needId: "need-2", title: "Sécurité des pirogues de Guet Ndar", category: "Équipement", territory: "Saint-Louis", estimatedAmount: 780000000, maturityScore: 74, beneficiaries: 760, compatibleFunder: "ONG sécurité maritime", compatibilityScore: 87, expectedImpact: "Équiper les capitaines et améliorer la prévention en mer.", status: "Éligible au financement" },
+  { id: "fund-op-3", needId: "need-3", title: "Pesée et traçabilité à Kayar", category: "Équipement", territory: "Thiès", estimatedAmount: 620000000, maturityScore: 88, beneficiaries: 430, compatibleFunder: "Partenaire technique traçabilité", compatibilityScore: 94, expectedImpact: "Fiabiliser les volumes déclarés et les preuves de commercialisation.", status: "Éligible au financement" },
+  { id: "fund-op-4", needId: "need-6", title: "Parcours métiers bleus Fass Boye", category: "Formation", territory: "Louga", estimatedAmount: 540000000, maturityScore: 61, beneficiaries: 320, compatibleFunder: "Coopération internationale filière bleue", compatibilityScore: 79, expectedImpact: "Structurer l’insertion de jeunes dans la chaîne de valeur.", status: "À qualifier" },
+  { id: "fund-op-5", needId: "need-4", title: "Modernisation des débarcadères de la Petite Côte", category: "Infrastructure", territory: "Thiès", estimatedAmount: 520000000, maturityScore: 77, beneficiaries: 940, compatibleFunder: "Fonds de valorisation de la filière", compatibilityScore: 89, expectedImpact: "Sécuriser les flux de Joal-Fadiouth, Mbour et Soumbédioune.", status: "En instruction" },
+  { id: "fund-op-6", needId: "need-5", title: "Conservation et valorisation à Kafountine", category: "Financement direct", territory: "Ziguinchor", estimatedAmount: 260000000, maturityScore: 69, beneficiaries: 210, compatibleFunder: "Programme public froid", compatibilityScore: 84, expectedImpact: "Intégrer 42 mareyeuses au dispositif de froid et réduire les pertes.", status: "Éligible au financement" },
 ];
 
 export const initialGeneratedArtifacts: GeneratedArtifact[] = [
@@ -116,9 +123,18 @@ export const initialGeneratedArtifacts: GeneratedArtifact[] = [
     scope: "Joal-Fadiouth",
     validator: "A. Diouf · Agent territorial",
     summary: "Le besoin de glace a été recoupé avec le comité de quai et qualifié pour instruction.",
-    filename: "preuve-verification-joal.txt",
+    filename: "Mbambulaan_PreuveVerification_Joal-Fadiouth_2026-07-12.html",
     content: "MBÀMBULAAN — PREUVE DE VÉRIFICATION\nObjet : besoin de glace à Joal-Fadiouth\nMéthode : recoupement terrain\nValidation humaine : A. Diouf\nStatut : vérifié",
+    documentType: "Preuve de vérification",
+    sections: [{ title: "Contrôle terrain", items: [{ label: "Objet", value: "Besoin de glace à Joal-Fadiouth" }, { label: "Méthode", value: "Recoupement terrain" }, { label: "Conclusion", value: "Besoin confirmé et éligible à l’instruction" }] }],
   },
+];
+
+export const impactProofs = [
+  { id: "impact-1", figure: "320", unit: "pêcheurs bénéficiaires", detail: "Parcours métiers bleus · Fass Boye", level: "normal" as const },
+  { id: "impact-2", figure: "+18 %", unit: "de volumes déclarés", detail: "Depuis la vérification des pesées à Kayar", level: "normal" as const },
+  { id: "impact-3", figure: "42", unit: "mareyeuses intégrées", detail: "Programme froid Joal–Mbour", level: "surveillance" as const },
+  { id: "impact-4", figure: "11", unit: "quais couverts", detail: "Dispositif de coordination et de preuve", level: "normal" as const },
 ];
 
 export const needMaturityScores: Record<string, number> = {
