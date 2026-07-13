@@ -49,11 +49,12 @@ export function DocumentPreview({ document, compact = false }: { document: Gener
 
 export function PrintReadyDocumentButton({ document, compact = false }: { document: GeneratedDocument; compact?: boolean }) {
   function openPrintDocument() {
-    const popup = window.open("", "_blank", "noopener,noreferrer");
+    const popup = window.open("", "_blank");
     if (!popup) return;
     popup.document.open();
     popup.document.write(renderPrintDocument(document));
     popup.document.close();
+    popup.focus();
   }
 
   return <button onClick={openPrintDocument} className={compact ? "text-[9px] font-bold text-[var(--mb-ocean-600)] hover:underline" : primaryButton}>
