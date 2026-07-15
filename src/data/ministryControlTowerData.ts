@@ -1,5 +1,6 @@
 export type Region = "Dakar" | "Thiès" | "Saint-Louis" | "Ziguinchor" | "Fatick" | "Louga";
 export type Level = "normal" | "surveillance" | "urgent";
+export type DataTrustLevel = "raw" | "declared" | "verified" | "consolidated";
 export type ModuleId = "map" | "community" | "tracking";
 export type MapItemType = "Tous" | "Quais" | "Pirogues" | "Débarquements" | "Espèces" | "Alertes";
 
@@ -25,6 +26,7 @@ export type Quay = {
   alertCount: number;
   level: Level;
   lastUpdated: string;
+  trustLevel: DataTrustLevel;
 };
 
 export type Pirogue = {
@@ -46,6 +48,7 @@ export type Pirogue = {
   declaredAt?: string;
   lastCycleEvent: string;
   cycleHistory: Array<{ stage: PirogueCycleStage; time?: string; label: string }>;
+  trustLevel: DataTrustLevel;
 };
 
 export type Landing = {
@@ -56,6 +59,7 @@ export type Landing = {
   species: string[];
   pirogueIds: string[];
   status: string;
+  trustLevel: DataTrustLevel;
 };
 
 export type MapAlert = {
@@ -66,6 +70,7 @@ export type MapAlert = {
   source: string;
   updatedAt: string;
   nextAction: string;
+  trustLevel: DataTrustLevel;
 };
 
 export type CommunityNeed = {
@@ -77,6 +82,35 @@ export type CommunityNeed = {
   urgency: Level;
   status: string;
   nextAction: string;
+  trustLevel: DataTrustLevel;
+};
+
+export type FieldReferent = {
+  id: string;
+  name: string;
+  role: "Pêcheur référent" | "Mareyeur référent" | "Référent de quai" | "Agent territorial";
+  quayId?: string;
+  region: Region;
+  status: "Actif" | "En attente" | "Suspendu";
+  reliabilityScore: number;
+  verificationsCompleted: number;
+  lastActivity: string;
+  contactChannel: "WhatsApp structuré" | "Téléphone" | "Application terrain";
+  supervisingCell: string;
+};
+
+export type SpeciesRecord = {
+  id: string;
+  localName: string;
+  scientificName: string;
+  category: string;
+  regulatoryStatus: "Libre" | "Réglementée" | "Protégée" | "Repos biologique";
+  commonZones: string[];
+  seasonality: string;
+  monthlyVolumeTrend: number[];
+  recentLandingVolume: number;
+  alertLevel: Level;
+  decisionUse: string;
 };
 
 export type CommunityProject = {
@@ -148,7 +182,8 @@ export const quays: Quay[] = [
     species: ["Sardinelle", "Yaboy", "Cymbium"],
     alertCount: 3,
     level: "surveillance",
-    lastUpdated: "10:45"
+    lastUpdated: "10:45",
+    trustLevel: "consolidated"
   },
   {
     id: "mbour",
@@ -164,7 +199,8 @@ export const quays: Quay[] = [
     species: ["Yaboy", "Poulpe", "Crevettes"],
     alertCount: 2,
     level: "surveillance",
-    lastUpdated: "10:38"
+    lastUpdated: "10:38",
+    trustLevel: "verified"
   },
   {
     id: "kayar",
@@ -180,7 +216,8 @@ export const quays: Quay[] = [
     species: ["Thiof", "Sardinelle", "Capitaine"],
     alertCount: 4,
     level: "urgent",
-    lastUpdated: "10:22"
+    lastUpdated: "10:22",
+    trustLevel: "declared"
   },
   {
     id: "saint-louis",
@@ -196,7 +233,8 @@ export const quays: Quay[] = [
     species: ["Sardinelle", "Capitaine", "Thiof"],
     alertCount: 5,
     level: "urgent",
-    lastUpdated: "10:18"
+    lastUpdated: "10:18",
+    trustLevel: "declared"
   },
   {
     id: "hann",
@@ -212,7 +250,8 @@ export const quays: Quay[] = [
     species: ["Yaboy", "Sardinelle", "Crevettes"],
     alertCount: 1,
     level: "normal",
-    lastUpdated: "10:05"
+    lastUpdated: "10:05",
+    trustLevel: "verified"
   },
   {
     id: "soumbedioune",
@@ -228,7 +267,8 @@ export const quays: Quay[] = [
     species: ["Thiof", "Poulpe", "Cymbium"],
     alertCount: 1,
     level: "normal",
-    lastUpdated: "09:54"
+    lastUpdated: "09:54",
+    trustLevel: "verified"
   },
   {
     id: "fass-boye",
@@ -244,7 +284,8 @@ export const quays: Quay[] = [
     species: ["Sardinelle", "Yaboy"],
     alertCount: 3,
     level: "surveillance",
-    lastUpdated: "09:48"
+    lastUpdated: "09:48",
+    trustLevel: "declared"
   },
   {
     id: "kafountine",
@@ -260,42 +301,59 @@ export const quays: Quay[] = [
     species: ["Crevettes", "Poulpe", "Cymbium"],
     alertCount: 2,
     level: "surveillance",
-    lastUpdated: "09:36"
+    lastUpdated: "09:36",
+    trustLevel: "declared"
   }
 ];
 
 export const pirogues: Pirogue[] = [
-  { id: "pir-101", registration: "DK-PI-2041", quayId: "joal", status: "Preuve validée", lastPosition: "Quai de Joal-Fadiouth", lastDeclaration: "10:12", declaredActivity: "6,4 t de sardinelle déclarées", x: 53, y: 70, level: "normal", cycleStage: "verified", departureTime: "04:42", expectedReturnTime: "09:30", actualReturnTime: "09:18", landingTime: "09:26", declaredAt: "10:12", lastCycleEvent: "Déclaration vérifiée à 10:24", cycleHistory: [{ stage: "preparation", time: "04:20", label: "Préparation" }, { stage: "departure", time: "04:42", label: "Départ" }, { stage: "atSea", time: "05:08", label: "En mer" }, { stage: "returned", time: "09:18", label: "Retour" }, { stage: "landing", time: "09:26", label: "Débarquement" }, { stage: "declared", time: "10:12", label: "Déclaré" }, { stage: "verified", time: "10:24", label: "Preuve" }] },
-  { id: "pir-102", registration: "SL-PI-1188", quayId: "saint-louis", status: "Retour attendu", lastPosition: "Large de Saint-Louis", lastDeclaration: "08:55", declaredActivity: "Retour non confirmé", x: 72, y: 12, level: "urgent", cycleStage: "expectedReturn", departureTime: "05:05", expectedReturnTime: "11:00", lastCycleEvent: "Retour attendu avant 11:00", cycleHistory: [{ stage: "preparation", time: "04:35", label: "Préparation" }, { stage: "departure", time: "05:05", label: "Départ" }, { stage: "atSea", time: "05:32", label: "En mer" }, { stage: "expectedReturn", time: "11:00", label: "Retour attendu" }] },
-  { id: "pir-103", registration: "TH-PI-0772", quayId: "kayar", status: "En mer · vigilance", lastPosition: "Nord Kayar", lastDeclaration: "09:18", declaredActivity: "Trajectoire inhabituelle", x: 67, y: 39, level: "surveillance", cycleStage: "atSea", departureTime: "05:18", expectedReturnTime: "12:20", lastCycleEvent: "Position reçue à 09:18", cycleHistory: [{ stage: "preparation", time: "04:50", label: "Préparation" }, { stage: "departure", time: "05:18", label: "Départ" }, { stage: "atSea", time: "09:18", label: "En mer" }] },
-  { id: "pir-104", registration: "ZG-PI-4510", quayId: "kafountine", status: "Retour en cours", lastPosition: "Casamance maritime", lastDeclaration: "09:45", declaredActivity: "Pêche crevettes", x: 66, y: 90, level: "normal", cycleStage: "expectedReturn", departureTime: "03:58", expectedReturnTime: "11:30", lastCycleEvent: "Cap retour confirmé à 09:45", cycleHistory: [{ stage: "preparation", time: "03:35", label: "Préparation" }, { stage: "departure", time: "03:58", label: "Départ" }, { stage: "atSea", time: "04:30", label: "En mer" }, { stage: "expectedReturn", time: "11:30", label: "Retour attendu" }] },
-  { id: "pir-105", registration: "MB-PI-3307", quayId: "mbour", status: "Débarquement en cours", lastPosition: "Quai de Mbour", lastDeclaration: "10:06", declaredActivity: "Poulpe et crevettes", x: 52, y: 61, level: "normal", cycleStage: "landing", departureTime: "04:10", expectedReturnTime: "09:50", actualReturnTime: "09:54", landingTime: "10:06", lastCycleEvent: "Débarquement commencé à 10:06", cycleHistory: [{ stage: "preparation", time: "03:42", label: "Préparation" }, { stage: "departure", time: "04:10", label: "Départ" }, { stage: "atSea", time: "04:36", label: "En mer" }, { stage: "returned", time: "09:54", label: "Retour" }, { stage: "landing", time: "10:06", label: "Débarquement" }] },
-  { id: "pir-106", registration: "FB-PI-2214", quayId: "fass-boye", status: "Départ à confirmer", lastPosition: "Quai de Fass Boye", lastDeclaration: "08:40", declaredActivity: "Départ groupé signalé", x: 52, y: 33, level: "surveillance", cycleStage: "departure", departureTime: "08:40", expectedReturnTime: "16:30", lastCycleEvent: "Départ signalé à 08:40", cycleHistory: [{ stage: "preparation", time: "08:10", label: "Préparation" }, { stage: "departure", time: "08:40", label: "Départ" }] }
+  { id: "pir-101", registration: "DK-PI-2041", quayId: "joal", status: "Preuve validée", lastPosition: "Quai de Joal-Fadiouth", lastDeclaration: "10:12", declaredActivity: "6,4 t de sardinelle déclarées", x: 53, y: 70, level: "normal", cycleStage: "verified", departureTime: "04:42", expectedReturnTime: "09:30", actualReturnTime: "09:18", landingTime: "09:26", declaredAt: "10:12", lastCycleEvent: "Déclaration vérifiée à 10:24", cycleHistory: [{ stage: "preparation", time: "04:20", label: "Préparation" }, { stage: "departure", time: "04:42", label: "Départ" }, { stage: "atSea", time: "05:08", label: "En mer" }, { stage: "returned", time: "09:18", label: "Retour" }, { stage: "landing", time: "09:26", label: "Débarquement" }, { stage: "declared", time: "10:12", label: "Déclaré" }, { stage: "verified", time: "10:24", label: "Preuve" }], trustLevel: "verified" },
+  { id: "pir-102", registration: "SL-PI-1188", quayId: "saint-louis", status: "Retour attendu", lastPosition: "Large de Saint-Louis", lastDeclaration: "08:55", declaredActivity: "Retour non confirmé", x: 72, y: 12, level: "urgent", cycleStage: "expectedReturn", departureTime: "05:05", expectedReturnTime: "11:00", lastCycleEvent: "Retour attendu avant 11:00", cycleHistory: [{ stage: "preparation", time: "04:35", label: "Préparation" }, { stage: "departure", time: "05:05", label: "Départ" }, { stage: "atSea", time: "05:32", label: "En mer" }, { stage: "expectedReturn", time: "11:00", label: "Retour attendu" }], trustLevel: "declared" },
+  { id: "pir-103", registration: "TH-PI-0772", quayId: "kayar", status: "En mer · vigilance", lastPosition: "Nord Kayar", lastDeclaration: "09:18", declaredActivity: "Trajectoire inhabituelle", x: 67, y: 39, level: "surveillance", cycleStage: "atSea", departureTime: "05:18", expectedReturnTime: "12:20", lastCycleEvent: "Position reçue à 09:18", cycleHistory: [{ stage: "preparation", time: "04:50", label: "Préparation" }, { stage: "departure", time: "05:18", label: "Départ" }, { stage: "atSea", time: "09:18", label: "En mer" }], trustLevel: "raw" },
+  { id: "pir-104", registration: "ZG-PI-4510", quayId: "kafountine", status: "Retour en cours", lastPosition: "Casamance maritime", lastDeclaration: "09:45", declaredActivity: "Pêche crevettes", x: 66, y: 90, level: "normal", cycleStage: "expectedReturn", departureTime: "03:58", expectedReturnTime: "11:30", lastCycleEvent: "Cap retour confirmé à 09:45", cycleHistory: [{ stage: "preparation", time: "03:35", label: "Préparation" }, { stage: "departure", time: "03:58", label: "Départ" }, { stage: "atSea", time: "04:30", label: "En mer" }, { stage: "expectedReturn", time: "11:30", label: "Retour attendu" }], trustLevel: "declared" },
+  { id: "pir-105", registration: "MB-PI-3307", quayId: "mbour", status: "Débarquement en cours", lastPosition: "Quai de Mbour", lastDeclaration: "10:06", declaredActivity: "Poulpe et crevettes", x: 52, y: 61, level: "normal", cycleStage: "landing", departureTime: "04:10", expectedReturnTime: "09:50", actualReturnTime: "09:54", landingTime: "10:06", lastCycleEvent: "Débarquement commencé à 10:06", cycleHistory: [{ stage: "preparation", time: "03:42", label: "Préparation" }, { stage: "departure", time: "04:10", label: "Départ" }, { stage: "atSea", time: "04:36", label: "En mer" }, { stage: "returned", time: "09:54", label: "Retour" }, { stage: "landing", time: "10:06", label: "Débarquement" }], trustLevel: "declared" },
+  { id: "pir-106", registration: "FB-PI-2214", quayId: "fass-boye", status: "Départ à confirmer", lastPosition: "Quai de Fass Boye", lastDeclaration: "08:40", declaredActivity: "Départ groupé signalé", x: 52, y: 33, level: "surveillance", cycleStage: "departure", departureTime: "08:40", expectedReturnTime: "16:30", lastCycleEvent: "Départ signalé à 08:40", cycleHistory: [{ stage: "preparation", time: "08:10", label: "Préparation" }, { stage: "departure", time: "08:40", label: "Départ" }], trustLevel: "raw" }
 ];
 
 export const landings: Landing[] = [
-  { id: "land-1", quayId: "joal", time: "08:15", volumeTons: 6.4, species: ["Sardinelle", "Yaboy"], pirogueIds: ["pir-101"], status: "Déclaré" },
-  { id: "land-2", quayId: "mbour", time: "08:40", volumeTons: 8.2, species: ["Poulpe", "Crevettes"], pirogueIds: ["pir-105"], status: "Contrôle quai" },
-  { id: "land-3", quayId: "kayar", time: "09:05", volumeTons: 4.9, species: ["Thiof", "Capitaine"], pirogueIds: ["pir-103"], status: "À vérifier" },
-  { id: "land-4", quayId: "saint-louis", time: "09:12", volumeTons: 7.1, species: ["Sardinelle"], pirogueIds: ["pir-102"], status: "Incomplet" },
-  { id: "land-5", quayId: "kafountine", time: "09:40", volumeTons: 5.6, species: ["Crevettes", "Cymbium"], pirogueIds: ["pir-104"], status: "Déclaré" }
+  { id: "land-1", quayId: "joal", time: "08:15", volumeTons: 6.4, species: ["Sardinelle", "Yaboy"], pirogueIds: ["pir-101"], status: "Déclaré", trustLevel: "verified" },
+  { id: "land-2", quayId: "mbour", time: "08:40", volumeTons: 8.2, species: ["Poulpe", "Crevettes"], pirogueIds: ["pir-105"], status: "Contrôle quai", trustLevel: "declared" },
+  { id: "land-3", quayId: "kayar", time: "09:05", volumeTons: 4.9, species: ["Thiof", "Capitaine"], pirogueIds: ["pir-103"], status: "À vérifier", trustLevel: "raw" },
+  { id: "land-4", quayId: "saint-louis", time: "09:12", volumeTons: 7.1, species: ["Sardinelle"], pirogueIds: ["pir-102"], status: "Incomplet", trustLevel: "raw" },
+  { id: "land-5", quayId: "kafountine", time: "09:40", volumeTons: 5.6, species: ["Crevettes", "Cymbium"], pirogueIds: ["pir-104"], status: "Déclaré", trustLevel: "declared" }
 ];
 
 export const mapAlerts: MapAlert[] = [
-  { id: "alert-1", quayId: "saint-louis", title: "Retour pirogue à confirmer", level: "urgent", source: "Cellule quai", updatedAt: "10:18", nextAction: "Demander confirmation au référent local" },
-  { id: "alert-2", quayId: "kayar", title: "Pesée non normalisée", level: "surveillance", source: "Référent quai", updatedAt: "10:05", nextAction: "Planifier contrôle de pesée" },
-  { id: "alert-3", quayId: "joal", title: "Besoin de glace signalé", level: "surveillance", source: "Groupement femmes", updatedAt: "09:58", nextAction: "Vérifier stock disponible" },
-  { id: "alert-4", quayId: "mbour", title: "Panne froid partielle", level: "surveillance", source: "Gestionnaire quai", updatedAt: "09:35", nextAction: "Contacter maintenance froid" },
-  { id: "alert-5", quayId: "fass-boye", title: "Départ groupé à confirmer", level: "surveillance", source: "Relais local", updatedAt: "09:20", nextAction: "Demander vérification terrain" }
+  { id: "alert-1", quayId: "saint-louis", title: "Retour pirogue à confirmer", level: "urgent", source: "Cellule quai", updatedAt: "10:18", nextAction: "Demander confirmation au référent local", trustLevel: "declared" },
+  { id: "alert-2", quayId: "kayar", title: "Pesée non normalisée", level: "surveillance", source: "Référent quai", updatedAt: "10:05", nextAction: "Planifier contrôle de pesée", trustLevel: "declared" },
+  { id: "alert-3", quayId: "joal", title: "Besoin de glace signalé", level: "surveillance", source: "Groupement femmes", updatedAt: "09:58", nextAction: "Vérifier stock disponible", trustLevel: "raw" },
+  { id: "alert-4", quayId: "mbour", title: "Panne froid partielle", level: "surveillance", source: "Gestionnaire quai", updatedAt: "09:35", nextAction: "Contacter maintenance froid", trustLevel: "verified" },
+  { id: "alert-5", quayId: "fass-boye", title: "Départ groupé à confirmer", level: "surveillance", source: "Relais local", updatedAt: "09:20", nextAction: "Demander vérification terrain", trustLevel: "raw" }
 ];
 
 export const communityNeeds: CommunityNeed[] = [
-  { id: "need-1", need: "Besoin de glace", region: "Thiès", place: "Mbour", actors: "Mareyeurs et femmes transformatrices", urgency: "surveillance", status: "Ouvert", nextAction: "Vérifier disponibilité froid" },
-  { id: "need-2", need: "Gilets de sécurité", region: "Saint-Louis", place: "Guet Ndar", actors: "Capitaines et jeunes pêcheurs", urgency: "urgent", status: "À traiter", nextAction: "Préparer demande équipement" },
-  { id: "need-3", need: "Pesée normalisée", region: "Thiès", place: "Kayar", actors: "Pêcheurs et mareyeurs", urgency: "urgent", status: "Signal consolidé", nextAction: "Programmer contrôle de pesée" },
-  { id: "need-4", need: "Appui femmes transformatrices", region: "Thiès", place: "Joal-Fadiouth", actors: "Groupements de femmes", urgency: "surveillance", status: "À documenter", nextAction: "Préparer fiche projet" },
-  { id: "need-5", need: "Formation hygiène", region: "Dakar", place: "Hann", actors: "Mareyeurs et transformateurs", urgency: "normal", status: "À planifier", nextAction: "Identifier formateurs" },
-  { id: "need-6", need: "Programme jeunes", region: "Louga", place: "Fass Boye", actors: "Jeunes et familles", urgency: "surveillance", status: "À cadrer", nextAction: "Réunir relais locaux" }
+  { id: "need-1", need: "Besoin de glace", region: "Thiès", place: "Mbour", actors: "Mareyeurs et femmes transformatrices", urgency: "surveillance", status: "Ouvert", nextAction: "Vérifier disponibilité froid", trustLevel: "verified" },
+  { id: "need-2", need: "Gilets de sécurité", region: "Saint-Louis", place: "Guet Ndar", actors: "Capitaines et jeunes pêcheurs", urgency: "urgent", status: "À traiter", nextAction: "Préparer demande équipement", trustLevel: "verified" },
+  { id: "need-3", need: "Pesée normalisée", region: "Thiès", place: "Kayar", actors: "Pêcheurs et mareyeurs", urgency: "urgent", status: "Signal consolidé", nextAction: "Programmer contrôle de pesée", trustLevel: "consolidated" },
+  { id: "need-4", need: "Appui femmes transformatrices", region: "Thiès", place: "Joal-Fadiouth", actors: "Groupements de femmes", urgency: "surveillance", status: "À documenter", nextAction: "Préparer fiche projet", trustLevel: "declared" },
+  { id: "need-5", need: "Formation hygiène", region: "Dakar", place: "Hann", actors: "Mareyeurs et transformateurs", urgency: "normal", status: "À planifier", nextAction: "Identifier formateurs", trustLevel: "declared" },
+  { id: "need-6", need: "Programme jeunes", region: "Louga", place: "Fass Boye", actors: "Jeunes et familles", urgency: "surveillance", status: "À cadrer", nextAction: "Réunir relais locaux", trustLevel: "raw" }
+];
+
+export const fieldReferents: FieldReferent[] = [
+  { id: "ref-joal-1", name: "Awa Diouf", role: "Agent territorial", quayId: "joal", region: "Thiès", status: "Actif", reliabilityScore: 94, verificationsCompleted: 28, lastActivity: "Aujourd’hui · 10:24", contactChannel: "Application terrain", supervisingCell: "Cellule régionale de Thiès" },
+  { id: "ref-joal-2", name: "Mamadou Sarr", role: "Pêcheur référent", quayId: "joal", region: "Thiès", status: "Actif", reliabilityScore: 87, verificationsCompleted: 19, lastActivity: "Aujourd’hui · 09:58", contactChannel: "WhatsApp structuré", supervisingCell: "Cellule régionale de Thiès" },
+  { id: "ref-mbour-1", name: "Fatou Ndiaye", role: "Mareyeur référent", quayId: "mbour", region: "Thiès", status: "Actif", reliabilityScore: 91, verificationsCompleted: 23, lastActivity: "Aujourd’hui · 09:35", contactChannel: "Téléphone", supervisingCell: "Cellule régionale de Thiès" },
+  { id: "ref-kayar-1", name: "Ibrahima Fall", role: "Référent de quai", quayId: "kayar", region: "Thiès", status: "Actif", reliabilityScore: 89, verificationsCompleted: 31, lastActivity: "Aujourd’hui · 10:05", contactChannel: "Application terrain", supervisingCell: "Cellule régionale de Thiès" },
+  { id: "ref-sl-1", name: "Cheikh Ba", role: "Agent territorial", quayId: "saint-louis", region: "Saint-Louis", status: "Actif", reliabilityScore: 96, verificationsCompleted: 42, lastActivity: "Aujourd’hui · 10:18", contactChannel: "Application terrain", supervisingCell: "Cellule régionale de Saint-Louis" },
+  { id: "ref-hann-1", name: "Rokhaya Seck", role: "Référent de quai", quayId: "hann", region: "Dakar", status: "Actif", reliabilityScore: 84, verificationsCompleted: 17, lastActivity: "Hier · 17:40", contactChannel: "WhatsApp structuré", supervisingCell: "Cellule régionale de Dakar" },
+];
+
+export const speciesDirectory: SpeciesRecord[] = [
+  { id: "esp-sardinelle", localName: "Yaboy / sardinelle", scientificName: "Sardinella aurita", category: "Pélagique", regulatoryStatus: "Réglementée", commonZones: ["Thiès", "Saint-Louis", "Dakar"], seasonality: "Novembre à juin", monthlyVolumeTrend: [62, 68, 75, 81, 76, 69], recentLandingVolume: 48.6, alertLevel: "surveillance", decisionUse: "Surveiller la pression et orienter la conservation." },
+  { id: "esp-thiof", localName: "Thiof", scientificName: "Epinephelus aeneus", category: "Démersale", regulatoryStatus: "Protégée", commonZones: ["Kayar", "Dakar", "Petite-Côte"], seasonality: "Suivi annuel renforcé", monthlyVolumeTrend: [38, 35, 31, 28, 24, 21], recentLandingVolume: 8.4, alertLevel: "urgent", decisionUse: "Déclencher une vigilance biodiversité et contrôler les volumes." },
+  { id: "esp-poulpe", localName: "Poulpe", scientificName: "Octopus vulgaris", category: "Céphalopode", regulatoryStatus: "Repos biologique", commonZones: ["Mbour", "Joal-Fadiouth", "Kafountine"], seasonality: "Repos biologique saisonnier", monthlyVolumeTrend: [22, 28, 34, 39, 18, 8], recentLandingVolume: 12.7, alertLevel: "surveillance", decisionUse: "Aligner les programmes et contrôles sur le repos biologique." },
+  { id: "esp-crevette", localName: "Crevette côtière", scientificName: "Penaeus notialis", category: "Crustacé", regulatoryStatus: "Réglementée", commonZones: ["Kafountine", "Mbour", "Dakar"], seasonality: "Mars à octobre", monthlyVolumeTrend: [18, 21, 27, 32, 35, 31], recentLandingVolume: 16.2, alertLevel: "normal", decisionUse: "Documenter les volumes pour la qualité et le financement froid." },
 ];
 
 export const communityProjects: CommunityProject[] = [
