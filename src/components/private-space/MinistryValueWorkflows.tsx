@@ -213,7 +213,7 @@ export function ZoneExportForm(props: WorkflowWrapperProps) {
 }
 
 export function FullRecordPanel(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="full-record" title="Voir le dossier complet" purpose="Vue permanente de l’entité : historique, preuves, signalements, vérifications et documents liés." artifactLabel="Dossier opérationnel" filename="DossierOperationnel" fields={[
+  return <ProcessDrawer {...props} kind="full-record" title="Voir le détail complet" purpose="Consulter l’historique, les preuves, les signalements, les vérifications et les documents liés." artifactLabel="Dossier opérationnel" filename="DossierOperationnel" fields={[
     { name: "history", label: "Historique consolidé", type: "textarea", required: true, defaultValue: props.context.description || "Déclaration reçue, contrôle en cours, dernier signal consolidé." },
     { name: "linkedDocuments", label: "Documents liés", defaultValue: "Déclarations, preuves terrain, alertes et débarquements." },
     { name: "consultationReason", label: "Motif de consultation", required: true, defaultValue: "Instruction opérationnelle" },
@@ -273,7 +273,7 @@ function WorkflowField({ field }: { field: FieldDefinition }) {
 }
 
 function ObjectSummary({ context }: { context: WorkflowContext }) {
-  return <section className="border-l-2 border-[var(--mb-ocean-600)] bg-[var(--mb-foam)] px-3 py-2.5"><p className="font-mono text-[9px] text-[var(--mb-ocean-600)]">OBJET DU PARCOURS</p><p className="mt-1 text-[12px] font-semibold text-[var(--mb-navy-900)]">{context.title}</p><p className="mt-1 text-[10px] text-[var(--mb-neutral-600)]">{context.scope}{context.sourceId ? ` · ${context.sourceId}` : ""}</p></section>;
+  return <section className="border-l-2 border-[var(--mb-ocean-600)] bg-[var(--mb-foam)] px-3 py-2.5"><p className="font-mono text-[9px] text-[var(--mb-ocean-600)]">ÉLÉMENT CONCERNÉ</p><p className="mt-1 text-[12px] font-semibold text-[var(--mb-navy-900)]">{context.title}</p><p className="mt-1 text-[10px] text-[var(--mb-neutral-600)]">{context.scope}{context.sourceId ? ` · ${context.sourceId}` : ""}</p></section>;
 }
 
 function ReviewBlock({ title, values, fields }: { title: string; values: Record<string, string>; fields: FieldDefinition[] }) {
