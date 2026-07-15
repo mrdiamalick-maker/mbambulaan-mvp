@@ -274,6 +274,27 @@ function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedI
   const selectedContext: WorkflowContext = { title: selectedTitle, scope: selectedQuay?.name || scope, sourceId: selectedBoat?.id || selectedQuay?.id, quayId: selectedQuay?.id, description: selectedAlerts[0]?.title || "Information opérationnelle à instruire." };
   const contextRows: Array<[string, string]> = selectedBoat ? [["Immatriculation", selectedBoat.registration], ["Quai rattaché", selectedQuay?.name ?? "—"], ["Position", selectedBoat.lastPosition], ["Déclaration", selectedBoat.lastDeclaration], ["Activité", selectedBoat.declaredActivity]] : selectedQuay ? [["Région", selectedQuay.region], ["Commune", selectedQuay.commune], ["Débarquements", String(selectedLandings.length)], ["Volume déclaré", `${selectedLandings.reduce((sum, item) => sum + item.volumeTons, 0).toFixed(1)} t`], ["Pirogues actives", String(selectedQuay.activePirogues)], ["Preuves générées", String(artifacts.filter((item) => item.scope === selectedQuay.name).length)]] : [];
   const verified = selection?.id ? verifiedIds.includes(selection.id) : false;
+  const entityLevel = verified ? "normal" : selectedBoat?.level ?? selectedQuay?.level ?? "normal";
+  const entityTrust = verified ? "verified" : selectedBoat?.trustLevel ?? selectedQuay?.trustLevel ?? "raw";
+  const verificationRecommended = !verified || entityLevel !== "normal" || !["verified", "consolidated"].includes(entityTrust);
+  const knownSituation = selectedBoat
+    ? `${selectedBoat.status}. Dernière position : ${selectedBoat.lastPosition}. Dernière déclaration : ${selectedBoat.lastDeclaration}.`
+    : selectedQuay
+      ? `${selectedLandings.length} débarquement(s), ${selectedLandings.reduce((sum, item) => sum + item.volumeTons, 0).toFixed(1)} t déclarées et ${selectedQuay.activePirogues} pirogues actives.`
+      : "Aucune information sélectionnée.";
+  const journey = verificationRecommended ? {
+    situation: entityLevel === "urgent" ? "Situation critique à confirmer sur le terrain." : entityLevel === "surveillance" ? "Situation en vigilance nécessitant une confirmation." : "Information disponible mais pas encore vérifiée.",
+    known: knownSituation,
+    reason: entityLevel !== "normal" ? "Le statut appelle une confirmation avant arbitrage ou transmission." : "Le niveau de confiance actuel ne suffit pas encore pour consolider cette information.",
+    expectedResult: "Une tâche est assignée à un agent ou référent mandaté ; la confiance reste inchangée jusqu’au dépôt du constat.",
+    nextStep: "Déposer le constat, qualifier la situation puis générer le rapport de zone si une transmission est nécessaire.",
+  } : {
+    situation: "Situation comprise et vérification humaine enregistrée.",
+    known: knownSituation,
+    reason: "Les informations sont suffisamment qualifiées pour être synthétisées et archivées.",
+    expectedResult: "Un rapport daté est ajouté au registre avec le périmètre, les objets liés et le niveau de confiance.",
+    nextStep: "Relire le rapport, puis décider de sa transmission ou de son archivage institutionnel.",
+  };
 
   return <section className="min-h-full">
     <WorkspaceHeader title="Atlas maritime" question="Observer l’activité littorale à partir des déclarations, vérifications et consolidations disponibles." scope={scope} onScopeChange={(next) => { setScope(next as Scope); setQuayFilter("Tous"); setSelection(null); }} onExport={() => openWorkflow("export-zone", { title: "Rapport de zone maritime", scope, description: "Quais, pirogues, débarquements, alertes et incidents du périmètre actif." })} />
@@ -287,11 +308,16 @@ function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedI
     </FilterStrip>
     <div className="grid min-h-[calc(100vh-201px)] min-w-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:grid-rows-[minmax(430px,1fr)_170px]">
       <div className="min-h-0 border-b border-[var(--mb-neutral-200)] xl:border-r"><MapCanvas mode={mode} layers={layers} onToggleLayer={(layer) => setLayers((current) => ({ ...current, [layer]: !current[layer] }))} quays={visibleQuays} pirogues={visiblePirogues} landings={visibleLandings} alerts={visibleAlerts} incidents={visibleIncidents} selection={selection} onSelectQuay={(id) => setSelection({ kind: "quay", id })} onSelectPirogue={(id) => setSelection({ kind: "pirogue", id })} /></div>
-      <div className="min-h-0 xl:row-span-2"><ContextPanel empty={!selection || !selectedQuay} title={selectedTitle} subtitle={verified ? "Vérification humaine enregistrée" : selectedBoat ? selectedBoat.status : selectedQuay ? `Dernier signal · ${selectedQuay.lastUpdated}` : ""} level={verified ? "normal" : selectedBoat?.level ?? selectedQuay?.level} trustLevel={verified ? "verified" : selectedBoat?.trustLevel ?? selectedQuay?.trustLevel} trend={selectedQuay && !selectedBoat ? quayTrends[selectedQuay.id] : undefined} pirogue={selectedBoat} rows={contextRows} referents={selectedQuay ? <ReferentsPanel referents={fieldReferents.filter((referent) => referent.quayId === selectedQuay.id && referent.status === "Actif")} /> : null} actions={[
-        { label: "Demander une vérification terrain", helper: verified ? "Une preuve humaine existe déjà pour cet objet." : "La cellule régionale assigne la demande à un agent territorial ou référent mandaté. Le constat horodaté revient dans ce dossier.", primary: true, onClick: () => openWorkflow("verification", selectedContext) },
-        { label: "Signaler une situation", helper: "Le signalement est reçu et qualifié par la cellule régionale. Une criticité confirmée peut être escaladée en alerte.", onClick: () => openWorkflow("alert", selectedContext) },
-        { label: "Voir le dossier complet", helper: "Consultez l’historique, les événements et les preuves rattachées.", onClick: () => openWorkflow("full-record", selectedContext) },
-        { label: "Générer un rapport de zone", helper: "Le rapport inclura la carte, les statuts et les événements de la zone.", onClick: () => openWorkflow("export-zone", selectedContext) },
+      <div className="min-h-0 xl:row-span-2"><ContextPanel empty={!selection || !selectedQuay} title={selectedTitle} subtitle={verified ? "Vérification humaine enregistrée" : selectedBoat ? selectedBoat.status : selectedQuay ? `Dernier signal · ${selectedQuay.lastUpdated}` : ""} level={entityLevel} trustLevel={entityTrust} journey={journey} trend={selectedQuay && !selectedBoat ? quayTrends[selectedQuay.id] : undefined} pirogue={selectedBoat} rows={contextRows} referents={selectedQuay ? <ReferentsPanel referents={fieldReferents.filter((referent) => referent.quayId === selectedQuay.id && referent.status === "Actif")} /> : null} actions={verificationRecommended ? [
+        { label: "Demander une vérification terrain", group: "recommended", onClick: () => openWorkflow("verification", selectedContext) },
+        { label: "Signaler une situation", group: "secondary", helper: "À utiliser pour créer un nouveau signalement distinct de la situation déjà sélectionnée.", onClick: () => openWorkflow("alert", selectedContext) },
+        { label: "Voir le dossier complet", group: "consultation", helper: "Consulter l’historique et les pièces sans modifier l’état du parcours.", onClick: () => openWorkflow("full-record", selectedContext) },
+        { label: "Générer un rapport de zone", group: "consultation", helper: "À faire après compréhension ou vérification, pour transmission ou archivage.", onClick: () => openWorkflow("export-zone", selectedContext) },
+      ] : [
+        { label: "Générer un rapport de zone", group: "recommended", onClick: () => openWorkflow("export-zone", selectedContext) },
+        { label: "Signaler une situation", group: "secondary", helper: "Créer un nouveau signalement si un fait distinct vient d’être observé.", onClick: () => openWorkflow("alert", selectedContext) },
+        { label: "Demander une nouvelle vérification", group: "secondary", helper: "Relancer un contrôle si la situation a évolué depuis le dernier constat.", onClick: () => openWorkflow("verification", selectedContext) },
+        { label: "Voir le dossier complet", group: "consultation", helper: "Consulter l’historique et les pièces sans modifier l’état du parcours.", onClick: () => openWorkflow("full-record", selectedContext) },
       ]} /></div>
       <div className="grid min-h-0 overflow-auto bg-white xl:grid-cols-2 xl:border-r"><section className="border-b border-[var(--mb-neutral-200)] xl:border-b-0 xl:border-r"><div className="flex h-9 items-center justify-between border-b border-[var(--mb-neutral-200)] px-3"><h3 className="text-[11px] font-bold">Registre d’événements</h3><span className="font-mono text-[9px] text-[var(--mb-neutral-400)]">{period}</span></div><EvidenceTimeline items={evidence.slice(0, 4)} /></section><section><div className="flex h-9 items-center border-b border-[var(--mb-neutral-200)] px-3 text-[11px] font-bold">Preuves et exports générés</div><ArtifactRegister artifacts={artifacts.slice(0, 3)} /></section></div>
     </div>
