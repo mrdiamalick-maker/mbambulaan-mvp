@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   communityNeeds,
+  fieldReferents,
   getQuayById,
   landings,
   mapAlerts,
@@ -66,6 +67,7 @@ import {
 import { artifactToDocument, DocumentPreview } from "./InstitutionalDocuments";
 import { BriefingPanel, SituationBanner, ValueBanner } from "./MinistryV3Components";
 import { FiliereNeedsView } from "./MinistryV4Components";
+import { ReferentsPanel } from "./MinistryCredibility";
 
 type Selection = { kind: "quay" | "pirogue"; id: string } | null;
 type Scope = "Nationale" | Region;
@@ -118,6 +120,7 @@ export function MinistryControlTower() {
         source: values.validator || "Agent habilité",
         updatedAt: new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date()),
         nextAction: `${values.owner || "Cellule territoriale"} · échéance ${values.dueDate || "à définir"}`,
+        trustLevel: "verified",
       }, ...items]);
     }
     if (artifact.kind === "qualification") {
@@ -144,11 +147,11 @@ export function MinistryControlTower() {
         targetFunder: values.targetFunder,
         ministryUnit: values.ministryUnit,
         maturityScore: Number(values.maturityScore || 0),
-        eligibilityStatus: "Dossier généré",
+        eligibilityStatus: "Dossier constitué",
         status: "Validée",
         artifactId: artifact.id,
       }, ...items]);
-      setOpportunities((items) => items.map((item) => item.id === opportunityId ? { ...item, status: "Dossier généré" } : item));
+      setOpportunities((items) => items.map((item) => item.id === opportunityId ? { ...item, status: "Dossier constitué" } : item));
     }
     if (artifact.kind === "partner") {
       setPartnerSolicitations((items) => [{
@@ -228,8 +231,8 @@ function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedI
   const verified = selection?.id ? verifiedIds.includes(selection.id) : false;
 
   return <section className="min-h-full">
-    <WorkspaceHeader title="Atlas maritime" question="Observer l’activité littorale et maritime en temps réel." scope={scope} onScopeChange={(next) => { setScope(next as Scope); setQuayFilter("Tous"); setSelection(null); }} onExport={() => openWorkflow("export-zone", { title: "Rapport de zone maritime", scope, description: "Quais, pirogues, débarquements, alertes et incidents du périmètre actif." })} />
-    <SituationBanner eyebrow="Situation maritime nationale" statement={`${visiblePirogues.filter((boat) => ["atSea", "expectedReturn"].includes(boat.cycleStage)).length} pirogues en mer · ${visiblePirogues.filter((boat) => boat.cycleStage === "expectedReturn").length} retours attendus avant 18h · ${visiblePirogues.filter((boat) => ["declared", "verified"].includes(boat.cycleStage)).length} débarquements déclarés ce matin · ${visibleQuays.filter((quay) => quay.level !== "normal").length} zone(s) en vigilance`} detail="Cycle suivi du départ jusqu’à la preuve · dernière synchronisation il y a 4 min" actionLabel="Briefing du jour" onAction={() => setBriefingOpen(true)} />
+    <WorkspaceHeader title="Atlas maritime" question="Observer l’activité littorale à partir des déclarations, vérifications et consolidations disponibles." scope={scope} onScopeChange={(next) => { setScope(next as Scope); setQuayFilter("Tous"); setSelection(null); }} onExport={() => openWorkflow("export-zone", { title: "Rapport de zone maritime", scope, description: "Quais, pirogues, débarquements, alertes et incidents du périmètre actif." })} />
+    <SituationBanner eyebrow="Situation maritime nationale · simulation métier" statement={`${visiblePirogues.filter((boat) => ["atSea", "expectedReturn"].includes(boat.cycleStage)).length} pirogues en mer · ${visiblePirogues.filter((boat) => boat.cycleStage === "expectedReturn").length} retours attendus avant 18h · ${visiblePirogues.filter((boat) => ["declared", "verified"].includes(boat.cycleStage)).length} débarquements déclarés ce matin · ${visibleQuays.filter((quay) => quay.level !== "normal").length} zone(s) en vigilance`} detail="Données de démonstration · niveaux de confiance visibles sur chaque dossier" actionLabel="Briefing du jour" onAction={() => setBriefingOpen(true)} />
     <FilterStrip>
       <div className="flex rounded-[3px] border border-[var(--mb-neutral-200)] bg-[var(--mb-offwhite)] p-0.5"><button onClick={() => setMode("quays")} className={`h-8 rounded-[2px] px-3 text-[11px] font-bold ${mode === "quays" ? "bg-[var(--mb-ocean-600)] text-white" : "text-[var(--mb-neutral-600)]"}`}>Vue quais</button><button onClick={() => setMode("pirogues")} className={`h-8 rounded-[2px] px-3 text-[11px] font-bold ${mode === "pirogues" ? "bg-[var(--mb-ocean-600)] text-white" : "text-[var(--mb-neutral-600)]"}`}>Vue pirogues</button></div>
       <FilterField label="Quai"><select value={quayFilter} onChange={(event) => { setQuayFilter(event.target.value); setSelection(event.target.value === "Tous" ? null : { kind: "quay", id: event.target.value }); }} className={inputClass}><option>Tous</option>{quays.filter((quay) => scope === "Nationale" || quay.region === scope).map((quay) => <option key={quay.id} value={quay.id}>{quay.name}</option>)}</select></FilterField>
@@ -239,9 +242,9 @@ function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedI
     </FilterStrip>
     <div className="grid min-h-[calc(100vh-201px)] min-w-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:grid-rows-[minmax(430px,1fr)_170px]">
       <div className="min-h-0 border-b border-[var(--mb-neutral-200)] xl:border-r"><MapCanvas mode={mode} layers={layers} onToggleLayer={(layer) => setLayers((current) => ({ ...current, [layer]: !current[layer] }))} quays={visibleQuays} pirogues={visiblePirogues} landings={visibleLandings} alerts={visibleAlerts} incidents={visibleIncidents} selection={selection} onSelectQuay={(id) => setSelection({ kind: "quay", id })} onSelectPirogue={(id) => setSelection({ kind: "pirogue", id })} /></div>
-      <div className="min-h-0 xl:row-span-2"><ContextPanel empty={!selection || !selectedQuay} title={selectedTitle} subtitle={verified ? "Vérification humaine enregistrée" : selectedBoat ? selectedBoat.status : selectedQuay ? `Dernier signal · ${selectedQuay.lastUpdated}` : ""} level={verified ? "normal" : selectedBoat?.level ?? selectedQuay?.level} trend={selectedQuay && !selectedBoat ? quayTrends[selectedQuay.id] : undefined} pirogue={selectedBoat} rows={contextRows} actions={[
-        { label: "Lancer une vérification terrain", helper: verified ? "Une preuve humaine existe déjà pour cet objet." : "Cette information n’a pas encore été confirmée sur place. La vérification produira une preuve horodatée.", primary: true, onClick: () => openWorkflow("verification", selectedContext) },
-        { label: "Signaler un incident", helper: "Décrivez ce qui se passe : une alerte suivie sera créée et assignée.", onClick: () => openWorkflow("alert", selectedContext) },
+      <div className="min-h-0 xl:row-span-2"><ContextPanel empty={!selection || !selectedQuay} title={selectedTitle} subtitle={verified ? "Vérification humaine enregistrée" : selectedBoat ? selectedBoat.status : selectedQuay ? `Dernier signal · ${selectedQuay.lastUpdated}` : ""} level={verified ? "normal" : selectedBoat?.level ?? selectedQuay?.level} trustLevel={verified ? "verified" : selectedBoat?.trustLevel ?? selectedQuay?.trustLevel} trend={selectedQuay && !selectedBoat ? quayTrends[selectedQuay.id] : undefined} pirogue={selectedBoat} rows={contextRows} referents={selectedQuay ? <ReferentsPanel referents={fieldReferents.filter((referent) => referent.quayId === selectedQuay.id && referent.status === "Actif")} /> : null} actions={[
+        { label: "Demander une vérification terrain", helper: verified ? "Une preuve humaine existe déjà pour cet objet." : "La cellule régionale assigne la demande à un agent territorial ou référent mandaté. Le constat horodaté revient dans ce dossier.", primary: true, onClick: () => openWorkflow("verification", selectedContext) },
+        { label: "Signaler une situation", helper: "Le signalement est reçu et qualifié par la cellule régionale. Une criticité confirmée peut être escaladée en alerte.", onClick: () => openWorkflow("alert", selectedContext) },
         { label: "Voir le dossier complet", helper: "Consultez l’historique, les événements et les preuves rattachées.", onClick: () => openWorkflow("full-record", selectedContext) },
         { label: "Générer un rapport de zone", helper: "Le rapport inclura la carte, les statuts et les événements de la zone.", onClick: () => openWorkflow("export-zone", selectedContext) },
       ]} /></div>
@@ -283,7 +286,7 @@ function PilotageInstitutionnel({ scope, setScope, evidence, artifacts, opportun
   const criticality: Record<Level, number> = { urgent: 0, surveillance: 1, normal: 2 };
   const sortedQuays = [...scopedQuays].sort((a, b) => criticality[a.level] - criticality[b.level]);
   const mapLayers: Record<MapLayerId, boolean> = { quays: true, pirogues: false, landings: false, alerts: true, incidents: true };
-  const synthesis = `Situation au 13 juillet 2026 · 08h14 : activité normale sur ${Math.max(9, new Set(scopedQuays.map((quay) => quay.region)).size)} régions, ${scopedAlerts.filter((item) => item.level !== "normal").length} zones en vigilance et ${Math.max(1, fundingRequests.filter((item) => item.eligibilityStatus === "Dossier généré").length)} dossier de financement en attente d’arbitrage.`;
+  const synthesis = `Situation au 13 juillet 2026 · 08h14 : activité normale sur ${Math.max(9, new Set(scopedQuays.map((quay) => quay.region)).size)} régions, ${scopedAlerts.filter((item) => item.level !== "normal").length} zones en vigilance et ${Math.max(1, fundingRequests.filter((item) => item.eligibilityStatus === "Dossier constitué").length)} dossier de financement en attente d’arbitrage.`;
   const noteContext: WorkflowContext = { title: "Note d’arbitrage de la situation du jour", scope, description: `${synthesis} Prioriser les vérifications critiques et instruire les dossiers de financement les plus matures.` };
   const decisions = [
     ...scopedAlerts.slice(0, 2).map((alert) => ({ id: alert.id, title: alert.title, detail: `${getQuayById(alert.quayId).name} · ${alert.nextAction}`, level: alert.level, action: "Lancer la vérification", onAction: () => openWorkflow("verification", { title: alert.title, scope: getQuayById(alert.quayId).name, sourceId: alert.quayId, description: alert.nextAction }) })),
