@@ -22,11 +22,17 @@ import {
   quayTrends,
   type FundingOpportunity,
   type FundingRequest,
+  type FundingDossierRecord,
   type GeneratedArtifact,
+  type PartnerRelationship,
   type PartnerSolicitation,
   type ProgramAssociation,
   type QualifiedNeedRecord,
+  type DecisionRecord,
+  type SignalRecord,
+  type VerificationTask,
   type WorkflowKind,
+  type ZoneReportRecord,
 } from "@/data/ministryValueJourneyData";
 import {
   ActionRegister,
@@ -68,6 +74,7 @@ import { artifactToDocument, DocumentPreview } from "./InstitutionalDocuments";
 import { BriefingPanel, SituationBanner, ValueBanner } from "./MinistryV3Components";
 import { FiliereNeedsView } from "./MinistryV4Components";
 import { ReferentsPanel } from "./MinistryCredibility";
+import { DecisionRegister, FundingRegister, PartnerRegister, ReportRegister, RoleFrame, WhatsAppBridge, type DemoRole } from "./MinistryOperationalRegisters";
 
 type Selection = { kind: "quay" | "pirogue"; id: string } | null;
 type Scope = "Nationale" | Region;
@@ -87,11 +94,18 @@ export function MinistryControlTower() {
   const [artifacts, setArtifacts] = useState<GeneratedArtifact[]>(initialGeneratedArtifacts);
   const [opportunities, setOpportunities] = useState<FundingOpportunity[]>(initialFundingOpportunities);
   const [fundingRequests, setFundingRequests] = useState<FundingRequest[]>([]);
-  const [, setQualifiedNeeds] = useState<QualifiedNeedRecord[]>([]);
+  const [qualifiedNeeds, setQualifiedNeeds] = useState<QualifiedNeedRecord[]>([]);
   const [, setPartnerSolicitations] = useState<PartnerSolicitation[]>([]);
   const [, setProgramAssociations] = useState<ProgramAssociation[]>([]);
   const [createdAlerts, setCreatedAlerts] = useState<MapAlert[]>([]);
   const [verifiedIds, setVerifiedIds] = useState<string[]>([]);
+  const [fundingDossiers, setFundingDossiers] = useState<FundingDossierRecord[]>([]);
+  const [partnerRelationships, setPartnerRelationships] = useState<PartnerRelationship[]>([]);
+  const [verificationTasks, setVerificationTasks] = useState<VerificationTask[]>([]);
+  const [signalRecords, setSignalRecords] = useState<SignalRecord[]>([]);
+  const [decisionRecords, setDecisionRecords] = useState<DecisionRecord[]>([]);
+  const [zoneReports, setZoneReports] = useState<ZoneReportRecord[]>([]);
+  const [role, setRole] = useState<DemoRole>("Ministère");
   const [activeWorkflow, setActiveWorkflow] = useState<ActiveWorkflow>(null);
   const [systemNotice, setSystemNotice] = useState("Dernière synchronisation · 10:45");
 
@@ -109,24 +123,28 @@ export function MinistryControlTower() {
     setArtifacts((items) => [artifact, ...items]);
     record(artifact.title, `${artifact.scope} · preuve ${artifact.id}`);
     const context = activeWorkflow?.context;
-    if (artifact.kind === "verification" && context?.sourceId) setVerifiedIds((ids) => Array.from(new Set([context.sourceId!, ...ids])));
+    if (artifact.kind === "verification" && context?.sourceId) {
+      setVerificationTasks((items) => [{ id: `verification-${Date.now()}`, targetId: context.sourceId!, target: context.title, scope: context.scope, recipient: values.recipient, channel: values.channel as VerificationTask["channel"], status: "Demandée", dueDate: values.dueDate, owner: "Cellule régionale", message: values.requestMessage, artifactId: artifact.id }, ...items]);
+    }
     if (artifact.kind === "alert") {
-      const quayId = context?.quayId || (context?.sourceId && quays.some((quay) => quay.id === context.sourceId) ? context.sourceId : "joal");
-      setCreatedAlerts((items) => [{
-        id: `alert-generated-${Date.now()}`,
-        quayId,
-        title: values.description || context?.title || "Alerte créée",
-        level: values.severity === "Critique" ? "urgent" : "surveillance",
-        source: values.validator || "Agent habilité",
-        updatedAt: new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date()),
-        nextAction: `${values.owner || "Cellule territoriale"} · échéance ${values.dueDate || "à définir"}`,
-        trustLevel: "verified",
+      setSignalRecords((items) => [{
+        id: `signal-${Date.now()}`,
+        title: values.description || context?.title || "Situation signalée",
+        scope: context?.scope || "Périmètre à qualifier",
+        sender: values.validator || "Agent territorial",
+        receivingCell: "Cellule régionale",
+        messageType: values.alertType || "Signalement terrain",
+        attachmentHint: "Photo / audio / position à joindre",
+        trustLevel: "declared",
+        status: "Signalé",
+        createdAt: new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short" }).format(new Date()),
+        artifactId: artifact.id,
       }, ...items]);
     }
     if (artifact.kind === "qualification") {
       setQualifiedNeeds((items) => [{
         id: `qualified-${Date.now()}`,
-        sourceNeedId: context?.sourceId || "need-1",
+        sourceNeedId: context?.needId || context?.sourceId || "need-1",
         category: values.category,
         actorsAffected: Number(values.actorsAffected || 0),
         estimatedAmount: Number(values.estimatedAmount || 0),
@@ -134,12 +152,14 @@ export function MinistryControlTower() {
         community: values.community,
         validator: values.validator,
         artifactId: artifact.id,
-      }, ...items]);
+      }, ...items.filter((item) => item.sourceNeedId !== (context?.needId || context?.sourceId))]);
     }
     if (artifact.kind === "funding") {
       const opportunityId = context?.sourceId || opportunities[0].id;
+      const needId = context?.needId || opportunities.find((item) => item.id === opportunityId)?.needId || "need-1";
+      const dossierId = `dossier-${Date.now()}`;
       setFundingRequests((items) => [{
-        id: `funding-${Date.now()}`,
+        id: dossierId,
         opportunityId,
         title: values.sourceNeed,
         amountRequested: Number(values.amountRequested || 0),
@@ -151,6 +171,7 @@ export function MinistryControlTower() {
         status: "Validée",
         artifactId: artifact.id,
       }, ...items]);
+      setFundingDossiers((items) => [{ id: dossierId, needId, title: values.sourceNeed, amountRequested: Number(values.amountRequested || 0), targetPartner: values.targetFunder, status: "Transmission à confirmer", owner: values.ministryUnit, updatedAt: "à l’instant", nextAction: "Confirmer la transmission manuelle", trustLevel: "verified", artifactId: artifact.id }, ...items]);
       setOpportunities((items) => items.map((item) => item.id === opportunityId ? { ...item, status: "Dossier constitué" } : item));
     }
     if (artifact.kind === "partner") {
@@ -161,9 +182,17 @@ export function MinistryControlTower() {
         requestedContribution: values.requestedContribution,
         responseDate: values.responseDate,
         owner: values.owner,
-        status: "Envoyée",
+        status: "Brouillon",
         artifactId: artifact.id,
       }, ...items]);
+      setPartnerRelationships((items) => [{ id: `relationship-${Date.now()}`, partnerName: values.partner, category: values.partnerCategory as PartnerRelationship["category"], interestTags: [values.supportType, context?.scope || "Territoire"], compatibilityReason: context?.description || "Partenaire compatible avec le besoin qualifié", status: "Sollicitation préparée", lastInteractionDate: "Préparation locale", followUpDueDate: values.responseDate, owner: values.owner, dossierId: fundingDossiers[0]?.id }, ...items]);
+    }
+    if (artifact.kind === "export-zone") {
+      setZoneReports((items) => [{ id: `report-${Date.now()}`, title: artifact.title, zone: context?.scope || artifact.scope, period: values.period, author: values.validator, generatedAt: artifact.createdAt, trustLevel: "consolidated", linkedObjectsCount: 8, purpose: values.description, artifactId: artifact.id }, ...items]);
+    }
+    if (artifact.kind === "note") {
+      const recommendations = (values.recommendations || "Arbitrer les actions prioritaires").split(/[.;]\s*/).filter(Boolean).slice(0, 3);
+      setDecisionRecords((items) => [...recommendations.map((recommendation, index) => ({ id: `decision-${Date.now()}-${index}`, noteTitle: artifact.title, recommendation, status: "À arbitrer" as const, priority: index === 0 ? "Urgente" as const : "Prioritaire" as const, source: context?.scope || "Synthèse nationale", owner: "Cabinet / direction technique", createdAt: artifact.createdAt, nextAction: "Enregistrer l’arbitrage", artifactId: artifact.id })), ...items]);
     }
     if (artifact.kind === "program") {
       setProgramAssociations((items) => [{
@@ -180,12 +209,27 @@ export function MinistryControlTower() {
 
   const workflowProps = activeWorkflow ? { context: activeWorkflow.context, onClose: () => setActiveWorkflow(null), onComplete: completeWorkflow } : null;
   const globalExport = () => openWorkflow("institutional-export", { title: "Situation nationale Mbàmbulaan", scope, description: "Situation, décisions, opportunités de financement et registre de preuve." });
+  const confirmTransmission = (id: string, date: string, responsible: string) => {
+    const dossier = fundingDossiers.find((item) => item.id === id);
+    setFundingDossiers((items) => items.map((item) => item.id === id ? { ...item, status: "Transmis", transmittedAt: date, transmittedBy: responsible, updatedAt: date, nextAction: "Enregistrer la réponse du partenaire" } : item));
+    setFundingRequests((items) => items.map((item) => item.id === id ? { ...item, eligibilityStatus: "Transmis", status: "Transmise" } : item));
+    if (dossier) setOpportunities((items) => items.map((item) => item.needId === dossier.needId ? { ...item, status: "Transmis" } : item));
+    setPartnerRelationships((items) => items.map((item) => item.dossierId === id ? { ...item, status: "Sollicité", lastInteractionDate: date } : item));
+    record("Transmission confirmée", `${dossier?.title || id} · ${responsible} · ${date}`);
+  };
+  const recordFundingResponse = (id: string) => { setFundingDossiers((items) => items.map((item) => item.id === id ? { ...item, status: "En négociation", nextAction: "Préparer la prochaine échéance", updatedAt: "à l’instant" } : item)); record("Réponse partenaire enregistrée", id); };
+  const recordPartnerResponse = (id: string) => { setPartnerRelationships((items) => items.map((item) => item.id === id ? { ...item, status: "En négociation", lastInteractionDate: "Aujourd’hui" } : item)); record("Suivi partenaire mis à jour", id); };
+  const completeVerification = (id: string) => { const task = verificationTasks.find((item) => item.id === id); setVerificationTasks((items) => items.map((item) => item.id === id ? { ...item, status: "Vérifiée" } : item)); if (task) setVerifiedIds((ids) => Array.from(new Set([task.targetId, ...ids]))); record("Constat de vérification déposé", task?.target || id); };
+  const qualifySignal = (id: string) => { setSignalRecords((items) => items.map((item) => item.id === id ? { ...item, status: "Qualifié", trustLevel: "declared" } : item)); record("Signalement qualifié", id); };
+  const prepareWhatsApp = (message: string) => { navigator.clipboard?.writeText(message); setSystemNotice("Message WhatsApp structuré préparé · envoi non connecté"); };
+  const advanceDecision = (id: string) => { setDecisionRecords((items) => items.map((item) => item.id === id ? { ...item, status: item.status === "À arbitrer" ? "Arbitrée" : item.status === "Arbitrée" ? "En exécution" : "Exécutée", nextAction: item.status === "À arbitrer" ? "Lancer l’exécution" : "Suivre la mise en œuvre" } : item)); record("Décision mise à jour", id); };
 
   return <AppShell topBar={<TopBar notice={systemNotice} onExport={globalExport} />} rail={<NavigationRail active={workspace} onChange={setWorkspace} />}>
     <MobileWorkspaceNav active={workspace} onChange={setWorkspace} />
-    {workspace === "map" ? <AtlasMaritime scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} alerts={[...createdAlerts, ...mapAlerts]} verifiedIds={verifiedIds} record={record} openWorkflow={openWorkflow} /> : null}
-    {workspace === "community" ? <FiliereProgrammes scope={scope} setScope={setScope} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} openWorkflow={openWorkflow} /> : null}
-    {workspace === "tracking" ? <PilotageInstitutionnel scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} alerts={[...createdAlerts, ...mapAlerts]} record={record} openWorkflow={openWorkflow} /> : null}
+    <RoleFrame role={role} onChange={setRole} />
+    {workspace === "map" ? <AtlasMaritime scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} alerts={[...createdAlerts, ...mapAlerts]} verifiedIds={verifiedIds} verificationTasks={verificationTasks} signalRecords={signalRecords} zoneReports={zoneReports} onPrepareWhatsApp={prepareWhatsApp} onCompleteVerification={completeVerification} onQualifySignal={qualifySignal} record={record} openWorkflow={openWorkflow} /> : null}
+    {workspace === "community" ? <FiliereProgrammes scope={scope} setScope={setScope} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} qualifiedNeeds={qualifiedNeeds} fundingDossiers={fundingDossiers} partnerRelationships={partnerRelationships} onConfirmTransmission={confirmTransmission} onRecordFundingResponse={recordFundingResponse} onRecordPartnerResponse={recordPartnerResponse} openWorkflow={openWorkflow} /> : null}
+    {workspace === "tracking" ? <PilotageInstitutionnel scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} decisions={decisionRecords} zoneReports={zoneReports} onAdvanceDecision={advanceDecision} alerts={[...createdAlerts, ...mapAlerts]} record={record} openWorkflow={openWorkflow} /> : null}
     {activeWorkflow && workflowProps ? <WorkflowRenderer kind={activeWorkflow.kind} {...workflowProps} /> : null}
   </AppShell>;
 }
@@ -203,8 +247,9 @@ function WorkflowRenderer({ kind, ...props }: { kind: WorkflowKind; context: Wor
   return <InstitutionalExportForm {...props} />;
 }
 
-function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedIds, openWorkflow }: {
-  scope: Scope; setScope: (scope: Scope) => void; evidence: typeof initialEvidence; artifacts: GeneratedArtifact[]; alerts: MapAlert[]; verifiedIds: string[];
+function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedIds, verificationTasks, signalRecords, zoneReports, onPrepareWhatsApp, onCompleteVerification, onQualifySignal, openWorkflow }: {
+  scope: Scope; setScope: (scope: Scope) => void; evidence: typeof initialEvidence; artifacts: GeneratedArtifact[]; alerts: MapAlert[]; verifiedIds: string[]; verificationTasks: VerificationTask[]; signalRecords: SignalRecord[]; zoneReports: ZoneReportRecord[];
+  onPrepareWhatsApp: (message: string) => void; onCompleteVerification: (id: string) => void; onQualifySignal: (id: string) => void;
   record: (title: string, detail: string) => void; openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
 }) {
   const [mode, setMode] = useState<"quays" | "pirogues">("quays");
@@ -250,12 +295,13 @@ function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedI
       ]} /></div>
       <div className="grid min-h-0 overflow-auto bg-white xl:grid-cols-2 xl:border-r"><section className="border-b border-[var(--mb-neutral-200)] xl:border-b-0 xl:border-r"><div className="flex h-9 items-center justify-between border-b border-[var(--mb-neutral-200)] px-3"><h3 className="text-[11px] font-bold">Registre d’événements</h3><span className="font-mono text-[9px] text-[var(--mb-neutral-400)]">{period}</span></div><EvidenceTimeline items={evidence.slice(0, 4)} /></section><section><div className="flex h-9 items-center border-b border-[var(--mb-neutral-200)] px-3 text-[11px] font-bold">Preuves et exports générés</div><ArtifactRegister artifacts={artifacts.slice(0, 3)} /></section></div>
     </div>
+    <div className="grid gap-2 border-t border-[var(--mb-neutral-200)] bg-[var(--mb-neutral-100)] p-2 xl:grid-cols-[1.3fr_.7fr]"><WhatsAppBridge tasks={verificationTasks} signals={signalRecords} onPrepare={onPrepareWhatsApp} onCompleteVerification={onCompleteVerification} onQualifySignal={onQualifySignal} /><ReportRegister reports={zoneReports} /></div>
     {briefingOpen ? <BriefingPanel onClose={() => setBriefingOpen(false)} /> : null}
   </section>;
 }
 
-function FiliereProgrammes({ scope, setScope, artifacts, opportunities, fundingRequests, openWorkflow }: {
-  scope: Scope; setScope: (scope: Scope) => void; artifacts: GeneratedArtifact[]; opportunities: FundingOpportunity[]; fundingRequests: FundingRequest[]; openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
+function FiliereProgrammes({ scope, setScope, artifacts, opportunities, fundingRequests, qualifiedNeeds, fundingDossiers, partnerRelationships, onConfirmTransmission, onRecordFundingResponse, onRecordPartnerResponse, openWorkflow }: {
+  scope: Scope; setScope: (scope: Scope) => void; artifacts: GeneratedArtifact[]; opportunities: FundingOpportunity[]; fundingRequests: FundingRequest[]; qualifiedNeeds: QualifiedNeedRecord[]; fundingDossiers: FundingDossierRecord[]; partnerRelationships: PartnerRelationship[]; onConfirmTransmission: (id: string, date: string, responsible: string) => void; onRecordFundingResponse: (id: string) => void; onRecordPartnerResponse: (id: string) => void; openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
 }) {
   const scopedNeeds = communityNeeds.filter((need) => scope === "Nationale" || need.region === scope);
   const scopedOpportunities = opportunities.filter((item) => scope === "Nationale" || item.territory === scope);
@@ -270,12 +316,13 @@ function FiliereProgrammes({ scope, setScope, artifacts, opportunities, fundingR
       { label: "Prêtes à financer", value: String(readyCount), detail: "Maturité suffisante", level: "normal" },
       { label: "Dossiers générés", value: String(fundingRequests.length), detail: "Validation humaine enregistrée" },
     ]} />
-    <FiliereNeedsView needs={scopedNeeds} opportunities={scopedOpportunities} artifacts={artifacts} onOpenWorkflow={openWorkflow} />
+    <FiliereNeedsView needs={scopedNeeds} opportunities={scopedOpportunities} artifacts={artifacts} qualifiedNeedIds={qualifiedNeeds.map((item) => item.sourceNeedId)} fundingDossierNeedIds={fundingDossiers.map((item) => item.needId)} onOpenWorkflow={openWorkflow} />
+    <div className="grid gap-2 border-t border-[var(--mb-neutral-200)] bg-[var(--mb-neutral-100)] p-2"><FundingRegister dossiers={fundingDossiers} onConfirmTransmission={onConfirmTransmission} onRecordResponse={onRecordFundingResponse} /><PartnerRegister relationships={partnerRelationships} onRecordResponse={onRecordPartnerResponse} /></div>
   </section>;
 }
 
-function PilotageInstitutionnel({ scope, setScope, evidence, artifacts, opportunities, fundingRequests, alerts, record, openWorkflow }: {
-  scope: Scope; setScope: (scope: Scope) => void; evidence: typeof initialEvidence; artifacts: GeneratedArtifact[]; opportunities: FundingOpportunity[]; fundingRequests: FundingRequest[]; alerts: MapAlert[]; record: (title: string, detail: string) => void; openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
+function PilotageInstitutionnel({ scope, setScope, evidence, artifacts, opportunities, fundingRequests, decisions: decisionRecords, zoneReports, onAdvanceDecision, alerts, record, openWorkflow }: {
+  scope: Scope; setScope: (scope: Scope) => void; evidence: typeof initialEvidence; artifacts: GeneratedArtifact[]; opportunities: FundingOpportunity[]; fundingRequests: FundingRequest[]; decisions: DecisionRecord[]; zoneReports: ZoneReportRecord[]; onAdvanceDecision: (id: string) => void; alerts: MapAlert[]; record: (title: string, detail: string) => void; openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
 }) {
   const scopedQuays = quays.filter((quay) => scope === "Nationale" || quay.region === scope);
   const scopedIds = new Set(scopedQuays.map((quay) => quay.id));
@@ -310,5 +357,6 @@ function PilotageInstitutionnel({ scope, setScope, evidence, artifacts, opportun
       </div>
       <aside className="grid content-start gap-2"><DecisionPanel title="Décisions à arbitrer aujourd’hui" items={decisions} /><section className="border border-[var(--mb-neutral-200)] bg-white"><div className="border-b border-[var(--mb-neutral-200)] px-3 py-2"><h3 className="text-[11px] font-bold">Blocages en attente</h3><p className="mt-1 text-[8px] text-[var(--mb-neutral-600)]">Chaque blocage ouvre sa source ou son parcours de résolution.</p></div><div className="divide-y divide-[var(--mb-neutral-100)]"><button onClick={() => openWorkflow("verification", { title: "Retours non confirmés", scope: "Saint-Louis", description: "Deux retours attendent une confirmation terrain." })} className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-2 text-left"><span className="text-[9px] font-semibold">2 vérifications terrain en retard</span><span className="font-mono text-[8px] text-[var(--mb-ocean-600)]">ATLAS →</span></button><button onClick={() => openWorkflow("partner", { title: "Réponses partenaires en attente", scope, description: "Relancer les partenaires des dossiers matures." })} className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-2 text-left"><span className="text-[9px] font-semibold">1 réponse partenaire à relancer</span><span className="font-mono text-[8px] text-[var(--mb-ocean-600)]">FILIÈRE →</span></button></div></section><section className="border border-[var(--mb-neutral-200)] bg-white"><div className="border-b border-[var(--mb-neutral-200)] px-3 py-2 text-[11px] font-bold">Dernière note institutionnelle</div>{artifacts.find((item) => item.kind === "note") ? <div className="p-2"><DocumentPreview document={artifactToDocument(artifacts.find((item) => item.kind === "note")!)} compact /></div> : <div className="p-3"><p className="text-[10px] text-[var(--mb-neutral-600)]">Cette note reprendra la situation du jour et les décisions en attente.</p><button onClick={() => openWorkflow("note", noteContext)} className={`${primaryButton} mt-2`}>Générer la note au Ministre</button></div>}</section><section className="border border-[var(--mb-neutral-200)] bg-white"><div className="border-b border-[var(--mb-neutral-200)] px-3 py-2 text-[11px] font-bold">Registre des actions</div><ActionRegister items={pendingActions.map((item) => ({ id: item.id, action: item.action, owner: item.owner, due: item.dueDate, level: item.level }))} onAction={(id) => { const action = pendingActions.find((item) => item.id === id); openWorkflow("verification", { title: action?.action || id, scope: action?.territory || scope, sourceId: id, description: action?.status }); }} /></section><section className="border border-[var(--mb-neutral-200)] bg-white"><div className="border-b border-[var(--mb-neutral-200)] px-3 py-2 text-[11px] font-bold">Documents prêts à transmettre</div><ArtifactRegister artifacts={artifacts.filter((item) => ["note", "institutional-export", "funding"].includes(item.kind)).slice(0, 5)} /></section><section className="border border-[var(--mb-neutral-200)] bg-white"><div className="border-b border-[var(--mb-neutral-200)] px-3 py-2 text-[11px] font-bold">Registre de preuve</div><EvidenceTimeline items={evidence.slice(0, 4)} /></section></aside>
     </div>
+    <div className="grid gap-2 border-t border-[var(--mb-neutral-200)] bg-[var(--mb-neutral-100)] p-2"><DecisionRegister decisions={decisionRecords} onAdvance={onAdvanceDecision} /><ReportRegister reports={zoneReports} /></div>
   </section>;
 }
