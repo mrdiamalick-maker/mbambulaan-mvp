@@ -49,7 +49,7 @@ export type FundingOpportunity = {
   compatibleFunder: string;
   expectedImpact: string;
   compatibilityScore: number;
-  status: "À qualifier" | "Éligible au financement" | "En instruction" | "Dossier généré" | "Transmis" | "Financé";
+  status: "À qualifier" | "Éligible au financement" | "En instruction" | "Dossier constitué" | "Transmis" | "En négociation" | "Financé" | "Décliné";
 };
 
 export type FundingRequest = {
@@ -61,7 +61,7 @@ export type FundingRequest = {
   targetFunder: string;
   ministryUnit: string;
   maturityScore: number;
-  eligibilityStatus: "Éligible au financement" | "En instruction" | "Dossier généré" | "Transmis" | "Financé";
+  eligibilityStatus: "Éligible au financement" | "En instruction" | "Dossier constitué" | "Transmis" | "En négociation" | "Financé" | "Décliné";
   status: "Brouillon" | "Validée" | "Transmise";
   artifactId: string;
 };
