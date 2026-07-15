@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import type { GeneratedArtifact, WorkflowKind } from "@/data/ministryValueJourneyData";
-import { primaryButton, secondaryButton, StatusBadge } from "./MinistryControlTowerParts";
+import { DataTrustBadge, primaryButton, secondaryButton, StatusBadge } from "./MinistryControlTowerParts";
 import { artifactToDocument, DocumentPreview, PrintReadyDocumentButton } from "./InstitutionalDocuments";
 
 export type WorkflowContext = {
@@ -96,6 +96,7 @@ export function ProcessDrawer({ kind, title, purpose, context, fields, artifactL
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         <section className="border-l-2 border-[var(--mb-sand-300)] bg-white px-3 py-2.5"><p className="font-mono text-[8px] uppercase tracking-[0.08em] text-[var(--mb-neutral-400)]">Ce que cette action produira</p><p className="mt-1 text-[10px] font-semibold leading-4 text-[var(--mb-navy-900)]">{outputPromise(kind)}</p></section>
         <ObjectSummary context={context} />
+        <OperationalChain kind={kind} />
         {phase === "form" ? <form onSubmit={submitForm} className="mt-4 grid gap-4">
           <FormSection title="Instruction structurée">
             {fields.map((field) => <WorkflowField key={field.name} field={field} />)}
@@ -124,7 +125,7 @@ export function ProcessDrawer({ kind, title, purpose, context, fields, artifactL
 }
 
 export function VerificationDrawer(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="verification" title="Lancer une vérification terrain" purpose="Recouper le signal, consigner le constat et produire une preuve de fiabilité." artifactLabel="Preuve de vérification" filename="PreuveVerification" fields={[
+  return <ProcessDrawer {...props} kind="verification" title="Demander une vérification terrain" purpose="La cellule régionale assigne un contrôle local, reçoit le constat et clôture la demande après validation." artifactLabel="Preuve de vérification" filename="PreuveVerification" fields={[
     { name: "method", label: "Méthode de vérification", type: "select", required: true, options: ["Vérification terrain", "Déclaration d’acteur", "Recoupement de sources"] },
     { name: "finding", label: "Constat structuré", type: "textarea", required: true, defaultValue: props.context.description || "Information recoupée avec le relais local." },
     { name: "attachment", label: "Pièce jointe simulée", defaultValue: "photo-terrain-horodatee.jpg" },
@@ -132,9 +133,9 @@ export function VerificationDrawer(props: WorkflowWrapperProps) {
 }
 
 export function AlertCreationForm(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="alert" title="Signaler une situation" purpose="Qualifier le risque, assigner un responsable et inscrire l’alerte dans le suivi." artifactLabel="Fiche d’alerte" filename="AlerteOperationnelle" fields={[
+  return <ProcessDrawer {...props} kind="alert" title="Signaler une situation" purpose="Enregistrer une observation, la faire qualifier par la cellule régionale puis l’escalader en alerte si nécessaire." artifactLabel="Fiche de signalement" filename="SignalementOperationnel" fields={[
     { name: "alertType", label: "Type d’alerte", type: "select", required: true, options: ["Tension de zone", "Écart de déclaration", "Incident technique", "Risque de sécurité"] },
-    { name: "severity", label: "Gravité", type: "select", required: true, options: ["Vigilance", "Critique"] },
+    { name: "severity", label: "Criticité", type: "select", required: true, options: ["Normale", "Vigilance", "Critique"] },
     { name: "description", label: "Description", type: "textarea", required: true, defaultValue: props.context.description },
     { name: "owner", label: "Responsable assigné", required: true, defaultValue: "Cellule territoriale" },
     { name: "dueDate", label: "Échéance", type: "date", required: true },
@@ -153,7 +154,7 @@ export function QualificationForm(props: WorkflowWrapperProps) {
 }
 
 export function FundingRequestForm(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="funding" title="Constituer un dossier de financement" purpose="Structurer un besoin mature en dossier éligible, validé et transmissible." artifactLabel="Dossier de financement" filename="DossierFinancement" fields={[
+  return <ProcessDrawer {...props} kind="funding" title="Constituer un dossier de financement" purpose="Transformer un besoin qualifié en livrable transmissible à un partenaire ou bailleur." artifactLabel="Dossier de financement" filename="DossierFinancement" fields={[
     { name: "sourceNeed", label: "Besoin source", required: true, defaultValue: props.context.title },
     { name: "estimatedAmount", label: "Montant estimé FCFA", type: "number", required: true, defaultValue: props.context.amount || "50000000" },
     { name: "amountRequested", label: "Montant demandé FCFA", type: "number", required: true, defaultValue: props.context.amount || "50000000" },
@@ -165,7 +166,7 @@ export function FundingRequestForm(props: WorkflowWrapperProps) {
     { name: "requiredDocuments", label: "Pièces requises", type: "textarea", required: true, defaultValue: "Fiche besoin, budget, preuve terrain, liste des bénéficiaires." },
     { name: "ministryUnit", label: "Unité ministérielle responsable", required: true, defaultValue: "Direction de la pêche artisanale" },
     { name: "maturityScore", label: "Score de maturité / 100", type: "number", required: true, defaultValue: "82" },
-    { name: "eligibilityStatus", label: "Éligibilité", type: "select", required: true, options: ["Éligible au financement", "En instruction", "À qualifier"] },
+    { name: "eligibilityStatus", label: "Éligibilité", type: "select", required: true, options: ["Éligible au financement", "En instruction", "Transmis", "En négociation", "Décliné"] },
   ]} />;
 }
 
@@ -191,7 +192,7 @@ export function PartnerMobilizationForm(props: WorkflowWrapperProps) {
 }
 
 export function InstitutionalNoteBuilder(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="note" title="Générer la note au Ministre" purpose="Transformer la situation, les alertes et les opportunités en recommandation écrite." artifactLabel="Note au Ministre" filename="NoteMinistre" fields={[
+  return <ProcessDrawer {...props} kind="note" title="Générer la note au Ministre" purpose="Produire une synthèse décisionnelle avec recommandations d’arbitrage et sources associées." artifactLabel="Note au Ministre" filename="NoteMinistre" fields={[
     { name: "period", label: "Période", type: "select", required: true, options: ["Situation du jour", "7 derniers jours", "30 derniers jours"] },
     { name: "metrics", label: "Indicateurs retenus", type: "textarea", required: true, defaultValue: "Quais actifs, volumes, alertes, vérifications, opportunités de financement." },
     { name: "recommendations", label: "Recommandations", type: "textarea", required: true, defaultValue: props.context.description },
@@ -200,7 +201,7 @@ export function InstitutionalNoteBuilder(props: WorkflowWrapperProps) {
 }
 
 export function ZoneExportForm(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="export-zone" title="Générer un rapport de zone" purpose="Composer un rapport lisible des couches et événements du périmètre sélectionné." artifactLabel="Rapport de zone" filename="RapportZone" fields={[
+  return <ProcessDrawer {...props} kind="export-zone" title="Générer un rapport de zone" purpose="Produire un document daté sur une zone et une période pour transmission à une direction, un partenaire ou un programme." artifactLabel="Rapport de zone" filename="RapportZone" fields={[
     { name: "perimeter", label: "Périmètre", required: true, defaultValue: props.context.scope },
     { name: "period", label: "Période", type: "select", required: true, options: ["Aujourd’hui", "7 derniers jours", "30 derniers jours"] },
     { name: "layers", label: "Couches incluses", type: "textarea", required: true, defaultValue: "Quais, pirogues, débarquements, alertes, incidents." },
@@ -209,7 +210,7 @@ export function ZoneExportForm(props: WorkflowWrapperProps) {
 }
 
 export function FullRecordPanel(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="full-record" title="Voir le dossier complet" purpose="Consulter l’identité, l’historique et les preuves liées à l’objet opérationnel." artifactLabel="Dossier opérationnel" filename="DossierOperationnel" fields={[
+  return <ProcessDrawer {...props} kind="full-record" title="Voir le dossier complet" purpose="Vue permanente de l’entité : historique, preuves, signalements, vérifications et documents liés." artifactLabel="Dossier opérationnel" filename="DossierOperationnel" fields={[
     { name: "history", label: "Historique consolidé", type: "textarea", required: true, defaultValue: props.context.description || "Déclaration reçue, contrôle en cours, dernier signal consolidé." },
     { name: "linkedDocuments", label: "Documents liés", defaultValue: "Déclarations, preuves terrain, alertes et débarquements." },
     { name: "consultationReason", label: "Motif de consultation", required: true, defaultValue: "Instruction opérationnelle" },
@@ -232,11 +233,23 @@ type WorkflowWrapperProps = {
 };
 
 export function ArtifactRegister({ artifacts }: { artifacts: GeneratedArtifact[] }) {
-  return <div className="divide-y divide-[var(--mb-neutral-100)]">{artifacts.map((artifact) => <div key={artifact.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-2.5"><div><p className="text-[10px] font-semibold text-[var(--mb-neutral-900)]">{artifact.title}</p><p className="mt-1 font-mono text-[9px] text-[var(--mb-neutral-600)]">{artifact.createdAt} · {artifact.validator}</p></div><PrintReadyDocumentButton document={artifactToDocument(artifact)} compact /></div>)}</div>;
+  return <div className="divide-y divide-[var(--mb-neutral-100)]">{artifacts.map((artifact) => <div key={artifact.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-2.5"><div><p className="text-[10px] font-semibold text-[var(--mb-neutral-900)]">{artifact.title}</p><p className="mt-1 font-mono text-[9px] text-[var(--mb-neutral-600)]">{artifact.createdAt} · {artifact.validator}</p><div className="mt-1.5"><DataTrustBadge level={artifact.kind === "note" || artifact.kind === "institutional-export" ? "consolidated" : "verified"} compact /></div></div><PrintReadyDocumentButton document={artifactToDocument(artifact)} compact /></div>)}</div>;
 }
 
 function StepIndicator({ steps, current }: { steps: string[]; current: number }) {
   return <div className="grid grid-cols-4 border-b border-[var(--mb-neutral-200)] bg-white">{steps.map((step, index) => <div key={step} className={`border-r border-[var(--mb-neutral-100)] px-2 py-2 last:border-r-0 ${index <= current ? "border-b-2 border-b-[var(--mb-ocean-600)]" : "border-b-2 border-b-transparent"}`}><p className="font-mono text-[9px] text-[var(--mb-neutral-400)]">0{index + 1}</p><p className="mt-0.5 text-[9px] font-bold text-[var(--mb-neutral-600)]">{step}</p></div>)}</div>;
+}
+
+function OperationalChain({ kind }: { kind: WorkflowKind }) {
+  const chains: Partial<Record<WorkflowKind, Array<[string, string]>>> = {
+    verification: [["Lanceur", "Cellule régionale / direction technique"], ["Destinataire", "Agent territorial ou référent mandaté"], ["Canal pilote", "Application terrain ou WhatsApp structuré"], ["Retour attendu", "Constat, pièce, horodatage, vérificateur"], ["Clôture", "Cellule régionale après contrôle"], ["Historique", "Dossier complet + registre régional"]],
+    alert: [["Émetteur", "Référent ou agent territorial"], ["Réception", "Cellule régionale"], ["Qualification", "Direction technique régionale"], ["Escalade", "Alerte si criticité confirmée"], ["Clôture", "Responsable assigné après traitement"], ["Historique", "Registre régional"]],
+    funding: [["Prépare", "Service programmes / cellule régionale"], ["Valide", "Direction technique habilitée"], ["Reçoit", "Partenaire ou bailleur ciblé"], ["Clôture", "Service programmes après décision"], ["Historique", "Dossier + registre des financements"]],
+    note: [["Prépare", "Direction technique"], ["Consolide", "Cellule de pilotage"], ["Valide", "Responsable habilité"], ["Reçoit", "Cabinet / Ministre"], ["Historique", "Registre institutionnel"]],
+  };
+  const chain = chains[kind];
+  if (!chain) return null;
+  return <section className="mt-3 border border-[var(--mb-neutral-200)] bg-white"><h3 className="border-b border-[var(--mb-neutral-200)] px-3 py-2 font-mono text-[8px] font-bold uppercase tracking-[0.08em] text-[var(--mb-ocean-600)]">Chaîne opérationnelle</h3><dl className="grid sm:grid-cols-2">{chain.map(([label, value]) => <div key={label} className="border-b border-r border-[var(--mb-neutral-100)] px-3 py-2"><dt className="font-mono text-[8px] uppercase text-[var(--mb-neutral-400)]">{label}</dt><dd className="mt-1 text-[9px] font-semibold leading-4 text-[var(--mb-navy-900)]">{value}</dd></div>)}</dl></section>;
 }
 
 function FormSection({ title, children }: { title: string; children: ReactNode }) {
@@ -290,7 +303,7 @@ function buildDocumentSections(kind: WorkflowKind, context: WorkflowContext, val
 
 function workflowSteps(kind: WorkflowKind) {
   if (kind === "verification") return ["Constat", "Preuve", "Validation", "Document"];
-  if (kind === "alert") return ["Description", "Gravité", "Responsable", "Alerte"];
+  if (kind === "alert") return ["Signalement", "Criticité", "Qualification", "Trace"];
   if (kind === "funding") return ["Montant", "Bénéficiaires", "Pièces", "Aperçu"];
   if (kind === "note") return ["Périmètre", "Éléments", "Synthèse", "Aperçu"];
   return ["Instruction", "Contrôle", "Validation", "Preuve"];
@@ -299,7 +312,7 @@ function workflowSteps(kind: WorkflowKind) {
 function outputPromise(kind: WorkflowKind) {
   const messages: Record<WorkflowKind, string> = {
     verification: "Une preuve terrain horodatée, rattachée à l’objet et validée par un agent.",
-    alert: "Une alerte suivie avec gravité, responsable, échéance et trace institutionnelle.",
+    alert: "Un signalement daté reçu par la cellule régionale, qualifiable en incident ou escaladable en alerte.",
     "full-record": "Un dossier consolidé réunissant identité, historique, événements et preuves.",
     "export-zone": "Un rapport de zone prêt à imprimer avec carte, statuts et événements.",
     qualification: "Une fiche qualifiée permettant d’évaluer le besoin pour un financement.",
