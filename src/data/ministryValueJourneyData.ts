@@ -99,6 +99,89 @@ export type ProgramAssociation = {
   artifactId: string;
 };
 
+export type FundingDossierRecord = {
+  id: string;
+  needId: string;
+  title: string;
+  amountRequested: number;
+  targetPartner: string;
+  status: "Dossier constitué" | "Transmission à confirmer" | "Transmis" | "En négociation" | "Financé" | "Décliné";
+  owner: string;
+  updatedAt: string;
+  nextAction: string;
+  trustLevel: "declared" | "verified" | "consolidated";
+  transmittedAt?: string;
+  transmittedBy?: string;
+  artifactId: string;
+};
+
+export type PartnerRelationship = {
+  id: string;
+  dossierId?: string;
+  partnerName: string;
+  category: "Programme public" | "Bailleur" | "Partenaire technique" | "ONG" | "Collectivité" | "Recherche / biodiversité" | "Chaîne du froid / équipement";
+  interestTags: string[];
+  compatibilityReason: string;
+  status: "Candidat compatible" | "Sollicitation préparée" | "Sollicité" | "En négociation" | "Partenaire actif" | "Décliné";
+  lastInteractionDate: string;
+  followUpDueDate: string;
+  owner: string;
+};
+
+export type VerificationTask = {
+  id: string;
+  targetId: string;
+  target: string;
+  scope: string;
+  recipient: string;
+  channel: "WhatsApp structuré" | "Application terrain";
+  status: "Demandée" | "Assignée" | "En cours" | "Constat déposé" | "Vérifiée";
+  dueDate: string;
+  owner: string;
+  message: string;
+  artifactId: string;
+};
+
+export type SignalRecord = {
+  id: string;
+  title: string;
+  scope: string;
+  sender: string;
+  receivingCell: string;
+  messageType: string;
+  attachmentHint: string;
+  trustLevel: "raw" | "declared";
+  status: "Signalé" | "Qualifié" | "En traitement" | "Clôturé" | "Escaladé en alerte";
+  createdAt: string;
+  artifactId: string;
+};
+
+export type DecisionRecord = {
+  id: string;
+  noteTitle: string;
+  recommendation: string;
+  status: "Recommandée" | "À arbitrer" | "Arbitrée" | "En exécution" | "Exécutée";
+  priority: "Standard" | "Prioritaire" | "Urgente";
+  source: string;
+  owner: string;
+  createdAt: string;
+  nextAction: string;
+  artifactId: string;
+};
+
+export type ZoneReportRecord = {
+  id: string;
+  title: string;
+  zone: string;
+  period: string;
+  author: string;
+  generatedAt: string;
+  trustLevel: "verified" | "consolidated";
+  linkedObjectsCount: number;
+  purpose: string;
+  artifactId: string;
+};
+
 export const maritimeIncidents: IncidentRecord[] = [
   { id: "incident-1", quayId: "mbour", title: "Capacité de froid réduite", category: "Technique", level: "surveillance", openedAt: "09:35", owner: "Maintenance régionale", status: "En vérification" },
   { id: "incident-2", quayId: "saint-louis", title: "Retour de pirogue non confirmé", category: "Sécurité", level: "urgent", openedAt: "10:18", owner: "Cellule quai", status: "Ouvert" },
