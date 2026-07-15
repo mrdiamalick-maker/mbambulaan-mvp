@@ -236,7 +236,7 @@ type WorkflowWrapperProps = {
 };
 
 export function ArtifactRegister({ artifacts }: { artifacts: GeneratedArtifact[] }) {
-  return <div className="divide-y divide-[var(--mb-neutral-100)]">{artifacts.map((artifact) => <div key={artifact.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-2.5"><div><p className="text-[10px] font-semibold text-[var(--mb-neutral-900)]">{artifact.title}</p><p className="mt-1 font-mono text-[9px] text-[var(--mb-neutral-600)]">{artifact.createdAt} · {artifact.validator}</p><div className="mt-1.5"><DataTrustBadge level={artifactTrustLevel(artifact.kind)} compact /></div></div><PrintReadyDocumentButton document={artifactToDocument(artifact)} compact /></div>)}</div>;
+  return <div className="divide-y divide-[var(--mb-neutral-100)]">{artifacts.map((artifact) => <div key={artifact.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-2.5"><div><p className="text-[10px] font-semibold text-[var(--mb-neutral-900)]">{artifact.title}</p><p className="mt-1 font-mono text-[9px] text-[var(--mb-neutral-600)]">{artifact.createdAt} · {artifact.validator}</p><div className="mt-1.5"><DataTrustBadge level={artifactTrustLevel(artifact.kind)} compact source={`Document local ${artifact.id} · validateur : ${artifact.validator}.`} /></div></div><PrintReadyDocumentButton document={artifactToDocument(artifact)} compact /></div>)}</div>;
 }
 
 function artifactTrustLevel(kind: WorkflowKind) {
