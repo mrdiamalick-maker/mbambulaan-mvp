@@ -41,7 +41,7 @@ export function ProcessDrawer({ kind, title, purpose, context, fields, artifactL
   const [phase, setPhase] = useState<"form" | "review" | "done">("form");
   const [values, setValues] = useState<Record<string, string>>({});
   const [artifact, setArtifact] = useState<GeneratedArtifact | null>(null);
-  const steps = ["Instruction", "Contrôle", "Validation", "Preuve"];
+  const steps = workflowSteps(kind);
 
   function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -94,6 +94,7 @@ export function ProcessDrawer({ kind, title, purpose, context, fields, artifactL
       <StepIndicator steps={steps} current={phase === "form" ? 0 : phase === "review" ? 2 : 3} />
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <section className="border-l-2 border-[var(--mb-sand-300)] bg-white px-3 py-2.5"><p className="font-mono text-[8px] uppercase tracking-[0.08em] text-[var(--mb-neutral-400)]">Ce que cette action produira</p><p className="mt-1 text-[10px] font-semibold leading-4 text-[var(--mb-navy-900)]">{outputPromise(kind)}</p></section>
         <ObjectSummary context={context} />
         {phase === "form" ? <form onSubmit={submitForm} className="mt-4 grid gap-4">
           <FormSection title="Instruction structurée">
@@ -285,4 +286,28 @@ function buildDocumentSections(kind: WorkflowKind, context: WorkflowContext, val
     { title: "Éligibilité et impact", items: [{ label: "Maturité", value: `${values.maturityScore}/100` }, { label: "Statut", value: values.eligibilityStatus }, { label: "Impact attendu", value: values.expectedImpact }, { label: "Preuves attachées", value: values.requiredDocuments }] },
   ];
   return [{ title: "Objet et décision", items: [{ label: "Objet", value: context.title }, { label: "Périmètre", value: context.scope }, ...entries] }];
+}
+
+function workflowSteps(kind: WorkflowKind) {
+  if (kind === "verification") return ["Constat", "Preuve", "Validation", "Document"];
+  if (kind === "alert") return ["Description", "Gravité", "Responsable", "Alerte"];
+  if (kind === "funding") return ["Montant", "Bénéficiaires", "Pièces", "Aperçu"];
+  if (kind === "note") return ["Périmètre", "Éléments", "Synthèse", "Aperçu"];
+  return ["Instruction", "Contrôle", "Validation", "Preuve"];
+}
+
+function outputPromise(kind: WorkflowKind) {
+  const messages: Record<WorkflowKind, string> = {
+    verification: "Une preuve terrain horodatée, rattachée à l’objet et validée par un agent.",
+    alert: "Une alerte suivie avec gravité, responsable, échéance et trace institutionnelle.",
+    "full-record": "Un dossier consolidé réunissant identité, historique, événements et preuves.",
+    "export-zone": "Un rapport de zone prêt à imprimer avec carte, statuts et événements.",
+    qualification: "Une fiche qualifiée permettant d’évaluer le besoin pour un financement.",
+    funding: "Un dossier de financement structuré, transmissible à un partenaire après validation.",
+    program: "Une décision d’association au programme et un prochain jalon traçable.",
+    partner: "Une note de sollicitation au partenaire, enregistrée dans le suivi.",
+    note: "Une note au Ministre reprenant la situation et les décisions en attente.",
+    "institutional-export": "Un dossier de synthèse prêt à transmettre à l’extérieur.",
+  };
+  return messages[kind];
 }
