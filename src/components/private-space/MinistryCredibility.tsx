@@ -14,9 +14,9 @@ export function ReferentsPanel({ referents }: { referents: FieldReferent[] }) {
   return <section className="border-t border-[var(--mb-neutral-100)]"><header className="flex items-center justify-between gap-2 px-4 py-2.5"><div><h3 className="text-[10px] font-bold text-[var(--mb-navy-900)]">Référents mandatés</h3><p className="mt-0.5 text-[8px] text-[var(--mb-neutral-600)]">Contact via cellule régionale</p></div><span className="font-mono text-[8px] text-[var(--mb-neutral-400)]">{referents.length} ACTIF(S)</span></header>{referents.length ? <div className="divide-y divide-[var(--mb-neutral-100)] border-t border-[var(--mb-neutral-100)]">{referents.slice(0, 3).map((referent) => <article key={referent.id} className="px-4 py-2.5"><div className="flex items-start justify-between gap-2"><div><p className="text-[10px] font-semibold">{referent.name}</p><p className="mt-0.5 text-[8px] text-[var(--mb-neutral-600)]">{referent.role} · {referent.contactChannel}</p></div><span className="font-mono text-[9px] font-bold text-[var(--mb-green-600)]">{referent.reliabilityScore}%</span></div><div className="mt-2 flex items-center justify-between gap-2 text-[8px] text-[var(--mb-neutral-400)]"><span>{referent.verificationsCompleted} vérifications</span><span>{referent.supervisingCell}</span></div></article>)}</div> : <p className="border-t border-[var(--mb-neutral-100)] px-4 py-3 text-[9px] text-[var(--mb-neutral-600)]">Aucun référent mandaté rattaché à ce quai.</p>}</section>;
 }
 
-export function FundingInsights({ needs, opportunities }: { needs: CommunityNeed[]; opportunities: FundingOpportunity[] }) {
-  const signaled = needs.length;
-  const qualified = opportunities.length;
+export function FundingInsights({ needs, opportunities, qualifiedNeedIds = [] }: { needs: CommunityNeed[]; opportunities: FundingOpportunity[]; qualifiedNeedIds?: string[] }) {
+  const signaled = needs.filter((need) => !qualifiedNeedIds.includes(need.id) && opportunities.find((item) => item.needId === need.id)?.status === "À qualifier").length;
+  const qualified = needs.length - signaled;
   const eligible = opportunities.filter((item) => !["À qualifier"].includes(item.status)).length;
   const funded = opportunities.filter((item) => item.status === "Financé").length;
   const total = opportunities.reduce((sum, item) => sum + item.estimatedAmount, 0);
