@@ -135,7 +135,7 @@ export type VerificationTask = {
   scope: string;
   recipient: string;
   channel: "WhatsApp structuré" | "Application terrain";
-  status: "Demandée" | "Assignée" | "En cours" | "Constat déposé" | "Vérifiée";
+  status: "Demandée" | "Message préparé" | "Assignée" | "En cours" | "Constat déposé" | "Vérifiée" | "Clôturée";
   dueDate: string;
   owner: string;
   message: string;
@@ -150,6 +150,7 @@ export type SignalRecord = {
   receivingCell: string;
   messageType: string;
   attachmentHint: string;
+  criticality: "Normale" | "Vigilance" | "Critique";
   trustLevel: "raw" | "declared";
   status: "Signalé" | "Qualifié" | "En traitement" | "Clôturé" | "Escaladé en alerte";
   createdAt: string;
