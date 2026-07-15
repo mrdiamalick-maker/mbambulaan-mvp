@@ -14,6 +14,7 @@ export type WorkflowContext = {
   beneficiaries?: string;
   partner?: string;
   quayId?: string;
+  needId?: string;
 };
 
 type FieldDefinition = {
@@ -125,10 +126,11 @@ export function ProcessDrawer({ kind, title, purpose, context, fields, artifactL
 }
 
 export function VerificationDrawer(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="verification" title="Demander une vérification terrain" purpose="La cellule régionale assigne un contrôle local, reçoit le constat et clôture la demande après validation." artifactLabel="Preuve de vérification" filename="PreuveVerification" fields={[
-    { name: "method", label: "Méthode de vérification", type: "select", required: true, options: ["Vérification terrain", "Déclaration d’acteur", "Recoupement de sources"] },
-    { name: "finding", label: "Constat structuré", type: "textarea", required: true, defaultValue: props.context.description || "Information recoupée avec le relais local." },
-    { name: "attachment", label: "Pièce jointe simulée", defaultValue: "photo-terrain-horodatee.jpg" },
+  return <ProcessDrawer {...props} kind="verification" title="Demander une vérification terrain" purpose="La cellule régionale assigne un contrôle local. La confiance restera Déclarée jusqu’au dépôt d’un constat." artifactLabel="Demande de vérification" filename="DemandeVerification" fields={[
+    { name: "recipient", label: "Destinataire mandaté", required: true, defaultValue: "Agent territorial du quai" },
+    { name: "channel", label: "Canal pilote", type: "select", required: true, options: ["WhatsApp structuré", "Application terrain"] },
+    { name: "dueDate", label: "Échéance", type: "date", required: true },
+    { name: "requestMessage", label: "Message structuré", type: "textarea", required: true, defaultValue: `VÉRIFICATION DEMANDÉE · ${props.context.title} · Merci de confirmer sur place et répondre avec une photo.` },
   ]} />;
 }
 
@@ -154,7 +156,7 @@ export function QualificationForm(props: WorkflowWrapperProps) {
 }
 
 export function FundingRequestForm(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="funding" title="Constituer un dossier de financement" purpose="Transformer un besoin qualifié en livrable transmissible à un partenaire ou bailleur." artifactLabel="Dossier de financement" filename="DossierFinancement" fields={[
+  return <ProcessDrawer {...props} kind="funding" title="Constituer un dossier de financement" purpose="Transformer un besoin qualifié en livrable transmissible à un partenaire ou bailleur. La transmission restera à confirmer manuellement." artifactLabel="Dossier constitué — non encore transmis" filename="DossierFinancement" fields={[
     { name: "sourceNeed", label: "Besoin source", required: true, defaultValue: props.context.title },
     { name: "estimatedAmount", label: "Montant estimé FCFA", type: "number", required: true, defaultValue: props.context.amount || "50000000" },
     { name: "amountRequested", label: "Montant demandé FCFA", type: "number", required: true, defaultValue: props.context.amount || "50000000" },
@@ -166,7 +168,7 @@ export function FundingRequestForm(props: WorkflowWrapperProps) {
     { name: "requiredDocuments", label: "Pièces requises", type: "textarea", required: true, defaultValue: "Fiche besoin, budget, preuve terrain, liste des bénéficiaires." },
     { name: "ministryUnit", label: "Unité ministérielle responsable", required: true, defaultValue: "Direction de la pêche artisanale" },
     { name: "maturityScore", label: "Score de maturité / 100", type: "number", required: true, defaultValue: "82" },
-    { name: "eligibilityStatus", label: "Éligibilité", type: "select", required: true, options: ["Éligible au financement", "En instruction", "Transmis", "En négociation", "Décliné"] },
+    { name: "eligibilityStatus", label: "Statut initial du dossier", type: "select", required: true, defaultValue: "Dossier constitué", options: ["Dossier constitué"] },
   ]} />;
 }
 
@@ -182,6 +184,7 @@ export function ProgramAssociationForm(props: WorkflowWrapperProps) {
 
 export function PartnerMobilizationForm(props: WorkflowWrapperProps) {
   return <ProcessDrawer {...props} kind="partner" title="Solliciter un partenaire" purpose="Formaliser la contribution attendue et générer une note de sollicitation." artifactLabel="Note de sollicitation partenaire" filename="SollicitationPartenaire" fields={[
+    { name: "partnerCategory", label: "Catégorie de partenaire", type: "select", required: true, options: ["Programme public", "Bailleur", "Partenaire technique", "ONG", "Collectivité", "Recherche / biodiversité", "Chaîne du froid / équipement"] },
     { name: "partner", label: "Partenaire", required: true, defaultValue: props.context.partner || "Partenaire technique" },
     { name: "supportType", label: "Type d’appui", type: "select", required: true, options: ["Financement", "Appui technique", "Équipement", "Formation"] },
     { name: "requestedContribution", label: "Contribution demandée", required: true, defaultValue: props.context.amount || "Appui à définir" },
@@ -233,7 +236,13 @@ type WorkflowWrapperProps = {
 };
 
 export function ArtifactRegister({ artifacts }: { artifacts: GeneratedArtifact[] }) {
-  return <div className="divide-y divide-[var(--mb-neutral-100)]">{artifacts.map((artifact) => <div key={artifact.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-2.5"><div><p className="text-[10px] font-semibold text-[var(--mb-neutral-900)]">{artifact.title}</p><p className="mt-1 font-mono text-[9px] text-[var(--mb-neutral-600)]">{artifact.createdAt} · {artifact.validator}</p><div className="mt-1.5"><DataTrustBadge level={artifact.kind === "note" || artifact.kind === "institutional-export" ? "consolidated" : "verified"} compact /></div></div><PrintReadyDocumentButton document={artifactToDocument(artifact)} compact /></div>)}</div>;
+  return <div className="divide-y divide-[var(--mb-neutral-100)]">{artifacts.map((artifact) => <div key={artifact.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-3 py-2.5"><div><p className="text-[10px] font-semibold text-[var(--mb-neutral-900)]">{artifact.title}</p><p className="mt-1 font-mono text-[9px] text-[var(--mb-neutral-600)]">{artifact.createdAt} · {artifact.validator}</p><div className="mt-1.5"><DataTrustBadge level={artifactTrustLevel(artifact.kind)} compact /></div></div><PrintReadyDocumentButton document={artifactToDocument(artifact)} compact /></div>)}</div>;
+}
+
+function artifactTrustLevel(kind: WorkflowKind) {
+  if (["note", "institutional-export", "export-zone", "full-record"].includes(kind)) return "consolidated" as const;
+  if (["verification", "alert", "partner"].includes(kind)) return "declared" as const;
+  return "verified" as const;
 }
 
 function StepIndicator({ steps, current }: { steps: string[]; current: number }) {
@@ -302,7 +311,7 @@ function buildDocumentSections(kind: WorkflowKind, context: WorkflowContext, val
 }
 
 function workflowSteps(kind: WorkflowKind) {
-  if (kind === "verification") return ["Constat", "Preuve", "Validation", "Document"];
+  if (kind === "verification") return ["Demande", "Assignation", "Validation", "Tâche"];
   if (kind === "alert") return ["Signalement", "Criticité", "Qualification", "Trace"];
   if (kind === "funding") return ["Montant", "Bénéficiaires", "Pièces", "Aperçu"];
   if (kind === "note") return ["Périmètre", "Éléments", "Synthèse", "Aperçu"];
@@ -311,12 +320,12 @@ function workflowSteps(kind: WorkflowKind) {
 
 function outputPromise(kind: WorkflowKind) {
   const messages: Record<WorkflowKind, string> = {
-    verification: "Une preuve terrain horodatée, rattachée à l’objet et validée par un agent.",
+    verification: "Une tâche de vérification assignée et traçable. Le niveau de confiance n’évoluera qu’après dépôt du constat terrain.",
     alert: "Un signalement daté reçu par la cellule régionale, qualifiable en incident ou escaladable en alerte.",
     "full-record": "Un dossier consolidé réunissant identité, historique, événements et preuves.",
     "export-zone": "Un rapport de zone prêt à imprimer avec carte, statuts et événements.",
     qualification: "Une fiche qualifiée permettant d’évaluer le besoin pour un financement.",
-    funding: "Un dossier de financement structuré, transmissible à un partenaire après validation.",
+    funding: "Un dossier de financement structuré ajouté au registre avec le statut Transmission à confirmer.",
     program: "Une décision d’association au programme et un prochain jalon traçable.",
     partner: "Une note de sollicitation au partenaire, enregistrée dans le suivi.",
     note: "Une note au Ministre reprenant la situation et les décisions en attente.",
