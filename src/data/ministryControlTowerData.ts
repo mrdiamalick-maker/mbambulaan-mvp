@@ -8,6 +8,8 @@ export type Coordinates = {
   lng: number;
 };
 
+export type PirogueCycleStage = "preparation" | "departure" | "atSea" | "expectedReturn" | "returned" | "landing" | "declared" | "verified";
+
 export type Quay = {
   id: string;
   name: string;
@@ -36,6 +38,14 @@ export type Pirogue = {
   x: number;
   y: number;
   level: Level;
+  cycleStage: PirogueCycleStage;
+  departureTime?: string;
+  expectedReturnTime?: string;
+  actualReturnTime?: string;
+  landingTime?: string;
+  declaredAt?: string;
+  lastCycleEvent: string;
+  cycleHistory: Array<{ stage: PirogueCycleStage; time?: string; label: string }>;
 };
 
 export type Landing = {
@@ -130,7 +140,7 @@ export const quays: Quay[] = [
     region: "Thiès",
     commune: "Joal-Fadiouth",
     coordinates: { lat: 14.1667, lng: -16.8333 },
-    x: 61,
+    x: 48,
     y: 72,
     landingsToday: 18,
     volumeTons: 42.5,
@@ -146,7 +156,7 @@ export const quays: Quay[] = [
     region: "Thiès",
     commune: "Mbour",
     coordinates: { lat: 14.4167, lng: -16.9667 },
-    x: 58,
+    x: 47,
     y: 63,
     landingsToday: 24,
     volumeTons: 54.8,
@@ -162,7 +172,7 @@ export const quays: Quay[] = [
     region: "Thiès",
     commune: "Kayar",
     coordinates: { lat: 14.9189, lng: -17.1192 },
-    x: 52,
+    x: 46,
     y: 43,
     landingsToday: 14,
     volumeTons: 31.2,
@@ -178,7 +188,7 @@ export const quays: Quay[] = [
     region: "Saint-Louis",
     commune: "Guet Ndar",
     coordinates: { lat: 16.0179, lng: -16.4896 },
-    x: 46,
+    x: 48,
     y: 11,
     landingsToday: 12,
     volumeTons: 27.6,
@@ -194,7 +204,7 @@ export const quays: Quay[] = [
     region: "Dakar",
     commune: "Dakar",
     coordinates: { lat: 14.7167, lng: -17.4333 },
-    x: 55,
+    x: 46,
     y: 53,
     landingsToday: 10,
     volumeTons: 22.4,
@@ -210,7 +220,7 @@ export const quays: Quay[] = [
     region: "Dakar",
     commune: "Dakar Plateau",
     coordinates: { lat: 14.6781, lng: -17.4648 },
-    x: 54,
+    x: 47,
     y: 57,
     landingsToday: 8,
     volumeTons: 15.7,
@@ -226,7 +236,7 @@ export const quays: Quay[] = [
     region: "Louga",
     commune: "Fass Boye",
     coordinates: { lat: 15.4503, lng: -16.8567 },
-    x: 50,
+    x: 46,
     y: 34,
     landingsToday: 7,
     volumeTons: 18.3,
@@ -242,7 +252,7 @@ export const quays: Quay[] = [
     region: "Ziguinchor",
     commune: "Kafountine",
     coordinates: { lat: 12.9307, lng: -16.7446 },
-    x: 63,
+    x: 50,
     y: 88,
     landingsToday: 11,
     volumeTons: 24.9,
@@ -255,12 +265,12 @@ export const quays: Quay[] = [
 ];
 
 export const pirogues: Pirogue[] = [
-  { id: "pir-101", registration: "DK-PI-2041", quayId: "joal", status: "Retour déclaré", lastPosition: "Petite-Côte", lastDeclaration: "10:12", declaredActivity: "Débarquement de sardinelle", x: 49, y: 70, level: "normal" },
-  { id: "pir-102", registration: "SL-PI-1188", quayId: "saint-louis", status: "À vérifier", lastPosition: "Large de Saint-Louis", lastDeclaration: "08:55", declaredActivity: "Retour non confirmé", x: 31, y: 12, level: "urgent" },
-  { id: "pir-103", registration: "TH-PI-0772", quayId: "kayar", status: "À surveiller", lastPosition: "Nord Kayar", lastDeclaration: "09:18", declaredActivity: "Trajectoire inhabituelle", x: 42, y: 39, level: "surveillance" },
-  { id: "pir-104", registration: "ZG-PI-4510", quayId: "kafountine", status: "Retour attendu", lastPosition: "Casamance maritime", lastDeclaration: "09:45", declaredActivity: "Pêche crevettes", x: 48, y: 90, level: "normal" },
-  { id: "pir-105", registration: "MB-PI-3307", quayId: "mbour", status: "Actif", lastPosition: "Mbour Sud", lastDeclaration: "10:06", declaredActivity: "Débarquement poulpe", x: 47, y: 60, level: "normal" },
-  { id: "pir-106", registration: "FB-PI-2214", quayId: "fass-boye", status: "Départ à confirmer", lastPosition: "Fass Boye", lastDeclaration: "08:40", declaredActivity: "Départ groupé signalé", x: 39, y: 33, level: "surveillance" }
+  { id: "pir-101", registration: "DK-PI-2041", quayId: "joal", status: "Preuve validée", lastPosition: "Quai de Joal-Fadiouth", lastDeclaration: "10:12", declaredActivity: "6,4 t de sardinelle déclarées", x: 53, y: 70, level: "normal", cycleStage: "verified", departureTime: "04:42", expectedReturnTime: "09:30", actualReturnTime: "09:18", landingTime: "09:26", declaredAt: "10:12", lastCycleEvent: "Déclaration vérifiée à 10:24", cycleHistory: [{ stage: "preparation", time: "04:20", label: "Préparation" }, { stage: "departure", time: "04:42", label: "Départ" }, { stage: "atSea", time: "05:08", label: "En mer" }, { stage: "returned", time: "09:18", label: "Retour" }, { stage: "landing", time: "09:26", label: "Débarquement" }, { stage: "declared", time: "10:12", label: "Déclaré" }, { stage: "verified", time: "10:24", label: "Preuve" }] },
+  { id: "pir-102", registration: "SL-PI-1188", quayId: "saint-louis", status: "Retour attendu", lastPosition: "Large de Saint-Louis", lastDeclaration: "08:55", declaredActivity: "Retour non confirmé", x: 72, y: 12, level: "urgent", cycleStage: "expectedReturn", departureTime: "05:05", expectedReturnTime: "11:00", lastCycleEvent: "Retour attendu avant 11:00", cycleHistory: [{ stage: "preparation", time: "04:35", label: "Préparation" }, { stage: "departure", time: "05:05", label: "Départ" }, { stage: "atSea", time: "05:32", label: "En mer" }, { stage: "expectedReturn", time: "11:00", label: "Retour attendu" }] },
+  { id: "pir-103", registration: "TH-PI-0772", quayId: "kayar", status: "En mer · vigilance", lastPosition: "Nord Kayar", lastDeclaration: "09:18", declaredActivity: "Trajectoire inhabituelle", x: 67, y: 39, level: "surveillance", cycleStage: "atSea", departureTime: "05:18", expectedReturnTime: "12:20", lastCycleEvent: "Position reçue à 09:18", cycleHistory: [{ stage: "preparation", time: "04:50", label: "Préparation" }, { stage: "departure", time: "05:18", label: "Départ" }, { stage: "atSea", time: "09:18", label: "En mer" }] },
+  { id: "pir-104", registration: "ZG-PI-4510", quayId: "kafountine", status: "Retour en cours", lastPosition: "Casamance maritime", lastDeclaration: "09:45", declaredActivity: "Pêche crevettes", x: 66, y: 90, level: "normal", cycleStage: "expectedReturn", departureTime: "03:58", expectedReturnTime: "11:30", lastCycleEvent: "Cap retour confirmé à 09:45", cycleHistory: [{ stage: "preparation", time: "03:35", label: "Préparation" }, { stage: "departure", time: "03:58", label: "Départ" }, { stage: "atSea", time: "04:30", label: "En mer" }, { stage: "expectedReturn", time: "11:30", label: "Retour attendu" }] },
+  { id: "pir-105", registration: "MB-PI-3307", quayId: "mbour", status: "Débarquement en cours", lastPosition: "Quai de Mbour", lastDeclaration: "10:06", declaredActivity: "Poulpe et crevettes", x: 52, y: 61, level: "normal", cycleStage: "landing", departureTime: "04:10", expectedReturnTime: "09:50", actualReturnTime: "09:54", landingTime: "10:06", lastCycleEvent: "Débarquement commencé à 10:06", cycleHistory: [{ stage: "preparation", time: "03:42", label: "Préparation" }, { stage: "departure", time: "04:10", label: "Départ" }, { stage: "atSea", time: "04:36", label: "En mer" }, { stage: "returned", time: "09:54", label: "Retour" }, { stage: "landing", time: "10:06", label: "Débarquement" }] },
+  { id: "pir-106", registration: "FB-PI-2214", quayId: "fass-boye", status: "Départ à confirmer", lastPosition: "Quai de Fass Boye", lastDeclaration: "08:40", declaredActivity: "Départ groupé signalé", x: 52, y: 33, level: "surveillance", cycleStage: "departure", departureTime: "08:40", expectedReturnTime: "16:30", lastCycleEvent: "Départ signalé à 08:40", cycleHistory: [{ stage: "preparation", time: "08:10", label: "Préparation" }, { stage: "departure", time: "08:40", label: "Départ" }] }
 ];
 
 export const landings: Landing[] = [
