@@ -54,7 +54,7 @@ const outputs = [
 const ministryValues = [
   ["Vision nationale", "Une lecture consolidée des territoires, quais et signaux prioritaires."],
   ["Décisions documentées", "Chaque arbitrage conserve sa source, son responsable et sa prochaine étape."],
-  ["Traçabilité exploitable", "Les vérifications et pièces restent reliées aux objets métier."],
+  ["Traçabilité exploitable", "Les vérifications et pièces restent reliées aux situations suivies."],
   ["Financements structurés", "Les besoins qualifiés deviennent des dossiers transmissibles."],
   ["Filière valorisée", "Les acteurs et besoins terrain deviennent visibles sans être remplacés."],
   ["Preuves transmissibles", "Les partenaires reçoivent des documents lisibles et vérifiables."],
