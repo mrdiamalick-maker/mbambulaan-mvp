@@ -9,6 +9,7 @@ import {
   mapAlerts,
   pendingActions,
   pirogues,
+  quayPosts,
   quays,
   type Level,
   type MapAlert,
@@ -76,6 +77,8 @@ import { FiliereNeedsView } from "./MinistryV4Components";
 import { ReferentsPanel } from "./MinistryCredibility";
 import { DecisionRegister, FundingRegister, PartnerRegister, ReportRegister, RoleFrame, WhatsAppBridge, type DemoRole } from "./MinistryOperationalRegisters";
 import { CoordinationBanner, ImpactDemonstrated, RisksPanel, TodayView } from "./MinistryDailyExperience";
+import { OperationalDossierPanel, PosteOfficielPanel } from "./MinistryDossierExperience";
+import { buildOperationalDossiers, type DossierOperationnel } from "@/lib/ministryOperationalDossiers";
 
 type Selection = { kind: "quay" | "pirogue"; id: string } | null;
 type Scope = "Nationale" | Region;
@@ -109,6 +112,8 @@ export function MinistryControlTower() {
   const [role, setRole] = useState<DemoRole>("Ministère");
   const [activeWorkflow, setActiveWorkflow] = useState<ActiveWorkflow>(null);
   const [systemNotice, setSystemNotice] = useState("Dernière synchronisation · 10:45");
+  const [selectedDossier, setSelectedDossier] = useState<DossierOperationnel | null>(null);
+  const operationalDossiers = useMemo(() => buildOperationalDossiers({ verificationTasks, signals: signalRecords, fundingDossiers, opportunities, reports: zoneReports, decisions: decisionRecords }), [decisionRecords, fundingDossiers, opportunities, signalRecords, verificationTasks, zoneReports]);
 
   function record(title: string, detail: string) {
     const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date());
@@ -259,14 +264,30 @@ export function MinistryControlTower() {
     record("Démonstration Kayar réinitialisée", "Écart de pesée déclaré · vérification à demander");
   };
 
+  const handleDossierPrimary = (dossier: DossierOperationnel) => {
+    const task = verificationTasks.find((item) => item.targetId === dossier.sourceId || (dossier.sourceId === "kayar" && item.targetId === "kayar"));
+    setSelectedDossier(null);
+    if (dossier.action === "request-verification") return openWorkflow("verification", { title: dossier.linkedObject, scope: "Kayar", sourceId: "kayar", quayId: "kayar", description: "Confirmer l’écart de pesée avant consolidation." });
+    if (dossier.action === "prepare-whatsapp" && task) return prepareWhatsApp(task.id, task.message);
+    if (dossier.action === "follow-verification" && task) return followVerification(task.id);
+    if (dossier.action === "deposit-constat" && task) return depositConstat(task.id);
+    if (dossier.action === "validate-constat" && task) return validateConstat(task.id);
+    if (dossier.action === "generate-report") return openWorkflow("export-zone", { title: `Rapport de zone · ${dossier.linkedObject}`, scope: dossier.linkedObject.includes("Kayar") ? "Kayar" : dossier.territory, sourceId: dossier.sourceId, quayId: dossier.quayId, description: dossier.finalOutput });
+    if (dossier.action === "open-funding") return setWorkspace("community");
+    if (dossier.action === "open-pilotage") return setWorkspace("tracking");
+    if (dossier.action === "open-note") return openWorkflow("note", { title: dossier.linkedObject, scope: dossier.territory, description: dossier.nextAction });
+    return setWorkspace("map");
+  };
+
   return <AppShell topBar={<TopBar notice={systemNotice} onExport={globalExport} />} rail={<NavigationRail active={workspace} onChange={setWorkspace} />}>
     <MobileWorkspaceNav active={workspace} onChange={setWorkspace} />
     <RoleFrame role={role} onChange={setRole} />
-    {workspace === "today" ? <TodayView role={role} evidence={evidence} artifacts={artifacts} tasks={verificationTasks} signals={signalRecords} dossiers={fundingDossiers} decisions={decisionRecords} reports={zoneReports} onNavigate={setWorkspace} onOpenKayarVerification={() => openWorkflow("verification", { title: "Écart de pesée à Kayar", scope: "Kayar", sourceId: "kayar", quayId: "kayar", description: "Confirmer sur place l’écart de pesée déclaré avant consolidation." })} onCreateNote={() => openWorkflow("note", { title: "Note d’arbitrage de la situation du jour", scope, description: "Prioriser les vigilances, financements et vérifications à partir des preuves disponibles." })} /> : null}
+    {workspace === "today" ? <TodayView role={role} evidence={evidence} artifacts={artifacts} dossiers={operationalDossiers} onNavigate={setWorkspace} onOpenDossier={setSelectedDossier} /> : null}
     {workspace === "map" ? <AtlasMaritime scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} alerts={[...createdAlerts, ...mapAlerts]} verifiedIds={verifiedIds} verificationTasks={verificationTasks} signalRecords={signalRecords} zoneReports={zoneReports} onPrepareWhatsApp={prepareWhatsApp} onFollowVerification={followVerification} onDepositConstat={depositConstat} onValidateConstat={validateConstat} onQualifySignal={qualifySignal} onAdvanceSignal={advanceSignal} onResetKayar={resetKayarJourney} record={record} openWorkflow={openWorkflow} /> : null}
     {workspace === "community" ? <FiliereProgrammes scope={scope} setScope={setScope} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} qualifiedNeeds={qualifiedNeeds} fundingDossiers={fundingDossiers} partnerRelationships={partnerRelationships} onConfirmTransmission={confirmTransmission} onRecordFundingResponse={recordFundingResponse} onRecordPartnerResponse={recordPartnerResponse} openWorkflow={openWorkflow} /> : null}
     {workspace === "tracking" ? <PilotageInstitutionnel scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} decisions={decisionRecords} zoneReports={zoneReports} onAdvanceDecision={advanceDecision} alerts={[...createdAlerts, ...mapAlerts]} record={record} openWorkflow={openWorkflow} /> : null}
     {activeWorkflow && workflowProps ? <WorkflowRenderer kind={activeWorkflow.kind} {...workflowProps} /> : null}
+    {selectedDossier ? <OperationalDossierPanel dossier={selectedDossier} onClose={() => setSelectedDossier(null)} onPrimary={handleDossierPrimary} onRelance={(dossier) => record("Relance enregistrée", `${dossier.id} · ${dossier.currentOwner} · canal ${dossier.originChannel}`)} /> : null}
   </AppShell>;
 }
 
@@ -332,7 +353,7 @@ function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedI
   const baseSituation = selectedQuay?.id === "kayar" ? "Écart de pesée signalé sur le dernier débarquement." : selectedAlerts[0]?.title || (entityLevel === "urgent" ? "Une situation critique demande une confirmation." : entityLevel === "surveillance" ? "Une situation en vigilance a été signalée." : "La situation ne présente pas d’alerte active.");
   const journey = buildAtlasJourney({ entityType: selectedBoat ? "Pirogue" : "Quai", situation: baseSituation, known: knownSituation, trustHelper, taskStatus, alreadyDone, hasReport: Boolean(selectedReport), isVerified: verified });
   const atlasActions: Parameters<typeof ContextPanel>[0]["actions"] = [];
-  const detailAction = { label: "Voir le détail complet", group: "consultation" as const, helper: "Consulter l’historique et les pièces sans modifier la situation.", onClick: () => openWorkflow("full-record", selectedContext) };
+  const detailAction = { label: selectedBoat ? "Ouvrir la fiche pirogue" : "Ouvrir le dossier du quai", group: "consultation" as const, helper: selectedBoat ? "Consulter l’identité, le cycle et les dernières déclarations." : "Consulter le poste officiel, les référents, l’activité, les alertes et les pièces.", onClick: () => openWorkflow("full-record", selectedContext) };
   const signalAction = { label: "Signaler une nouvelle situation", group: "secondary" as const, helper: "À utiliser uniquement pour un nouveau fait distinct.", onClick: () => openWorkflow("alert", selectedContext) };
   if (selectedReport) {
     atlasActions.push({ label: "Relire le rapport de zone", group: "recommended", onClick: () => document.getElementById("zone-reports")?.scrollIntoView({ behavior: "smooth", block: "start" }) }, signalAction, detailAction);
@@ -355,7 +376,7 @@ function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedI
 
   return <section className="min-h-full">
     <WorkspaceHeader title="Atlas maritime" question="Observer l’activité littorale à partir des déclarations, vérifications et consolidations disponibles." scope={scope} onScopeChange={(next) => { setScope(next as Scope); setQuayFilter("Tous"); setSelection(null); }} onExport={() => openWorkflow("export-zone", { title: "Rapport de zone maritime", scope, description: "Quais, pirogues, débarquements, alertes et incidents du périmètre actif." })} />
-    <SituationBanner eyebrow="Situation maritime nationale · simulation métier" statement={`${visiblePirogues.filter((boat) => ["atSea", "expectedReturn"].includes(boat.cycleStage)).length} pirogues en mer · ${visiblePirogues.filter((boat) => boat.cycleStage === "expectedReturn").length} retours attendus avant 18h · ${visiblePirogues.filter((boat) => ["declared", "verified"].includes(boat.cycleStage)).length} débarquements déclarés ce matin · ${visibleQuays.filter((quay) => quay.level !== "normal").length} zone(s) en vigilance`} detail="Données de démonstration · niveaux de confiance visibles sur chaque dossier" actionLabel="Briefing du jour" onAction={() => setBriefingOpen(true)} />
+    <SituationBanner eyebrow="Situation maritime nationale · simulation métier" statement={`${visiblePirogues.filter((boat) => ["atSea", "expectedReturn"].includes(boat.cycleStage)).length} pirogues en mer · ${visiblePirogues.filter((boat) => boat.cycleStage === "expectedReturn").length} retours attendus avant 18h · ${visiblePirogues.filter((boat) => ["declared", "verified"].includes(boat.cycleStage)).length} débarquements déclarés ce matin · ${visibleQuays.filter((quay) => quay.level !== "normal").length} zone(s) en vigilance`} detail="Données de démonstration · niveaux de confiance visibles sur chaque dossier" actionLabel="Voir le briefing maritime" onAction={() => setBriefingOpen(true)} />
     <CoordinationBanner zones={visibleQuays.filter((quay) => quay.level !== "normal")} evidence={evidence} onSelect={(id) => setSelection({ kind: "quay", id })} />
     <FilterStrip>
       <div className="flex rounded-[3px] border border-[var(--mb-neutral-200)] bg-[var(--mb-offwhite)] p-0.5"><button onClick={() => setMode("quays")} className={`h-8 rounded-[2px] px-3 text-[11px] font-bold ${mode === "quays" ? "bg-[var(--mb-ocean-600)] text-white" : "text-[var(--mb-neutral-600)]"}`}>Vue quais</button><button onClick={() => setMode("pirogues")} className={`h-8 rounded-[2px] px-3 text-[11px] font-bold ${mode === "pirogues" ? "bg-[var(--mb-ocean-600)] text-white" : "text-[var(--mb-neutral-600)]"}`}>Vue pirogues</button></div>
@@ -366,7 +387,7 @@ function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedI
     </FilterStrip>
     <div className="grid min-h-[calc(100vh-201px)] min-w-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:grid-rows-[minmax(430px,1fr)_170px]">
       <div className="min-h-0 border-b border-[var(--mb-neutral-200)] xl:border-r"><MapCanvas mode={mode} layers={layers} onToggleLayer={(layer) => setLayers((current) => ({ ...current, [layer]: !current[layer] }))} quays={visibleQuays} pirogues={visiblePirogues} landings={visibleLandings} alerts={visibleAlerts} incidents={visibleIncidents} selection={selection} onSelectQuay={(id) => setSelection({ kind: "quay", id })} onSelectPirogue={(id) => setSelection({ kind: "pirogue", id })} /></div>
-      <div className="min-h-0 xl:row-span-2"><ContextPanel empty={!selection || !selectedQuay} title={selectedTitle} subtitle={journey.businessStatus} level={entityLevel} trustLevel={entityTrust} journey={journey} trend={selectedQuay && !selectedBoat ? quayTrends[selectedQuay.id] : undefined} pirogue={selectedBoat} rows={contextRows} referents={selectedQuay ? <ReferentsPanel referents={fieldReferents.filter((referent) => referent.quayId === selectedQuay.id && referent.status === "Actif")} /> : null} actions={atlasActions} /></div>
+      <div className="min-h-0 xl:row-span-2"><ContextPanel empty={!selection || !selectedQuay} title={selectedTitle} subtitle={journey.businessStatus} level={entityLevel} trustLevel={entityTrust} journey={journey} trend={selectedQuay && !selectedBoat ? quayTrends[selectedQuay.id] : undefined} pirogue={selectedBoat} rows={contextRows} referents={selectedQuay ? <><PosteOfficielPanel poste={quayPosts.find((poste) => poste.quayId === selectedQuay.id)} /><ReferentsPanel referents={fieldReferents.filter((referent) => referent.quayId === selectedQuay.id && referent.status === "Actif")} /></> : null} actions={atlasActions} /></div>
       <div id="atlas-evidence" className="grid min-h-0 scroll-mt-20 overflow-auto bg-white xl:grid-cols-2 xl:border-r"><section className="border-b border-[var(--mb-neutral-200)] xl:border-b-0 xl:border-r"><div className="flex h-9 items-center justify-between border-b border-[var(--mb-neutral-200)] px-3"><h3 className="text-[11px] font-bold">Historique opérationnel</h3><span className="font-mono text-[9px] text-[var(--mb-neutral-400)]">{period}</span></div><EvidenceTimeline items={evidence.slice(0, 4)} /></section><section><div className="flex h-9 items-center border-b border-[var(--mb-neutral-200)] px-3 text-[11px] font-bold">Preuves et exports générés</div><ArtifactRegister artifacts={artifacts.slice(0, 3)} /></section></div>
     </div>
     <div className="grid gap-2 border-t border-[var(--mb-neutral-200)] bg-[var(--mb-neutral-100)] p-2 xl:grid-cols-[1.3fr_.7fr]"><WhatsAppBridge tasks={verificationTasks} signals={signalRecords} onPrepare={onPrepareWhatsApp} onDepositConstat={onDepositConstat} onValidateConstat={onValidateConstat} onQualifySignal={onQualifySignal} onAdvanceSignal={onAdvanceSignal} /><ReportRegister reports={zoneReports} /></div>
