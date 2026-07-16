@@ -283,7 +283,7 @@ export function MinistryControlTower() {
     <MobileWorkspaceNav active={workspace} onChange={setWorkspace} />
     <RoleFrame role={role} onChange={setRole} />
     {workspace === "today" ? <TodayView role={role} evidence={evidence} artifacts={artifacts} dossiers={operationalDossiers} onNavigate={setWorkspace} onOpenDossier={setSelectedDossier} /> : null}
-    {workspace === "map" ? <AtlasMaritime scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} alerts={[...createdAlerts, ...mapAlerts]} verifiedIds={verifiedIds} verificationTasks={verificationTasks} signalRecords={signalRecords} zoneReports={zoneReports} onPrepareWhatsApp={prepareWhatsApp} onFollowVerification={followVerification} onDepositConstat={depositConstat} onValidateConstat={validateConstat} onQualifySignal={qualifySignal} onAdvanceSignal={advanceSignal} onResetKayar={resetKayarJourney} record={record} openWorkflow={openWorkflow} /> : null}
+    {workspace === "map" ? <AtlasMaritime scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} alerts={[...createdAlerts, ...mapAlerts]} verifiedIds={verifiedIds} verificationTasks={verificationTasks} signalRecords={signalRecords} zoneReports={zoneReports} onPrepareWhatsApp={prepareWhatsApp} onFollowVerification={followVerification} onDepositConstat={depositConstat} onValidateConstat={validateConstat} onQualifySignal={qualifySignal} onAdvanceSignal={advanceSignal} onResetKayar={resetKayarJourney} record={record} openWorkflow={openWorkflow} operationalDossiers={operationalDossiers} onOpenDossier={setSelectedDossier} /> : null}
     {workspace === "community" ? <FiliereProgrammes scope={scope} setScope={setScope} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} qualifiedNeeds={qualifiedNeeds} fundingDossiers={fundingDossiers} partnerRelationships={partnerRelationships} onConfirmTransmission={confirmTransmission} onRecordFundingResponse={recordFundingResponse} onRecordPartnerResponse={recordPartnerResponse} openWorkflow={openWorkflow} /> : null}
     {workspace === "tracking" ? <PilotageInstitutionnel scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} decisions={decisionRecords} zoneReports={zoneReports} onAdvanceDecision={advanceDecision} alerts={[...createdAlerts, ...mapAlerts]} record={record} openWorkflow={openWorkflow} /> : null}
     {activeWorkflow && workflowProps ? <WorkflowRenderer kind={activeWorkflow.kind} {...workflowProps} /> : null}
@@ -304,10 +304,10 @@ function WorkflowRenderer({ kind, ...props }: { kind: WorkflowKind; context: Wor
   return <InstitutionalExportForm {...props} />;
 }
 
-function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedIds, verificationTasks, signalRecords, zoneReports, onPrepareWhatsApp, onFollowVerification, onDepositConstat, onValidateConstat, onQualifySignal, onAdvanceSignal, onResetKayar, openWorkflow }: {
+function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedIds, verificationTasks, signalRecords, zoneReports, onPrepareWhatsApp, onFollowVerification, onDepositConstat, onValidateConstat, onQualifySignal, onAdvanceSignal, onResetKayar, openWorkflow, operationalDossiers, onOpenDossier }: {
   scope: Scope; setScope: (scope: Scope) => void; evidence: typeof initialEvidence; artifacts: GeneratedArtifact[]; alerts: MapAlert[]; verifiedIds: string[]; verificationTasks: VerificationTask[]; signalRecords: SignalRecord[]; zoneReports: ZoneReportRecord[];
   onPrepareWhatsApp: (id: string, message: string) => void; onFollowVerification: (id: string) => void; onDepositConstat: (id: string) => void; onValidateConstat: (id: string) => void; onQualifySignal: (id: string) => void; onAdvanceSignal: (id: string) => void; onResetKayar: () => void;
-  record: (title: string, detail: string) => void; openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
+  record: (title: string, detail: string) => void; openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void; operationalDossiers: DossierOperationnel[]; onOpenDossier: (dossier: DossierOperationnel) => void;
 }) {
   const [mode, setMode] = useState<"quays" | "pirogues">("quays");
   const [quayFilter, setQuayFilter] = useState("Tous");
@@ -324,6 +324,7 @@ function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedI
   const visibleIncidents = maritimeIncidents.filter((incident) => quayIds.has(incident.quayId));
   const selectedBoat = selection?.kind === "pirogue" ? pirogues.find((boat) => boat.id === selection.id) ?? null : null;
   const selectedQuay = selection?.kind === "quay" ? quays.find((quay) => quay.id === selection.id) ?? null : selectedBoat ? getQuayById(selectedBoat.quayId) : null;
+  const selectedOperationalDossier = selectedQuay ? operationalDossiers.find((dossier) => dossier.quayId === selectedQuay.id && dossier.workStatus !== "Terminé") ?? operationalDossiers.find((dossier) => dossier.quayId === selectedQuay.id) : undefined;
   const selectedLandings = selectedQuay ? landings.filter((landing) => landing.quayId === selectedQuay.id) : [];
   const selectedAlerts = selectedQuay ? alerts.filter((alert) => alert.quayId === selectedQuay.id) : [];
   const totalVolume = visibleLandings.reduce((sum, landing) => sum + landing.volumeTons, 0);
@@ -353,7 +354,7 @@ function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedI
   const baseSituation = selectedQuay?.id === "kayar" ? "Écart de pesée signalé sur le dernier débarquement." : selectedAlerts[0]?.title || (entityLevel === "urgent" ? "Une situation critique demande une confirmation." : entityLevel === "surveillance" ? "Une situation en vigilance a été signalée." : "La situation ne présente pas d’alerte active.");
   const journey = buildAtlasJourney({ entityType: selectedBoat ? "Pirogue" : "Quai", situation: baseSituation, known: knownSituation, trustHelper, taskStatus, alreadyDone, hasReport: Boolean(selectedReport), isVerified: verified });
   const atlasActions: Parameters<typeof ContextPanel>[0]["actions"] = [];
-  const detailAction = { label: selectedBoat ? "Ouvrir la fiche pirogue" : "Ouvrir le dossier du quai", group: "consultation" as const, helper: selectedBoat ? "Consulter l’identité, le cycle et les dernières déclarations." : "Consulter le poste officiel, les référents, l’activité, les alertes et les pièces.", onClick: () => openWorkflow("full-record", selectedContext) };
+  const detailAction = { label: selectedBoat ? "Ouvrir la fiche pirogue" : "Ouvrir le dossier du quai", group: "consultation" as const, helper: selectedBoat ? "Consulter l’identité, le cycle et les dernières déclarations." : "Consulter le poste officiel, les référents, l’activité, les alertes et les pièces.", onClick: () => selectedBoat || !selectedOperationalDossier ? openWorkflow("full-record", selectedContext) : onOpenDossier(selectedOperationalDossier) };
   const signalAction = { label: "Signaler une nouvelle situation", group: "secondary" as const, helper: "À utiliser uniquement pour un nouveau fait distinct.", onClick: () => openWorkflow("alert", selectedContext) };
   if (selectedReport) {
     atlasActions.push({ label: "Relire le rapport de zone", group: "recommended", onClick: () => document.getElementById("zone-reports")?.scrollIntoView({ behavior: "smooth", block: "start" }) }, signalAction, detailAction);
