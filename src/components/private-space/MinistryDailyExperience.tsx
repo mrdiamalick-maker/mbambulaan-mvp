@@ -11,10 +11,8 @@ import type { DemoRole } from "./MinistryOperationalRegisters";
 
 type DailyAction = { title: string; detail: string; label: string; level: Level; onClick: () => void };
 
-export function TodayView({ role, evidence, artifacts, dossiers, onNavigate, onOpenDossier }: {
+export function TodayView({ role, dossiers, onNavigate, onOpenDossier }: {
   role: DemoRole;
-  evidence: Array<{ time: string; title: string; detail: string }>;
-  artifacts: GeneratedArtifact[];
   dossiers: DossierOperationnel[];
   onNavigate: (workspace: WorkspaceId) => void;
   onOpenDossier: (dossier: DossierOperationnel) => void;
