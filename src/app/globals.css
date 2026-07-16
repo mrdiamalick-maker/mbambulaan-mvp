@@ -79,6 +79,11 @@ body:has([data-private-console]) > footer {
   display: none;
 }
 
+/* V11: le Briefing doit ouvrir directement sur la synthèse et les accès, sans répéter la pile de travail déjà portée par Mon bureau du jour. */
+[data-private-console] section.min-h-full > div.mx-auto.grid > div.grid.content-start > section:first-child {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
