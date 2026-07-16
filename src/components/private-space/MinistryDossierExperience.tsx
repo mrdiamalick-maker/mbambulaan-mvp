@@ -7,24 +7,39 @@ import { DataTrustBadge, primaryButton, secondaryButton, StatusBadge } from "./M
 
 const statusLevel: Record<DossierWorkStatus, "normal" | "surveillance" | "urgent"> = { Nouveau: "normal", "À traiter": "surveillance", "En attente": "surveillance", Bloqué: "urgent", Terminé: "normal" };
 const typeCode: Record<DossierType, string> = { Vérification: "VER", Incident: "INC", Financement: "FIN", Rapport: "RAP", Note: "NOT" };
+const workOrder: Record<DossierWorkStatus, number> = { Bloqué: 0, "À traiter": 1, Nouveau: 2, "En attente": 3, Terminé: 4 };
+
+type StatusFilter = "Tous" | DossierWorkStatus;
 
 export function DossierCard({ dossier, onOpen, prominent = false }: { dossier: DossierOperationnel; onOpen: (dossier: DossierOperationnel) => void; prominent?: boolean }) {
-  return <button onClick={() => onOpen(dossier)} className={`grid w-full gap-3 border bg-white p-4 text-left transition-colors hover:border-[var(--mb-ocean-600)] ${prominent ? "border-[var(--mb-ocean-600)]" : "border-[var(--mb-neutral-200)]"}`}>
-    <div className="flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-[3px] bg-[var(--mb-foam)] font-mono text-[9px] font-bold text-[var(--mb-ocean-600)]">{typeCode[dossier.type]}</span><div><p className="font-mono text-[9px] font-bold text-[var(--mb-ocean-600)]">{dossier.id}</p><p className="mt-0.5 text-[8px] text-[var(--mb-neutral-500)]">{dossier.type} · {dossier.linkedObjectType}</p></div></div><StatusBadge level={statusLevel[dossier.workStatus]}>{dossier.workStatus}</StatusBadge></div>
-    <div><h3 className="text-[13px] font-semibold leading-5 text-[var(--mb-navy-900)]">{dossier.linkedObject}</h3><p className="mt-1 text-[9px] text-[var(--mb-neutral-600)]">{dossier.territory} · {dossier.currentOwner}</p></div>
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--mb-neutral-100)] pt-3"><ChannelBadge channel={dossier.originChannel} /><span className="text-right text-[9px] font-bold text-[var(--mb-ocean-600)]">{dossier.nextAction} →</span></div>
+  return <button onClick={() => onOpen(dossier)} className={`w-full border bg-white text-left transition-colors hover:border-[var(--mb-ocean-600)] ${prominent ? "border-[var(--mb-ocean-600)]" : "border-[var(--mb-neutral-200)]"}`}>
+    <div className="grid gap-3 p-4 sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:items-start">
+      <div><span className="inline-flex border border-[var(--mb-neutral-200)] px-2 py-1 font-mono text-[9px] font-bold text-[var(--mb-ocean-600)]">{dossier.id}</span><p className="mt-2 font-mono text-[8px] uppercase tracking-[0.08em] text-[var(--mb-neutral-500)]">{typeCode[dossier.type]} · {dossier.workStatus}</p></div>
+      <div><h3 className="text-[13px] font-semibold leading-5 text-[var(--mb-navy-900)]">{dossier.linkedObject}</h3><p className="mt-1 text-[9px] leading-4 text-[var(--mb-neutral-600)]">{dossier.territory} · {dossier.currentOwner}</p><div className="mt-2 flex flex-wrap gap-2"><ChannelBadge channel={dossier.originChannel} /><span className="font-mono text-[7px] uppercase text-[var(--mb-neutral-500)]">{dossier.type} · {dossier.linkedObjectType}</span></div></div>
+      <div className="text-left sm:text-right"><StatusBadge level={statusLevel[dossier.workStatus]}>{dossier.workStatus}</StatusBadge><p className="mt-2 max-w-48 text-[9px] font-bold leading-4 text-[var(--mb-ocean-600)]">{dossier.nextAction} →</p></div>
+    </div>
   </button>;
 }
 
 export function MyDossiers({ dossiers, onOpen }: { dossiers: DossierOperationnel[]; onOpen: (dossier: DossierOperationnel) => void }) {
+  const [status, setStatus] = useState<StatusFilter>("Tous");
   const [type, setType] = useState<"Tous" | DossierType>("Tous");
   const [channel, setChannel] = useState<"Tous" | DossierChannel>("Tous");
   const [quay, setQuay] = useState("Tous");
-  const filtered = useMemo(() => dossiers.filter((dossier) => (type === "Tous" || dossier.type === type) && (channel === "Tous" || dossier.originChannel === channel) && (quay === "Tous" || dossier.quayId === quay)), [channel, dossiers, quay, type]);
-  const groups: DossierWorkStatus[] = ["Nouveau", "À traiter", "En attente", "Bloqué", "Terminé"];
-  return <section className="border-t border-[var(--mb-neutral-200)] bg-[var(--mb-neutral-100)] px-4 py-5 sm:px-6 lg:px-8">
-    <div className="mx-auto max-w-[86rem]"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="font-mono text-[8px] font-bold uppercase tracking-[0.1em] text-[var(--mb-ocean-600)]">Direction régionale</p><h2 className="mt-1 text-[18px] font-semibold text-[var(--mb-navy-900)]">Mes dossiers</h2><p className="mt-1 text-[9px] text-[var(--mb-neutral-600)]">La pile de travail régionale, sans remplacer les statuts métier.</p></div><div className="flex flex-wrap gap-2"><DossierFilter label="Type" value={type} onChange={(value) => setType(value as "Tous" | DossierType)} options={["Tous", "Vérification", "Incident", "Financement", "Rapport", "Note"]} /><DossierFilter label="Canal" value={channel} onChange={(value) => setChannel(value as "Tous" | DossierChannel)} options={["Tous", "WhatsApp", "Téléphone", "Poste de quai", "Agent territorial", "Formulaire", "Document"]} /><DossierFilter label="Quai" value={quay} onChange={setQuay} options={["Tous", "kayar", "joal", "saint-louis"]} /></div></div>
-      <div className="mt-4 grid min-w-0 gap-2 xl:grid-cols-5">{groups.map((group) => { const items = filtered.filter((dossier) => dossier.workStatus === group); return <section key={group} className="min-w-0 border border-[var(--mb-neutral-200)] bg-[var(--mb-offwhite)]"><header className="flex items-center justify-between border-b border-[var(--mb-neutral-200)] px-3 py-2"><h3 className="text-[10px] font-bold">{group}</h3><span className="font-mono text-[9px]">{items.length}</span></header><div className="grid gap-2 p-2">{items.map((dossier) => <DossierCard key={dossier.id} dossier={dossier} onOpen={onOpen} />)}{!items.length ? <p className="px-2 py-4 text-center text-[8px] text-[var(--mb-neutral-400)]">Aucun dossier</p> : null}</div></section>; })}</div>
+  const filtered = useMemo(() => dossiers
+    .filter((dossier) => dossier.workStatus !== "Terminé" || status === "Terminé")
+    .filter((dossier) => status === "Tous" || dossier.workStatus === status)
+    .filter((dossier) => type === "Tous" || dossier.type === type)
+    .filter((dossier) => channel === "Tous" || dossier.originChannel === channel)
+    .filter((dossier) => quay === "Tous" || dossier.quayId === quay)
+    .sort((a, b) => workOrder[a.workStatus] - workOrder[b.workStatus] || b.ageDays - a.ageDays), [channel, dossiers, quay, status, type]);
+  const waiting = dossiers.filter((dossier) => dossier.workStatus !== "Terminé").length;
+  const blocked = dossiers.filter((dossier) => dossier.workStatus === "Bloqué").length;
+  const completed = dossiers.filter((dossier) => dossier.workStatus === "Terminé").length;
+  return <section className="border-t border-[var(--mb-neutral-200)] bg-[var(--mb-offwhite)] px-4 py-5 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-[86rem]"><div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--mb-neutral-200)] pb-4"><div><p className="font-mono text-[8px] font-bold uppercase tracking-[0.1em] text-[var(--mb-ocean-600)]">Direction régionale</p><h2 className="mt-1 text-[18px] font-semibold text-[var(--mb-navy-900)]">Mon bureau du jour</h2><p className="mt-1 text-[9px] text-[var(--mb-neutral-600)]">Une pile de dossiers priorisée, filtrable, sans logique de tableau de tickets.</p></div><div className="grid grid-cols-3 divide-x divide-[var(--mb-neutral-200)] border border-[var(--mb-neutral-200)] bg-white text-center"><BureauMetric label="À suivre" value={waiting} /><BureauMetric label="Bloqués" value={blocked} /><BureauMetric label="Clos" value={completed} /></div></div>
+      <div className="mt-4 flex flex-wrap gap-2"><DossierFilter label="Afficher" value={status} onChange={(value) => setStatus(value as StatusFilter)} options={["Tous", "À traiter", "En attente", "Bloqué", "Nouveau", "Terminé"]} /><DossierFilter label="Type" value={type} onChange={(value) => setType(value as "Tous" | DossierType)} options={["Tous", "Vérification", "Incident", "Financement", "Rapport", "Note"]} /><DossierFilter label="Canal" value={channel} onChange={(value) => setChannel(value as "Tous" | DossierChannel)} options={["Tous", "WhatsApp", "Téléphone", "Poste de quai", "Agent territorial", "Formulaire", "Document"]} /><DossierFilter label="Quai" value={quay} onChange={setQuay} options={["Tous", "kayar", "joal", "saint-louis"]} /></div>
+      <div className="mt-4 grid gap-2">{filtered.map((dossier, index) => <DossierCard key={dossier.id} dossier={dossier} onOpen={onOpen} prominent={index === 0} />)}{!filtered.length ? <p className="border border-dashed border-[var(--mb-neutral-200)] bg-white px-4 py-6 text-center text-[10px] text-[var(--mb-neutral-500)]">Aucun dossier dans cette vue.</p> : null}</div>
     </div>
   </section>;
 }
@@ -61,6 +76,10 @@ function DossierSection({ title, children }: { title: string; children: ReactNod
 
 function DossierFact({ label, value }: { label: string; value: string }) {
   return <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-3"><dt className="text-[var(--mb-neutral-500)]">{label}</dt><dd className="font-semibold text-[var(--mb-navy-900)]">{value}</dd></div>;
+}
+
+function BureauMetric({ label, value }: { label: string; value: number }) {
+  return <div className="px-3 py-2"><p className="font-mono text-[13px] font-bold text-[var(--mb-navy-900)]">{value}</p><p className="text-[7px] font-bold uppercase tracking-[0.08em] text-[var(--mb-neutral-500)]">{label}</p></div>;
 }
 
 function DossierFilter({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
