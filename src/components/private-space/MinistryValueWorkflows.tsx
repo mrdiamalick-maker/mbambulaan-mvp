@@ -213,7 +213,7 @@ export function ZoneExportForm(props: WorkflowWrapperProps) {
 }
 
 export function FullRecordPanel(props: WorkflowWrapperProps) {
-  return <ProcessDrawer {...props} kind="full-record" title="Voir le détail complet" purpose="Consulter l’historique, les preuves, les signalements, les vérifications et les documents liés." artifactLabel="Dossier opérationnel" filename="DossierOperationnel" fields={[
+  return <ProcessDrawer {...props} kind="full-record" title="Ouvrir le dossier opérationnel" purpose="Consulter l’historique, les preuves, les signalements, les vérifications et les documents liés." artifactLabel="Dossier opérationnel" filename="DossierOperationnel" fields={[
     { name: "history", label: "Historique consolidé", type: "textarea", required: true, defaultValue: props.context.description || "Déclaration reçue, contrôle en cours, dernier signal consolidé." },
     { name: "linkedDocuments", label: "Documents liés", defaultValue: "Déclarations, preuves terrain, alertes et débarquements." },
     { name: "consultationReason", label: "Motif de consultation", required: true, defaultValue: "Instruction opérationnelle" },
