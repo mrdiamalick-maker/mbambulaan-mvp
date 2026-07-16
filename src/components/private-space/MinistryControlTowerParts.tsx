@@ -50,7 +50,7 @@ export function TopBar({ notice, onExport }: { notice: string; onExport: () => v
 
 export function NavigationRail({ active, onChange }: { active: WorkspaceId; onChange: (id: WorkspaceId) => void }) {
   const items: Array<{ id: WorkspaceId; code: string; label: string }> = [
-    { id: "today", code: "AJ", label: "Aujourd’hui" },
+    { id: "today", code: "BJ", label: "Briefing du jour" },
     { id: "map", code: "AT", label: "Atlas maritime" },
     { id: "community", code: "FF", label: "Filière & Financement" },
     { id: "tracking", code: "PI", label: "Pilotage institutionnel" },
@@ -59,7 +59,7 @@ export function NavigationRail({ active, onChange }: { active: WorkspaceId; onCh
 }
 
 export function MobileWorkspaceNav({ active, onChange }: { active: WorkspaceId; onChange: (id: WorkspaceId) => void }) {
-  const items: Array<[WorkspaceId, string]> = [["today", "Aujourd’hui"], ["map", "Atlas"], ["community", "Financement"], ["tracking", "Pilotage"]];
+  const items: Array<[WorkspaceId, string]> = [["today", "Briefing du jour"], ["map", "Atlas"], ["community", "Financement"], ["tracking", "Pilotage"]];
   return <nav className="grid grid-cols-4 border-b border-[var(--mb-neutral-200)] bg-[var(--mb-navy-700)] lg:hidden">{items.map(([id, label]) => <button key={id} onClick={() => onChange(id)} className={`min-h-10 border-b-2 px-1 text-[9px] font-bold ${active === id ? "border-[var(--mb-ocean-400)] text-white" : "border-transparent text-white/55"}`}>{label}</button>)}</nav>;
 }
 
