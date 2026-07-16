@@ -85,6 +85,17 @@ export type CommunityNeed = {
   trustLevel: DataTrustLevel;
 };
 
+export type QuayPost = {
+  id: string;
+  quayId: string;
+  name: string;
+  officer: string;
+  phone: string;
+  hours: string;
+  regionalAuthority: string;
+  channels: Array<"WhatsApp" | "Téléphone" | "Poste de quai">;
+};
+
 export type FieldReferent = {
   id: string;
   name: string;
@@ -338,6 +349,13 @@ export const communityNeeds: CommunityNeed[] = [
   { id: "need-4", need: "Appui femmes transformatrices", region: "Thiès", place: "Joal-Fadiouth", actors: "Groupements de femmes", urgency: "surveillance", status: "À documenter", nextAction: "Préparer fiche projet", trustLevel: "declared" },
   { id: "need-5", need: "Formation hygiène", region: "Dakar", place: "Hann", actors: "Mareyeurs et transformateurs", urgency: "normal", status: "À planifier", nextAction: "Identifier formateurs", trustLevel: "declared" },
   { id: "need-6", need: "Programme jeunes", region: "Louga", place: "Fass Boye", actors: "Jeunes et familles", urgency: "surveillance", status: "À cadrer", nextAction: "Réunir relais locaux", trustLevel: "raw" }
+];
+
+export const quayPosts: QuayPost[] = [
+  { id: "post-joal", quayId: "joal", name: "Poste officiel de Joal-Fadiouth", officer: "Agent de permanence · B. Ndiaye", phone: "+221 77 000 14 16", hours: "06h00–19h00", regionalAuthority: "Direction régionale de Thiès", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
+  { id: "post-mbour", quayId: "mbour", name: "Poste officiel de Mbour", officer: "Agent de permanence · F. Diop", phone: "+221 77 000 14 41", hours: "06h00–20h00", regionalAuthority: "Direction régionale de Thiès", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
+  { id: "post-kayar", quayId: "kayar", name: "Poste officiel de Kayar", officer: "Agent de permanence · M. Fall", phone: "+221 77 000 14 91", hours: "05h30–19h30", regionalAuthority: "Direction régionale de Thiès", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
+  { id: "post-saint-louis", quayId: "saint-louis", name: "Poste officiel de Guet Ndar", officer: "Agent de permanence · A. Seck", phone: "+221 77 000 16 01", hours: "05h30–20h00", regionalAuthority: "Direction régionale de Saint-Louis", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
 ];
 
 export const fieldReferents: FieldReferent[] = [
