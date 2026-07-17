@@ -374,6 +374,85 @@ export const speciesDirectory: SpeciesRecord[] = [
   { id: "esp-crevette", localName: "Crevette côtière", scientificName: "Penaeus notialis", category: "Crustacé", regulatoryStatus: "Réglementée", commonZones: ["Kafountine", "Mbour", "Dakar"], seasonality: "Mars à octobre", monthlyVolumeTrend: [18, 21, 27, 32, 35, 31], recentLandingVolume: 16.2, alertLevel: "normal", decisionUse: "Documenter les volumes pour la qualité et le financement froid." },
 ];
 
+export type QuayActivitySnapshot = {
+  quayId: string;
+  landingsCount: number;
+  declaredVolumeTons: number;
+  piroguesAtSea: number;
+  expectedReturns: number;
+  activeSituations: number;
+  lastUpdate: string;
+};
+
+export type QuaySpeciesSnapshot = {
+  species: string;
+  volumeTons: number;
+  landingCount: number;
+  regulatoryStatus: SpeciesRecord["regulatoryStatus"] | "Non renseigné";
+  alertLevel: Level;
+};
+
+export function getQuayPirogues(quayId: string) {
+  return pirogues.filter((pirogue) => pirogue.quayId === quayId);
+}
+
+export function getQuayLandings(quayId: string) {
+  return landings.filter((landing) => landing.quayId === quayId);
+}
+
+export function getQuayAlerts(quayId: string, alerts: MapAlert[] = mapAlerts) {
+  return alerts.filter((alert) => alert.quayId === quayId);
+}
+
+export function getQuayActivitySnapshot(quayId: string, alerts: MapAlert[] = mapAlerts): QuayActivitySnapshot {
+  const quay = getQuayById(quayId);
+  const quayPirogues = getQuayPirogues(quayId);
+  const quayLandings = getQuayLandings(quayId);
+  const quayAlerts = getQuayAlerts(quayId, alerts);
+
+  return {
+    quayId,
+    landingsCount: quayLandings.length,
+    declaredVolumeTons: quayLandings.reduce((total, landing) => total + landing.volumeTons, 0),
+    piroguesAtSea: quayPirogues.filter((pirogue) => ["atSea", "expectedReturn"].includes(pirogue.cycleStage)).length,
+    expectedReturns: quayPirogues.filter((pirogue) => pirogue.cycleStage === "expectedReturn").length,
+    activeSituations: quayAlerts.length,
+    lastUpdate: quay?.lastUpdated ?? "Non renseignée",
+  };
+}
+
+export function getQuaySpeciesSnapshot(quayId: string): QuaySpeciesSnapshot[] {
+  const speciesVolumes = new Map<string, { volumeTons: number; landingCount: number }>();
+
+  getQuayLandings(quayId).forEach((landing) => {
+    const sharedVolume = landing.species.length ? landing.volumeTons / landing.species.length : 0;
+    landing.species.forEach((species) => {
+      const current = speciesVolumes.get(species) ?? { volumeTons: 0, landingCount: 0 };
+      speciesVolumes.set(species, { volumeTons: current.volumeTons + sharedVolume, landingCount: current.landingCount + 1 });
+    });
+  });
+
+  return [...speciesVolumes.entries()].map(([species, values]) => {
+    const normalized = species.toLowerCase();
+    const reference = speciesDirectory.find((item) => item.localName.toLowerCase().includes(normalized) || normalized.includes(item.localName.split(" /")[0].toLowerCase()));
+    return {
+      species,
+      volumeTons: values.volumeTons,
+      landingCount: values.landingCount,
+      regulatoryStatus: (reference?.regulatoryStatus ?? "Non renseigné") as QuaySpeciesSnapshot["regulatoryStatus"],
+      alertLevel: reference?.alertLevel ?? "normal",
+    };
+  }).sort((a, b) => b.volumeTons - a.volumeTons);
+}
+
+export function getQuayIncidents<T extends { quayId: string }>(quayId: string, incidents: T[]) {
+  return incidents.filter((incident) => incident.quayId === quayId);
+}
+
+export function getQuayOpenDossiers<T extends { quayId?: string; workStatus: string }>(quayId: string, dossiers: T[]) {
+  return dossiers.filter((dossier) => dossier.quayId === quayId && dossier.workStatus !== "Terminé");
+}
+
 export const communityProjects: CommunityProject[] = [
   { id: "project-1", project: "Chaîne de froid communautaire", territory: "Mbour / Joal", owner: "Comité quai", beneficiaries: 680, estimatedBudget: "85 M FCFA", status: "À cadrer", targetPartner: "Opérateur froid", nextAction: "Préparer fiche projet" },
   { id: "project-2", project: "Sécurité pirogues", territory: "Saint-Louis", owner: "Référents Guet Ndar", beneficiaries: 760, estimatedBudget: "46 M FCFA", status: "Prioritaire", targetPartner: "ONG maritime", nextAction: "Demander informations" },

@@ -3,13 +3,9 @@
 import { useMemo, useState } from "react";
 import {
   communityNeeds,
-  fieldReferents,
   getQuayById,
-  landings,
   mapAlerts,
   pendingActions,
-  pirogues,
-  quayPosts,
   quays,
   type Level,
   type MapAlert,
@@ -38,14 +34,10 @@ import {
 import {
   ActionRegister,
   AppShell,
-  ContextPanel,
   DataTable,
   DecisionPanel,
   EvidenceTimeline,
   ExportPanel,
-  FilterField,
-  FilterStrip,
-  inputClass,
   MapCanvas,
   MetricRow,
   MobileWorkspaceNav,
@@ -72,15 +64,14 @@ import {
   type WorkflowContext,
 } from "./MinistryValueWorkflows";
 import { artifactToDocument, DocumentPreview } from "./InstitutionalDocuments";
-import { BriefingPanel, SituationBanner, ValueBanner } from "./MinistryV3Components";
+import { SituationBanner, ValueBanner } from "./MinistryV3Components";
 import { FiliereNeedsView } from "./MinistryV4Components";
-import { ReferentsPanel } from "./MinistryCredibility";
-import { DecisionRegister, FundingRegister, PartnerRegister, ReportRegister, RoleFrame, WhatsAppBridge, type DemoRole } from "./MinistryOperationalRegisters";
-import { CoordinationBanner, ImpactDemonstrated, RisksPanel, TodayView } from "./MinistryDailyExperience";
-import { OperationalDossierPanel, PosteOfficielPanel } from "./MinistryDossierExperience";
+import { DecisionRegister, FundingRegister, PartnerRegister, ReportRegister, RoleFrame, type DemoRole } from "./MinistryOperationalRegisters";
+import { ImpactDemonstrated, RisksPanel, TodayView } from "./MinistryDailyExperience";
+import { OperationalDossierPanel } from "./MinistryDossierExperience";
 import { buildOperationalDossiers, type DossierOperationnel } from "@/lib/ministryOperationalDossiers";
+import { MinistryQuayAtlas } from "./MinistryQuayAtlas";
 
-type Selection = { kind: "quay" | "pirogue"; id: string } | null;
 type Scope = "Nationale" | Region;
 type ActiveWorkflow = { kind: WorkflowKind; context: WorkflowContext } | null;
 
@@ -283,7 +274,7 @@ export function MinistryControlTower() {
     <MobileWorkspaceNav active={workspace} onChange={setWorkspace} />
     <RoleFrame role={role} onChange={setRole} />
     {workspace === "today" ? <TodayView role={role} dossiers={operationalDossiers} opportunities={opportunities} onNavigate={setWorkspace} onOpenDossier={setSelectedDossier} /> : null}
-    {workspace === "map" ? <AtlasMaritime scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} alerts={[...createdAlerts, ...mapAlerts]} verifiedIds={verifiedIds} verificationTasks={verificationTasks} signalRecords={signalRecords} zoneReports={zoneReports} onPrepareWhatsApp={prepareWhatsApp} onFollowVerification={followVerification} onDepositConstat={depositConstat} onValidateConstat={validateConstat} onQualifySignal={qualifySignal} onAdvanceSignal={advanceSignal} onResetKayar={resetKayarJourney} record={record} openWorkflow={openWorkflow} operationalDossiers={operationalDossiers} onOpenDossier={setSelectedDossier} /> : null}
+    {workspace === "map" ? <MinistryQuayAtlas scope={scope} setScope={setScope} artifacts={artifacts} alerts={[...createdAlerts, ...mapAlerts]} verifiedIds={verifiedIds} verificationTasks={verificationTasks} zoneReports={zoneReports} onResetKayar={resetKayarJourney} openWorkflow={openWorkflow} operationalDossiers={operationalDossiers} onOpenDossier={setSelectedDossier} /> : null}
     {workspace === "community" ? <FiliereProgrammes scope={scope} setScope={setScope} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} qualifiedNeeds={qualifiedNeeds} fundingDossiers={fundingDossiers} partnerRelationships={partnerRelationships} onConfirmTransmission={confirmTransmission} onRecordFundingResponse={recordFundingResponse} onRecordPartnerResponse={recordPartnerResponse} openWorkflow={openWorkflow} /> : null}
     {workspace === "tracking" ? <PilotageInstitutionnel scope={scope} setScope={setScope} evidence={evidence} artifacts={artifacts} opportunities={opportunities} fundingRequests={fundingRequests} decisions={decisionRecords} zoneReports={zoneReports} onAdvanceDecision={advanceDecision} alerts={[...createdAlerts, ...mapAlerts]} record={record} openWorkflow={openWorkflow} /> : null}
     {activeWorkflow && workflowProps ? <WorkflowRenderer kind={activeWorkflow.kind} {...workflowProps} /> : null}
@@ -302,171 +293,6 @@ function WorkflowRenderer({ kind, ...props }: { kind: WorkflowKind; context: Wor
   if (kind === "partner") return <PartnerMobilizationForm {...props} />;
   if (kind === "note") return <InstitutionalNoteBuilder {...props} />;
   return <InstitutionalExportForm {...props} />;
-}
-
-function AtlasMaritime({ scope, setScope, evidence, artifacts, alerts, verifiedIds, verificationTasks, signalRecords, zoneReports, onPrepareWhatsApp, onFollowVerification, onDepositConstat, onValidateConstat, onQualifySignal, onAdvanceSignal, onResetKayar, openWorkflow, operationalDossiers, onOpenDossier }: {
-  scope: Scope; setScope: (scope: Scope) => void; evidence: typeof initialEvidence; artifacts: GeneratedArtifact[]; alerts: MapAlert[]; verifiedIds: string[]; verificationTasks: VerificationTask[]; signalRecords: SignalRecord[]; zoneReports: ZoneReportRecord[];
-  onPrepareWhatsApp: (id: string, message: string) => void; onFollowVerification: (id: string) => void; onDepositConstat: (id: string) => void; onValidateConstat: (id: string) => void; onQualifySignal: (id: string) => void; onAdvanceSignal: (id: string) => void; onResetKayar: () => void;
-  record: (title: string, detail: string) => void; openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void; operationalDossiers: DossierOperationnel[]; onOpenDossier: (dossier: DossierOperationnel) => void;
-}) {
-  const [mode, setMode] = useState<"quays" | "pirogues">("quays");
-  const [quayFilter, setQuayFilter] = useState("Tous");
-  const [statusFilter, setStatusFilter] = useState<"Tous" | Level>("Tous");
-  const [period, setPeriod] = useState("Aujourd’hui");
-  const [selection, setSelection] = useState<Selection>(null);
-  const [layers, setLayers] = useState<Record<MapLayerId, boolean>>({ quays: true, pirogues: true, landings: true, alerts: true, incidents: true });
-  const [briefingOpen, setBriefingOpen] = useState(false);
-  const visibleQuays = useMemo(() => quays.filter((quay) => (scope === "Nationale" || quay.region === scope) && (quayFilter === "Tous" || quay.id === quayFilter) && (statusFilter === "Tous" || quay.level === statusFilter)), [quayFilter, scope, statusFilter]);
-  const quayIds = useMemo(() => new Set(visibleQuays.map((quay) => quay.id)), [visibleQuays]);
-  const visiblePirogues = useMemo(() => pirogues.filter((boat) => quayIds.has(boat.quayId) && (statusFilter === "Tous" || boat.level === statusFilter)), [quayIds, statusFilter]);
-  const visibleLandings = useMemo(() => landings.filter((landing) => quayIds.has(landing.quayId)), [quayIds]);
-  const visibleAlerts = useMemo(() => alerts.filter((alert) => quayIds.has(alert.quayId) && (statusFilter === "Tous" || alert.level === statusFilter)), [alerts, quayIds, statusFilter]);
-  const visibleIncidents = maritimeIncidents.filter((incident) => quayIds.has(incident.quayId));
-  const selectedBoat = selection?.kind === "pirogue" ? pirogues.find((boat) => boat.id === selection.id) ?? null : null;
-  const selectedQuay = selection?.kind === "quay" ? quays.find((quay) => quay.id === selection.id) ?? null : selectedBoat ? getQuayById(selectedBoat.quayId) : null;
-  const selectedOperationalDossier = selectedQuay ? operationalDossiers.find((dossier) => dossier.quayId === selectedQuay.id && dossier.workStatus !== "Terminé") ?? operationalDossiers.find((dossier) => dossier.quayId === selectedQuay.id) : undefined;
-  const selectedLandings = selectedQuay ? landings.filter((landing) => landing.quayId === selectedQuay.id) : [];
-  const selectedAlerts = selectedQuay ? alerts.filter((alert) => alert.quayId === selectedQuay.id) : [];
-  const totalVolume = visibleLandings.reduce((sum, landing) => sum + landing.volumeTons, 0);
-  const selectedTitle = selectedBoat?.registration ?? selectedQuay?.name ?? "Périmètre actif";
-  const selectedContext: WorkflowContext = { title: selectedTitle, scope: selectedQuay?.name || scope, sourceId: selectedBoat?.id || selectedQuay?.id, quayId: selectedQuay?.id, description: selectedAlerts[0]?.title || "Information opérationnelle à instruire." };
-  const contextRows: Array<[string, string]> = selectedBoat ? [["Immatriculation", selectedBoat.registration], ["Quai rattaché", selectedQuay?.name ?? "—"], ["Position", selectedBoat.lastPosition], ["Déclaration", selectedBoat.lastDeclaration], ["Activité", selectedBoat.declaredActivity]] : selectedQuay ? [["Région", selectedQuay.region], ["Commune", selectedQuay.commune], ["Débarquements", String(selectedLandings.length)], ["Volume déclaré", `${selectedLandings.reduce((sum, item) => sum + item.volumeTons, 0).toFixed(1)} t`], ["Pirogues actives", String(selectedQuay.activePirogues)], ["Preuves générées", String(artifacts.filter((item) => item.scope === selectedQuay.name).length)]] : [];
-  const selectedTask = selection?.id ? verificationTasks.find((task) => task.targetId === selection.id) : undefined;
-  const selectedReport = selectedQuay ? zoneReports.find((report) => report.zone === selectedQuay.name) : undefined;
-  const verified = Boolean(["Vérifiée", "Clôturée"].includes(selectedTask?.status || "") || (selection?.id && verifiedIds.includes(selection.id)));
-  const entityLevel = verified ? "normal" : selectedBoat?.level ?? selectedQuay?.level ?? "normal";
-  const entityTrust = verified ? "verified" : selectedBoat?.trustLevel ?? selectedQuay?.trustLevel ?? "raw";
-  const knownSituation = selectedBoat
-    ? `${selectedBoat.status}. Dernière position : ${selectedBoat.lastPosition}. Dernière déclaration : ${selectedBoat.lastDeclaration}.`
-    : selectedQuay
-      ? `${selectedLandings.length} débarquement(s), ${selectedLandings.reduce((sum, item) => sum + item.volumeTons, 0).toFixed(1)} t déclarées et ${selectedQuay.activePirogues} pirogues actives.`
-      : "Aucune information sélectionnée.";
-  const trustHelper = entityTrust === "raw" ? "Information reçue, non confirmée." : entityTrust === "declared" ? "Déclarée par un acteur identifié, à confirmer sur place." : entityTrust === "verified" ? "Confirmée par un agent ou référent mandaté." : "Consolidée pour la lecture institutionnelle.";
-  const taskStatus = selectedTask?.status;
-  const alreadyDone = [
-    selectedTask ? "Vérification demandée" : null,
-    taskStatus && ["Message préparé", "Assignée", "En cours", "Constat déposé", "Vérifiée", "Clôturée"].includes(taskStatus) ? "Message WhatsApp préparé" : null,
-    taskStatus && ["Assignée", "En cours", "Constat déposé", "Vérifiée", "Clôturée"].includes(taskStatus) ? "Demande confiée au référent" : null,
-    taskStatus && ["Constat déposé", "Vérifiée", "Clôturée"].includes(taskStatus) ? "Constat reçu" : null,
-    taskStatus && ["Vérifiée", "Clôturée"].includes(taskStatus) ? "Constat validé" : null,
-    selectedReport ? "Rapport de zone généré" : null,
-  ].filter((item): item is string => Boolean(item));
-  const baseSituation = selectedQuay?.id === "kayar" ? "Écart de pesée signalé sur le dernier débarquement." : selectedAlerts[0]?.title || (entityLevel === "urgent" ? "Une situation critique demande une confirmation." : entityLevel === "surveillance" ? "Une situation en vigilance a été signalée." : "La situation ne présente pas d’alerte active.");
-  const journey = buildAtlasJourney({ entityType: selectedBoat ? "Pirogue" : "Quai", situation: baseSituation, known: knownSituation, trustHelper, taskStatus, alreadyDone, hasReport: Boolean(selectedReport), isVerified: verified });
-  const atlasActions: Parameters<typeof ContextPanel>[0]["actions"] = [];
-  const detailAction = { label: selectedBoat ? "Ouvrir la fiche pirogue" : "Ouvrir le dossier du quai", group: "consultation" as const, helper: selectedBoat ? "Consulter l’identité, le cycle et les dernières déclarations." : "Consulter le poste officiel, les référents, l’activité, les alertes et les pièces.", onClick: () => selectedBoat || !selectedOperationalDossier ? openWorkflow("full-record", selectedContext) : onOpenDossier(selectedOperationalDossier) };
-  const signalAction = { label: "Signaler une nouvelle situation", group: "secondary" as const, helper: "À utiliser uniquement pour un nouveau fait distinct.", onClick: () => openWorkflow("alert", selectedContext) };
-  if (selectedReport) {
-    atlasActions.push({ label: "Relire le rapport de zone", group: "recommended", onClick: () => document.getElementById("zone-reports")?.scrollIntoView({ behavior: "smooth", block: "start" }) }, signalAction, detailAction);
-  } else if (verified) {
-    atlasActions.push({ label: "Générer un rapport de zone", group: "recommended", onClick: () => openWorkflow("export-zone", selectedContext) }, signalAction, detailAction);
-  } else if (!selectedTask) {
-    atlasActions.push({ label: "Demander une vérification terrain", group: "recommended", onClick: () => openWorkflow("verification", selectedContext) }, signalAction, detailAction);
-  } else if (taskStatus === "Demandée") {
-    atlasActions.push({ label: "Préparer le message WhatsApp", group: "recommended", onClick: () => onPrepareWhatsApp(selectedTask.id, selectedTask.message) }, signalAction, detailAction);
-  } else if (taskStatus === "Message préparé") {
-    atlasActions.push({ label: "Suivre la vérification", group: "recommended", onClick: () => onFollowVerification(selectedTask.id) }, { label: "Copier à nouveau le message", group: "secondary", onClick: () => onPrepareWhatsApp(selectedTask.id, selectedTask.message) }, detailAction);
-  } else if (["Assignée", "En cours"].includes(taskStatus || "")) {
-    atlasActions.push({ label: "Déposer le constat reçu", group: "recommended", onClick: () => onDepositConstat(selectedTask.id) }, { label: "Copier à nouveau le message", group: "secondary", onClick: () => onPrepareWhatsApp(selectedTask.id, selectedTask.message) }, detailAction);
-  } else if (taskStatus === "Constat déposé") {
-    atlasActions.push({ label: "Valider le constat", group: "recommended", onClick: () => onValidateConstat(selectedTask.id) }, detailAction);
-  } else {
-    atlasActions.push(detailAction);
-  }
-  if (selectedQuay?.id === "kayar" && (selectedTask || selectedReport || verified)) atlasActions.push({ label: "Recommencer la démonstration Kayar", group: "consultation", helper: "Réinitialise uniquement les étapes locales de Kayar.", onClick: onResetKayar });
-
-  return <section className="min-h-full">
-    <WorkspaceHeader title="Atlas maritime" question="Observer l’activité littorale à partir des déclarations, vérifications et consolidations disponibles." scope={scope} onScopeChange={(next) => { setScope(next as Scope); setQuayFilter("Tous"); setSelection(null); }} onExport={() => openWorkflow("export-zone", { title: "Rapport de zone maritime", scope, description: "Quais, pirogues, débarquements, alertes et incidents du périmètre actif." })} />
-    <SituationBanner eyebrow="Situation maritime nationale · simulation métier" statement={`${visiblePirogues.filter((boat) => ["atSea", "expectedReturn"].includes(boat.cycleStage)).length} pirogues en mer · ${visiblePirogues.filter((boat) => boat.cycleStage === "expectedReturn").length} retours attendus avant 18h · ${visiblePirogues.filter((boat) => ["declared", "verified"].includes(boat.cycleStage)).length} débarquements déclarés ce matin · ${visibleQuays.filter((quay) => quay.level !== "normal").length} zone(s) en vigilance`} detail="Données de démonstration · niveaux de confiance visibles sur chaque dossier" actionLabel="Voir le briefing maritime" onAction={() => setBriefingOpen(true)} />
-    <CoordinationBanner zones={visibleQuays.filter((quay) => quay.level !== "normal")} evidence={evidence} onSelect={(id) => setSelection({ kind: "quay", id })} />
-    <FilterStrip>
-      <div className="flex rounded-[3px] border border-[var(--mb-neutral-200)] bg-[var(--mb-offwhite)] p-0.5"><button onClick={() => setMode("quays")} className={`h-8 rounded-[2px] px-3 text-[11px] font-bold ${mode === "quays" ? "bg-[var(--mb-ocean-600)] text-white" : "text-[var(--mb-neutral-600)]"}`}>Vue quais</button><button onClick={() => setMode("pirogues")} className={`h-8 rounded-[2px] px-3 text-[11px] font-bold ${mode === "pirogues" ? "bg-[var(--mb-ocean-600)] text-white" : "text-[var(--mb-neutral-600)]"}`}>Vue pirogues</button></div>
-      <FilterField label="Quai"><select value={quayFilter} onChange={(event) => { setQuayFilter(event.target.value); setSelection(event.target.value === "Tous" ? null : { kind: "quay", id: event.target.value }); }} className={inputClass}><option>Tous</option>{quays.filter((quay) => scope === "Nationale" || quay.region === scope).map((quay) => <option key={quay.id} value={quay.id}>{quay.name}</option>)}</select></FilterField>
-      <FilterField label="Statut"><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "Tous" | Level)} className={inputClass}><option>Tous</option><option value="normal">Vérifié</option><option value="surveillance">Vigilance</option><option value="urgent">Critique</option></select></FilterField>
-      <FilterField label="Période"><select value={period} onChange={(event) => setPeriod(event.target.value)} className={inputClass}><option>Aujourd’hui</option><option>7 derniers jours</option><option>30 derniers jours</option></select></FilterField>
-      <div className="ml-auto flex items-center gap-3 px-1 font-mono text-[9px] text-[var(--mb-neutral-600)]"><span>{visibleQuays.length} QUAIS</span><span>{visiblePirogues.length} PIROGUES</span><span>{visibleIncidents.length} INCIDENTS</span><span>{totalVolume.toFixed(1)} T</span></div>
-    </FilterStrip>
-    <div className="grid min-h-[calc(100vh-201px)] min-w-0 xl:grid-cols-[minmax(0,1fr)_340px] xl:grid-rows-[minmax(430px,1fr)_170px]">
-      <div className="min-h-0 border-b border-[var(--mb-neutral-200)] xl:border-r"><MapCanvas mode={mode} layers={layers} onToggleLayer={(layer) => setLayers((current) => ({ ...current, [layer]: !current[layer] }))} quays={visibleQuays} pirogues={visiblePirogues} landings={visibleLandings} alerts={visibleAlerts} incidents={visibleIncidents} selection={selection} onSelectQuay={(id) => setSelection({ kind: "quay", id })} onSelectPirogue={(id) => setSelection({ kind: "pirogue", id })} /></div>
-      <div className="min-h-0 xl:row-span-2"><ContextPanel empty={!selection || !selectedQuay} title={selectedTitle} subtitle={journey.businessStatus} level={entityLevel} trustLevel={entityTrust} journey={journey} trend={selectedQuay && !selectedBoat ? quayTrends[selectedQuay.id] : undefined} pirogue={selectedBoat} rows={contextRows} referents={selectedQuay ? <><PosteOfficielPanel poste={quayPosts.find((poste) => poste.quayId === selectedQuay.id)} /><ReferentsPanel referents={fieldReferents.filter((referent) => referent.quayId === selectedQuay.id && referent.status === "Actif")} /></> : null} actions={atlasActions} /></div>
-      <div id="atlas-evidence" className="grid min-h-0 scroll-mt-20 overflow-auto bg-white xl:grid-cols-2 xl:border-r"><section className="border-b border-[var(--mb-neutral-200)] xl:border-b-0 xl:border-r"><div className="flex h-9 items-center justify-between border-b border-[var(--mb-neutral-200)] px-3"><h3 className="text-[11px] font-bold">Historique opérationnel</h3><span className="font-mono text-[9px] text-[var(--mb-neutral-400)]">{period}</span></div><EvidenceTimeline items={evidence.slice(0, 4)} /></section><section><div className="flex h-9 items-center border-b border-[var(--mb-neutral-200)] px-3 text-[11px] font-bold">Preuves et exports générés</div><ArtifactRegister artifacts={artifacts.slice(0, 3)} /></section></div>
-    </div>
-    <div className="grid gap-2 border-t border-[var(--mb-neutral-200)] bg-[var(--mb-neutral-100)] p-2 xl:grid-cols-[1.3fr_.7fr]"><WhatsAppBridge tasks={verificationTasks} signals={signalRecords} onPrepare={onPrepareWhatsApp} onDepositConstat={onDepositConstat} onValidateConstat={onValidateConstat} onQualifySignal={onQualifySignal} onAdvanceSignal={onAdvanceSignal} /><ReportRegister reports={zoneReports} /></div>
-    {briefingOpen ? <BriefingPanel onClose={() => setBriefingOpen(false)} /> : null}
-  </section>;
-}
-
-function buildAtlasJourney({ entityType, situation, known, trustHelper, taskStatus, alreadyDone, hasReport, isVerified }: {
-  entityType: string;
-  situation: string;
-  known: string;
-  trustHelper: string;
-  taskStatus?: VerificationTask["status"];
-  alreadyDone: string[];
-  hasReport: boolean;
-  isVerified: boolean;
-}) {
-  if (hasReport) return {
-    entityType, situation, known, trustHelper, alreadyDone,
-    businessStatus: "Situation vérifiée et rapport disponible.",
-    waitingFor: "Relecture humaine avant transmission ou archivage.",
-    reason: "Le rapport existe déjà : il faut maintenant le relire, pas le générer une seconde fois.",
-    expectedResult: "Le rapport existant sera affiché dans la section Rapports de zone.",
-    nextStep: "Décider ensuite de sa transmission manuelle ou de son archivage.",
-  };
-  if (isVerified || taskStatus === "Vérifiée") return {
-    entityType, situation, known, trustHelper, alreadyDone,
-    businessStatus: "Situation confirmée sur place.",
-    waitingFor: "Production d’une synthèse transmissible.",
-    reason: "Le constat est validé. La situation peut maintenant être synthétisée sans répéter la vérification.",
-    expectedResult: "Un rapport daté sera ajouté au suivi des rapports de zone.",
-    nextStep: "Relire le rapport avant toute transmission externe.",
-  };
-  if (taskStatus === "Constat déposé") return {
-    entityType, situation, known, trustHelper, alreadyDone,
-    businessStatus: "Un constat a été reçu et doit être validé.",
-    waitingFor: "Validation par un agent habilité.",
-    blockingPoint: "La confiance reste Déclarée tant que le constat n’est pas validé.",
-    reason: "Le retour terrain est disponible, mais il ne peut pas encore servir de preuve vérifiée.",
-    expectedResult: "La confiance passera à Vérifiée et la production du rapport deviendra possible.",
-    nextStep: "Générer le rapport de zone après validation.",
-  };
-  if (taskStatus === "Assignée" || taskStatus === "En cours") return {
-    entityType, situation, known, trustHelper, alreadyDone,
-    businessStatus: "Vérification confiée au référent terrain.",
-    waitingFor: "Constat, photo ou pièce du référent mandaté.",
-    blockingPoint: "Aucun constat n’a encore été déposé.",
-    reason: "Le retour terrain doit être rattaché à cette situation avant validation.",
-    expectedResult: "Le constat reçu sera enregistré et présenté pour validation humaine.",
-    nextStep: "Valider le constat après son dépôt.",
-  };
-  if (taskStatus === "Message préparé") return {
-    entityType, situation, known, trustHelper, alreadyDone,
-    businessStatus: "Message prêt à transmettre au référent.",
-    waitingFor: "Envoi manuel puis retour du référent.",
-    blockingPoint: "L’envoi WhatsApp réel n’est pas connecté dans cette démonstration.",
-    reason: "La demande est prête ; il faut maintenant en suivre l’exécution sur le terrain.",
-    expectedResult: "La vérification passera en attente de constat et restera visible dans le suivi.",
-    nextStep: "Déposer le constat dès sa réception.",
-  };
-  if (taskStatus === "Demandée") return {
-    entityType, situation, known, trustHelper, alreadyDone,
-    businessStatus: "Vérification demandée, message terrain à préparer.",
-    waitingFor: "Préparation du message destiné au référent.",
-    blockingPoint: "Le référent n’a pas encore reçu de message préparé.",
-    reason: "La demande existe déjà. Il ne faut pas la recréer, mais préparer son message terrain.",
-    expectedResult: "Un message structuré sera copié et rattaché à la demande existante.",
-    nextStep: "Suivre la vérification après l’envoi manuel du message.",
-  };
-  return {
-    entityType, situation, known, trustHelper, alreadyDone,
-    businessStatus: "Information à confirmer sur place.",
-    waitingFor: "Création d’une demande de vérification.",
-    blockingPoint: "Cette information n’a pas encore été confirmée sur place.",
-    reason: "Une confirmation terrain est nécessaire avant décision ou transmission.",
-    expectedResult: "Une demande sera créée et rattachée à l’élément sélectionné.",
-    nextStep: "Préparer le message WhatsApp destiné au référent.",
-  };
 }
 
 function FiliereProgrammes({ scope, setScope, artifacts, opportunities, fundingRequests, qualifiedNeeds, fundingDossiers, partnerRelationships, onConfirmTransmission, onRecordFundingResponse, onRecordPartnerResponse, openWorkflow }: {

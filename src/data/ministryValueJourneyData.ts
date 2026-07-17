@@ -1,4 +1,4 @@
-import type { Level } from "./ministryControlTowerData";
+import type { DataTrustLevel, Level } from "./ministryControlTowerData";
 
 export type WorkflowKind =
   | "verification"
@@ -35,6 +35,10 @@ export type IncidentRecord = {
   openedAt: string;
   owner: string;
   status: "Ouvert" | "En vérification" | "Résolu";
+  source: string;
+  trustLevel: DataTrustLevel;
+  nextAction: string;
+  linkedDossierId?: string;
 };
 
 export type FundingOpportunity = {
@@ -184,9 +188,9 @@ export type ZoneReportRecord = {
 };
 
 export const maritimeIncidents: IncidentRecord[] = [
-  { id: "incident-1", quayId: "mbour", title: "Capacité de froid réduite", category: "Technique", level: "surveillance", openedAt: "09:35", owner: "Maintenance régionale", status: "En vérification" },
-  { id: "incident-2", quayId: "saint-louis", title: "Retour de pirogue non confirmé", category: "Sécurité", level: "urgent", openedAt: "10:18", owner: "Cellule quai", status: "Ouvert" },
-  { id: "incident-3", quayId: "kayar", title: "Écart de pesée déclaré", category: "Qualité", level: "surveillance", openedAt: "10:05", owner: "Service contrôle", status: "Ouvert" },
+  { id: "incident-1", quayId: "mbour", title: "Capacité de froid réduite", category: "Technique", level: "surveillance", openedAt: "09:35", owner: "Maintenance régionale", status: "En vérification", source: "Gestionnaire du quai", trustLevel: "verified", nextAction: "Confirmer la capacité restante et joindre le constat de maintenance." },
+  { id: "incident-2", quayId: "saint-louis", title: "Retour de pirogue non confirmé", category: "Sécurité", level: "urgent", openedAt: "10:18", owner: "Cellule quai", status: "Ouvert", source: "Appel au poste de quai", trustLevel: "declared", nextAction: "Relancer le poste officiel et consigner le résumé d’appel.", linkedDossierId: "INC-2026-0081" },
+  { id: "incident-3", quayId: "kayar", title: "Écart de pesée déclaré", category: "Qualité", level: "surveillance", openedAt: "10:05", owner: "Service contrôle", status: "Ouvert", source: "Poste officiel de Kayar", trustLevel: "declared", nextAction: "Demander une vérification terrain.", linkedDossierId: "VER-2026-0142" },
 ];
 
 export const initialFundingOpportunities: FundingOpportunity[] = [
