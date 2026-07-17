@@ -84,6 +84,27 @@ body:has([data-private-console]) > footer {
   display: none;
 }
 
+/* V12: posture Ministère — libellés prudents tant que les démembrements ne sont pas confirmés en atelier de cadrage. */
+[data-private-console] section.border-t p.font-mono:first-child {
+  font-size: 0;
+}
+
+[data-private-console] section.border-t p.font-mono:first-child::after {
+  content: "Échelon régional / technique · paramétrable après cadrage";
+  font-size: 8px;
+}
+
+[data-private-console] aside.max-w-2xl > div.grid > section:first-child > h3,
+[data-private-console] aside.max-w-2xl div.py-1 > p:first-child {
+  font-size: 0;
+}
+
+[data-private-console] aside.max-w-2xl > div.grid > section:first-child > h3::after,
+[data-private-console] aside.max-w-2xl div.py-1 > p:first-child::after {
+  content: "Poste local reconnu";
+  font-size: 8px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
