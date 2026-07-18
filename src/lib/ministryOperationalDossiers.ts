@@ -46,7 +46,7 @@ export function buildOperationalDossiers({ verificationTasks, signals, fundingDo
     buildKayarDossier(kayarTask, kayarReport, closedDossierIds.includes("VER-2026-0142")),
     {
       id: "INC-2026-0081", type: "Situation terrain", linkedObject: "Retour de pirogue non confirmé", linkedObjectType: "Zone", sourceId: "incident-2", quayId: "saint-louis", territory: "Saint-Louis",
-      workStatus: "Bloqué", businessStatus: "Constat terrain attendu", originChannel: "Téléphone", transitChannel: "Agent territorial", currentOwner: "Cellule régionale de Saint-Louis", nextAction: "Relancer le poste officiel et consigner le résumé d’appel", action: "open-atlas", ageDays: 3,
+      workStatus: "Bloqué", businessStatus: "Constat terrain attendu", originChannel: "Téléphone", transitChannel: "Agent territorial", currentOwner: "Cellule technique territoriale de Saint-Louis", nextAction: "Relancer le poste local reconnu et consigner le résumé d’appel", action: "open-atlas", ageDays: 3,
       notes: [{ id: "note-inc-1", time: "10:18", author: "Permanence régionale", text: "Appel reçu : le retour reste à confirmer auprès du quai." }],
       pieces: [{ id: "piece-inc-1", type: "Compte rendu d’appel", label: "Résumé de l’appel initial", status: "Disponible" }, { id: "piece-inc-2", type: "Photo", label: "Constat du poste officiel", status: "Attendue" }],
       history: [{ time: "10:18", label: "Appel reçu et dossier ouvert", channel: "Téléphone", author: "Permanence régionale" }],
@@ -54,10 +54,10 @@ export function buildOperationalDossiers({ verificationTasks, signals, fundingDo
     },
     {
       id: "RAP-2026-0022", type: "Décision institutionnelle", linkedObject: "Situation maritime de Joal-Fadiouth", linkedObjectType: "Zone", sourceId: "joal", quayId: "joal", territory: "Thiès",
-      workStatus: "Terminé", businessStatus: "Rapport consolidé", originChannel: "Document", currentOwner: "Direction régionale de Thiès", nextAction: "Aucune action requise", action: "none", ageDays: 0,
+      workStatus: "Terminé", businessStatus: "Rapport consolidé", originChannel: "Document", currentOwner: "Échelon régional / technique de Thiès", nextAction: "Aucune action requise", action: "none", ageDays: 0,
       notes: [{ id: "note-rap-1", time: "09:58", author: "Agent territorial", text: "Les preuves du besoin de glace ont été rapprochées du rapport." }],
       pieces: [{ id: "piece-rap-1", type: "Document", label: "Rapport de zone Joal-Fadiouth", status: "Disponible" }, { id: "piece-rap-2", type: "Preuve", label: "Vérification du besoin de glace", status: "Disponible" }],
-      history: [{ time: "09:58", label: "Rapport consolidé après validation humaine", channel: "Document", author: "Direction régionale de Thiès" }],
+      history: [{ time: "09:58", label: "Rapport consolidé après validation humaine", channel: "Document", author: "Échelon régional / technique de Thiès" }],
       finalOutput: "Rapport prêt pour archivage ou transmission manuelle."
     }
   ];
@@ -120,12 +120,12 @@ function buildKayarDossier(task?: VerificationTask, report?: ZoneReportRecord, c
   return {
     id: "VER-2026-0142", type: "Situation terrain", linkedObject: "Écart de pesée au quai de Kayar", linkedObjectType: "Quai", sourceId: "kayar", quayId: "kayar", territory: "Thiès",
     workStatus, businessStatus: closed ? "Clôturé après décision" : reportReady ? "Rapport disponible" : task?.status || "Vérification à demander", originChannel: "Poste de quai", transitChannel: task ? "WhatsApp" : undefined,
-    currentOwner: !task ? "Direction régionale de Thiès" : ["Message préparé", "Assignée", "En cours"].includes(status || "") ? "Poste officiel de Kayar" : "Cellule régionale de validation",
+    currentOwner: !task ? "Échelon régional / technique de Thiès" : ["Message préparé", "Assignée", "En cours"].includes(status || "") ? "Poste local reconnu de Kayar" : "Cellule technique de validation",
     nextAction, action, ageDays: ["Assignée", "En cours"].includes(status || "") ? 2 : 0,
-    notes: [{ id: "note-kayar-1", time: "10:05", author: "Poste officiel de Kayar", text: "Écart signalé sur le dernier débarquement ; confirmation terrain demandée." }],
+    notes: [{ id: "note-kayar-1", time: "10:05", author: "Poste local reconnu de Kayar", text: "Écart signalé sur le dernier débarquement ; confirmation terrain demandée." }],
     pieces,
     history: [
-      { time: "10:05", label: "Signal reçu et dossier ouvert", channel: "Poste de quai", author: "Poste officiel de Kayar" },
+      { time: "10:05", label: "Signal reçu et dossier ouvert", channel: "Poste de quai", author: "Poste local reconnu de Kayar" },
       ...(task ? [{ time: task.dueDate, label: task.status, channel: task.channel === "WhatsApp structuré" ? "WhatsApp" as const : "Agent territorial" as const, author: task.owner }] : []),
       ...(report ? [{ time: report.generatedAt, label: "Rapport de zone généré", channel: "Document" as const, author: report.author }] : []),
       ...(closed ? [{ time: "à l’instant", label: "Rapport relu, décision enregistrée et dossier clôturé", channel: "Document" as const, author: "Agent connecté · simulation" }] : []),

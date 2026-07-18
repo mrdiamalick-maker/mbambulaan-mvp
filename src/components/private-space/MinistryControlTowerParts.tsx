@@ -39,7 +39,11 @@ export function DataTrustBadge({ level, compact = false, source, onInspect }: { 
 }
 
 export function AppShell({ topBar, rail, children }: { topBar: ReactNode; rail: ReactNode; children: ReactNode }) {
-  return <main data-private-console className="h-screen overflow-hidden bg-[var(--mb-offwhite)] text-[var(--mb-neutral-900)]"><div className="grid h-full grid-rows-[52px_minmax(0,1fr)] lg:grid-cols-[72px_minmax(0,1fr)] lg:grid-rows-[52px_minmax(0,1fr)]"><div className="col-span-full">{topBar}</div><div className="hidden min-h-0 lg:block">{rail}</div><div className="min-h-0 min-w-0 overflow-auto">{children}</div></div></main>;
+  return <main data-private-console className="h-screen overflow-hidden bg-[var(--mb-offwhite)] text-[var(--mb-neutral-900)]"><div className="grid h-full grid-rows-[52px_auto_minmax(0,1fr)] lg:grid-cols-[72px_minmax(0,1fr)]"><div className="col-span-full">{topBar}</div><div className="hidden min-h-0 lg:row-span-2 lg:block">{rail}</div><DemoDisclosure /><div className="min-h-0 min-w-0 overflow-auto">{children}</div></div></main>;
+}
+
+function DemoDisclosure() {
+  return <details className="border-b border-[var(--mb-neutral-200)] bg-white px-3 py-1.5 text-[10px] text-[var(--mb-neutral-600)] sm:px-4"><summary className="cursor-pointer font-semibold text-[var(--mb-navy-700)]">À propos de cette démonstration</summary><p className="mt-1 max-w-4xl pb-1 leading-4">Modèle de coordination sur données locales simulées, paramétrable avec les services du Ministère après cadrage. Les validations et transmissions restent humaines.</p></details>;
 }
 
 export function TopBar({ notice, onExport }: { notice: string; onExport: () => void }) {

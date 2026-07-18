@@ -352,10 +352,10 @@ export const communityNeeds: CommunityNeed[] = [
 ];
 
 export const quayPosts: QuayPost[] = [
-  { id: "post-joal", quayId: "joal", name: "Poste officiel de Joal-Fadiouth", officer: "Agent de permanence · B. Ndiaye", phone: "+221 77 000 14 16", hours: "06h00–19h00", regionalAuthority: "Direction régionale de Thiès", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
-  { id: "post-mbour", quayId: "mbour", name: "Poste officiel de Mbour", officer: "Agent de permanence · F. Diop", phone: "+221 77 000 14 41", hours: "06h00–20h00", regionalAuthority: "Direction régionale de Thiès", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
-  { id: "post-kayar", quayId: "kayar", name: "Poste officiel de Kayar", officer: "Agent de permanence · M. Fall", phone: "+221 77 000 14 91", hours: "05h30–19h30", regionalAuthority: "Direction régionale de Thiès", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
-  { id: "post-saint-louis", quayId: "saint-louis", name: "Poste officiel de Guet Ndar", officer: "Agent de permanence · A. Seck", phone: "+221 77 000 16 01", hours: "05h30–20h00", regionalAuthority: "Direction régionale de Saint-Louis", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
+  { id: "post-joal", quayId: "joal", name: "Poste local reconnu de Joal-Fadiouth", officer: "Agent de permanence · B. Ndiaye", phone: "+221 77 000 14 16", hours: "06h00–19h00", regionalAuthority: "Échelon régional / technique de Thiès", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
+  { id: "post-mbour", quayId: "mbour", name: "Poste local reconnu de Mbour", officer: "Agent de permanence · F. Diop", phone: "+221 77 000 14 41", hours: "06h00–20h00", regionalAuthority: "Échelon régional / technique de Thiès", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
+  { id: "post-kayar", quayId: "kayar", name: "Poste local reconnu de Kayar", officer: "Agent de permanence · M. Fall", phone: "+221 77 000 14 91", hours: "05h30–19h30", regionalAuthority: "Échelon régional / technique de Thiès", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
+  { id: "post-saint-louis", quayId: "saint-louis", name: "Poste local reconnu de Guet Ndar", officer: "Agent de permanence · A. Seck", phone: "+221 77 000 16 01", hours: "05h30–20h00", regionalAuthority: "Cellule technique territoriale de Saint-Louis", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
 ];
 
 export const fieldReferents: FieldReferent[] = [
@@ -363,7 +363,7 @@ export const fieldReferents: FieldReferent[] = [
   { id: "ref-joal-2", name: "Mamadou Sarr", role: "Pêcheur référent", quayId: "joal", region: "Thiès", status: "Actif", reliabilityScore: 87, verificationsCompleted: 19, lastActivity: "Aujourd’hui · 09:58", contactChannel: "WhatsApp structuré", supervisingCell: "Cellule régionale de Thiès" },
   { id: "ref-mbour-1", name: "Fatou Ndiaye", role: "Mareyeur référent", quayId: "mbour", region: "Thiès", status: "Actif", reliabilityScore: 91, verificationsCompleted: 23, lastActivity: "Aujourd’hui · 09:35", contactChannel: "Téléphone", supervisingCell: "Cellule régionale de Thiès" },
   { id: "ref-kayar-1", name: "Ibrahima Fall", role: "Référent de quai", quayId: "kayar", region: "Thiès", status: "Actif", reliabilityScore: 89, verificationsCompleted: 31, lastActivity: "Aujourd’hui · 10:05", contactChannel: "Application terrain", supervisingCell: "Cellule régionale de Thiès" },
-  { id: "ref-sl-1", name: "Cheikh Ba", role: "Agent territorial", quayId: "saint-louis", region: "Saint-Louis", status: "Actif", reliabilityScore: 96, verificationsCompleted: 42, lastActivity: "Aujourd’hui · 10:18", contactChannel: "Application terrain", supervisingCell: "Cellule régionale de Saint-Louis" },
+  { id: "ref-sl-1", name: "Cheikh Ba", role: "Agent territorial", quayId: "saint-louis", region: "Saint-Louis", status: "Actif", reliabilityScore: 96, verificationsCompleted: 42, lastActivity: "Aujourd’hui · 10:18", contactChannel: "Application terrain", supervisingCell: "Cellule technique territoriale de Saint-Louis" },
   { id: "ref-hann-1", name: "Rokhaya Seck", role: "Référent de quai", quayId: "hann", region: "Dakar", status: "Actif", reliabilityScore: 84, verificationsCompleted: 17, lastActivity: "Hier · 17:40", contactChannel: "WhatsApp structuré", supervisingCell: "Cellule régionale de Dakar" },
 ];
 
