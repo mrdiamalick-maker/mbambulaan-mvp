@@ -23,7 +23,7 @@ Cette passe est le **dernier lot avant la démonstration**. Elle ne doit pas ref
 Les éléments suivants existent déjà :
 
 - `/` : landing institutionnelle ;
-- `/demande-demo` : formulaire local ;
+- `/demande-demo` : ancienne route technique du formulaire local, à conserver seulement comme redirection ;
 - `/espace-prive` : accès institutionnel ;
 - `/espace-prive/etat` : console avec les trois modules finaux ;
 - les composants Pilotage, Atlas et Communautés & Programmes ;
@@ -32,7 +32,7 @@ Les éléments suivants existent déjà :
 Les manques ou incohérences à traiter :
 
 1. `/espace-prive` présente encore l’ancien vocabulaire « Filière & Financement » au lieu de « Communautés & Programmes ».
-2. `/demande-demo` conserve un ancien style cyan arrondi, visuellement déconnecté de la nouvelle landing institutionnelle.
+2. La route publique porte encore le nom technique `/demande-demo`, trop centré sur la démonstration alors qu’elle doit accueillir ateliers, partenariats, financements et collaborations.
 3. Le hub public éditorial ouvert évoqué dans l’architecture n’existe pas encore.
 4. La landing ne permet pas d’accéder clairement à un espace public de découverte, d’initiatives et de collaboration.
 5. Le bouton du formulaire public prépare une demande, mais l’expérience doit rendre explicitement visible qu’aucune donnée n’est envoyée.
@@ -43,7 +43,7 @@ Livrer un ensemble public cohérent et démontrable demain, sans diluer le cœur
 
 1. **Landing** — promettre et orienter.
 2. **Découvrir Mbàmbulaan** — vulgariser la pêche artisanale, montrer initiatives, ressources et possibilités de collaboration.
-3. **Demander un atelier / collaborer** — qualifier localement une intention sans simuler un envoi.
+3. **Collaborer** — qualifier localement un atelier, un partenariat, un financement ou une collaboration sans simuler un envoi.
 4. **Accès Ministère** — présenter exactement la même architecture que la console.
 5. **Console** — rester intacte sur le fond.
 
@@ -91,11 +91,11 @@ La page doit contenir au maximum cinq sections :
 4. **Initiatives et programmes**
    - reprendre les thèmes existants : sécurité en mer, sensibilisation, formation, chaîne de froid, femmes transformatrices, jeunes et pêche durable ;
    - montrer territoire, bénéficiaires, résultat attendu et partenaire potentiel ;
-   - relier élégamment vers `/demande-demo`.
+   - relier élégamment vers `/collaborer`.
 
 5. **Collaborer**
    - trois portes d’entrée : atelier Ministère, partenariat/bailleur, programme communautaire ;
-   - CTA unique vers `/demande-demo`.
+   - CTA unique vers `/collaborer`.
 
 Réutiliser les tokens et le langage visuel de `InstitutionalLanding.tsx` : bleu marine, océan, sable, fond clair, bordures fines, boutons rectangulaires sobres. Ne pas utiliser l’ancien template cyan arrondi.
 
@@ -136,16 +136,18 @@ Les liens doivent pointer respectivement vers :
 
 - `/decouvrir` ;
 - `/espace-prive/etat` ;
-- `/demande-demo` ;
+- `/collaborer` ;
 - `/espace-prive`.
 
 Sur mobile, garder une navigation compacte sans débordement.
 
 Ne pas augmenter le nombre actuel de grandes sections de la landing.
 
-### 5. Refaire `/demande-demo` dans le même design
+### 5. Créer la route canonique `/collaborer` et conserver la compatibilité
 
-La page doit couvrir quatre intentions :
+Créer `src/app/collaborer/page.tsx` comme destination publique canonique. La route historique `/demande-demo` ne doit plus être promue dans l’interface : la conserver comme redirection Next.js vers `/collaborer` afin de ne casser aucun lien existant.
+
+La page `/collaborer` doit couvrir quatre intentions :
 
 - atelier Ministère ;
 - partenariat ou bailleur ;
@@ -181,7 +183,8 @@ Aucune nouvelle dépendance.
 ## Fichiers probables
 
 - `src/app/espace-prive/page.tsx`
-- `src/app/demande-demo/page.tsx`
+- `src/app/collaborer/page.tsx` — nouveau, route canonique
+- `src/app/demande-demo/page.tsx` — redirection de compatibilité vers `/collaborer`
 - `src/app/decouvrir/page.tsx` — nouveau
 - `src/components/landing/InstitutionalLanding.tsx`
 - éventuellement un seul composant client dédié au formulaire public
@@ -196,9 +199,9 @@ En ouvrant `/`, un partenaire doit comprendre en moins de 15 secondes :
 - l’Atlas, les dossiers et les preuves restent dans la console institutionnelle ;
 - l’espace public partage connaissances, initiatives et possibilités de collaboration.
 
-Le parcours public doit fonctionner :
+Le parcours public doit fonctionner. `/collaborer` est le nom métier canonique ; `/demande-demo` n’est qu’un alias historique :
 
-`/ → /decouvrir → /demande-demo → /espace-prive → /espace-prive/etat`
+`/ → /decouvrir → /collaborer → /espace-prive → /espace-prive/etat`
 
 Le parcours console existant doit rester fonctionnel :
 
@@ -224,7 +227,8 @@ Vérifier les routes :
 
 - `/`
 - `/decouvrir`
-- `/demande-demo`
+- `/collaborer`
+- `/demande-demo` — redirection vers `/collaborer`
 - `/espace-prive`
 - `/espace-prive/etat`
 
