@@ -3,7 +3,7 @@ import type { FundingDossierRecord, FundingOpportunity, DecisionRecord, SignalRe
 export type DossierType = "Situation terrain" | "Besoin filière" | "Décision institutionnelle";
 export type DossierWorkStatus = "Nouveau" | "À traiter" | "En attente" | "Bloqué" | "Terminé";
 export type DossierChannel = "WhatsApp" | "Téléphone" | "Poste de quai" | "Agent territorial" | "Formulaire" | "Import" | "Document";
-export type DossierAction = "request-verification" | "prepare-whatsapp" | "follow-verification" | "deposit-constat" | "validate-constat" | "generate-report" | "close-dossier" | "open-atlas" | "open-funding" | "open-pilotage" | "open-note" | "none";
+export type DossierAction = "request-verification" | "prepare-whatsapp" | "follow-verification" | "deposit-constat" | "validate-constat" | "generate-report" | "close-dossier" | "open-atlas" | "open-funding" | "open-community" | "open-pilotage" | "open-note" | "none";
 
 export type DossierNote = { id: string; time: string; author: string; text: string };
 export type DossierPiece = { id: string; type: "Photo" | "Message" | "Compte rendu d’appel" | "Document" | "Preuve"; label: string; status: "Disponible" | "Attendue" };
@@ -77,7 +77,7 @@ export function buildOperationalDossiers({ verificationTasks, signals, fundingDo
     id: `FIN-2026-${String(31 + index).padStart(4, "0")}`, type: "Besoin filière", linkedObject: dossier.title, linkedObjectType: "Besoin", sourceId: dossier.id, territory: dossier.targetPartner,
     workStatus: dossier.status === "Financé" || dossier.status === "Décliné" ? "Terminé" : dossier.status === "Transmission à confirmer" ? "À traiter" : "En attente",
     businessStatus: dossier.status, originChannel: "Formulaire", transitChannel: dossier.transmittedAt ? "Document" : undefined, currentOwner: dossier.owner,
-    nextAction: dossier.nextAction, action: "open-funding", ageDays: dossier.status === "Transmis" ? 2 : 0,
+    nextAction: dossier.nextAction, action: "open-community", ageDays: dossier.status === "Transmis" ? 2 : 0,
     notes: [], pieces: [{ id: `piece-${dossier.id}`, type: "Document", label: "Dossier de financement", status: "Disponible" }],
     history: [{ time: dossier.updatedAt, label: dossier.status, channel: "Formulaire", author: dossier.owner }],
     finalOutput: "Dossier financé, décliné ou archivé avec réponse partenaire."

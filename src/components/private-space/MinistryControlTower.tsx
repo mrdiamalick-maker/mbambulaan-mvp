@@ -40,6 +40,7 @@ import { buildOperationalDossiers, type DossierNote, type DossierOperationnel } 
 import { MinistryQuayAtlas } from "./MinistryQuayAtlas";
 import { MinistryDossiersView } from "./MinistryDossiersView";
 import { MinistryPilotageView } from "./MinistryPilotageView";
+import { MinistryCommunityProgramsView } from "./MinistryCommunityProgramsView";
 
 type Scope = "Nationale" | Region;
 type ActiveWorkflow = { kind: WorkflowKind; context: WorkflowContext } | null;
@@ -53,6 +54,8 @@ const initialEvidence = [
 
 export function MinistryControlTower() {
   const [workspace, setWorkspace] = useState<WorkspaceId>("pilotage");
+  const [dossierInboxOpen, setDossierInboxOpen] = useState(false);
+  const [assistanceEnabled, setAssistanceEnabled] = useState(false);
   const [scope, setScope] = useState<Scope>("Nationale");
   const [, setEvidence] = useState(initialEvidence);
   const [artifacts, setArtifacts] = useState<GeneratedArtifact[]>(initialGeneratedArtifacts);
@@ -66,6 +69,7 @@ export function MinistryControlTower() {
   const [decisionRecords, setDecisionRecords] = useState<DecisionRecord[]>([]);
   const [zoneReports, setZoneReports] = useState<ZoneReportRecord[]>([]);
   const [atlasFocusQuayId, setAtlasFocusQuayId] = useState<string | null>(null);
+  const [communityFocusQuayId, setCommunityFocusQuayId] = useState<string | null>(null);
   const [activeWorkflow, setActiveWorkflow] = useState<ActiveWorkflow>(null);
   const [systemNotice, setSystemNotice] = useState("Dernière synchronisation · 10:45");
   const [selectedDossierId, setSelectedDossierId] = useState<string | null>(null);
@@ -74,7 +78,8 @@ export function MinistryControlTower() {
   const baseDossiers = useMemo(() => buildOperationalDossiers({ verificationTasks, signals: signalRecords, fundingDossiers, opportunities, reports: zoneReports, decisions: decisionRecords, closedDossierIds }), [closedDossierIds, decisionRecords, fundingDossiers, opportunities, signalRecords, verificationTasks, zoneReports]);
   const operationalDossiers = useMemo(() => baseDossiers.map((dossier) => ({ ...dossier, notes: [...dossier.notes, ...(dossierNotes[dossier.id] || [])] })), [baseDossiers, dossierNotes]);
   const selectedDossier = selectedDossierId ? operationalDossiers.find((dossier) => dossier.id === selectedDossierId) ?? null : null;
-  const openDossier = (dossier: DossierOperationnel) => setSelectedDossierId(dossier.id);
+  const activeDossierCount = operationalDossiers.filter((dossier) => dossier.workStatus !== "Terminé").length;
+  const openDossier = (dossier: DossierOperationnel) => { setDossierInboxOpen(false); setSelectedDossierId(dossier.id); };
 
   function record(title: string, detail: string) {
     const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date());
@@ -203,19 +208,32 @@ export function MinistryControlTower() {
       const opportunity = opportunities.find((item) => item.id === dossier.sourceId) ?? opportunities[0];
       return openWorkflow("funding", { title: dossier.linkedObject, scope: dossier.territory, sourceId: opportunity?.id, needId: opportunity?.needId, description: opportunity?.expectedImpact ?? dossier.finalOutput, amount: String(opportunity?.estimatedAmount ?? 0), beneficiaries: String(opportunity?.beneficiaries ?? 0), partner: opportunity?.compatibleFunder });
     }
+    if (dossier.action === "open-community") return openCommunity(dossier.quayId);
     if (dossier.action === "open-pilotage") return setWorkspace("pilotage");
     if (dossier.action === "open-note") return openWorkflow("note", { title: dossier.linkedObject, scope: dossier.territory, description: dossier.nextAction });
     if (dossier.quayId) setAtlasFocusQuayId(dossier.quayId);
     return setWorkspace("atlas");
   };
 
-  return <AppShell topBar={<TopBar notice={systemNotice} onExport={globalExport} />} rail={<NavigationRail active={workspace} onChange={setWorkspace} />}>
+  const openCommunity = (quayId?: string | null) => { setCommunityFocusQuayId(quayId ?? null); setWorkspace("community"); };
+  const constituteFunding = (opportunity: FundingOpportunity) => openWorkflow("funding", { title: opportunity.title, scope: opportunity.territory, sourceId: opportunity.id, needId: opportunity.needId, description: opportunity.expectedImpact, amount: String(opportunity.estimatedAmount), beneficiaries: String(opportunity.beneficiaries), partner: opportunity.compatibleFunder });
+  const confirmFundingTransmission = (id: string, date: string, responsible: string) => {
+    setFundingDossiers((items) => items.map((dossier) => dossier.id === id ? { ...dossier, status: "Transmis", transmittedAt: date, transmittedBy: responsible, updatedAt: "à l’instant", nextAction: "Enregistrer la réponse du partenaire" } : dossier));
+    record("Transmission manuelle confirmée", `${id} · responsable ${responsible} · aucune transmission externe simulée`);
+  };
+  const recordFundingResponse = (id: string) => {
+    setFundingDossiers((items) => items.map((dossier) => dossier.id === id ? { ...dossier, status: "En négociation", updatedAt: "à l’instant", nextAction: "Suivre l’échange avec le partenaire" } : dossier));
+    record("Réponse partenaire enregistrée", `${id} · suivi ajouté au dossier local`);
+  };
+
+  return <AppShell topBar={<TopBar notice={systemNotice} activeDossiers={activeDossierCount} assistanceEnabled={assistanceEnabled} onOpenDossiers={() => setDossierInboxOpen(true)} onToggleAssistance={() => setAssistanceEnabled((enabled) => !enabled)} onExport={globalExport} />} rail={<NavigationRail active={workspace} onChange={setWorkspace} />}>
     <MobileWorkspaceNav active={workspace} onChange={setWorkspace} />
-    {workspace === "atlas" ? <MinistryQuayAtlas focusQuayId={atlasFocusQuayId} scope={scope} setScope={setScope} artifacts={artifacts} alerts={[...createdAlerts, ...mapAlerts]} verifiedIds={verifiedIds} verificationTasks={verificationTasks} zoneReports={zoneReports} onResetKayar={resetKayarJourney} openWorkflow={openWorkflow} operationalDossiers={operationalDossiers} onOpenDossier={openDossier} /> : null}
-    {workspace === "dossiers" ? <MinistryDossiersView dossiers={operationalDossiers} onOpenDossier={openDossier} /> : null}
-    {workspace === "pilotage" ? <MinistryPilotageView dossiers={operationalDossiers} alerts={[...createdAlerts, ...mapAlerts]} artifacts={artifacts} opportunities={opportunities} fundingDossiers={fundingDossiers} onViewAtlas={(quayId) => { setAtlasFocusQuayId(quayId); setWorkspace("atlas"); }} onOpenDossier={openDossier} onOpenDossiers={() => setWorkspace("dossiers")} /> : null}
+    {workspace === "atlas" ? <MinistryQuayAtlas focusQuayId={atlasFocusQuayId} scope={scope} setScope={setScope} artifacts={artifacts} alerts={[...createdAlerts, ...mapAlerts]} verifiedIds={verifiedIds} verificationTasks={verificationTasks} zoneReports={zoneReports} onResetKayar={resetKayarJourney} openWorkflow={openWorkflow} operationalDossiers={operationalDossiers} onOpenDossier={openDossier} onViewCommunity={openCommunity} /> : null}
+    {workspace === "community" ? <MinistryCommunityProgramsView focusQuayId={communityFocusQuayId} assistanceEnabled={assistanceEnabled} dossiers={operationalDossiers} opportunities={opportunities} fundingDossiers={fundingDossiers} artifacts={artifacts} onOpenDossier={openDossier} onConstituteFunding={constituteFunding} onConfirmTransmission={confirmFundingTransmission} onRecordPartnerResponse={recordFundingResponse} onViewAtlas={(quayId) => { setAtlasFocusQuayId(quayId); setWorkspace("atlas"); }} /> : null}
+    {workspace === "pilotage" ? <MinistryPilotageView assistanceEnabled={assistanceEnabled} dossiers={operationalDossiers} alerts={[...createdAlerts, ...mapAlerts]} artifacts={artifacts} opportunities={opportunities} fundingDossiers={fundingDossiers} onViewAtlas={(quayId) => { setAtlasFocusQuayId(quayId); setWorkspace("atlas"); }} onOpenDossier={openDossier} onOpenDossiers={() => setDossierInboxOpen(true)} onOpenCommunity={() => openCommunity(null)} /> : null}
     {activeWorkflow && workflowProps ? <WorkflowRenderer kind={activeWorkflow.kind} {...workflowProps} /> : null}
-    {selectedDossier ? <OperationalDossierPanel dossier={selectedDossier} onClose={() => setSelectedDossierId(null)} onPrimary={handleDossierPrimary} onAddNote={(dossier, note) => setDossierNotes((items) => ({ ...items, [dossier.id]: [...(items[dossier.id] || []), note] }))} onRelance={(dossier) => record("Relance enregistrée", `${dossier.id} · ${dossier.currentOwner} · canal ${dossier.originChannel}`)} /> : null}
+    {dossierInboxOpen ? <div className="fixed inset-0 z-[80] bg-[var(--mb-navy-900)]/40" onMouseDown={(event) => { if (event.target === event.currentTarget) setDossierInboxOpen(false); }}><aside className="ml-auto h-full w-full max-w-[74rem] overflow-y-auto border-l border-[var(--mb-neutral-300)] bg-[var(--mb-offwhite)]"><MinistryDossiersView embedded dossiers={operationalDossiers} onClose={() => setDossierInboxOpen(false)} onOpenDossier={openDossier} /></aside></div> : null}
+    {selectedDossier ? <OperationalDossierPanel dossier={selectedDossier} assistanceEnabled={assistanceEnabled} onClose={() => setSelectedDossierId(null)} onPrimary={handleDossierPrimary} onAddNote={(dossier, note) => setDossierNotes((items) => ({ ...items, [dossier.id]: [...(items[dossier.id] || []), note] }))} onRelance={(dossier) => record("Relance enregistrée", `${dossier.id} · ${dossier.currentOwner} · canal ${dossier.originChannel}`)} /> : null}
   </AppShell>;
 }
 

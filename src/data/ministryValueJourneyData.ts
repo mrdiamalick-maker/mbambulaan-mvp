@@ -236,6 +236,15 @@ export const needMaturityScores: Record<string, number> = {
   "need-6": 61,
 };
 
+export const fundingCoverageByOpportunity: Record<string, { coveredAmount: number; availablePieces: number; partnerStatus: string }> = {
+  "fund-op-1": { coveredAmount: 520000000, availablePieces: 4, partnerStatus: "Compatibilité confirmée" },
+  "fund-op-2": { coveredAmount: 210000000, availablePieces: 3, partnerStatus: "Échange à préparer" },
+  "fund-op-3": { coveredAmount: 160000000, availablePieces: 4, partnerStatus: "Fiche partenaire prête" },
+  "fund-op-4": { coveredAmount: 0, availablePieces: 1, partnerStatus: "Partenaire à identifier" },
+  "fund-op-5": { coveredAmount: 185000000, availablePieces: 3, partnerStatus: "Instruction en cours" },
+  "fund-op-6": { coveredAmount: 90000000, availablePieces: 2, partnerStatus: "Éligibilité à confirmer" },
+};
+
 export const quayTrends: Record<string, number[]> = {
   joal: [42, 48, 45, 57, 62, 68, 71],
   mbour: [51, 54, 58, 56, 67, 73, 78],

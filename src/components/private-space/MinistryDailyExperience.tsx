@@ -36,10 +36,10 @@ export function TodayView({ role, dossiers, opportunities, onNavigate, onOpenDos
   const availablePieces = dossiers.reduce((sum, dossier) => sum + dossier.pieces.filter((piece) => piece.status === "Disponible").length, 0);
   const moduleItems = [
     { id: "atlas" as const, title: "Atlas", count: dossiers.filter((dossier) => dossier.type === "Situation terrain" && dossier.workStatus !== "Terminé").length, detail: "Situations territoriales" },
-    { id: "dossiers" as const, title: "Dossiers", count: dossiers.filter((dossier) => dossier.type === "Besoin filière" && dossier.workStatus !== "Terminé").length, detail: "Besoins à instruire" },
+    { id: "community" as const, title: "Communautés & Programmes", count: dossiers.filter((dossier) => dossier.type === "Besoin filière" && dossier.workStatus !== "Terminé").length, detail: "Besoins à instruire" },
     { id: "pilotage" as const, title: "Pilotage", count: dossiers.filter((dossier) => dossier.type === "Décision institutionnelle" && dossier.workStatus !== "Terminé").length, detail: "Décisions à arbitrer" },
   ];
-  const moduleOrder = role === "Ministère" ? ["pilotage", "dossiers", "atlas"] : role === "Direction régionale" ? ["atlas", "dossiers", "pilotage"] : ["dossiers", "pilotage", "atlas"];
+  const moduleOrder = role === "Ministère" ? ["pilotage", "community", "atlas"] : role === "Direction régionale" ? ["atlas", "community", "pilotage"] : ["community", "pilotage", "atlas"];
   const modules = moduleOrder.map((id) => moduleItems.find((item) => item.id === id)!).filter(Boolean);
   const roleIntro = role === "Ministère" ? "Dossiers à arbitrer, financer ou suivre au niveau national." : role === "Direction régionale" ? "Vérifications, incidents et rapports confiés à la direction régionale." : "Dossiers finançables, preuves et documents utiles au partenaire.";
   const pageTitle = role === "Ministère" ? "Situation nationale" : role === "Direction régionale" ? "Briefing régional" : "Portefeuille finançable";

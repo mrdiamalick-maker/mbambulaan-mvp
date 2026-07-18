@@ -30,11 +30,12 @@ type Props = {
   zoneReports: ZoneReportRecord[];
   operationalDossiers: DossierOperationnel[];
   onOpenDossier: (dossier: DossierOperationnel) => void;
+  onViewCommunity: (quayId: string) => void;
   onResetKayar: () => void;
   openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
 };
 
-export function MinistryQuayAtlas({ scope, focusQuayId, setScope, artifacts, alerts, verifiedIds, verificationTasks, zoneReports, operationalDossiers, onOpenDossier, onResetKayar, openWorkflow }: Props) {
+export function MinistryQuayAtlas({ scope, focusQuayId, setScope, artifacts, alerts, verifiedIds, verificationTasks, zoneReports, operationalDossiers, onOpenDossier, onViewCommunity, onResetKayar, openWorkflow }: Props) {
   const [mode, setMode] = useState<AtlasMode>("quays");
   const [quayFilter, setQuayFilter] = useState("Tous");
   const [search, setSearch] = useState("");
@@ -90,7 +91,7 @@ export function MinistryQuayAtlas({ scope, focusQuayId, setScope, artifacts, ale
       <p className="ml-auto self-center text-[10px] text-[var(--mb-neutral-500)]">Cliquez un quai pour ouvrir sa fiche métier.</p>
     </FilterStrip>
     <AtlasMap mode={mode} quays={visibleQuays} pirogues={visiblePirogues} alerts={alerts} selectedBoatId={selectedBoatId} onSelectQuay={selectQuay} onSelectPirogue={selectPirogue} />
-    {selectedQuay ? <QuayProfileSheet quay={selectedQuay} alerts={alerts} incidents={maritimeIncidents} dossiers={operationalDossiers} artifacts={artifacts} verifiedIds={verifiedIds} verificationTasks={verificationTasks} zoneReports={zoneReports} selectedEntity={selectedEntity} onSelectEntity={setSelectedEntity} onClose={() => { setSelectedQuayId(null); setSelectedEntity(null); }} onOpenDossier={onOpenDossier} openWorkflow={openWorkflow} onResetKayar={onResetKayar} /> : null}
+    {selectedQuay ? <QuayProfileSheet quay={selectedQuay} alerts={alerts} incidents={maritimeIncidents} dossiers={operationalDossiers} artifacts={artifacts} verifiedIds={verifiedIds} verificationTasks={verificationTasks} zoneReports={zoneReports} selectedEntity={selectedEntity} onSelectEntity={setSelectedEntity} onClose={() => { setSelectedQuayId(null); setSelectedEntity(null); }} onOpenDossier={onOpenDossier} onViewCommunity={onViewCommunity} openWorkflow={openWorkflow} onResetKayar={onResetKayar} /> : null}
   </section>;
 }
 

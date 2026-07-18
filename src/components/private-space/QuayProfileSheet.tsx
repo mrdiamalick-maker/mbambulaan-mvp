@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import {
   fieldReferents,
+  communityNeeds,
+  communityProjects,
   getQuayActivitySnapshot,
   getQuayAlerts,
   getQuayIncidents,
@@ -47,6 +49,7 @@ type Props = {
   onSelectEntity: (entity: SelectedAtlasEntity) => void;
   onClose: () => void;
   onOpenDossier: (dossier: DossierOperationnel) => void;
+  onViewCommunity: (quayId: string) => void;
   openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
   onResetKayar: () => void;
 };
@@ -104,7 +107,7 @@ export function QuayProfileSheet(props: Props) {
   </div>;
 }
 
-function SummaryTab({ quay, snapshot, quayAlerts, quayIncidents, relatedDossiers, artifacts, zoneReports, onOpenDossier, openWorkflow, onResetKayar, context }: Props & {
+function SummaryTab({ quay, snapshot, quayAlerts, quayIncidents, relatedDossiers, artifacts, zoneReports, onOpenDossier, onViewCommunity, openWorkflow, onResetKayar, context }: Props & {
   snapshot: ReturnType<typeof getQuayActivitySnapshot>;
   quayAlerts: MapAlert[];
   quayIncidents: IncidentRecord[];
@@ -119,9 +122,13 @@ function SummaryTab({ quay, snapshot, quayAlerts, quayIncidents, relatedDossiers
     ["Pirogues en mer", String(snapshot.piroguesAtSea)],
     ["Situations actives", String(quayAlerts.length + quayIncidents.filter((item) => item.status !== "Résolu").length)],
   ];
+  const relatedNeeds = communityNeeds.filter((need) => [quay.name, quay.commune].some((name) => need.place.toLocaleLowerCase("fr").includes(name.toLocaleLowerCase("fr"))));
+  const relatedPrograms = communityProjects.filter((project) => [quay.name, quay.commune].some((name) => project.territory.toLocaleLowerCase("fr").includes(name.toLocaleLowerCase("fr"))));
+  const financeable = relatedNeeds.filter((need) => ["verified", "consolidated"].includes(need.trustLevel)).length;
   return <div className="grid gap-5">
     <section className="grid grid-cols-2 border border-[var(--mb-neutral-200)] bg-[var(--mb-offwhite)] sm:grid-cols-4">{metrics.map(([label, value]) => <div key={label} className="border-b border-r border-[var(--mb-neutral-200)] p-3 last:border-r-0 sm:border-b-0"><p className="text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--mb-neutral-500)]">{label}</p><p className="mt-2 font-mono text-[21px] font-semibold text-[var(--mb-navy-900)]">{value}</p></div>)}</section>
-    <section className="border-l-4 border-[var(--mb-ocean-600)] bg-[#edf6f8] p-4"><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mb-ocean-600)]">Action recommandée</p><h3 className="mt-2 text-[15px] font-semibold text-[var(--mb-navy-900)]">{priorityDossier?.nextAction ?? "Documenter la situation du quai"}</h3><p className="mt-2 text-[11px] leading-5 text-[var(--mb-neutral-600)]">{priorityDossier ? `${priorityDossier.businessStatus}. L’action ouvre le dossier ${priorityDossier.id} et conserve la trace du traitement.` : "Aucun dossier actif : créer un signalement uniquement si un fait nouveau doit être instruit."}</p><div className="mt-4 flex flex-wrap gap-2">{priorityDossier ? <button onClick={() => onOpenDossier(priorityDossier)} className={primaryButton}>Ouvrir le dossier prioritaire</button> : null}<button onClick={() => openWorkflow("alert", context)} className={secondaryButton}>Signaler une nouvelle situation</button></div></section>
+    <section className="grid gap-px border border-[var(--mb-neutral-200)] bg-[var(--mb-neutral-200)] sm:grid-cols-3"><QuayValue label="Besoins remontés" value={String(relatedNeeds.length)} /><QuayValue label="Programmes actifs" value={String(relatedPrograms.length)} /><QuayValue label="Opportunités finançables" value={String(financeable)} /></section>
+    <section className="border-l-4 border-[var(--mb-ocean-600)] bg-[#edf6f8] p-4"><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mb-ocean-600)]">Action recommandée</p><h3 className="mt-2 text-[15px] font-semibold text-[var(--mb-navy-900)]">{priorityDossier?.nextAction ?? "Documenter la situation du quai"}</h3><p className="mt-2 text-[11px] leading-5 text-[var(--mb-neutral-600)]">{priorityDossier ? `${priorityDossier.businessStatus}. L’action ouvre le dossier ${priorityDossier.id} et conserve la trace du traitement.` : "Aucun dossier actif : créer un signalement uniquement si un fait nouveau doit être instruit."}</p><div className="mt-4 flex flex-wrap gap-2">{priorityDossier ? <button onClick={() => onOpenDossier(priorityDossier)} className={primaryButton}>Ouvrir le dossier prioritaire</button> : null}<button onClick={() => openWorkflow("alert", context)} className={secondaryButton}>Signaler une nouvelle situation</button><button onClick={() => onViewCommunity(quay.id)} className={secondaryButton}>Voir les besoins et programmes de ce quai</button></div></section>
     <section className="grid gap-4 border-y border-[var(--mb-neutral-200)] py-4 sm:grid-cols-2"><PosteOfficielPanel poste={quayPosts.find((poste) => poste.quayId === quay.id)} /><ReferentsPanel referents={fieldReferents.filter((referent) => referent.quayId === quay.id && referent.status === "Actif")} /></section>
     <section className="flex flex-wrap items-center justify-between gap-3 border border-[var(--mb-neutral-200)] p-4"><div><h3 className="text-[12px] font-semibold text-[var(--mb-navy-900)]">Consultation & transmission</h3><p className="mt-1 text-[10px] text-[var(--mb-neutral-600)]">{report ? "Un rapport existe déjà et peut être relu." : `${artifacts.filter((item) => item.scope === quay.name).length} preuve(s) ou export(s) rattaché(s).`}</p></div><button onClick={() => openWorkflow("export-zone", context)} className={secondaryButton}>{report ? "Relire ou actualiser le rapport" : "Préparer le rapport du quai"}</button></section>
     {quay.id === "kayar" ? <button onClick={onResetKayar} className="justify-self-start text-[10px] font-bold text-[var(--mb-ocean-600)] hover:underline">Recommencer le scénario Kayar</button> : null}
@@ -178,4 +185,8 @@ function RecordRow({ title, detail, level, trust }: { title: string; detail: str
 
 function Fact({ label, value }: { label: string; value: string }) {
   return <div><dt className="text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--mb-neutral-500)]">{label}</dt><dd className="mt-1 font-semibold text-[var(--mb-navy-900)]">{value}</dd></div>;
+}
+
+function QuayValue({ label, value }: { label: string; value: string }) {
+  return <div className="bg-white p-3"><strong className="font-mono text-[19px] text-[var(--mb-navy-900)]">{value}</strong><p className="mt-1 text-[9px] font-semibold text-[var(--mb-neutral-500)]">{label}</p></div>;
 }

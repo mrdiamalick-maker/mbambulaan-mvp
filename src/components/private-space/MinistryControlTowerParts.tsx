@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { DataTrustLevel, Landing, Level, MapAlert, Pirogue, Quay } from "@/data/ministryControlTowerData";
 
-export type WorkspaceId = "atlas" | "dossiers" | "pilotage";
+export type WorkspaceId = "pilotage" | "atlas" | "community";
 export type MapLayerId = "quays" | "pirogues" | "landings" | "alerts" | "incidents";
 
 const levelLabel: Record<Level, string> = { normal: "Vérifié", surveillance: "Vigilance", urgent: "Critique" };
@@ -46,21 +46,21 @@ function DemoDisclosure() {
   return <details className="border-b border-[var(--mb-neutral-200)] bg-white px-3 py-1.5 text-[10px] text-[var(--mb-neutral-600)] sm:px-4"><summary className="cursor-pointer font-semibold text-[var(--mb-navy-700)]">À propos de cette démonstration</summary><p className="mt-1 max-w-4xl pb-1 leading-4">Modèle de coordination sur données locales simulées, paramétrable avec les services du Ministère après cadrage. Les validations et transmissions restent humaines.</p></details>;
 }
 
-export function TopBar({ notice, onExport }: { notice: string; onExport: () => void }) {
-  return <header className="flex h-[52px] items-center justify-between gap-4 border-b border-white/10 bg-[linear-gradient(100deg,var(--mb-navy-900),#0d263d)] px-3 text-white sm:px-4"><div className="flex min-w-0 items-center gap-3"><Link href="/" className="grid h-7 w-7 shrink-0 place-items-center rounded-[2px] bg-[var(--mb-sand-300)] text-[10px] font-black text-[var(--mb-navy-900)]">Mb</Link><div className="min-w-0"><p className="truncate text-[12px] font-bold">Console de Coordination Maritime</p><p className="truncate text-[10px] text-white/55">Ministère des Pêches · Pêche artisanale sénégalaise</p></div></div><div className="hidden min-w-0 items-center gap-4 md:flex"><span className="inline-flex items-center gap-2 font-mono text-[10px] text-white/70"><span className="h-1.5 w-1.5 rounded-full bg-[var(--mb-ocean-400)]" />Données de démonstration</span><span className="truncate font-mono text-[10px] text-white/55">{notice}</span></div><button onClick={onExport} className="h-8 shrink-0 rounded-[3px] border border-white/20 px-3 text-[11px] font-bold text-white hover:bg-white/5">Exporter le dossier de synthèse</button></header>;
+export function TopBar({ notice, activeDossiers, assistanceEnabled, onOpenDossiers, onToggleAssistance, onExport }: { notice: string; activeDossiers: number; assistanceEnabled: boolean; onOpenDossiers: () => void; onToggleAssistance: () => void; onExport: () => void }) {
+  return <header className="flex h-[52px] items-center justify-between gap-3 border-b border-white/10 bg-[linear-gradient(100deg,var(--mb-navy-900),#0d263d)] px-3 text-white sm:px-4"><div className="flex min-w-0 items-center gap-3"><Link href="/" className="grid h-7 w-7 shrink-0 place-items-center rounded-[2px] bg-[var(--mb-sand-300)] text-[10px] font-black text-[var(--mb-navy-900)]">Mb</Link><div className="min-w-0"><p className="truncate text-[12px] font-bold">Console de Coordination Maritime</p><p className="truncate text-[10px] text-white/55">Ministère des Pêches · Pêche artisanale sénégalaise</p></div></div><div className="hidden min-w-0 items-center gap-3 xl:flex"><span className="inline-flex items-center gap-2 font-mono text-[10px] text-white/70"><span className="h-1.5 w-1.5 rounded-full bg-[var(--mb-ocean-400)]" />Données simulées</span><span className="max-w-56 truncate font-mono text-[10px] text-white/55">{notice}</span></div><div className="flex shrink-0 items-center gap-1.5"><button type="button" onClick={onToggleAssistance} aria-pressed={assistanceEnabled} className={`hidden h-8 rounded-[3px] border px-2.5 text-[10px] font-bold sm:inline-flex sm:items-center ${assistanceEnabled ? "border-[var(--mb-ocean-400)] bg-[var(--mb-ocean-400)]/15 text-white" : "border-white/15 text-white/65 hover:text-white"}`}>Assistance · {assistanceEnabled ? "activée" : "désactivée"}</button><button type="button" onClick={onOpenDossiers} className="h-8 rounded-[3px] border border-[var(--mb-sand-300)]/45 bg-[var(--mb-sand-300)]/10 px-2.5 text-[10px] font-bold text-[var(--mb-sand-300)] hover:bg-[var(--mb-sand-300)]/20">Dossiers à traiter · {activeDossiers}</button><button onClick={onExport} className="hidden h-8 rounded-[3px] border border-white/20 px-2.5 text-[10px] font-bold text-white hover:bg-white/5 md:block">Exporter</button></div></header>;
 }
 
 export function NavigationRail({ active, onChange }: { active: WorkspaceId; onChange: (id: WorkspaceId) => void }) {
   const items: Array<{ id: WorkspaceId; code: string; label: string }> = [
-    { id: "atlas", code: "AT", label: "Atlas" },
-    { id: "dossiers", code: "DO", label: "Dossiers" },
     { id: "pilotage", code: "PI", label: "Pilotage" },
+    { id: "atlas", code: "AT", label: "Atlas" },
+    { id: "community", code: "CP", label: "Communautés & Programmes" },
   ];
   return <aside className="flex h-full flex-col border-r border-white/10 bg-[linear-gradient(180deg,var(--mb-navy-700),#143653)] text-white"><nav className="grid gap-px py-2">{items.map((item) => <button key={item.id} onClick={() => onChange(item.id)} title={item.label} className={`relative grid h-[68px] place-items-center border-l-2 px-1 transition-colors duration-100 ${active === item.id ? "border-[var(--mb-ocean-400)] bg-white/10" : "border-transparent text-white/55 hover:bg-white/5 hover:text-white"}`}><span className="font-mono text-[12px] font-bold">{item.code}</span><span className="sr-only">{item.label}</span></button>)}</nav><div className="mt-auto border-t border-white/10 p-2"><Link href="/espace-prive" title="Quitter la console" className="grid h-11 place-items-center font-mono text-[10px] text-white/55 hover:text-white">←</Link></div></aside>;
 }
 
 export function MobileWorkspaceNav({ active, onChange }: { active: WorkspaceId; onChange: (id: WorkspaceId) => void }) {
-  const items: Array<[WorkspaceId, string]> = [["atlas", "Atlas"], ["dossiers", "Dossiers"], ["pilotage", "Pilotage"]];
+  const items: Array<[WorkspaceId, string]> = [["pilotage", "Pilotage"], ["atlas", "Atlas"], ["community", "Communautés & programmes"]];
   return <nav className="grid grid-cols-3 border-b border-[var(--mb-neutral-200)] bg-[var(--mb-navy-700)] lg:hidden">{items.map(([id, label]) => <button key={id} onClick={() => onChange(id)} className={`min-h-11 border-b-2 px-1 text-[10px] font-bold ${active === id ? "border-[var(--mb-ocean-400)] text-white" : "border-transparent text-white/60"}`}>{label}</button>)}</nav>;
 }
 
