@@ -39,13 +39,22 @@ Les manques ou incohérences à traiter :
 
 ## Objectif
 
-Livrer un ensemble public cohérent et démontrable demain, sans diluer le cœur Ministère :
+Livrer deux univers clairement séparés : un site public accessible à tous, et une console réservée au Ministère. Le site public doit être cohérent et démontrable demain, sans diluer le cœur Ministère :
 
 1. **Landing** — promettre et orienter.
 2. **Découvrir Mbàmbulaan** — vulgariser la pêche artisanale, montrer initiatives, ressources et possibilités de collaboration.
-3. **Collaborer** — qualifier localement un atelier, un partenariat, un financement ou une collaboration sans simuler un envoi.
+3. **Contact public** — permettre à tout visiteur de préciser simplement l’objet de sa demande sans simuler un envoi.
 4. **Accès Ministère** — présenter exactement la même architecture que la console.
 5. **Console** — rester intacte sur le fond.
+
+## Architecture impérative
+
+Il n’existe que deux univers :
+
+- **Site public accessible à tous** : `/`, `/decouvrir`, `/contact` ;
+- **Console Ministère** : `/espace-prive`, puis `/espace-prive/etat`.
+
+`/decouvrir` et `/contact` sont des pages du site public, jamais des espaces ou produits séparés.
 
 ## Périmètre impératif
 
@@ -91,11 +100,11 @@ La page doit contenir au maximum cinq sections :
 4. **Initiatives et programmes**
    - reprendre les thèmes existants : sécurité en mer, sensibilisation, formation, chaîne de froid, femmes transformatrices, jeunes et pêche durable ;
    - montrer territoire, bénéficiaires, résultat attendu et partenaire potentiel ;
-   - relier élégamment vers `/collaborer`.
+   - relier élégamment vers `/contact`.
 
-5. **Collaborer**
-   - trois portes d’entrée : atelier Ministère, partenariat/bailleur, programme communautaire ;
-   - CTA unique vers `/collaborer`.
+5. **Nous contacter**
+   - formulaire public unique avec quatre objets possibles : atelier Ministère, partenariat/bailleur, programme ou financement, autre demande ;
+   - CTA unique vers `/contact`.
 
 Réutiliser les tokens et le langage visuel de `InstitutionalLanding.tsx` : bleu marine, océan, sable, fond clair, bordures fines, boutons rectangulaires sobres. Ne pas utiliser l’ancien template cyan arrondi.
 
@@ -129,25 +138,25 @@ Ajouter une navigation publique simple :
 
 - Découvrir ;
 - Voir la démonstration ;
-- Demander un atelier ;
+- Nous contacter ;
 - Accès Ministère.
 
 Les liens doivent pointer respectivement vers :
 
 - `/decouvrir` ;
 - `/espace-prive/etat` ;
-- `/collaborer` ;
+- `/contact` ;
 - `/espace-prive`.
 
 Sur mobile, garder une navigation compacte sans débordement.
 
 Ne pas augmenter le nombre actuel de grandes sections de la landing.
 
-### 5. Créer la route canonique `/collaborer` et conserver la compatibilité
+### 5. Créer la page publique `/contact` et conserver la compatibilité
 
-Créer `src/app/collaborer/page.tsx` comme destination publique canonique. La route historique `/demande-demo` ne doit plus être promue dans l’interface : la conserver comme redirection Next.js vers `/collaborer` afin de ne casser aucun lien existant.
+Créer `src/app/contact/page.tsx` comme simple page fonctionnelle du site public, et non comme un troisième espace produit. La route historique `/demande-demo` ne doit plus être promue dans l’interface : la conserver comme redirection Next.js vers `/contact` afin de ne casser aucun lien existant.
 
-La page `/collaborer` doit couvrir quatre intentions :
+La page `/contact` doit couvrir quatre objets de demande :
 
 - atelier Ministère ;
 - partenariat ou bailleur ;
@@ -183,8 +192,8 @@ Aucune nouvelle dépendance.
 ## Fichiers probables
 
 - `src/app/espace-prive/page.tsx`
-- `src/app/collaborer/page.tsx` — nouveau, route canonique
-- `src/app/demande-demo/page.tsx` — redirection de compatibilité vers `/collaborer`
+- `src/app/contact/page.tsx` — nouvelle page publique
+- `src/app/demande-demo/page.tsx` — redirection de compatibilité vers `/contact`
 - `src/app/decouvrir/page.tsx` — nouveau
 - `src/components/landing/InstitutionalLanding.tsx`
 - éventuellement un seul composant client dédié au formulaire public
@@ -199,9 +208,9 @@ En ouvrant `/`, un partenaire doit comprendre en moins de 15 secondes :
 - l’Atlas, les dossiers et les preuves restent dans la console institutionnelle ;
 - l’espace public partage connaissances, initiatives et possibilités de collaboration.
 
-Le parcours public doit fonctionner. `/collaborer` est le nom métier canonique ; `/demande-demo` n’est qu’un alias historique :
+Le site public forme un seul univers accessible à tous. `/contact` est une fonction de ce site, pas un espace distinct ; `/demande-demo` n’est qu’un alias historique :
 
-`/ → /decouvrir → /collaborer → /espace-prive → /espace-prive/etat`
+`/ → /decouvrir → /contact`, puis accès séparé à la console via `/espace-prive → /espace-prive/etat`
 
 Le parcours console existant doit rester fonctionnel :
 
@@ -227,8 +236,8 @@ Vérifier les routes :
 
 - `/`
 - `/decouvrir`
-- `/collaborer`
-- `/demande-demo` — redirection vers `/collaborer`
+- `/contact`
+- `/demande-demo` — redirection vers `/contact`
 - `/espace-prive`
 - `/espace-prive/etat`
 
