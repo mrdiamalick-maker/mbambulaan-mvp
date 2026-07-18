@@ -13,10 +13,6 @@ import {
   type FundingRequest,
   type FundingDossierRecord,
   type GeneratedArtifact,
-  type PartnerRelationship,
-  type PartnerSolicitation,
-  type ProgramAssociation,
-  type QualifiedNeedRecord,
   type DecisionRecord,
   type SignalRecord,
   type VerificationTask,
@@ -32,13 +28,9 @@ import {
 } from "./MinistryControlTowerParts";
 import {
   AlertCreationForm,
-  FullRecordPanel,
   FundingRequestForm,
   InstitutionalExportForm,
   InstitutionalNoteBuilder,
-  PartnerMobilizationForm,
-  ProgramAssociationForm,
-  QualificationForm,
   VerificationDrawer,
   ZoneExportForm,
   type WorkflowContext,
@@ -66,13 +58,9 @@ export function MinistryControlTower() {
   const [artifacts, setArtifacts] = useState<GeneratedArtifact[]>(initialGeneratedArtifacts);
   const [opportunities, setOpportunities] = useState<FundingOpportunity[]>(initialFundingOpportunities);
   const [, setFundingRequests] = useState<FundingRequest[]>([]);
-  const [, setQualifiedNeeds] = useState<QualifiedNeedRecord[]>([]);
-  const [, setPartnerSolicitations] = useState<PartnerSolicitation[]>([]);
-  const [, setProgramAssociations] = useState<ProgramAssociation[]>([]);
   const [createdAlerts, setCreatedAlerts] = useState<MapAlert[]>([]);
   const [verifiedIds, setVerifiedIds] = useState<string[]>([]);
   const [fundingDossiers, setFundingDossiers] = useState<FundingDossierRecord[]>([]);
-  const [, setPartnerRelationships] = useState<PartnerRelationship[]>([]);
   const [verificationTasks, setVerificationTasks] = useState<VerificationTask[]>([]);
   const [signalRecords, setSignalRecords] = useState<SignalRecord[]>([]);
   const [decisionRecords, setDecisionRecords] = useState<DecisionRecord[]>([]);
@@ -123,19 +111,6 @@ export function MinistryControlTower() {
         artifactId: artifact.id,
       }, ...items]);
     }
-    if (artifact.kind === "qualification") {
-      setQualifiedNeeds((items) => [{
-        id: `qualified-${Date.now()}`,
-        sourceNeedId: context?.needId || context?.sourceId || "need-1",
-        category: values.category,
-        actorsAffected: Number(values.actorsAffected || 0),
-        estimatedAmount: Number(values.estimatedAmount || 0),
-        maturityScore: Number(values.maturityScore || 0),
-        community: values.community,
-        validator: values.validator,
-        artifactId: artifact.id,
-      }, ...items.filter((item) => item.sourceNeedId !== (context?.needId || context?.sourceId))]);
-    }
     if (artifact.kind === "funding") {
       const opportunityId = context?.sourceId || opportunities[0].id;
       const needId = context?.needId || opportunities.find((item) => item.id === opportunityId)?.needId || "need-1";
@@ -156,36 +131,12 @@ export function MinistryControlTower() {
       setFundingDossiers((items) => [{ id: dossierId, needId, title: values.sourceNeed, amountRequested: Number(values.amountRequested || 0), targetPartner: values.targetFunder, status: "Transmission à confirmer", owner: values.ministryUnit, updatedAt: "à l’instant", nextAction: "Confirmer la transmission manuelle", trustLevel: "verified", artifactId: artifact.id }, ...items]);
       setOpportunities((items) => items.map((item) => item.id === opportunityId ? { ...item, status: "Dossier constitué" } : item));
     }
-    if (artifact.kind === "partner") {
-      setPartnerSolicitations((items) => [{
-        id: `partner-request-${Date.now()}`,
-        partner: values.partner,
-        supportType: values.supportType,
-        requestedContribution: values.requestedContribution,
-        responseDate: values.responseDate,
-        owner: values.owner,
-        status: "Brouillon",
-        artifactId: artifact.id,
-      }, ...items]);
-      setPartnerRelationships((items) => [{ id: `relationship-${Date.now()}`, partnerName: values.partner, category: values.partnerCategory as PartnerRelationship["category"], interestTags: [values.supportType, context?.scope || "Territoire"], compatibilityReason: context?.description || "Partenaire compatible avec le besoin qualifié", status: "Sollicitation préparée", lastInteractionDate: "Préparation locale", followUpDueDate: values.responseDate, owner: values.owner, dossierId: fundingDossiers.find((dossier) => dossier.needId === context?.needId)?.id }, ...items]);
-    }
     if (artifact.kind === "export-zone") {
       setZoneReports((items) => [{ id: `report-${Date.now()}`, title: artifact.title, zone: context?.scope || artifact.scope, period: values.period, author: values.validator, generatedAt: artifact.createdAt, trustLevel: "consolidated", linkedObjectsCount: 8, purpose: values.description, artifactId: artifact.id }, ...items]);
     }
     if (artifact.kind === "note") {
       const recommendations = (values.recommendations || "Arbitrer les actions prioritaires").split(/[.;]\s*/).filter(Boolean).slice(0, 3);
       setDecisionRecords((items) => [...recommendations.map((recommendation, index) => ({ id: `decision-${Date.now()}-${index}`, noteTitle: artifact.title, recommendation, status: "À arbitrer" as const, priority: index === 0 ? "Urgente" as const : "Prioritaire" as const, source: context?.scope || "Synthèse nationale", owner: "Cabinet / direction technique", createdAt: artifact.createdAt, nextAction: "Enregistrer l’arbitrage", artifactId: artifact.id })), ...items]);
-    }
-    if (artifact.kind === "program") {
-      setProgramAssociations((items) => [{
-        id: `program-link-${Date.now()}`,
-        sourceId: context?.sourceId || "need-1",
-        program: values.program,
-        owner: values.owner,
-        nextMilestone: values.nextMilestone,
-        expectedImpact: values.expectedImpact,
-        artifactId: artifact.id,
-      }, ...items]);
     }
   }
 
@@ -271,12 +222,8 @@ export function MinistryControlTower() {
 function WorkflowRenderer({ kind, ...props }: { kind: WorkflowKind; context: WorkflowContext; onClose: () => void; onComplete: (artifact: GeneratedArtifact, values: Record<string, string>) => void }) {
   if (kind === "verification") return <VerificationDrawer {...props} />;
   if (kind === "alert") return <AlertCreationForm {...props} />;
-  if (kind === "full-record") return <FullRecordPanel {...props} />;
   if (kind === "export-zone") return <ZoneExportForm {...props} />;
-  if (kind === "qualification") return <QualificationForm {...props} />;
   if (kind === "funding") return <FundingRequestForm {...props} />;
-  if (kind === "program") return <ProgramAssociationForm {...props} />;
-  if (kind === "partner") return <PartnerMobilizationForm {...props} />;
   if (kind === "note") return <InstitutionalNoteBuilder {...props} />;
   return <InstitutionalExportForm {...props} />;
 }
