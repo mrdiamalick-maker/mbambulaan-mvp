@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PublicSiteHeader } from "@/components/public/PublicSiteHeader";
 
 const capabilities = [
   ["Pilotage", "Lire la situation nationale, concentrer l’action et préparer une décision reliée à ses preuves."],
@@ -23,7 +24,7 @@ const benefits = [
 
 export function InstitutionalLanding() {
   return <main className="min-h-screen overflow-hidden bg-[var(--mb-offwhite)] text-[var(--mb-neutral-900)]">
-    <Header />
+    <PublicSiteHeader />
     <Hero />
     <Problem />
     <Capabilities />
@@ -31,18 +32,6 @@ export function InstitutionalLanding() {
     <Benefits />
     <FinalCta />
   </main>;
-}
-
-function Header() {
-  return <header className="border-b border-[var(--mb-neutral-200)] bg-white">
-    <div className="mx-auto flex h-16 max-w-[84rem] items-center justify-between px-5 sm:px-8 lg:px-10">
-      <Link href="/" className="flex items-center gap-3" aria-label="Accueil Mbàmbulaan">
-        <span className="grid h-9 w-9 place-items-center rounded-[3px] bg-[var(--mb-navy-900)] text-[11px] font-black text-white">Mb</span>
-        <span><strong className="block text-[15px] text-[var(--mb-navy-900)]">Mbàmbulaan</strong><span className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--mb-neutral-400)]">Coordination maritime</span></span>
-      </Link>
-      <Link href="/demande-demo" className="inline-flex h-9 items-center rounded-[3px] border border-[var(--mb-neutral-200)] px-4 text-[11px] font-bold text-[var(--mb-navy-900)] hover:bg-[var(--mb-foam)]">Demander un atelier</Link>
-    </div>
-  </header>;
 }
 
 function Hero() {
@@ -54,7 +43,7 @@ function Hero() {
         <h1 className="mt-6 text-[clamp(2.6rem,5.6vw,5.2rem)] font-semibold leading-[.98] tracking-[-0.02em] text-[var(--mb-navy-900)]">Voir la filière. Écouter le terrain. Décider avec des preuves.</h1>
         <p className="mt-7 max-w-2xl text-[16px] leading-7 text-[var(--mb-neutral-600)]">Mbàmbulaan transforme les signaux des quais et les besoins des communautés en programmes finançables, dossiers traçables et décisions documentées.</p>
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-          <Link href="/demande-demo" className="inline-flex h-12 items-center justify-center rounded-[3px] bg-[var(--mb-navy-700)] px-5 text-[12px] font-bold text-white hover:bg-[var(--mb-navy-900)]">Demander un atelier de cadrage</Link>
+          <Link href="/contact" className="inline-flex h-12 items-center justify-center rounded-[3px] bg-[var(--mb-navy-700)] px-5 text-[12px] font-bold text-white hover:bg-[var(--mb-navy-900)]">Demander un atelier de cadrage</Link>
           <Link href="/espace-prive/etat" className="inline-flex h-12 items-center justify-center rounded-[3px] border border-[var(--mb-ocean-600)]/30 bg-white px-5 text-[12px] font-bold text-[var(--mb-navy-900)] hover:bg-[var(--mb-foam)]">Voir la démonstration</Link>
         </div>
       </div>
@@ -116,9 +105,8 @@ function FinalCta() {
   return <section className="bg-white">
     <div className="mx-auto flex max-w-[84rem] flex-col items-start justify-between gap-8 px-5 py-16 sm:px-8 lg:flex-row lg:items-end lg:px-10 lg:py-20">
       <div><p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--mb-ocean-600)]">Prochaine étape</p><h2 className="mt-4 max-w-3xl text-[32px] font-semibold leading-tight text-[var(--mb-navy-900)]">Cadrer un pilote autour d’un territoire, de ses relais et de ses décisions prioritaires.</h2></div>
-      <div className="flex flex-col gap-3 sm:flex-row"><Link href="/demande-demo" className="inline-flex h-11 items-center justify-center rounded-[3px] bg-[var(--mb-navy-700)] px-5 text-[11px] font-bold text-white">Demander un atelier de cadrage</Link><Link href="/espace-prive/etat" className="inline-flex h-11 items-center justify-center rounded-[3px] border border-[var(--mb-neutral-200)] px-5 text-[11px] font-bold text-[var(--mb-navy-900)]">Voir la démonstration</Link></div>
+      <div className="flex flex-col gap-3 sm:flex-row"><Link href="/contact" className="inline-flex h-11 items-center justify-center rounded-[3px] bg-[var(--mb-navy-700)] px-5 text-[11px] font-bold text-white">Demander un atelier de cadrage</Link><Link href="/espace-prive/etat" className="inline-flex h-11 items-center justify-center rounded-[3px] border border-[var(--mb-neutral-200)] px-5 text-[11px] font-bold text-[var(--mb-navy-900)]">Voir la démonstration</Link></div>
     </div>
-    <footer className="border-t border-[var(--mb-neutral-200)] px-5 py-5 text-center text-[10px] text-[var(--mb-neutral-400)]">© 2026 Mbàmbulaan · Démonstration sur données locales simulées</footer>
   </section>;
 }
 

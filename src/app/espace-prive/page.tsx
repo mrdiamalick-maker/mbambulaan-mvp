@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 const missionLines = [
-  ["Atlas maritime", "Observer les quais, les pirogues, les débarquements et les alertes."],
-  ["Filière & Financement", "Qualifier les besoins, rapprocher les partenaires et produire des dossiers transmissibles."],
-  ["Pilotage institutionnel", "Arbitrer, tracer les décisions et préparer les transmissions."],
+  ["Pilotage", "Lire la situation nationale, prioriser et préparer les décisions."],
+  ["Atlas", "Superviser les quais, l’activité, les pirogues et les situations territoriales."],
+  ["Communautés & Programmes", "Transformer les besoins remontés en programmes, financements et partenariats."],
 ];
 
 export default function EspacePrivePortalPage() {

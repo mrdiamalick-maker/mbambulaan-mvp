@@ -1,0 +1,11 @@
+import Link from "next/link";
+import { PublicContactForm } from "@/components/public/PublicContactForm";
+import { PublicSiteHeader } from "@/components/public/PublicSiteHeader";
+
+export default function ContactPage() {
+  return <main className="min-h-screen bg-[var(--mb-offwhite)] text-[var(--mb-neutral-900)]">
+    <PublicSiteHeader />
+    <section className="border-b border-[var(--mb-neutral-200)] bg-white"><div className="mx-auto grid max-w-[84rem] gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,.55fr)] lg:px-10 lg:py-20"><div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--mb-ocean-600)]">Nous contacter</p><h1 className="mt-5 max-w-3xl text-[clamp(2.3rem,4.5vw,4rem)] font-semibold leading-[1.04] text-[var(--mb-navy-900)]">Préparer une collaboration utile à la filière.</h1><p className="mt-5 max-w-2xl text-[14px] leading-7 text-[var(--mb-neutral-600)]">Précisez votre organisation, le territoire concerné et le résultat recherché. Cette démonstration prépare un récapitulatif local sans transmettre vos informations.</p></div><div className="border-l-2 border-[var(--mb-sand-300)] pl-5"><p className="text-[11px] font-bold text-[var(--mb-navy-900)]">Quatre objets possibles</p><ul className="mt-4 space-y-2 text-[11px] leading-5 text-[var(--mb-neutral-600)]"><li>Atelier Ministère</li><li>Partenariat ou bailleur</li><li>Programme ou financement</li><li>Collaboration générale</li></ul><Link href="/decouvrir" className="mt-5 inline-flex text-[11px] font-bold text-[var(--mb-ocean-600)]">Découvrir les initiatives →</Link></div></div></section>
+    <section><div className="mx-auto grid max-w-[84rem] gap-8 px-5 py-14 sm:px-8 lg:grid-cols-[minmax(15rem,.45fr)_minmax(0,1fr)] lg:px-10 lg:py-20"><div><h2 className="text-[22px] font-semibold text-[var(--mb-navy-900)]">Votre demande</h2><p className="mt-4 text-[12px] leading-6 text-[var(--mb-neutral-600)]">Le cadrage permettra ensuite de confirmer les interlocuteurs, les canaux officiels et les modalités de collaboration.</p><div className="mt-7 border-t border-[var(--mb-neutral-200)] pt-5 font-mono text-[9px] leading-4 text-[var(--mb-neutral-400)]">Démonstration locale<br />Sans backend · sans envoi réseau</div></div><PublicContactForm /></div></section>
+  </main>;
+}
