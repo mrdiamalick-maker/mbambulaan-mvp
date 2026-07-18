@@ -154,6 +154,8 @@ export type SignalRecord = {
   receivingCell: string;
   messageType: string;
   attachmentHint: string;
+  nature: "Information" | "Alerte préventive" | "Incident" | "Besoin filière";
+  treatmentStatus: "Signalée" | "À qualifier" | "À traiter" | "En vérification" | "Vérifiée" | "Clôturée";
   criticality: "Normale" | "Vigilance" | "Critique";
   trustLevel: "raw" | "declared";
   status: "Signalé" | "Qualifié" | "En traitement" | "Clôturé" | "Escaladé en alerte";

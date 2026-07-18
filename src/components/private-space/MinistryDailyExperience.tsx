@@ -35,11 +35,11 @@ export function TodayView({ role, dossiers, opportunities, onNavigate, onOpenDos
   const financeableBeneficiaries = financeable.reduce((sum, item) => sum + item.beneficiaries, 0);
   const availablePieces = dossiers.reduce((sum, dossier) => sum + dossier.pieces.filter((piece) => piece.status === "Disponible").length, 0);
   const moduleItems = [
-    { id: "map" as const, title: "Atlas maritime", count: dossiers.filter((dossier) => ["Vérification", "Incident"].includes(dossier.type) && dossier.workStatus !== "Terminé").length, detail: "Dossiers à vérifier" },
-    { id: "community" as const, title: "Filière & Financement", count: dossiers.filter((dossier) => dossier.type === "Financement" && dossier.workStatus !== "Terminé").length, detail: "Dossiers prêts à instruire" },
-    { id: "tracking" as const, title: "Pilotage institutionnel", count: dossiers.filter((dossier) => ["Rapport", "Note"].includes(dossier.type) && dossier.workStatus !== "Terminé").length, detail: "Dossiers à arbitrer" },
+    { id: "atlas" as const, title: "Atlas", count: dossiers.filter((dossier) => dossier.type === "Situation terrain" && dossier.workStatus !== "Terminé").length, detail: "Situations territoriales" },
+    { id: "dossiers" as const, title: "Dossiers", count: dossiers.filter((dossier) => dossier.type === "Besoin filière" && dossier.workStatus !== "Terminé").length, detail: "Besoins à instruire" },
+    { id: "pilotage" as const, title: "Pilotage", count: dossiers.filter((dossier) => dossier.type === "Décision institutionnelle" && dossier.workStatus !== "Terminé").length, detail: "Décisions à arbitrer" },
   ];
-  const moduleOrder = role === "Ministère" ? ["tracking", "community", "map"] : role === "Direction régionale" ? ["map", "community", "tracking"] : ["community", "tracking", "map"];
+  const moduleOrder = role === "Ministère" ? ["pilotage", "dossiers", "atlas"] : role === "Direction régionale" ? ["atlas", "dossiers", "pilotage"] : ["dossiers", "pilotage", "atlas"];
   const modules = moduleOrder.map((id) => moduleItems.find((item) => item.id === id)!).filter(Boolean);
   const roleIntro = role === "Ministère" ? "Dossiers à arbitrer, financer ou suivre au niveau national." : role === "Direction régionale" ? "Vérifications, incidents et rapports confiés à la direction régionale." : "Dossiers finançables, preuves et documents utiles au partenaire.";
   const pageTitle = role === "Ministère" ? "Situation nationale" : role === "Direction régionale" ? "Briefing régional" : "Portefeuille finançable";

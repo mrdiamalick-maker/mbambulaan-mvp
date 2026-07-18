@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { DataTrustLevel, Landing, Level, MapAlert, Pirogue, Quay } from "@/data/ministryControlTowerData";
 
-export type WorkspaceId = "today" | "map" | "community" | "tracking";
+export type WorkspaceId = "atlas" | "dossiers" | "pilotage";
 export type MapLayerId = "quays" | "pirogues" | "landings" | "alerts" | "incidents";
 
 const levelLabel: Record<Level, string> = { normal: "Vérifié", surveillance: "Vigilance", urgent: "Critique" };
@@ -48,17 +48,16 @@ export function TopBar({ notice, onExport }: { notice: string; onExport: () => v
 
 export function NavigationRail({ active, onChange }: { active: WorkspaceId; onChange: (id: WorkspaceId) => void }) {
   const items: Array<{ id: WorkspaceId; code: string; label: string }> = [
-    { id: "today", code: "BJ", label: "Briefing du jour" },
-    { id: "map", code: "AT", label: "Atlas maritime" },
-    { id: "community", code: "FF", label: "Filière & Financement" },
-    { id: "tracking", code: "PI", label: "Pilotage institutionnel" },
+    { id: "atlas", code: "AT", label: "Atlas" },
+    { id: "dossiers", code: "DO", label: "Dossiers" },
+    { id: "pilotage", code: "PI", label: "Pilotage" },
   ];
   return <aside className="flex h-full flex-col border-r border-white/10 bg-[linear-gradient(180deg,var(--mb-navy-700),#143653)] text-white"><nav className="grid gap-px py-2">{items.map((item) => <button key={item.id} onClick={() => onChange(item.id)} title={item.label} className={`relative grid h-[68px] place-items-center border-l-2 px-1 transition-colors duration-100 ${active === item.id ? "border-[var(--mb-ocean-400)] bg-white/10" : "border-transparent text-white/55 hover:bg-white/5 hover:text-white"}`}><span className="font-mono text-[12px] font-bold">{item.code}</span><span className="sr-only">{item.label}</span></button>)}</nav><div className="mt-auto border-t border-white/10 p-2"><Link href="/espace-prive" title="Quitter la console" className="grid h-11 place-items-center font-mono text-[10px] text-white/55 hover:text-white">←</Link></div></aside>;
 }
 
 export function MobileWorkspaceNav({ active, onChange }: { active: WorkspaceId; onChange: (id: WorkspaceId) => void }) {
-  const items: Array<[WorkspaceId, string]> = [["today", "Briefing du jour"], ["map", "Atlas"], ["community", "Financement"], ["tracking", "Pilotage"]];
-  return <nav className="grid grid-cols-4 border-b border-[var(--mb-neutral-200)] bg-[var(--mb-navy-700)] lg:hidden">{items.map(([id, label]) => <button key={id} onClick={() => onChange(id)} className={`min-h-10 border-b-2 px-1 text-[9px] font-bold ${active === id ? "border-[var(--mb-ocean-400)] text-white" : "border-transparent text-white/55"}`}>{label}</button>)}</nav>;
+  const items: Array<[WorkspaceId, string]> = [["atlas", "Atlas"], ["dossiers", "Dossiers"], ["pilotage", "Pilotage"]];
+  return <nav className="grid grid-cols-3 border-b border-[var(--mb-neutral-200)] bg-[var(--mb-navy-700)] lg:hidden">{items.map(([id, label]) => <button key={id} onClick={() => onChange(id)} className={`min-h-11 border-b-2 px-1 text-[10px] font-bold ${active === id ? "border-[var(--mb-ocean-400)] text-white" : "border-transparent text-white/60"}`}>{label}</button>)}</nav>;
 }
 
 export function WorkspaceHeader({ title, question, scope, onScopeChange, onExport }: { title: string; question: string; scope: string; onScopeChange: (scope: string) => void; onExport: () => void }) {

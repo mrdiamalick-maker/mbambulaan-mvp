@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getQuayActivitySnapshot,
   pirogues,
@@ -21,6 +21,7 @@ type AtlasMode = "quays" | "sea";
 
 type Props = {
   scope: Scope;
+  focusQuayId?: string | null;
   setScope: (scope: Scope) => void;
   artifacts: GeneratedArtifact[];
   alerts: MapAlert[];
@@ -33,10 +34,12 @@ type Props = {
   openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
 };
 
-export function MinistryQuayAtlas({ scope, setScope, artifacts, alerts, verifiedIds, verificationTasks, zoneReports, operationalDossiers, onOpenDossier, onResetKayar, openWorkflow }: Props) {
+export function MinistryQuayAtlas({ scope, focusQuayId, setScope, artifacts, alerts, verifiedIds, verificationTasks, zoneReports, operationalDossiers, onOpenDossier, onResetKayar, openWorkflow }: Props) {
   const [mode, setMode] = useState<AtlasMode>("quays");
   const [quayFilter, setQuayFilter] = useState("Tous");
-  const [situationsOnly, setSituationsOnly] = useState(false);
+  const [search, setSearch] = useState("");
+  const [situationFilter, setSituationFilter] = useState<"Tous" | "Normal" | "Vigilance" | "Critique">("Tous");
+  const [recentOnly, setRecentOnly] = useState(false);
   const [selectedQuayId, setSelectedQuayId] = useState<string | null>(null);
   const [selectedEntity, setSelectedEntity] = useState<SelectedAtlasEntity>(null);
   const [selectedBoatId, setSelectedBoatId] = useState<string | null>(null);
@@ -44,14 +47,22 @@ export function MinistryQuayAtlas({ scope, setScope, artifacts, alerts, verified
   const visibleQuays = useMemo(() => quays.filter((quay) => {
     const inScope = scope === "Nationale" || quay.region === scope;
     const matchesQuay = quayFilter === "Tous" || quay.id === quayFilter;
-    const situationCount = alerts.filter((item) => item.quayId === quay.id).length + maritimeIncidents.filter((item) => item.quayId === quay.id && item.status !== "Résolu").length;
-    return inScope && matchesQuay && (!situationsOnly || situationCount > 0);
-  }), [alerts, quayFilter, scope, situationsOnly]);
+    const matchesSearch = !search.trim() || [quay.name, quay.region, quay.commune, ...quay.species].join(" ").toLocaleLowerCase("fr").includes(search.trim().toLocaleLowerCase("fr"));
+    const matchesSituation = situationFilter === "Tous" || (situationFilter === "Normal" && quay.level === "normal") || (situationFilter === "Vigilance" && quay.level === "surveillance") || (situationFilter === "Critique" && quay.level === "urgent");
+    return inScope && matchesQuay && matchesSearch && matchesSituation && (!recentOnly || quay.landingsToday > 0);
+  }), [quayFilter, recentOnly, scope, search, situationFilter]);
   const visibleQuayIds = useMemo(() => new Set(visibleQuays.map((quay) => quay.id)), [visibleQuays]);
   const visiblePirogues = useMemo(() => pirogues.filter((pirogue) => visibleQuayIds.has(pirogue.quayId)), [visibleQuayIds]);
   const selectedQuay = selectedQuayId ? quays.find((quay) => quay.id === selectedQuayId) : undefined;
   const atSeaCount = visiblePirogues.filter((pirogue) => ["atSea", "expectedReturn"].includes(pirogue.cycleStage)).length;
   const activeSituationCount = visibleQuays.reduce((total, quay) => total + alerts.filter((item) => item.quayId === quay.id).length + maritimeIncidents.filter((item) => item.quayId === quay.id && item.status !== "Résolu").length, 0);
+
+  useEffect(() => {
+    if (!focusQuayId) return;
+    setQuayFilter(focusQuayId);
+    setSelectedQuayId(focusQuayId);
+    setSelectedEntity(null);
+  }, [focusQuayId]);
 
   const selectQuay = (id: string) => {
     setSelectedQuayId(id);
@@ -72,8 +83,10 @@ export function MinistryQuayAtlas({ scope, setScope, artifacts, alerts, verified
     </div>
     <FilterStrip>
       <div className="flex border border-[var(--mb-neutral-200)] bg-[var(--mb-offwhite)] p-0.5"><ModeButton active={mode === "quays"} onClick={() => setMode("quays")}>Quais & activité</ModeButton><ModeButton active={mode === "sea"} onClick={() => setMode("sea")}>Suivi en mer</ModeButton></div>
+      <FilterField label="Recherche"><input className={`${inputClass} w-44`} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Quai, région, espèce" /></FilterField>
       <FilterField label="Quai"><select className={inputClass} value={quayFilter} onChange={(event) => { const id = event.target.value; setQuayFilter(id); if (id !== "Tous") selectQuay(id); }}><option>Tous</option>{quays.filter((quay) => scope === "Nationale" || quay.region === scope).map((quay) => <option key={quay.id} value={quay.id}>{quay.name}</option>)}</select></FilterField>
-      <label className="flex h-9 items-center gap-2 border border-[var(--mb-neutral-200)] bg-white px-3 text-[11px] font-bold text-[var(--mb-neutral-700)]"><input type="checkbox" checked={situationsOnly} onChange={(event) => setSituationsOnly(event.target.checked)} className="accent-[var(--mb-ocean-600)]" />Situations à traiter</label>
+      <FilterField label="Situation"><select className={inputClass} value={situationFilter} onChange={(event) => setSituationFilter(event.target.value as typeof situationFilter)}><option>Tous</option><option>Normal</option><option>Vigilance</option><option>Critique</option></select></FilterField>
+      <label className="flex h-9 items-center gap-2 border border-[var(--mb-neutral-200)] bg-white px-3 text-[11px] font-bold text-[var(--mb-neutral-700)]"><input type="checkbox" checked={recentOnly} onChange={(event) => setRecentOnly(event.target.checked)} className="accent-[var(--mb-ocean-600)]" />Activité du jour</label>
       <p className="ml-auto self-center text-[10px] text-[var(--mb-neutral-500)]">Cliquez un quai pour ouvrir sa fiche métier.</p>
     </FilterStrip>
     <AtlasMap mode={mode} quays={visibleQuays} pirogues={visiblePirogues} alerts={alerts} selectedBoatId={selectedBoatId} onSelectQuay={selectQuay} onSelectPirogue={selectPirogue} />
@@ -90,7 +103,7 @@ function AtlasMap({ mode, quays: visibleQuays, pirogues: visiblePirogues, alerts
     <div className="absolute left-4 top-4 z-20 border border-white/20 bg-[var(--mb-navy-900)]/92 px-3 py-2 text-white backdrop-blur"><p className="text-[10px] font-bold uppercase tracking-[0.08em]">{mode === "quays" ? "Quais & activité" : "Suivi en mer"}</p><p className="mt-1 text-[10px] text-white/60">Terre · plage · littoral atlantique</p></div>
     {visibleQuays.map((quay) => <QuayMarker key={quay.id} quay={quay} alerts={alerts} onClick={() => onSelectQuay(quay.id)} />)}
     {mode === "sea" ? visiblePirogues.map((pirogue) => <button key={pirogue.id} onClick={() => onSelectPirogue(pirogue)} className={`absolute z-30 -translate-x-1/2 -translate-y-1/2 border px-2 py-1 text-[10px] font-bold ${selectedBoatId === pirogue.id ? "border-white bg-[var(--mb-navy-900)] text-white outline outline-2 outline-[var(--mb-ocean-400)]" : "border-white/80 bg-white/90 text-[var(--mb-navy-900)] hover:bg-white"}`} style={{ left: `${pirogue.x}%`, top: `${pirogue.y}%` }} aria-label={`Ouvrir la pirogue ${pirogue.registration}`}><span aria-hidden="true">◢</span> {pirogue.registration}</button>) : null}
-    {!visibleQuays.length ? <div className="absolute inset-0 z-40 grid place-items-center bg-[var(--mb-navy-900)]/55 p-6 text-center text-white"><div><p className="text-[15px] font-semibold">Aucun quai dans cette sélection</p><p className="mt-2 text-[11px] text-white/70">Élargissez la portée ou désactivez le filtre « Situations à traiter ».</p></div></div> : null}
+    {!visibleQuays.length ? <div className="absolute inset-0 z-40 grid place-items-center bg-[var(--mb-navy-900)]/55 p-6 text-center text-white"><div><p className="text-[15px] font-semibold">Aucun quai dans cette sélection</p><p className="mt-2 text-[11px] text-white/70">Élargissez la région, la recherche ou le niveau de situation.</p></div></div> : null}
   </div>;
 }
 
