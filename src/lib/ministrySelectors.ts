@@ -28,6 +28,34 @@ export type MinistryFilters = {
 const allPrograms = [...communityProjects, ...trainingPrograms];
 const isAll = (value: string) => value === "Tous" || value === "Toutes";
 
+
+const normalizeTerritory = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("fr-FR")
+    .trim();
+
+export function findQuayIdForTerritory(territory: string): string | undefined {
+  const normalizedTerritory = normalizeTerritory(territory);
+
+  const exactQuay = quays.find((quay) =>
+    [quay.id, quay.name].some((value) => {
+      const normalizedValue = normalizeTerritory(value);
+      return (
+        normalizedTerritory === normalizedValue ||
+        normalizedTerritory.includes(normalizedValue)
+      );
+    }),
+  );
+
+  if (exactQuay) return exactQuay.id;
+
+  return quays.find((quay) =>
+    normalizedTerritory.includes(normalizeTerritory(quay.region)),
+  )?.id;
+}
+
 export function needRelations(need: CommunityNeed, opportunities: FundingOpportunity[]) {
   const program = allPrograms.find(
     (item) => item.id === need.programId || item.needIds.includes(need.id),
