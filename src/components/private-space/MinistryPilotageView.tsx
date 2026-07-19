@@ -100,13 +100,13 @@ export function MinistryPilotageView({
           </div>
         </header>
 
-        <section className="mt-4 grid grid-cols-2 border border-[var(--mb-neutral-200)] bg-white md:grid-cols-3 xl:grid-cols-6">
-          <Metric label="Quais actifs" value={`${snapshot.activeQuays}/${snapshot.quays.length}`} detail="Avec débarquement" onClick={() => onViewAtlas(null)} />
-          <Metric label="Pirogues actives" value={String(snapshot.activePirogues)} detail={`${snapshot.atSeaPirogues} suivies en mer`} onClick={() => onViewAtlas(selectedQuayId)} />
-          <Metric label="Débarquements" value={String(snapshot.landingCount)} detail="Sur la période" onClick={() => onViewAtlas(selectedQuayId)} />
-          <Metric label="Volume déclaré" value={`${snapshot.totalVolume.toFixed(1)} t`} detail="Données locales" onClick={() => onViewAtlas(selectedQuayId)} />
-          <Metric label="Espèces observées" value={String(snapshot.speciesCount)} detail="Dans le périmètre" onClick={() => onViewAtlas(selectedQuayId)} />
-          <Metric label="Quais en attention" value={String(snapshot.attentionCount)} detail="Vigilance ou critique" onClick={onOpenDossiers} critical={snapshot.attentionCount > 0} />
+        <section className="mt-4 grid grid-cols-2 border border-[var(--mb-neutral-200)] bg-white md:grid-cols-3 xl:grid-cols-6" aria-label="Indicateurs clés de pilotage">
+          <Metric label="Quais actifs" value={`${snapshot.activeQuays}/${snapshot.quays.length}`} detail="Avec débarquement" />
+          <Metric label="Pirogues actives" value={String(snapshot.activePirogues)} detail={`${snapshot.atSeaPirogues} suivies en mer`} />
+          <Metric label="Débarquements" value={String(snapshot.landingCount)} detail="Sur la période" />
+          <Metric label="Volume déclaré" value={`${snapshot.totalVolume.toFixed(1)} t`} detail="Données locales" />
+          <Metric label="Espèces observées" value={String(snapshot.speciesCount)} detail="Dans le périmètre" />
+          <Metric label="Quais en attention" value={String(snapshot.attentionCount)} detail="Vigilance ou critique" critical={snapshot.attentionCount > 0} />
         </section>
 
         <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(21rem,.85fr)]">
@@ -151,8 +151,8 @@ export function MinistryPilotageView({
   );
 }
 
-function Metric({ label, value, detail, onClick, critical = false }: { label: string; value: string; detail: string; onClick: () => void; critical?: boolean }) {
-  return <button type="button" onClick={onClick} className="min-w-0 border-b border-r border-[var(--mb-neutral-200)] p-3 text-left hover:bg-[var(--mb-foam)]"><span className="text-[9px] font-semibold text-[var(--mb-neutral-600)]">{label}</span><strong className={`mt-2 block font-mono text-[20px] ${critical ? "text-[var(--mb-red-600)]" : "text-[var(--mb-navy-900)]"}`}>{value}</strong><span className="mt-1 block text-[9px] text-[var(--mb-neutral-500)]">{detail}</span></button>;
+function Metric({ label, value, detail, critical = false }: { label: string; value: string; detail: string; critical?: boolean }) {
+  return <article className="min-w-0 border-b border-r border-[var(--mb-neutral-200)] p-3"><span className="text-[9px] font-semibold text-[var(--mb-neutral-600)]">{label}</span><strong className={`mt-2 block font-mono text-[20px] ${critical ? "text-[var(--mb-red-600)]" : "text-[var(--mb-navy-900)]"}`}>{value}</strong><span className="mt-1 block text-[9px] text-[var(--mb-neutral-500)]">{detail}</span></article>;
 }
 
 function Chart({ title, helper, children }: { title: string; helper: string; children: ReactNode }) {
