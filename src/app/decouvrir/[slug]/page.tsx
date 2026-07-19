@@ -29,7 +29,7 @@ export default async function PublicStoryPage({ params }: { params: Promise<{ sl
       <article>
         <header className="border-b border-[var(--mb-neutral-200)] bg-white">
           <div className="mx-auto max-w-[76rem] px-5 pb-12 pt-7 sm:px-8 lg:px-10 lg:pb-16">
-            <nav className="flex flex-wrap items-center gap-2 text-[9px] font-bold uppercase tracking-[0.07em] text-[var(--mb-neutral-400)]" aria-label="Fil d’Ariane">
+            <nav className="flex flex-wrap items-center gap-2 text-[9px] font-bold uppercase tracking-[0.07em] text-[var(--mb-neutral-600)]" aria-label="Fil d’Ariane">
               <Link href="/">Accueil</Link><span>›</span><Link href="/decouvrir">Découvrir</Link><span>›</span><span className="text-[var(--mb-ocean-600)]">{story.category}</span>
             </nav>
             <div className="mt-10 max-w-5xl">
