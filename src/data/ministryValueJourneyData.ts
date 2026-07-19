@@ -234,6 +234,8 @@ export const needMaturityScores: Record<string, number> = {
   "need-4": 58,
   "need-5": 66,
   "need-6": 61,
+  "need-7": 66,
+  "need-8": 52,
 };
 
 export const fundingCoverageByOpportunity: Record<string, { coveredAmount: number; availablePieces: number; partnerStatus: string }> = {

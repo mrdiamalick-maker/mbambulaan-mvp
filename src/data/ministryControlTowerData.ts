@@ -75,10 +75,18 @@ export type MapAlert = {
 
 export type CommunityNeed = {
   id: string;
+  quayId: string;
   need: string;
   region: Region;
   place: string;
   actors: string;
+  audience: string;
+  category: "Sécurité" | "Qualité" | "Équipement" | "Formation" | "Valorisation";
+  beneficiaries: number;
+  maturity: "Signalé" | "Vérifié" | "Qualifié";
+  source: string;
+  channel: "WhatsApp" | "Téléphone" | "Poste de quai" | "Agent territorial" | "Formulaire";
+  programId?: string;
   urgency: Level;
   status: string;
   nextAction: string;
@@ -126,25 +134,31 @@ export type SpeciesRecord = {
 
 export type CommunityProject = {
   id: string;
+  code: string;
   project: string;
   territory: string;
+  quayIds: string[];
+  needIds: string[];
   owner: string;
   beneficiaries: number;
   estimatedBudget: string;
-  status: string;
+  status: "Proposé" | "En préparation" | "Actif" | "Terminé";
   targetPartner: string;
   nextAction: string;
 };
 
 export type TrainingProgram = {
   id: string;
+  code: string;
+  quayIds: string[];
+  needIds: string[];
   title: string;
   region: Region;
   target: string;
   period: string;
   potentialPartner: string;
   expectedParticipants: number;
-  status: string;
+  status: "Proposé" | "En préparation" | "Actif" | "Terminé";
 };
 
 export type Partner = {
@@ -323,7 +337,9 @@ export const pirogues: Pirogue[] = [
   { id: "pir-103", registration: "TH-PI-0772", quayId: "kayar", status: "En mer · vigilance", lastPosition: "Nord Kayar", lastDeclaration: "09:18", declaredActivity: "Trajectoire inhabituelle", x: 67, y: 39, level: "surveillance", cycleStage: "atSea", departureTime: "05:18", expectedReturnTime: "12:20", lastCycleEvent: "Position reçue à 09:18", cycleHistory: [{ stage: "preparation", time: "04:50", label: "Préparation" }, { stage: "departure", time: "05:18", label: "Départ" }, { stage: "atSea", time: "09:18", label: "En mer" }], trustLevel: "raw" },
   { id: "pir-104", registration: "ZG-PI-4510", quayId: "kafountine", status: "Retour en cours", lastPosition: "Casamance maritime", lastDeclaration: "09:45", declaredActivity: "Pêche crevettes", x: 66, y: 90, level: "normal", cycleStage: "expectedReturn", departureTime: "03:58", expectedReturnTime: "11:30", lastCycleEvent: "Cap retour confirmé à 09:45", cycleHistory: [{ stage: "preparation", time: "03:35", label: "Préparation" }, { stage: "departure", time: "03:58", label: "Départ" }, { stage: "atSea", time: "04:30", label: "En mer" }, { stage: "expectedReturn", time: "11:30", label: "Retour attendu" }], trustLevel: "declared" },
   { id: "pir-105", registration: "MB-PI-3307", quayId: "mbour", status: "Débarquement en cours", lastPosition: "Quai de Mbour", lastDeclaration: "10:06", declaredActivity: "Poulpe et crevettes", x: 52, y: 61, level: "normal", cycleStage: "landing", departureTime: "04:10", expectedReturnTime: "09:50", actualReturnTime: "09:54", landingTime: "10:06", lastCycleEvent: "Débarquement commencé à 10:06", cycleHistory: [{ stage: "preparation", time: "03:42", label: "Préparation" }, { stage: "departure", time: "04:10", label: "Départ" }, { stage: "atSea", time: "04:36", label: "En mer" }, { stage: "returned", time: "09:54", label: "Retour" }, { stage: "landing", time: "10:06", label: "Débarquement" }], trustLevel: "declared" },
-  { id: "pir-106", registration: "FB-PI-2214", quayId: "fass-boye", status: "Départ à confirmer", lastPosition: "Quai de Fass Boye", lastDeclaration: "08:40", declaredActivity: "Départ groupé signalé", x: 52, y: 33, level: "surveillance", cycleStage: "departure", departureTime: "08:40", expectedReturnTime: "16:30", lastCycleEvent: "Départ signalé à 08:40", cycleHistory: [{ stage: "preparation", time: "08:10", label: "Préparation" }, { stage: "departure", time: "08:40", label: "Départ" }], trustLevel: "raw" }
+  { id: "pir-106", registration: "FB-PI-2214", quayId: "fass-boye", status: "Départ à confirmer", lastPosition: "Quai de Fass Boye", lastDeclaration: "08:40", declaredActivity: "Départ groupé signalé", x: 52, y: 33, level: "surveillance", cycleStage: "departure", departureTime: "08:40", expectedReturnTime: "16:30", lastCycleEvent: "Départ signalé à 08:40", cycleHistory: [{ stage: "preparation", time: "08:10", label: "Préparation" }, { stage: "departure", time: "08:40", label: "Départ" }], trustLevel: "raw" },
+  { id: "pir-107", registration: "DK-PI-5182", quayId: "hann", status: "Déclaration reçue", lastPosition: "Quai de Hann", lastDeclaration: "10:02", declaredActivity: "4,2 t de sardinelle et crevettes", x: 51, y: 51, level: "normal", cycleStage: "declared", departureTime: "04:28", expectedReturnTime: "09:40", actualReturnTime: "09:36", landingTime: "09:44", declaredAt: "10:02", lastCycleEvent: "Déclaration reçue à 10:02", cycleHistory: [{ stage: "preparation", time: "04:02", label: "Préparation" }, { stage: "departure", time: "04:28", label: "Départ" }, { stage: "atSea", time: "05:01", label: "En mer" }, { stage: "returned", time: "09:36", label: "Retour" }, { stage: "landing", time: "09:44", label: "Débarquement" }, { stage: "declared", time: "10:02", label: "Déclaré" }], trustLevel: "declared" },
+  { id: "pir-108", registration: "DK-PI-6074", quayId: "soumbedioune", status: "Préparation au départ", lastPosition: "Quai de Soumbédioune", lastDeclaration: "09:50", declaredActivity: "Sortie côtière planifiée", x: 52, y: 58, level: "normal", cycleStage: "preparation", departureTime: "11:10", expectedReturnTime: "16:40", lastCycleEvent: "Préparation contrôlée à 09:50", cycleHistory: [{ stage: "preparation", time: "09:50", label: "Préparation" }], trustLevel: "verified" }
 ];
 
 export const landings: Landing[] = [
@@ -331,7 +347,10 @@ export const landings: Landing[] = [
   { id: "land-2", quayId: "mbour", time: "08:40", volumeTons: 8.2, species: ["Poulpe", "Crevettes"], pirogueIds: ["pir-105"], status: "Contrôle quai", trustLevel: "declared" },
   { id: "land-3", quayId: "kayar", time: "09:05", volumeTons: 4.9, species: ["Thiof", "Capitaine"], pirogueIds: ["pir-103"], status: "À vérifier", trustLevel: "raw" },
   { id: "land-4", quayId: "saint-louis", time: "09:12", volumeTons: 7.1, species: ["Sardinelle"], pirogueIds: ["pir-102"], status: "Incomplet", trustLevel: "raw" },
-  { id: "land-5", quayId: "kafountine", time: "09:40", volumeTons: 5.6, species: ["Crevettes", "Cymbium"], pirogueIds: ["pir-104"], status: "Déclaré", trustLevel: "declared" }
+  { id: "land-5", quayId: "kafountine", time: "09:40", volumeTons: 5.6, species: ["Crevettes", "Cymbium"], pirogueIds: ["pir-104"], status: "Déclaré", trustLevel: "declared" },
+  { id: "land-6", quayId: "hann", time: "09:44", volumeTons: 4.2, species: ["Sardinelle", "Crevettes"], pirogueIds: ["pir-107"], status: "Déclaré", trustLevel: "declared" },
+  { id: "land-7", quayId: "soumbedioune", time: "08:52", volumeTons: 3.8, species: ["Thiof", "Poulpe"], pirogueIds: [], status: "Vérifié", trustLevel: "verified" },
+  { id: "land-8", quayId: "fass-boye", time: "08:26", volumeTons: 4.6, species: ["Sardinelle", "Yaboy"], pirogueIds: ["pir-106"], status: "Déclaré", trustLevel: "declared" }
 ];
 
 export const mapAlerts: MapAlert[] = [
@@ -343,12 +362,14 @@ export const mapAlerts: MapAlert[] = [
 ];
 
 export const communityNeeds: CommunityNeed[] = [
-  { id: "need-1", need: "Besoin de glace", region: "Thiès", place: "Mbour", actors: "Mareyeurs et femmes transformatrices", urgency: "surveillance", status: "Ouvert", nextAction: "Vérifier disponibilité froid", trustLevel: "verified" },
-  { id: "need-2", need: "Gilets de sécurité", region: "Saint-Louis", place: "Guet Ndar", actors: "Capitaines et jeunes pêcheurs", urgency: "urgent", status: "À traiter", nextAction: "Préparer demande équipement", trustLevel: "verified" },
-  { id: "need-3", need: "Pesée normalisée", region: "Thiès", place: "Kayar", actors: "Pêcheurs et mareyeurs", urgency: "urgent", status: "Signal consolidé", nextAction: "Programmer contrôle de pesée", trustLevel: "consolidated" },
-  { id: "need-4", need: "Appui femmes transformatrices", region: "Thiès", place: "Joal-Fadiouth", actors: "Groupements de femmes", urgency: "surveillance", status: "À documenter", nextAction: "Préparer fiche projet", trustLevel: "declared" },
-  { id: "need-5", need: "Formation hygiène", region: "Dakar", place: "Hann", actors: "Mareyeurs et transformateurs", urgency: "normal", status: "À planifier", nextAction: "Identifier formateurs", trustLevel: "declared" },
-  { id: "need-6", need: "Programme jeunes", region: "Louga", place: "Fass Boye", actors: "Jeunes et familles", urgency: "surveillance", status: "À cadrer", nextAction: "Réunir relais locaux", trustLevel: "raw" }
+  { id: "need-1", quayId: "mbour", need: "Besoin de glace", region: "Thiès", place: "Mbour", actors: "Mareyeurs et femmes transformatrices", audience: "Mareyeurs et transformatrices", category: "Équipement", beneficiaries: 680, maturity: "Qualifié", source: "Comité de quai", channel: "Poste de quai", programId: "project-1", urgency: "surveillance", status: "Qualifié", nextAction: "Ouvrir le programme de chaîne de froid", trustLevel: "verified" },
+  { id: "need-2", quayId: "saint-louis", need: "Gilets de sécurité", region: "Saint-Louis", place: "Saint-Louis", actors: "Capitaines et jeunes pêcheurs", audience: "Capitaines et jeunes pêcheurs", category: "Sécurité", beneficiaries: 760, maturity: "Vérifié", source: "Poste local reconnu", channel: "Téléphone", programId: "project-2", urgency: "urgent", status: "Vérifié", nextAction: "Qualifier le besoin d’équipement", trustLevel: "verified" },
+  { id: "need-3", quayId: "kayar", need: "Pesée normalisée", region: "Thiès", place: "Kayar", actors: "Pêcheurs et mareyeurs", audience: "Pêcheurs et mareyeurs", category: "Qualité", beneficiaries: 430, maturity: "Qualifié", source: "Organisation professionnelle", channel: "Poste de quai", programId: "project-3", urgency: "urgent", status: "Qualifié", nextAction: "Ouvrir le programme de traçabilité", trustLevel: "consolidated" },
+  { id: "need-4", quayId: "joal", need: "Appui aux femmes transformatrices", region: "Thiès", place: "Joal-Fadiouth", actors: "Groupements de femmes", audience: "Femmes transformatrices", category: "Valorisation", beneficiaries: 240, maturity: "Vérifié", source: "Groupement local", channel: "WhatsApp", programId: "project-1", urgency: "surveillance", status: "Vérifié", nextAction: "Compléter l’estimation du besoin", trustLevel: "declared" },
+  { id: "need-5", quayId: "kafountine", need: "Conservation et valorisation", region: "Ziguinchor", place: "Kafountine", actors: "Mareyeuses et transformateurs", audience: "Mareyeuses et transformateurs", category: "Valorisation", beneficiaries: 210, maturity: "Qualifié", source: "Agent territorial", channel: "Agent territorial", urgency: "normal", status: "Qualifié", nextAction: "Structurer une réponse de conservation", trustLevel: "verified" },
+  { id: "need-6", quayId: "fass-boye", need: "Parcours métiers bleus", region: "Louga", place: "Fass Boye", actors: "Jeunes et familles", audience: "Jeunes et familles", category: "Formation", beneficiaries: 320, maturity: "Signalé", source: "Relais communautaire", channel: "WhatsApp", programId: "project-4", urgency: "surveillance", status: "Signalé", nextAction: "Vérifier le besoin avec les relais locaux", trustLevel: "raw" },
+  { id: "need-7", quayId: "hann", need: "Formation hygiène et qualité", region: "Dakar", place: "Hann", actors: "Mareyeurs et transformateurs", audience: "Mareyeurs et transformateurs", category: "Formation", beneficiaries: 120, maturity: "Vérifié", source: "Service technique", channel: "Formulaire", urgency: "normal", status: "Vérifié", nextAction: "Qualifier le calendrier et les formateurs", trustLevel: "declared" },
+  { id: "need-8", quayId: "soumbedioune", need: "Amélioration des pratiques de débarquement", region: "Dakar", place: "Soumbédioune", actors: "Pêcheurs et manutentionnaires", audience: "Pêcheurs et manutentionnaires", category: "Qualité", beneficiaries: 150, maturity: "Signalé", source: "Poste local reconnu", channel: "Poste de quai", urgency: "normal", status: "Signalé", nextAction: "Organiser une vérification du besoin", trustLevel: "declared" }
 ];
 
 export const quayPosts: QuayPost[] = [
@@ -356,6 +377,10 @@ export const quayPosts: QuayPost[] = [
   { id: "post-mbour", quayId: "mbour", name: "Poste local reconnu de Mbour", officer: "Agent de permanence · F. Diop", phone: "+221 77 000 14 41", hours: "06h00–20h00", regionalAuthority: "Échelon régional / technique de Thiès", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
   { id: "post-kayar", quayId: "kayar", name: "Poste local reconnu de Kayar", officer: "Agent de permanence · M. Fall", phone: "+221 77 000 14 91", hours: "05h30–19h30", regionalAuthority: "Échelon régional / technique de Thiès", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
   { id: "post-saint-louis", quayId: "saint-louis", name: "Poste local reconnu de Guet Ndar", officer: "Agent de permanence · A. Seck", phone: "+221 77 000 16 01", hours: "05h30–20h00", regionalAuthority: "Cellule technique territoriale de Saint-Louis", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
+  { id: "post-hann", quayId: "hann", name: "Poste local reconnu de Hann", officer: "Agent de permanence · R. Seck", phone: "+221 77 000 16 21", hours: "06h00–19h00", regionalAuthority: "Cellule technique territoriale de Dakar", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
+  { id: "post-soumbedioune", quayId: "soumbedioune", name: "Poste local reconnu de Soumbédioune", officer: "Agent de permanence · S. Faye", phone: "+221 77 000 16 31", hours: "06h00–19h00", regionalAuthority: "Cellule technique territoriale de Dakar", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
+  { id: "post-fass-boye", quayId: "fass-boye", name: "Poste local reconnu de Fass Boye", officer: "Agent de permanence · M. Lô", phone: "+221 77 000 16 41", hours: "05h30–18h30", regionalAuthority: "Cellule technique territoriale de Louga", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
+  { id: "post-kafountine", quayId: "kafountine", name: "Poste local reconnu de Kafountine", officer: "Agent de permanence · E. Diatta", phone: "+221 77 000 16 51", hours: "06h00–19h30", regionalAuthority: "Cellule technique territoriale de Ziguinchor", channels: ["WhatsApp", "Téléphone", "Poste de quai"] },
 ];
 
 export const fieldReferents: FieldReferent[] = [
@@ -365,6 +390,9 @@ export const fieldReferents: FieldReferent[] = [
   { id: "ref-kayar-1", name: "Ibrahima Fall", role: "Référent de quai", quayId: "kayar", region: "Thiès", status: "Actif", reliabilityScore: 89, verificationsCompleted: 31, lastActivity: "Aujourd’hui · 10:05", contactChannel: "Application terrain", supervisingCell: "Cellule régionale de Thiès" },
   { id: "ref-sl-1", name: "Cheikh Ba", role: "Agent territorial", quayId: "saint-louis", region: "Saint-Louis", status: "Actif", reliabilityScore: 96, verificationsCompleted: 42, lastActivity: "Aujourd’hui · 10:18", contactChannel: "Application terrain", supervisingCell: "Cellule technique territoriale de Saint-Louis" },
   { id: "ref-hann-1", name: "Rokhaya Seck", role: "Référent de quai", quayId: "hann", region: "Dakar", status: "Actif", reliabilityScore: 84, verificationsCompleted: 17, lastActivity: "Hier · 17:40", contactChannel: "WhatsApp structuré", supervisingCell: "Cellule régionale de Dakar" },
+  { id: "ref-soumb-1", name: "Samba Faye", role: "Pêcheur référent", quayId: "soumbedioune", region: "Dakar", status: "Actif", reliabilityScore: 86, verificationsCompleted: 14, lastActivity: "Aujourd’hui · 09:54", contactChannel: "Téléphone", supervisingCell: "Cellule régionale de Dakar" },
+  { id: "ref-fass-1", name: "Moustapha Lô", role: "Agent territorial", quayId: "fass-boye", region: "Louga", status: "Actif", reliabilityScore: 82, verificationsCompleted: 12, lastActivity: "Aujourd’hui · 09:48", contactChannel: "WhatsApp structuré", supervisingCell: "Cellule technique territoriale de Louga" },
+  { id: "ref-kaf-1", name: "Émilie Diatta", role: "Mareyeur référent", quayId: "kafountine", region: "Ziguinchor", status: "Actif", reliabilityScore: 90, verificationsCompleted: 21, lastActivity: "Aujourd’hui · 09:36", contactChannel: "Application terrain", supervisingCell: "Cellule technique territoriale de Ziguinchor" },
 ];
 
 export const speciesDirectory: SpeciesRecord[] = [
@@ -412,8 +440,8 @@ export function getQuayActivitySnapshot(quayId: string, alerts: MapAlert[] = map
 
   return {
     quayId,
-    landingsCount: quayLandings.length,
-    declaredVolumeTons: quayLandings.reduce((total, landing) => total + landing.volumeTons, 0),
+    landingsCount: quay?.landingsToday ?? quayLandings.length,
+    declaredVolumeTons: quay?.volumeTons ?? quayLandings.reduce((total, landing) => total + landing.volumeTons, 0),
     piroguesAtSea: quayPirogues.filter((pirogue) => ["atSea", "expectedReturn"].includes(pirogue.cycleStage)).length,
     expectedReturns: quayPirogues.filter((pirogue) => pirogue.cycleStage === "expectedReturn").length,
     activeSituations: quayAlerts.length,
@@ -454,18 +482,18 @@ export function getQuayOpenDossiers<T extends { quayId?: string; workStatus: str
 }
 
 export const communityProjects: CommunityProject[] = [
-  { id: "project-1", project: "Chaîne de froid communautaire", territory: "Mbour / Joal", owner: "Comité quai", beneficiaries: 680, estimatedBudget: "85 M FCFA", status: "À cadrer", targetPartner: "Opérateur froid", nextAction: "Préparer fiche projet" },
-  { id: "project-2", project: "Sécurité pirogues", territory: "Saint-Louis", owner: "Référents Guet Ndar", beneficiaries: 760, estimatedBudget: "46 M FCFA", status: "Prioritaire", targetPartner: "ONG maritime", nextAction: "Demander informations" },
-  { id: "project-3", project: "Pesée et traçabilité", territory: "Kayar", owner: "Organisation professionnelle", beneficiaries: 430, estimatedBudget: "38 M FCFA", status: "Documenté", targetPartner: "Partenaire technique", nextAction: "Marquer prioritaire" },
-  { id: "project-4", project: "Métiers bleus jeunes", territory: "Fass Boye", owner: "Relais communautaires", beneficiaries: 320, estimatedBudget: "64 M FCFA", status: "À compléter", targetPartner: "Coopération internationale", nextAction: "Préparer note" }
+  { id: "project-1", code: "PRG-2026-001", project: "Chaîne de froid communautaire", territory: "Mbour / Joal", quayIds: ["mbour", "joal"], needIds: ["need-1", "need-4"], owner: "Comité inter-quais", beneficiaries: 680, estimatedBudget: "1,48 Md FCFA", status: "En préparation", targetPartner: "Programme public froid", nextAction: "Consolider le dossier de financement" },
+  { id: "project-2", code: "PRG-2026-002", project: "Sécurité des pirogues", territory: "Saint-Louis", quayIds: ["saint-louis"], needIds: ["need-2"], owner: "Référents de Guet Ndar", beneficiaries: 760, estimatedBudget: "780 M FCFA", status: "Proposé", targetPartner: "ONG maritime", nextAction: "Compléter l’inventaire des équipements" },
+  { id: "project-3", code: "PRG-2026-003", project: "Pesée et traçabilité", territory: "Kayar", quayIds: ["kayar"], needIds: ["need-3"], owner: "Organisation professionnelle", beneficiaries: 430, estimatedBudget: "620 M FCFA", status: "Actif", targetPartner: "Partenaire technique", nextAction: "Suivre le jalon de vérification" },
+  { id: "project-4", code: "PRG-2026-004", project: "Métiers bleus jeunes", territory: "Fass Boye", quayIds: ["fass-boye"], needIds: ["need-6"], owner: "Relais communautaires", beneficiaries: 320, estimatedBudget: "540 M FCFA", status: "Proposé", targetPartner: "Coopération internationale", nextAction: "Vérifier le besoin avant programmation" }
 ];
 
 export const trainingPrograms: TrainingProgram[] = [
-  { id: "train-1", title: "Sécurité en mer", region: "Saint-Louis", target: "Capitaines et jeunes pêcheurs", period: "Août 2026", potentialPartner: "ONG maritime", expectedParticipants: 180, status: "À planifier" },
-  { id: "train-2", title: "Hygiène et qualité", region: "Dakar", target: "Mareyeurs et transformateurs", period: "Octobre 2026", potentialPartner: "Services techniques", expectedParticipants: 120, status: "À confirmer" },
-  { id: "train-3", title: "Chaîne de froid", region: "Thiès", target: "Gestionnaires de quai", period: "Juillet 2026", potentialPartner: "Entreprise privée", expectedParticipants: 95, status: "En cadrage" },
-  { id: "train-4", title: "Traçabilité et pesée", region: "Thiès", target: "Référents de quai", period: "Septembre 2026", potentialPartner: "Partenaire technique", expectedParticipants: 75, status: "Prioritaire" },
-  { id: "train-5", title: "Pêche durable", region: "Ziguinchor", target: "Pêcheurs et relais locaux", period: "Novembre 2026", potentialPartner: "ONG environnementale", expectedParticipants: 150, status: "À financer" }
+  { id: "train-1", code: "ACT-2026-011", quayIds: ["saint-louis"], needIds: ["need-2"], title: "Sécurité en mer", region: "Saint-Louis", target: "Capitaines et jeunes pêcheurs", period: "Août 2026", potentialPartner: "ONG maritime", expectedParticipants: 180, status: "En préparation" },
+  { id: "train-2", code: "ACT-2026-012", quayIds: ["hann", "soumbedioune"], needIds: ["need-7", "need-8"], title: "Hygiène et qualité", region: "Dakar", target: "Mareyeurs et transformateurs", period: "Octobre 2026", potentialPartner: "Services techniques", expectedParticipants: 120, status: "Proposé" },
+  { id: "train-3", code: "ACT-2026-013", quayIds: ["mbour", "joal"], needIds: ["need-1", "need-4"], title: "Chaîne de froid", region: "Thiès", target: "Gestionnaires de quai", period: "Juillet 2026", potentialPartner: "Entreprise privée", expectedParticipants: 95, status: "Actif" },
+  { id: "train-4", code: "ACT-2026-014", quayIds: ["kayar"], needIds: ["need-3"], title: "Traçabilité et pesée", region: "Thiès", target: "Référents de quai", period: "Septembre 2026", potentialPartner: "Partenaire technique", expectedParticipants: 75, status: "Actif" },
+  { id: "train-5", code: "ACT-2026-015", quayIds: ["kafountine"], needIds: ["need-5"], title: "Pêche durable", region: "Ziguinchor", target: "Pêcheurs et relais locaux", period: "Novembre 2026", potentialPartner: "ONG environnementale", expectedParticipants: 150, status: "En préparation" }
 ];
 
 export const partners: Partner[] = [

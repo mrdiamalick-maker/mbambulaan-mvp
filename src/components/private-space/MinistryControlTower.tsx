@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   mapAlerts,
+  quays,
   type MapAlert,
   type Region,
 } from "@/data/ministryControlTowerData";
@@ -179,26 +180,15 @@ export function MinistryControlTower() {
     }));
     record("Signalement mis à jour", `${signal?.title || id} · prochaine étape enregistrée`);
   };
-  const resetKayarJourney = () => {
-    const taskArtifactIds = new Set(verificationTasks.filter((item) => item.targetId === "kayar").map((item) => item.artifactId));
-    const reportArtifactIds = new Set(zoneReports.filter((item) => item.zone === "Kayar").map((item) => item.artifactId));
-    setVerificationTasks((items) => items.filter((item) => item.targetId !== "kayar"));
-    setVerifiedIds((items) => items.filter((id) => id !== "kayar"));
-    setZoneReports((items) => items.filter((item) => item.zone !== "Kayar"));
-    setClosedDossierIds((items) => items.filter((id) => id !== "VER-2026-0142"));
-    setDossierNotes((items) => ({ ...items, "VER-2026-0142": [] }));
-    setArtifacts((items) => items.filter((item) => !taskArtifactIds.has(item.id) && !reportArtifactIds.has(item.id) && item.scope !== "Kayar"));
-    record("Démonstration Kayar réinitialisée", "Écart de pesée déclaré · vérification à demander");
-  };
-
   const handleDossierPrimary = (dossier: DossierOperationnel) => {
-    const task = verificationTasks.find((item) => item.targetId === dossier.sourceId || (dossier.sourceId === "kayar" && item.targetId === "kayar"));
-    if (dossier.action === "request-verification") return openWorkflow("verification", { title: dossier.linkedObject, scope: "Kayar", sourceId: "kayar", quayId: "kayar", description: "Confirmer l’écart de pesée avant consolidation." });
+    const task = verificationTasks.find((item) => item.targetId === dossier.sourceId);
+    const quay = quays.find((item) => item.id === dossier.quayId);
+    if (dossier.action === "request-verification") return openWorkflow("verification", { title: dossier.linkedObject, scope: quay?.name ?? dossier.territory, sourceId: dossier.sourceId, quayId: dossier.quayId, description: `Confirmer la situation de ${quay?.name ?? dossier.territory} avant consolidation.` });
     if (dossier.action === "prepare-whatsapp" && task) return prepareWhatsApp(task.id, task.message);
     if (dossier.action === "follow-verification" && task) return followVerification(task.id);
     if (dossier.action === "deposit-constat" && task) return depositConstat(task.id);
     if (dossier.action === "validate-constat" && task) return validateConstat(task.id);
-    if (dossier.action === "generate-report") return openWorkflow("export-zone", { title: `Rapport de zone · ${dossier.linkedObject}`, scope: dossier.linkedObject.includes("Kayar") ? "Kayar" : dossier.territory, sourceId: dossier.sourceId, quayId: dossier.quayId, description: dossier.finalOutput });
+    if (dossier.action === "generate-report") return openWorkflow("export-zone", { title: `Rapport de zone · ${quay?.name ?? dossier.territory}`, scope: quay?.name ?? dossier.territory, sourceId: dossier.sourceId, quayId: dossier.quayId, description: dossier.finalOutput });
     if (dossier.action === "close-dossier") {
       setClosedDossierIds((items) => Array.from(new Set([...items, dossier.id])));
       record("Dossier clôturé", `${dossier.id} · rapport relu et décision enregistrée`);
@@ -228,9 +218,9 @@ export function MinistryControlTower() {
 
   return <AppShell topBar={<TopBar notice={systemNotice} activeDossiers={activeDossierCount} assistanceEnabled={assistanceEnabled} onOpenDossiers={() => setDossierInboxOpen(true)} onToggleAssistance={() => setAssistanceEnabled((enabled) => !enabled)} onExport={globalExport} />} rail={<NavigationRail active={workspace} onChange={setWorkspace} />}>
     <MobileWorkspaceNav active={workspace} onChange={setWorkspace} />
-    {workspace === "atlas" ? <MinistryQuayAtlas focusQuayId={atlasFocusQuayId} scope={scope} setScope={setScope} artifacts={artifacts} alerts={[...createdAlerts, ...mapAlerts]} verifiedIds={verifiedIds} verificationTasks={verificationTasks} zoneReports={zoneReports} onResetKayar={resetKayarJourney} openWorkflow={openWorkflow} operationalDossiers={operationalDossiers} onOpenDossier={openDossier} onViewCommunity={openCommunity} /> : null}
+    {workspace === "atlas" ? <MinistryQuayAtlas assistanceEnabled={assistanceEnabled} focusQuayId={atlasFocusQuayId} scope={scope} setScope={setScope} artifacts={artifacts} alerts={[...createdAlerts, ...mapAlerts]} verifiedIds={verifiedIds} verificationTasks={verificationTasks} zoneReports={zoneReports} openWorkflow={openWorkflow} operationalDossiers={operationalDossiers} onOpenDossier={openDossier} onViewCommunity={openCommunity} /> : null}
     {workspace === "community" ? <MinistryCommunityProgramsView focusQuayId={communityFocusQuayId} assistanceEnabled={assistanceEnabled} dossiers={operationalDossiers} opportunities={opportunities} fundingDossiers={fundingDossiers} artifacts={artifacts} onOpenDossier={openDossier} onConstituteFunding={constituteFunding} onConfirmTransmission={confirmFundingTransmission} onRecordPartnerResponse={recordFundingResponse} onViewAtlas={(quayId) => { setAtlasFocusQuayId(quayId); setWorkspace("atlas"); }} /> : null}
-    {workspace === "pilotage" ? <MinistryPilotageView assistanceEnabled={assistanceEnabled} dossiers={operationalDossiers} alerts={[...createdAlerts, ...mapAlerts]} artifacts={artifacts} opportunities={opportunities} fundingDossiers={fundingDossiers} onViewAtlas={(quayId) => { setAtlasFocusQuayId(quayId); setWorkspace("atlas"); }} onOpenDossier={openDossier} onOpenDossiers={() => setDossierInboxOpen(true)} onOpenCommunity={() => openCommunity(null)} /> : null}
+    {workspace === "pilotage" ? <MinistryPilotageView assistanceEnabled={assistanceEnabled} dossiers={operationalDossiers} alerts={[...createdAlerts, ...mapAlerts]} artifacts={artifacts} opportunities={opportunities} fundingDossiers={fundingDossiers} onViewAtlas={(quayId) => { setScope(quayId ? quays.find((item) => item.id === quayId)?.region ?? "Nationale" : "Nationale"); setAtlasFocusQuayId(quayId); setWorkspace("atlas"); }} onOpenDossier={openDossier} onOpenDossiers={() => setDossierInboxOpen(true)} onOpenCommunity={(quayId) => openCommunity(quayId)} /> : null}
     {activeWorkflow && workflowProps ? <WorkflowRenderer kind={activeWorkflow.kind} {...workflowProps} /> : null}
     {dossierInboxOpen ? <div className="fixed inset-0 z-[80] bg-[var(--mb-navy-900)]/40" onMouseDown={(event) => { if (event.target === event.currentTarget) setDossierInboxOpen(false); }}><aside className="ml-auto h-full w-full max-w-[74rem] overflow-y-auto border-l border-[var(--mb-neutral-300)] bg-[var(--mb-offwhite)]"><MinistryDossiersView embedded dossiers={operationalDossiers} onClose={() => setDossierInboxOpen(false)} onOpenDossier={openDossier} /></aside></div> : null}
     {selectedDossier ? <OperationalDossierPanel dossier={selectedDossier} assistanceEnabled={assistanceEnabled} onClose={() => setSelectedDossierId(null)} onPrimary={handleDossierPrimary} onAddNote={(dossier, note) => setDossierNotes((items) => ({ ...items, [dossier.id]: [...(items[dossier.id] || []), note] }))} onRelance={(dossier) => record("Relance enregistrée", `${dossier.id} · ${dossier.currentOwner} · canal ${dossier.originChannel}`)} /> : null}

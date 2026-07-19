@@ -51,15 +51,14 @@ type Props = {
   onOpenDossier: (dossier: DossierOperationnel) => void;
   onViewCommunity: (quayId: string) => void;
   openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
-  onResetKayar: () => void;
 };
 
 const tabs: Array<{ id: TabId; label: string }> = [
-  { id: "summary", label: "Synthèse" },
+  { id: "summary", label: "Vue d’ensemble" },
   { id: "activity", label: "Activité du jour" },
   { id: "pirogues", label: "Pirogues" },
-  { id: "species", label: "Espèces & volumes" },
-  { id: "records", label: "Dossiers & preuves" },
+  { id: "species", label: "Espèces" },
+  { id: "records", label: "Situations & dossiers" },
 ];
 
 export function QuayProfileSheet(props: Props) {
@@ -107,7 +106,7 @@ export function QuayProfileSheet(props: Props) {
   </div>;
 }
 
-function SummaryTab({ quay, snapshot, quayAlerts, quayIncidents, relatedDossiers, artifacts, zoneReports, onOpenDossier, onViewCommunity, openWorkflow, onResetKayar, context }: Props & {
+function SummaryTab({ quay, snapshot, quayAlerts, quayIncidents, relatedDossiers, artifacts, zoneReports, onOpenDossier, onViewCommunity, openWorkflow, context }: Props & {
   snapshot: ReturnType<typeof getQuayActivitySnapshot>;
   quayAlerts: MapAlert[];
   quayIncidents: IncidentRecord[];
@@ -115,23 +114,22 @@ function SummaryTab({ quay, snapshot, quayAlerts, quayIncidents, relatedDossiers
   context: WorkflowContext;
 }) {
   const priorityDossier = relatedDossiers.find((item) => item.workStatus !== "Terminé") ?? relatedDossiers[0];
-  const report = zoneReports.find((item) => item.zone === quay.name || (quay.id === "kayar" && item.zone === "Kayar"));
+  const report = zoneReports.find((item) => item.zone === quay.name);
   const metrics = [
     ["Débarquements", String(snapshot.landingsCount)],
     ["Volume déclaré", `${snapshot.declaredVolumeTons.toFixed(1)} t`],
     ["Pirogues en mer", String(snapshot.piroguesAtSea)],
     ["Situations actives", String(quayAlerts.length + quayIncidents.filter((item) => item.status !== "Résolu").length)],
   ];
-  const relatedNeeds = communityNeeds.filter((need) => [quay.name, quay.commune].some((name) => need.place.toLocaleLowerCase("fr").includes(name.toLocaleLowerCase("fr"))));
-  const relatedPrograms = communityProjects.filter((project) => [quay.name, quay.commune].some((name) => project.territory.toLocaleLowerCase("fr").includes(name.toLocaleLowerCase("fr"))));
-  const financeable = relatedNeeds.filter((need) => ["verified", "consolidated"].includes(need.trustLevel)).length;
+  const relatedNeeds = communityNeeds.filter((need) => need.quayId === quay.id);
+  const relatedPrograms = communityProjects.filter((project) => project.quayIds.includes(quay.id));
+  const financeable = relatedNeeds.filter((need) => need.maturity === "Qualifié").length;
   return <div className="grid gap-5">
     <section className="grid grid-cols-2 border border-[var(--mb-neutral-200)] bg-[var(--mb-offwhite)] sm:grid-cols-4">{metrics.map(([label, value]) => <div key={label} className="border-b border-r border-[var(--mb-neutral-200)] p-3 last:border-r-0 sm:border-b-0"><p className="text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--mb-neutral-500)]">{label}</p><p className="mt-2 font-mono text-[21px] font-semibold text-[var(--mb-navy-900)]">{value}</p></div>)}</section>
     <section className="grid gap-px border border-[var(--mb-neutral-200)] bg-[var(--mb-neutral-200)] sm:grid-cols-3"><QuayValue label="Besoins remontés" value={String(relatedNeeds.length)} /><QuayValue label="Programmes actifs" value={String(relatedPrograms.length)} /><QuayValue label="Opportunités finançables" value={String(financeable)} /></section>
     <section className="border-l-4 border-[var(--mb-ocean-600)] bg-[#edf6f8] p-4"><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--mb-ocean-600)]">Action recommandée</p><h3 className="mt-2 text-[15px] font-semibold text-[var(--mb-navy-900)]">{priorityDossier?.nextAction ?? "Documenter la situation du quai"}</h3><p className="mt-2 text-[11px] leading-5 text-[var(--mb-neutral-600)]">{priorityDossier ? `${priorityDossier.businessStatus}. L’action ouvre le dossier ${priorityDossier.id} et conserve la trace du traitement.` : "Aucun dossier actif : créer un signalement uniquement si un fait nouveau doit être instruit."}</p><div className="mt-4 flex flex-wrap gap-2">{priorityDossier ? <button onClick={() => onOpenDossier(priorityDossier)} className={primaryButton}>Ouvrir le dossier prioritaire</button> : null}<button onClick={() => openWorkflow("alert", context)} className={secondaryButton}>Signaler une nouvelle situation</button><button onClick={() => onViewCommunity(quay.id)} className={secondaryButton}>Voir les besoins et programmes de ce quai</button></div></section>
     <section className="grid gap-4 border-y border-[var(--mb-neutral-200)] py-4 sm:grid-cols-2"><PosteOfficielPanel poste={quayPosts.find((poste) => poste.quayId === quay.id)} /><ReferentsPanel referents={fieldReferents.filter((referent) => referent.quayId === quay.id && referent.status === "Actif")} /></section>
     <section className="flex flex-wrap items-center justify-between gap-3 border border-[var(--mb-neutral-200)] p-4"><div><h3 className="text-[12px] font-semibold text-[var(--mb-navy-900)]">Consultation & transmission</h3><p className="mt-1 text-[10px] text-[var(--mb-neutral-600)]">{report ? "Un rapport existe déjà et peut être relu." : `${artifacts.filter((item) => item.scope === quay.name).length} preuve(s) ou export(s) rattaché(s).`}</p></div><button onClick={() => openWorkflow("export-zone", context)} className={secondaryButton}>{report ? "Relire ou actualiser le rapport" : "Préparer le rapport du quai"}</button></section>
-    {quay.id === "kayar" ? <button onClick={onResetKayar} className="justify-self-start text-[10px] font-bold text-[var(--mb-ocean-600)] hover:underline">Recommencer le scénario Kayar</button> : null}
   </div>;
 }
 
@@ -167,7 +165,7 @@ function SpeciesTab({ quayId }: { quayId: string }) {
 
 function RecordsTab({ quay, quayAlerts, quayIncidents, dossiers, verificationTasks, artifacts, zoneReports, onOpenDossier }: Props & { quayAlerts: MapAlert[]; quayIncidents: IncidentRecord[]; dossiers: DossierOperationnel[] }) {
   const verifications = verificationTasks.filter((item) => item.targetId === quay.id || getQuayPirogues(quay.id).some((pirogue) => pirogue.id === item.targetId));
-  const documents = [...artifacts.filter((item) => item.scope === quay.name || (quay.id === "kayar" && item.scope === "Kayar")), ...zoneReports.filter((item) => item.zone === quay.name || (quay.id === "kayar" && item.zone === "Kayar"))];
+  const documents = [...artifacts.filter((item) => item.scope === quay.name), ...zoneReports.filter((item) => item.zone === quay.name)];
   return <div className="grid gap-5"><RecordSection title="Situations en attention" count={quayAlerts.length}>{quayAlerts.map((item) => <RecordRow key={item.id} title={item.title} detail={`${item.source} · ${item.updatedAt}`} level={item.level} trust={item.trustLevel} />)}</RecordSection><RecordSection title="Incidents" count={quayIncidents.length}>{quayIncidents.map((item) => <RecordRow key={item.id} title={item.title} detail={`${item.status} · ${item.owner} · ${item.nextAction}`} level={item.level} trust={item.trustLevel} />)}</RecordSection><RecordSection title="Vérifications" count={verifications.length}>{verifications.map((item) => <RecordRow key={item.id} title={item.target} detail={`${item.status} · ${item.owner}`} level={item.status === "Vérifiée" || item.status === "Clôturée" ? "normal" : "surveillance"} trust={item.status === "Vérifiée" || item.status === "Clôturée" ? "verified" : "declared"} />)}</RecordSection><RecordSection title="Dossiers opérationnels" count={dossiers.length}>{dossiers.map((item) => <button key={item.id} onClick={() => onOpenDossier(item)} className="grid w-full gap-1 border-b border-[var(--mb-neutral-100)] px-3 py-3 text-left hover:bg-[var(--mb-offwhite)]"><span className="font-mono text-[10px] font-bold text-[var(--mb-ocean-600)]">{item.id}</span><strong className="text-[11px]">{item.linkedObject}</strong><span className="text-[10px] text-[var(--mb-neutral-600)]">{item.workStatus} · prochaine action : {item.nextAction}</span></button>)}</RecordSection><RecordSection title="Preuves et documents" count={documents.length}>{documents.map((item) => <div key={item.id} className="border-b border-[var(--mb-neutral-100)] px-3 py-3"><strong className="text-[11px]">{item.title}</strong><p className="mt-1 text-[10px] text-[var(--mb-neutral-600)]">{("createdAt" in item ? item.createdAt : item.generatedAt)} · document local de démonstration</p></div>)}</RecordSection></div>;
 }
 

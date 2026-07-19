@@ -20,6 +20,7 @@ type Scope = "Nationale" | Region;
 type AtlasMode = "quays" | "sea";
 
 type Props = {
+  assistanceEnabled: boolean;
   scope: Scope;
   focusQuayId?: string | null;
   setScope: (scope: Scope) => void;
@@ -31,11 +32,10 @@ type Props = {
   operationalDossiers: DossierOperationnel[];
   onOpenDossier: (dossier: DossierOperationnel) => void;
   onViewCommunity: (quayId: string) => void;
-  onResetKayar: () => void;
   openWorkflow: (kind: WorkflowKind, context: WorkflowContext) => void;
 };
 
-export function MinistryQuayAtlas({ scope, focusQuayId, setScope, artifacts, alerts, verifiedIds, verificationTasks, zoneReports, operationalDossiers, onOpenDossier, onViewCommunity, onResetKayar, openWorkflow }: Props) {
+export function MinistryQuayAtlas({ assistanceEnabled, scope, focusQuayId, setScope, artifacts, alerts, verifiedIds, verificationTasks, zoneReports, operationalDossiers, onOpenDossier, onViewCommunity, openWorkflow }: Props) {
   const [mode, setMode] = useState<AtlasMode>("quays");
   const [quayFilter, setQuayFilter] = useState("Tous");
   const [search, setSearch] = useState("");
@@ -90,8 +90,9 @@ export function MinistryQuayAtlas({ scope, focusQuayId, setScope, artifacts, ale
       <label className="flex h-9 items-center gap-2 border border-[var(--mb-neutral-200)] bg-white px-3 text-[11px] font-bold text-[var(--mb-neutral-700)]"><input type="checkbox" checked={recentOnly} onChange={(event) => setRecentOnly(event.target.checked)} className="accent-[var(--mb-ocean-600)]" />Activité du jour</label>
       <p className="ml-auto self-center text-[10px] text-[var(--mb-neutral-500)]">Cliquez un quai pour ouvrir sa fiche métier.</p>
     </FilterStrip>
+    {assistanceEnabled ? <div className="border-b border-[var(--mb-ocean-200)] bg-[var(--mb-foam)] px-4 py-3 sm:px-6"><p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--mb-ocean-600)]">Assistance Mbàmbulaan · proposition à valider</p><p className="mt-1 text-[10px] text-[var(--mb-neutral-600)]">{selectedQuay ? `${selectedQuay.name} : ouvrir le dossier actif avant toute nouvelle situation.` : `${visibleQuays.filter((quay) => quay.level !== "normal").length} quai(s) demandent une lecture prioritaire dans le périmètre.`} Calcul local sur données simulées, sans API.</p></div> : null}
     <AtlasMap mode={mode} quays={visibleQuays} pirogues={visiblePirogues} alerts={alerts} selectedBoatId={selectedBoatId} onSelectQuay={selectQuay} onSelectPirogue={selectPirogue} />
-    {selectedQuay ? <QuayProfileSheet quay={selectedQuay} alerts={alerts} incidents={maritimeIncidents} dossiers={operationalDossiers} artifacts={artifacts} verifiedIds={verifiedIds} verificationTasks={verificationTasks} zoneReports={zoneReports} selectedEntity={selectedEntity} onSelectEntity={setSelectedEntity} onClose={() => { setSelectedQuayId(null); setSelectedEntity(null); }} onOpenDossier={onOpenDossier} onViewCommunity={onViewCommunity} openWorkflow={openWorkflow} onResetKayar={onResetKayar} /> : null}
+    {selectedQuay ? <QuayProfileSheet quay={selectedQuay} alerts={alerts} incidents={maritimeIncidents} dossiers={operationalDossiers} artifacts={artifacts} verifiedIds={verifiedIds} verificationTasks={verificationTasks} zoneReports={zoneReports} selectedEntity={selectedEntity} onSelectEntity={setSelectedEntity} onClose={() => { setSelectedQuayId(null); setSelectedEntity(null); }} onOpenDossier={onOpenDossier} onViewCommunity={onViewCommunity} openWorkflow={openWorkflow} /> : null}
   </section>;
 }
 

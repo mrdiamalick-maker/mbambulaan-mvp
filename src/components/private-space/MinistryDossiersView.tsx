@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { quays } from "@/data/ministryControlTowerData";
 import type { DossierChannel, DossierOperationnel, DossierType, DossierWorkStatus } from "@/lib/ministryOperationalDossiers";
 import { DossierCard } from "./MinistryDossierExperience";
-import { primaryButton, secondaryButton, WorkspaceHeader } from "./MinistryControlTowerParts";
+import { primaryButton, WorkspaceHeader } from "./MinistryControlTowerParts";
 
 type Filter = "Tous" | DossierType | DossierWorkStatus | "Prêt à clôturer" | "Prêt à partager";
 
@@ -27,13 +27,12 @@ export function MinistryDossiersView({ dossiers, onOpenDossier, embedded = false
   const blocked = dossiers.filter((item) => item.workStatus === "Bloqué");
   const readyToClose = dossiers.filter((item) => item.action === "close-dossier");
   const next = [...blocked, ...actionable, ...waiting][0];
-  const kayar = dossiers.find((item) => item.id === "VER-2026-0142");
   const quayOptions = quays.map((item) => ({ value: item.id, label: item.name }));
 
   return <section className="min-h-full bg-[var(--mb-offwhite)]">
     {embedded ? <header className="sticky top-0 z-20 flex items-start justify-between gap-4 border-b border-[var(--mb-neutral-200)] bg-white px-4 py-4 sm:px-6"><div><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--mb-ocean-600)]">Moteur transversal</p><h1 className="mt-1 text-[20px] font-semibold text-[var(--mb-navy-900)]">Dossiers à traiter</h1><p className="mt-1 max-w-2xl text-[10px] leading-4 text-[var(--mb-neutral-600)]">La même référence, les mêmes pièces et le même historique restent accessibles depuis chaque espace.</p></div><button type="button" onClick={onClose} className="grid h-9 w-9 shrink-0 place-items-center border border-[var(--mb-neutral-200)] text-lg" aria-label="Fermer les dossiers">×</button></header> : <WorkspaceHeader title="Dossiers" question="Traiter les situations, besoins filière et décisions dans un bureau opérationnel unique." scope="Nationale" onScopeChange={() => undefined} onExport={() => undefined} />}
     <div className="border-b border-[var(--mb-neutral-200)] bg-white px-4 py-5 sm:px-6">
-      <div className="mx-auto grid max-w-[86rem] gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end"><div><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--mb-ocean-600)]">Briefing opérationnel</p><h2 className="mt-2 text-[22px] font-semibold text-[var(--mb-navy-900)]">{next ? next.nextAction : "Aucune action prioritaire en attente"}</h2><p className="mt-2 max-w-3xl text-[11px] leading-5 text-[var(--mb-neutral-600)]">Chaque dossier conserve sa référence, ses pièces, son responsable et sa prochaine action depuis Atlas jusqu’au document final.</p></div><div className="flex flex-wrap gap-2 lg:justify-end">{kayar ? <button onClick={() => onOpenDossier(kayar)} className={primaryButton}>Reprendre la démonstration Kayar</button> : null}{next && next.id !== kayar?.id ? <button onClick={() => onOpenDossier(next)} className={secondaryButton}>Traiter le dossier le plus urgent</button> : null}</div></div>
+      <div className="mx-auto grid max-w-[86rem] gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end"><div><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--mb-ocean-600)]">Briefing opérationnel</p><h2 className="mt-2 text-[22px] font-semibold text-[var(--mb-navy-900)]">{next ? next.nextAction : "Aucune action prioritaire en attente"}</h2><p className="mt-2 max-w-3xl text-[11px] leading-5 text-[var(--mb-neutral-600)]">Chaque dossier conserve sa référence, ses pièces, son responsable et sa prochaine action depuis Atlas jusqu’au document final.</p></div><div className="flex flex-wrap gap-2 lg:justify-end">{next ? <button onClick={() => onOpenDossier(next)} className={primaryButton}>Reprendre le dossier prioritaire</button> : null}</div></div>
       <div className="mx-auto mt-5 grid max-w-[86rem] grid-cols-2 border border-[var(--mb-neutral-200)] sm:grid-cols-4"><BriefMetric label="À traiter aujourd’hui" value={actionable.length} /><BriefMetric label="Retours terrain attendus" value={waiting.length} /><BriefMetric label="Bloqués" value={blocked.length} critical={Boolean(blocked.length)} /><BriefMetric label="Prêts à clôturer" value={readyToClose.length} /></div>
     </div>
     <div className="mx-auto max-w-[86rem] px-4 py-5 sm:px-6">
