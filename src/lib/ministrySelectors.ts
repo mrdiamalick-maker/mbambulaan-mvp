@@ -12,6 +12,7 @@ import {
 import {
   fundingCoverageByOpportunity,
   quayTrends,
+  type FundingDossierRecord,
   type FundingOpportunity,
 } from "@/data/ministryValueJourneyData";
 
@@ -24,10 +25,7 @@ export type MinistryFilters = {
   period: PilotagePeriod;
 };
 
-type BadgeTone = "success" | "warning" | "info" | "danger" | "neutral";
-
 const allPrograms = [...communityProjects, ...trainingPrograms];
-
 const isAll = (value: string) => value === "Tous" || value === "Toutes";
 
 export function needRelations(need: CommunityNeed, opportunities: FundingOpportunity[]) {
@@ -39,25 +37,31 @@ export function needRelations(need: CommunityNeed, opportunities: FundingOpportu
   return { program, financing };
 }
 
-export function fundingMaturity(opportunity: FundingOpportunity): {
-  label: string;
-  tone: BadgeTone;
-} {
+export function fundingMaturity(
+  opportunity: FundingOpportunity,
+  dossier?: FundingDossierRecord,
+): string {
+  if (dossier?.status === "Transmis") return "Transmission confirmée";
+  if (dossier?.status === "En négociation") return "Réponse attendue";
+  if (dossier?.status === "Financé") return "Financé";
+
   switch (opportunity.status) {
     case "Financé":
-      return { label: "Financé", tone: "success" };
+      return "Financé";
     case "Décliné":
-      return { label: "Décliné", tone: "danger" };
+      return "Décliné";
     case "En négociation":
+      return "Réponse attendue";
     case "Transmis":
-      return { label: opportunity.status, tone: "warning" };
+      return "Transmission confirmée";
     case "Dossier constitué":
+      return "Prêt à présenter";
     case "En instruction":
     case "Éligible au financement":
-      return { label: opportunity.status, tone: "info" };
+      return "À instruire";
     case "À qualifier":
     default:
-      return { label: opportunity.status, tone: "neutral" };
+      return "À structurer";
   }
 }
 
