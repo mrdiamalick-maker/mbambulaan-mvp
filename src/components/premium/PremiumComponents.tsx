@@ -30,7 +30,7 @@ export function PublicNav() {
         </nav>
         <div className="flex items-center gap-2">
           <Link href="/espace-prive" className="hidden rounded-full border border-cyan-200 bg-white px-4 py-2 text-sm font-black text-cyan-950 sm:inline-flex">Se connecter</Link>
-          <Link href="/demande-demo" className="rounded-full bg-cyan-700 px-4 py-2 text-sm font-black text-white shadow-sm shadow-cyan-900/20">Demander un essai</Link>
+          <Link href="/contact" className="rounded-full bg-cyan-700 px-4 py-2 text-sm font-black text-white shadow-sm shadow-cyan-900/20">Nous contacter</Link>
         </div>
       </div>
     </header>
@@ -74,7 +74,7 @@ export function RoleWorkspace({ profile }: { profile: RoleProfile }) {
       <div className="grid gap-4 md:grid-cols-3 lg:col-span-2">{profile.kpis.map((kpi) => <KpiCard key={kpi.label} kpi={kpi} />)}</div>
       <SectionCard title="3. Ce que Mbàmbulaan permet de faire" description="Actions de décision et de coordination propres à ce profil."><div className="grid gap-3">{profile.decisions.map((decision, index) => <div key={decision} className="flex gap-3 rounded-2xl bg-cyan-50 p-4"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-cyan-700 text-xs font-black text-white">{index + 1}</span><p className="text-sm font-black text-slate-800">{decision}</p></div>)}</div></SectionCard>
       <SectionCard title="Modules montrés pendant l'essai" description="Un aperçu contrôlé, pas un accès public complet."><div className="grid gap-3 sm:grid-cols-2">{profile.modules.map((module) => <div key={module} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><p className="font-black text-slate-950">{module}</p><p className="mt-2 text-sm font-semibold text-slate-600">Donnée simulée, source visible, prochaine action explicite.</p></div>)}</div></SectionCard>
-      <SectionCard title="Prochaine étape" description="Demander un essai qualifié ou cadrer un pilote selon le besoin."><div className="flex flex-col gap-3 sm:flex-row"><Link href="/demande-demo" className="rounded-full bg-cyan-700 px-5 py-3 text-center text-sm font-black text-white">Demander un essai</Link><Link href="/devis" className="rounded-full border border-cyan-200 bg-white px-5 py-3 text-center text-sm font-black text-cyan-950">Cadrer un devis</Link></div></SectionCard>
+      <SectionCard title="Prochaine étape" description="Préciser une collaboration ou cadrer un pilote selon le besoin."><div className="flex flex-col gap-3 sm:flex-row"><Link href="/contact" className="rounded-full bg-cyan-700 px-5 py-3 text-center text-sm font-black text-white">Nous contacter</Link><Link href="/devis" className="rounded-full border border-cyan-200 bg-white px-5 py-3 text-center text-sm font-black text-cyan-950">Cadrer un devis</Link></div></SectionCard>
     </div>
   );
 }

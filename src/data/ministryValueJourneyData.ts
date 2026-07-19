@@ -1,4 +1,4 @@
-import type { Level } from "./ministryControlTowerData";
+import type { DataTrustLevel, Level } from "./ministryControlTowerData";
 
 export type WorkflowKind =
   | "verification"
@@ -35,6 +35,10 @@ export type IncidentRecord = {
   openedAt: string;
   owner: string;
   status: "Ouvert" | "En vérification" | "Résolu";
+  source: string;
+  trustLevel: DataTrustLevel;
+  nextAction: string;
+  linkedDossierId?: string;
 };
 
 export type FundingOpportunity = {
@@ -150,6 +154,8 @@ export type SignalRecord = {
   receivingCell: string;
   messageType: string;
   attachmentHint: string;
+  nature: "Information" | "Alerte préventive" | "Incident" | "Besoin filière";
+  treatmentStatus: "Signalée" | "À qualifier" | "À traiter" | "En vérification" | "Vérifiée" | "Clôturée";
   criticality: "Normale" | "Vigilance" | "Critique";
   trustLevel: "raw" | "declared";
   status: "Signalé" | "Qualifié" | "En traitement" | "Clôturé" | "Escaladé en alerte";
@@ -184,9 +190,9 @@ export type ZoneReportRecord = {
 };
 
 export const maritimeIncidents: IncidentRecord[] = [
-  { id: "incident-1", quayId: "mbour", title: "Capacité de froid réduite", category: "Technique", level: "surveillance", openedAt: "09:35", owner: "Maintenance régionale", status: "En vérification" },
-  { id: "incident-2", quayId: "saint-louis", title: "Retour de pirogue non confirmé", category: "Sécurité", level: "urgent", openedAt: "10:18", owner: "Cellule quai", status: "Ouvert" },
-  { id: "incident-3", quayId: "kayar", title: "Écart de pesée déclaré", category: "Qualité", level: "surveillance", openedAt: "10:05", owner: "Service contrôle", status: "Ouvert" },
+  { id: "incident-1", quayId: "mbour", title: "Capacité de froid réduite", category: "Technique", level: "surveillance", openedAt: "09:35", owner: "Maintenance régionale", status: "En vérification", source: "Gestionnaire du quai", trustLevel: "verified", nextAction: "Confirmer la capacité restante et joindre le constat de maintenance." },
+  { id: "incident-2", quayId: "saint-louis", title: "Retour de pirogue non confirmé", category: "Sécurité", level: "urgent", openedAt: "10:18", owner: "Cellule quai", status: "Ouvert", source: "Appel au poste de quai", trustLevel: "declared", nextAction: "Relancer le poste officiel et consigner le résumé d’appel.", linkedDossierId: "INC-2026-0081" },
+  { id: "incident-3", quayId: "kayar", title: "Écart de pesée déclaré", category: "Qualité", level: "surveillance", openedAt: "10:05", owner: "Service contrôle", status: "Ouvert", source: "Poste local reconnu de Kayar", trustLevel: "declared", nextAction: "Demander une vérification terrain.", linkedDossierId: "VER-2026-0142" },
 ];
 
 export const initialFundingOpportunities: FundingOpportunity[] = [
@@ -228,6 +234,17 @@ export const needMaturityScores: Record<string, number> = {
   "need-4": 58,
   "need-5": 66,
   "need-6": 61,
+  "need-7": 66,
+  "need-8": 52,
+};
+
+export const fundingCoverageByOpportunity: Record<string, { coveredAmount: number; availablePieces: number; partnerStatus: string }> = {
+  "fund-op-1": { coveredAmount: 520000000, availablePieces: 4, partnerStatus: "Compatibilité confirmée" },
+  "fund-op-2": { coveredAmount: 210000000, availablePieces: 3, partnerStatus: "Échange à préparer" },
+  "fund-op-3": { coveredAmount: 160000000, availablePieces: 4, partnerStatus: "Fiche partenaire prête" },
+  "fund-op-4": { coveredAmount: 0, availablePieces: 1, partnerStatus: "Partenaire à identifier" },
+  "fund-op-5": { coveredAmount: 185000000, availablePieces: 3, partnerStatus: "Instruction en cours" },
+  "fund-op-6": { coveredAmount: 90000000, availablePieces: 2, partnerStatus: "Éligibilité à confirmer" },
 };
 
 export const quayTrends: Record<string, number[]> = {
