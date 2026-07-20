@@ -1,5 +1,5 @@
-import { PublicDiscoverExperience } from "@/components/public/PublicDiscoverExperience";
+import { redirect } from "next/navigation";
 
 export default function DiscoverPage() {
-  return <PublicDiscoverExperience />;
+  redirect("/publications");
 }
