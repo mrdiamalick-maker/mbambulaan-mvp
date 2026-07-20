@@ -20,11 +20,11 @@ export function PublicLivingLanding() {
               Comprendre. Partager. Faire avancer les initiatives utiles.
             </h1>
             <p className="mt-7 max-w-xl text-[16px] leading-7 text-[var(--mb-neutral-600)]">
-              Un espace public pour découvrir les métiers et les territoires, relayer des informations utiles, faire connaître les initiatives et permettre à chacun de contribuer.
+              Un espace public pour découvrir les métiers et les territoires, faire circuler des informations utiles et rejoindre des projets concrets.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/decouvrir" className="inline-flex h-12 items-center justify-center rounded-[3px] bg-[var(--mb-navy-700)] px-5 text-[12px] font-bold text-white hover:bg-[var(--mb-navy-900)]">Explorer les publications</Link>
-              <Link href="/decouvrir#projets" className="inline-flex h-12 items-center justify-center rounded-[3px] border border-[var(--mb-neutral-300)] bg-white px-5 text-[12px] font-bold text-[var(--mb-navy-900)] hover:bg-[var(--mb-foam)]">Voir comment participer</Link>
+              <Link href="/projets" className="inline-flex h-12 items-center justify-center rounded-[3px] border border-[var(--mb-neutral-300)] bg-white px-5 text-[12px] font-bold text-[var(--mb-navy-900)] hover:bg-[var(--mb-foam)]">Voir les projets ouverts</Link>
             </div>
           </div>
 
@@ -46,7 +46,7 @@ export function PublicLivingLanding() {
             <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-[var(--mb-ocean-400)]">Projet ouvert aux contributions</p>
             <h2 className="mt-3 text-[17px] font-semibold">{leadProject.title}</h2>
             <p className="mt-2 text-[11px] leading-5 text-white/60">{leadProject.summary}</p>
-            <Link href="/decouvrir#projets" className="mt-4 inline-flex text-[11px] font-bold text-[var(--mb-sand-300)]">Découvrir les besoins →</Link>
+            <Link href="/projets" className="mt-4 inline-flex text-[11px] font-bold text-[var(--mb-sand-300)]">Découvrir les besoins →</Link>
           </article>
           <article className="p-5 sm:p-6 lg:p-7">
             <p className="font-mono text-[9px] uppercase tracking-[0.1em] text-[var(--mb-ocean-400)]">Prochain rendez-vous</p>
