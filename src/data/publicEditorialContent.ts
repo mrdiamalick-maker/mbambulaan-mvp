@@ -1,4 +1,4 @@
-export type PublicStoryCategory = "Territoires" | "Communautés" | "Programmes" | "Ressources";
+export type PublicStoryCategory = "Comprendre" | "Métiers & communautés" | "Initiatives" | "Infos pratiques";
 
 export type PublicStory = {
   slug: string;
@@ -15,222 +15,244 @@ export type PublicStory = {
   keyFacts: Array<{ label: string; value: string }>;
 };
 
+export type PublicProject = {
+  id: string;
+  title: string;
+  territory: string;
+  theme: string;
+  summary: string;
+  sought: string;
+  contribution: string;
+  benefit: string;
+  status: string;
+};
+
 export const publicStories: PublicStory[] = [
   {
-    slug: "kayar-sorties-retours-mer",
-    category: "Territoires",
-    title: "À Kayar, mieux relier les sorties, les retours et les informations du quai",
-    excerpt: "Une lecture commune du cycle d’activité peut faciliter les vérifications et éviter que les informations restent dispersées entre appels, messages et registres.",
+    slug: "journee-quai-kayar",
+    category: "Comprendre",
+    title: "Une journée sur un quai de pêche : qui fait quoi, du départ à la vente ?",
+    excerpt: "Pêcheurs, manutentionnaires, mareyeurs, transformatrices et services locaux participent à une même chaîne. Voici comment leurs rôles se complètent.",
     location: "Kayar · Thiès",
     publishedAt: "18 juillet 2026",
     readingTime: "5 min",
     accent: "navy",
-    kicker: "Coordination territoriale",
-    lead: "Le quai concentre une grande partie de l’information utile : activité du jour, pirogues rattachées, débarquements, situations à vérifier et interlocuteurs locaux. L’enjeu n’est pas d’ajouter un canal, mais de relier ceux qui existent déjà.",
+    kicker: "Découvrir la filière",
+    lead: "Un quai de pêche est à la fois un lieu de travail, d’échange, de vente et de vie collective. Comprendre ce qui s’y passe aide à mieux reconnaître les métiers, les contraintes et la valeur créée par chaque acteur.",
     sections: [
       {
-        title: "Le quai comme point de repère",
+        title: "Avant et pendant la sortie en mer",
         paragraphs: [
-          "À Kayar, les informations opérationnelles circulent entre acteurs de la pêche, relais locaux et services techniques. Lorsqu’elles ne partagent pas le même contexte, une simple demande de vérification peut nécessiter plusieurs relances.",
-          "Une fiche territoriale commune permet de repartir du quai, puis d’ouvrir les informations utiles : unité concernée, activité déclarée, pièce reçue et personne chargée de la prochaine étape.",
+          "La préparation commence bien avant le départ : équipage, carburant, glace, matériel, sécurité et météo. Chaque décision influence la sortie et les conditions du retour.",
+          "À terre, d’autres acteurs se préparent déjà à recevoir, transporter, conserver ou transformer les produits débarqués.",
         ],
       },
       {
-        title: "Conserver la trace sans alourdir le terrain",
+        title: "Au retour, une chaîne humaine se met en mouvement",
         paragraphs: [
-          "Le téléphone et WhatsApp restent des outils naturels. Mbàmbulaan ne cherche pas à les remplacer : la plateforme rattache leur contenu utile à un dossier, à une source et à un résultat attendu.",
-          "Cette continuité permet de distinguer une information déclarée d’un constat vérifié, tout en laissant la validation finale à l’agent habilité.",
+          "Le débarquement mobilise plusieurs métiers. Les produits sont triés, pesés, vendus, transportés ou orientés vers la transformation. La rapidité compte, mais la qualité de l’information et de la coordination aussi.",
+          "Mbàmbulaan veut rendre ces réalités plus visibles, sans remplacer les liens humains qui font vivre les quais.",
         ],
       },
     ],
     keyFacts: [
       { label: "Point de départ", value: "Le quai" },
-      { label: "Canaux", value: "Téléphone · WhatsApp" },
-      { label: "Sortie attendue", value: "Constat documenté" },
+      { label: "Acteurs", value: "Toute la chaîne locale" },
+      { label: "Objectif", value: "Mieux comprendre" },
     ],
   },
   {
-    slug: "joal-mbour-chaine-froid",
-    category: "Programmes",
-    title: "Joal–Mbour : structurer une réponse commune aux besoins de chaîne de froid",
-    excerpt: "Du besoin remonté au programme finançable : bénéficiaires, impact, budget et partenaires sont réunis dans une même lecture.",
-    location: "Joal–Mbour · Petite-Côte",
+    slug: "poisson-frais-bien-conserver",
+    category: "Infos pratiques",
+    title: "Poisson frais : pourquoi le froid protège à la fois la qualité et les revenus",
+    excerpt: "Quelques repères simples pour comprendre ce qui se joue entre le débarquement, la conservation, la transformation et la vente.",
+    location: "Littoral sénégalais",
     publishedAt: "16 juillet 2026",
-    readingTime: "6 min",
+    readingTime: "4 min",
     accent: "ocean",
-    kicker: "Programme à impact",
-    lead: "La conservation ne concerne pas uniquement un équipement. Elle touche la qualité des produits, les pertes après débarquement, le revenu des acteurs et la capacité des territoires à valoriser la pêche locale.",
+    kicker: "Qualité et conservation",
+    lead: "Le froid ne concerne pas uniquement les équipements. Il aide à préserver la qualité, limiter les pertes et donner davantage de temps aux acteurs pour vendre ou transformer dans de bonnes conditions.",
     sections: [
       {
-        title: "Passer d’un besoin isolé à un programme",
+        title: "Une course contre le temps",
         paragraphs: [
-          "Plusieurs remontées proches peuvent révéler un enjeu commun. Leur regroupement permet de préciser les territoires concernés, les acteurs bénéficiaires et les résultats attendus avant de parler de financement.",
-          "Le programme Joal–Mbour sert ici de scénario de référence : les besoins de conservation sont qualifiés, les pièces disponibles sont recensées et le reste à financer devient lisible.",
+          "Après le débarquement, la chaleur accélère la dégradation du poisson. La glace, des contenants propres et une manipulation adaptée contribuent à préserver sa fraîcheur.",
+          "Une meilleure conservation peut réduire les pertes et protéger la valeur du travail réalisé en mer et à terre.",
         ],
       },
       {
-        title: "Donner au partenaire une lecture exploitable",
+        title: "Un enjeu collectif",
         paragraphs: [
-          "Un partenaire a besoin de comprendre le problème, l’impact attendu et les conditions de mise en œuvre. Une fiche programme relie ces éléments aux preuves et aux responsables du suivi.",
-          "La transmission reste une décision humaine. La plateforme prépare le dossier et conserve la trace des échanges sans prétendre envoyer ou engager automatiquement une institution.",
+          "Pêcheurs, mareyeurs, transporteurs, transformatrices, vendeurs et consommateurs ont tous intérêt à une chaîne de qualité mieux organisée.",
+          "Les initiatives utiles peuvent porter sur l’équipement, la formation, l’entretien, l’énergie ou l’organisation entre acteurs.",
         ],
       },
     ],
     keyFacts: [
-      { label: "Bénéficiaires estimés", value: "680" },
-      { label: "Budget indicatif", value: "1,48 Md FCFA" },
-      { label: "À mobiliser", value: "960 M FCFA" },
+      { label: "Enjeu", value: "Qualité" },
+      { label: "Effet", value: "Moins de pertes" },
+      { label: "Bénéfice", value: "Valeur préservée" },
     ],
   },
   {
-    slug: "femmes-transformatrices-valeur-locale",
-    category: "Communautés",
-    title: "Femmes transformatrices : rendre visible une valeur créée après le débarquement",
-    excerpt: "Transformation, conservation, qualité et commercialisation locale prolongent la valeur du poisson et structurent des revenus essentiels.",
+    slug: "femmes-transformatrices-savoir-faire",
+    category: "Métiers & communautés",
+    title: "Femmes transformatrices : des savoir-faire essentiels à mieux connaître et soutenir",
+    excerpt: "Transformation, conservation, vente et organisation collective prolongent la valeur du poisson et font vivre de nombreuses familles.",
     location: "Joal-Fadiouth",
     publishedAt: "14 juillet 2026",
     readingTime: "4 min",
     accent: "sand",
-    kicker: "Métiers et communautés",
-    lead: "La filière ne s’arrête pas au retour des pirogues. Une grande partie de la valeur se construit ensuite, dans des activités de transformation, de conservation et de commercialisation portées notamment par les femmes.",
+    kicker: "Portrait collectif",
+    lead: "La filière ne s’arrête pas au retour des pirogues. Une grande partie de la valeur est créée ensuite par des activités de transformation, de conservation et de commercialisation portées notamment par les femmes.",
     sections: [
       {
-        title: "Documenter les besoins réels",
+        title: "Un rôle économique et social majeur",
         paragraphs: [
-          "Équipements, hygiène, accès au froid, organisation collective et formation sont souvent liés. Les traiter séparément réduit la compréhension de leur impact économique et social.",
-          "Une remontée structurée permet de relier chaque besoin à un groupement, à un territoire et à un résultat concret plutôt qu’à une simple liste de demandes.",
+          "Les femmes transformatrices maîtrisent des techniques, organisent des activités collectives et alimentent des circuits de vente locaux ou plus éloignés.",
+          "Leur travail contribue aux revenus des ménages, à l’alimentation et à la valorisation de produits qui ne seraient pas toujours vendus frais.",
         ],
       },
       {
-        title: "Valoriser les initiatives existantes",
+        title: "Écouter avant de proposer",
         paragraphs: [
-          "Les communautés portent déjà des solutions. Mbàmbulaan doit aussi rendre ces initiatives visibles afin que les services publics et les partenaires sachent où un accompagnement peut accélérer un effort en cours.",
+          "Les besoins varient selon les territoires : accès à l’eau, hygiène, séchage, fumage, stockage, financement, formation ou débouchés.",
+          "Mbàmbulaan doit permettre de faire connaître les initiatives existantes et d’ouvrir des collaborations utiles, construites avec les premières concernées.",
         ],
       },
     ],
     keyFacts: [
-      { label: "Enjeu", value: "Valeur locale" },
-      { label: "Leviers", value: "Qualité · Froid · Formation" },
-      { label: "Lecture", value: "Besoin → programme" },
+      { label: "Activités", value: "Transformer · Conserver · Vendre" },
+      { label: "Force", value: "Savoir-faire collectif" },
+      { label: "Priorité", value: "Écouter les besoins" },
     ],
   },
   {
-    slug: "saint-louis-securite-mer",
-    category: "Ressources",
-    title: "Sécurité en mer : cinq informations à conserver lors d’une vérification",
-    excerpt: "Un guide court pour documenter une situation sans confondre déclaration, vérification et décision institutionnelle.",
+    slug: "securite-mer-reflexes",
+    category: "Infos pratiques",
+    title: "Sécurité en mer : les réflexes essentiels à partager avant chaque départ",
+    excerpt: "Préparation du matériel, information d’un proche, météo et moyens de communication : une fiche simple à relayer autour de soi.",
     location: "Saint-Louis",
     publishedAt: "11 juillet 2026",
     readingTime: "3 min",
     accent: "amber",
-    kicker: "Fiche pratique",
-    lead: "Une situation urgente exige de la rapidité, mais aussi un minimum de contexte partagé. Cinq informations simples facilitent la coordination tout en évitant une conclusion prématurée.",
+    kicker: "Prévention",
+    lead: "La sécurité repose sur des équipements, mais aussi sur des habitudes simples et partagées. Préparer, vérifier et informer peut faciliter la prévention comme la réaction en cas de difficulté.",
     sections: [
       {
-        title: "Les cinq repères",
+        title: "Avant de partir",
         paragraphs: [
-          "Identifier l’unité concernée, l’heure de la dernière information, le quai de rattachement, la personne à recontacter et la prochaine vérification attendue constitue une base commune.",
-          "Le niveau de confiance doit rester visible : une information reçue n’est pas encore un fait confirmé. La validation humaine marque le passage vers une donnée vérifiée.",
+          "Vérifier la météo, le carburant, les équipements de sécurité et les moyens de communication fait partie de la préparation de la sortie.",
+          "Informer une personne à terre de l’équipage, de la zone prévue et de l’heure estimée du retour donne un repère utile.",
+        ],
+      },
+      {
+        title: "Une information à faire circuler",
+        paragraphs: [
+          "Les messages de prévention sont plus efficaces lorsqu’ils sont adaptés aux pratiques locales, répétés et portés par des personnes de confiance.",
         ],
       },
     ],
     keyFacts: [
-      { label: "Format", value: "Fiche pratique" },
-      { label: "Public", value: "Relais et agents" },
-      { label: "Principe", value: "Validation humaine" },
+      { label: "Format", value: "Fiche à partager" },
+      { label: "Public", value: "Pêcheurs et proches" },
+      { label: "Priorité", value: "Prévention" },
     ],
   },
   {
-    slug: "fass-boye-metiers-bleus",
-    category: "Programmes",
-    title: "Fass Boye : ouvrir des perspectives autour des métiers bleus",
-    excerpt: "Sensibilisation, formation et alternatives économiques peuvent être suivies comme un programme territorial cohérent.",
+    slug: "jeunes-metiers-mer",
+    category: "Initiatives",
+    title: "Les métiers de la mer ne se limitent pas à la pêche : des pistes pour les jeunes",
+    excerpt: "Maintenance, froid, transformation, transport, qualité, numérique : la filière peut ouvrir plusieurs chemins professionnels.",
     location: "Fass Boye · Thiès",
     publishedAt: "8 juillet 2026",
     readingTime: "5 min",
     accent: "green",
-    kicker: "Jeunesse et formation",
-    lead: "Prévenir les départs irréguliers suppose aussi de rendre visibles des trajectoires économiques crédibles. Les métiers de la mer offrent plusieurs points d’entrée au-delà de la seule activité de pêche.",
+    kicker: "Jeunesse et orientation",
+    lead: "La mer et ses activités créent des besoins bien au-delà de la capture. Mieux faire connaître ces métiers peut aider les jeunes à se projeter, se former et participer au développement de leur territoire.",
     sections: [
       {
-        title: "Relier sensibilisation et opportunités",
+        title: "Une diversité de compétences",
         paragraphs: [
-          "Une campagne isolée produit peu de visibilité sur la suite. Un programme territorial peut associer information, orientation, formation et accompagnement vers des activités locales.",
-          "Le suivi porte alors sur les publics atteints, les sessions réalisées, les partenaires mobilisés et les premières suites concrètes.",
+          "Mécanique, réparation, fabrication, conservation, transformation, commerce, logistique, sécurité, environnement et outils numériques sont autant de domaines liés à la filière.",
+          "Les parcours gagnent à combiner découverte des métiers, témoignages, formation pratique et accompagnement vers une première expérience.",
         ],
       },
     ],
     keyFacts: [
       { label: "Public", value: "Jeunes et familles" },
-      { label: "Actions", value: "Sensibilisation · Formation" },
-      { label: "Résultat", value: "Parcours orientés" },
+      { label: "Approche", value: "Découvrir · Se former" },
+      { label: "Finalité", value: "Créer des perspectives" },
     ],
   },
   {
-    slug: "comprendre-sardinelle-filiere",
-    category: "Ressources",
-    title: "Comprendre la place de la sardinelle dans la filière artisanale",
-    excerpt: "Une ressource introductive sur les débarquements, les usages locaux et les enjeux de disponibilité de l’information.",
+    slug: "comprendre-sardinelle",
+    category: "Comprendre",
+    title: "La sardinelle dans nos assiettes et nos économies locales",
+    excerpt: "Une introduction accessible à une espèce importante pour l’alimentation, la transformation et de nombreuses activités du littoral.",
     location: "Littoral sénégalais",
     publishedAt: "3 juillet 2026",
     readingTime: "4 min",
     accent: "ocean",
     kicker: "Comprendre une espèce",
-    lead: "Suivre une espèce ne consiste pas seulement à additionner des volumes. Il faut relier les débarquements, les territoires, les usages et les acteurs de la chaîne de valeur.",
+    lead: "La sardinelle occupe une place particulière dans l’alimentation et l’économie de nombreux territoires. Derrière ce poisson se trouvent des pêcheurs, des mareyeurs, des transformatrices, des vendeurs et des consommateurs.",
     sections: [
       {
-        title: "Une lecture territoriale et économique",
+        title: "Une espèce, plusieurs usages",
         paragraphs: [
-          "Les informations de débarquement apportent un premier repère. Elles prennent davantage de sens lorsqu’elles sont comparées aux besoins de conservation, de transformation et de commercialisation du territoire.",
-          "Cette lecture aide à préparer les questions à approfondir avec les services techniques et les organisations professionnelles.",
+          "Vendue fraîche, fumée, séchée ou transformée, la sardinelle circule dans de nombreux marchés et nourrit une diversité d’activités.",
+          "Comprendre cette chaîne aide à mieux percevoir les effets d’une variation des captures, des prix, de la conservation ou du transport.",
         ],
       },
     ],
     keyFacts: [
       { label: "Type", value: "Ressource pédagogique" },
-      { label: "Lecture", value: "Espèce · Territoire · Usage" },
-      { label: "Niveau", value: "Introduction" },
+      { label: "Sujets", value: "Alimentation · Économie" },
+      { label: "Niveau", value: "Tout public" },
     ],
   },
 ];
 
-export const publicPrograms = [
+export const publicPrograms: PublicProject[] = [
   {
-    id: "program-cold",
-    title: "Chaîne de froid communautaire",
+    id: "project-cold",
+    title: "Améliorer la conservation du poisson après le débarquement",
     territory: "Joal–Mbour",
-    theme: "Conservation et qualité",
-    beneficiaries: "680 bénéficiaires estimés",
-    progress: 68,
-    status: "Dossier en structuration",
-    nextMilestone: "Consolider les pièces techniques",
+    theme: "Qualité et réduction des pertes",
+    summary: "Une initiative collective pour mieux conserver les produits, renforcer les bonnes pratiques et réduire les pertes après débarquement.",
+    sought: "Équipements adaptés, expertise technique, formation ou appui financier",
+    contribution: "Apporter une solution, une compétence, un partenariat ou signaler une initiative existante",
+    benefit: "Mieux valoriser les produits, protéger les revenus et améliorer la qualité proposée aux consommateurs",
+    status: "Contributions et initiatives recherchées",
   },
   {
-    id: "program-safety",
-    title: "Sécurité en mer et réflexes de déclaration",
-    territory: "Saint-Louis",
-    theme: "Prévention",
-    beneficiaries: "180 capitaines et jeunes pêcheurs",
-    progress: 44,
-    status: "Partenaires à mobiliser",
-    nextMilestone: "Valider le calendrier terrain",
+    id: "project-safety",
+    title: "Faire circuler les bons réflexes de sécurité en mer",
+    territory: "Saint-Louis et autres territoires volontaires",
+    theme: "Prévention et sensibilisation",
+    summary: "Créer et relayer des formats simples, compréhensibles et adaptés aux pratiques locales pour renforcer la prévention.",
+    sought: "Relais locaux, contenus pédagogiques, témoignages, équipements ou soutien à des actions terrain",
+    contribution: "Partager un besoin, proposer un atelier, relayer un message ou soutenir une action locale",
+    benefit: "Accéder à des ressources utiles et contribuer à une culture commune de prévention",
+    status: "Ouvert aux partenaires et relais",
   },
   {
-    id: "program-women",
-    title: "Qualité et transformation locale",
-    territory: "Joal-Fadiouth",
-    theme: "Femmes transformatrices",
-    beneficiaries: "12 groupements concernés",
-    progress: 57,
-    status: "Programme proposé",
-    nextMilestone: "Qualifier les équipements prioritaires",
+    id: "project-women",
+    title: "Soutenir les initiatives des femmes transformatrices",
+    territory: "Joal-Fadiouth et territoires partenaires",
+    theme: "Transformation et valeur locale",
+    summary: "Mettre en lumière les solutions déjà portées par les groupements et faciliter des collaborations alignées sur leurs priorités.",
+    sought: "Témoignages, solutions d’hygiène et de conservation, formation, débouchés ou financement",
+    contribution: "Faire connaître une initiative, proposer un accompagnement ou rejoindre un partenariat",
+    benefit: "Gagner en visibilité, accéder à des ressources et renforcer une activité économique locale",
+    status: "Initiatives locales à recenser",
   },
 ];
 
 export const publicAgenda = [
-  { date: "24 JUIL.", title: "Atelier sécurité en mer", location: "Saint-Louis", format: "Atelier terrain" },
-  { date: "30 JUIL.", title: "Échange sur la chaîne de froid", location: "Mbour", format: "Rencontre filière" },
-  { date: "06 AOÛT", title: "Métiers bleus et jeunesse", location: "Fass Boye", format: "Session d’information" },
+  { date: "24 JUIL.", title: "Échange ouvert sur la sécurité en mer", location: "Saint-Louis", format: "Rencontre terrain" },
+  { date: "30 JUIL.", title: "Comment mieux conserver le poisson ?", location: "Mbour", format: "Discussion filière" },
+  { date: "06 AOÛT", title: "Découvrir les métiers liés à la mer", location: "Fass Boye", format: "Session d’information" },
 ];
 
 export function getPublicStory(slug: string) {
