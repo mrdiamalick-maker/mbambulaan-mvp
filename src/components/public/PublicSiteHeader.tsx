@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const links = [
-  { href: "/decouvrir", label: "Publications", compactLabel: "Publications" },
+  { href: "/publications", label: "Publications", compactLabel: "Publications" },
   { href: "/projets", label: "Projets & contributions", compactLabel: "Projets" },
   { href: "/contact", label: "Participer", compactLabel: "Participer" },
   { href: "/espace-prive", label: "Accès Ministère", compactLabel: "Ministère" },
