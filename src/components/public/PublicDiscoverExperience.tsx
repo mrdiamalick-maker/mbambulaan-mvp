@@ -41,7 +41,7 @@ export function PublicDiscoverExperience() {
               Des récits, explications, portraits, repères pratiques et informations accessibles pour mieux connaître les métiers, les territoires et les communautés de la filière.
             </p>
           </div>
-          <Link href={`/decouvrir/${featured.slug}`} className="group grid border border-[var(--mb-neutral-200)] bg-white sm:grid-cols-[13rem_minmax(0,1fr)]">
+          <Link href={`/publications/${featured.slug}`} className="group grid border border-[var(--mb-neutral-200)] bg-white sm:grid-cols-[13rem_minmax(0,1fr)]">
             <PublicStoryVisual story={featured} compact priorityLabel="À la une" />
             <div className="p-5">
               <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-[var(--mb-neutral-400)]">{featured.category} · {featured.location}</p>
@@ -77,7 +77,7 @@ export function PublicDiscoverExperience() {
           {stories.length ? (
             <div className="mt-8 grid gap-px border border-[var(--mb-neutral-200)] bg-[var(--mb-neutral-200)] md:grid-cols-2 xl:grid-cols-3">
               {stories.map((story) => (
-                <Link key={story.slug} href={`/decouvrir/${story.slug}`} className="group bg-white">
+                <Link key={story.slug} href={`/publications/${story.slug}`} className="group bg-white">
                   <PublicStoryVisual story={story} compact />
                   <div className="p-5">
                     <div className="flex flex-wrap items-center gap-2 font-mono text-[9px] uppercase text-[var(--mb-neutral-400)]"><span>{story.category}</span><span>·</span><span>{story.readingTime}</span></div>
