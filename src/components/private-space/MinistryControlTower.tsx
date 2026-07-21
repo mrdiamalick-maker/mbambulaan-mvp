@@ -38,6 +38,7 @@ import {
 } from "./MinistryValueWorkflows";
 import { OperationalDossierPanel } from "./MinistryDossierExperience";
 import { buildOperationalDossiers, type DossierNote, type DossierOperationnel } from "@/lib/ministryOperationalDossiers";
+import { mergeOperationalDossiers } from "@/lib/publicContributionOperationalDossiers";
 import { MinistryQuayAtlas } from "./MinistryQuayAtlas";
 import { MinistryDossiersView } from "./MinistryDossiersView";
 import { MinistryPilotageView } from "./MinistryPilotageView";
@@ -76,7 +77,7 @@ export function MinistryControlTower() {
   const [selectedDossierId, setSelectedDossierId] = useState<string | null>(null);
   const [closedDossierIds, setClosedDossierIds] = useState<string[]>([]);
   const [dossierNotes, setDossierNotes] = useState<Record<string, DossierNote[]>>({});
-  const baseDossiers = useMemo(() => buildOperationalDossiers({ verificationTasks, signals: signalRecords, fundingDossiers, opportunities, reports: zoneReports, decisions: decisionRecords, closedDossierIds }), [closedDossierIds, decisionRecords, fundingDossiers, opportunities, signalRecords, verificationTasks, zoneReports]);
+  const baseDossiers = useMemo(() => mergeOperationalDossiers(buildOperationalDossiers({ verificationTasks, signals: signalRecords, fundingDossiers, opportunities, reports: zoneReports, decisions: decisionRecords, closedDossierIds })), [closedDossierIds, decisionRecords, fundingDossiers, opportunities, signalRecords, verificationTasks, zoneReports]);
   const operationalDossiers = useMemo(() => baseDossiers.map((dossier) => ({ ...dossier, notes: [...dossier.notes, ...(dossierNotes[dossier.id] || [])] })), [baseDossiers, dossierNotes]);
   const selectedDossier = selectedDossierId ? operationalDossiers.find((dossier) => dossier.id === selectedDossierId) ?? null : null;
   const activeDossierCount = operationalDossiers.filter((dossier) => dossier.workStatus !== "Terminé").length;

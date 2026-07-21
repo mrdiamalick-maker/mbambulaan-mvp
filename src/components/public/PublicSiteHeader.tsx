@@ -1,9 +1,10 @@
 import Link from "next/link";
 
 const links = [
-  { href: "/publications", label: "Publications" },
-  { href: "/projets", label: "Projets & contributions" },
-  { href: "/contact", label: "Participer" },
+  { href: "/mobilisations", label: "Mobilisations" },
+  { href: "/publications", label: "Comprendre" },
+  { href: "/projets", label: "Initiatives" },
+  { href: "/contact", label: "Contribuer" },
   { href: "/espace-prive", label: "Accès Ministère" },
 ];
 
@@ -21,7 +22,7 @@ export function PublicSiteHeader() {
         </nav>
       </div>
       <nav aria-label="Navigation publique mobile" className="mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 sm:hidden">
-        {links.slice(0, 3).map((link) => <Link key={link.href} href={link.href} className="inline-flex min-h-9 shrink-0 snap-start items-center justify-center whitespace-nowrap border border-[var(--mb-neutral-200)] bg-white px-3 text-[10px] font-bold text-[var(--mb-navy-900)] hover:bg-[var(--mb-foam)]">{link.label}</Link>)}
+        {links.slice(0, 4).map((link) => <Link key={link.href} href={link.href} className="inline-flex min-h-9 shrink-0 snap-start items-center justify-center whitespace-nowrap border border-[var(--mb-neutral-200)] bg-white px-3 text-[10px] font-bold text-[var(--mb-navy-900)] hover:bg-[var(--mb-foam)]">{link.label}</Link>)}
       </nav>
     </div>
   </header>;
