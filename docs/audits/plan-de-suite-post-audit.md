@@ -1,145 +1,140 @@
 # Plan de suite post-audit — Mbàmbulaan
 
-## 1. Décision immédiate
+## 1. Principe de travail
 
-Ne pas reprendre le développement ni produire de nouveaux blueprints tant que les contradictions structurantes relevées par l'audit ne sont pas arbitrées.
+Le CEO pilote la vision, les arbitrages, les priorités et la validation produit.
 
-La priorité n'est pas de corriger le code. La priorité est de rétablir une seule vérité produit.
+Les outils sont répartis clairement :
 
-## 2. Séquence recommandée
+- **Claude** : audits, challenge stratégique, contradictions, risques, critique produit et recommandations.
+- **Codex** : développement, intégration, correction, nettoyage du code et production de versions visibles et testables.
+- **CEO** : décisions, priorisation, validation des parcours et arbitrage entre les options.
 
-### Étape 1 — Arbitrage fondateur
+Mbàmbulaan doit rester un produit à voir, manipuler et tester. Nous ne devons pas transformer le projet en usine documentaire.
+
+## 2. Décision immédiate
+
+Ne pas lancer de nouvel audit interne ni produire de nouveaux blueprints sans besoin direct de développement.
+
+La priorité est désormais de transformer les décisions produit en versions visibles, puis de les tester.
+
+## 3. Séquence recommandée
+
+### Étape 1 — Arbitrage CEO
 
 Décider formellement entre trois options :
 
 - **Option A — Marketplace transactionnelle** : arrivages, besoins, matching, réservation, transactions.
-- **Option B — Infrastructure de coordination publique** : signalement, qualification, décision, action, suivi, confirmation.
+- **Option B — Infrastructure de coordination** : signalement, qualification, décision, action, suivi, confirmation.
 - **Option C — Modèle hybride** : infrastructure de coordination avec un module transactionnel secondaire.
 
-La recommandation produit est de ne pas retenir l'option C maintenant. Elle cumule les risques des deux autres modèles et dilue le go-to-market.
+La recommandation produit reste de ne pas lancer l'option C comme premier périmètre. Elle cumule les risques des deux modèles et rend le produit plus difficile à comprendre et à développer.
 
-### Étape 2 — Source de vérité unique
+### Étape 2 — Cadrage de développement minimal
 
-Créer un document de référence unique qui précise :
+Une fois l'option choisie, produire uniquement un brief opérationnel court pour Codex comprenant :
 
-- le problème prioritaire ;
+- la promesse produit ;
 - l'acteur principal ;
-- le bénéficiaire ;
-- le décideur ;
-- le payeur ;
-- le flux MVP unique ;
-- les objets métier nécessaires ;
-- les résultats mesurables ;
-- ce qui est explicitement hors périmètre.
+- le parcours à rendre visible ;
+- les écrans à construire ou corriger ;
+- les règles métier indispensables ;
+- les données de démonstration nécessaires ;
+- les critères d'acceptation ;
+- ce qui est hors périmètre.
 
-Tous les anciens documents contradictoires devront être marqués comme :
+Ce brief n'est pas un nouveau blueprint. C'est une instruction de développement.
 
-- `ACTIF` ;
-- `CIBLE FUTURE` ;
-- `OBSOLETE` ;
-- `A RECONCILIER`.
+### Étape 3 — Développement Codex
 
-### Étape 3 — Matrice de vérité
+Codex intervient pour :
 
-Construire une matrice avec les colonnes suivantes :
+- construire le parcours prioritaire ;
+- rendre le produit cohérent et navigable ;
+- supprimer ou isoler les composants contradictoires ;
+- brancher les fondations techniques nécessaires au test ;
+- produire une version déployable et visible ;
+- documenter uniquement ce qui est indispensable à la maintenance du code.
 
-| Élément | Documenté | Codé | Testé | Validé terrain | Décision | Action |
-|---|---:|---:|---:|---:|---|---|
+Codex ne doit pas être utilisé comme auditeur stratégique ni comme product manager principal.
 
-Cette matrice doit couvrir :
+### Étape 4 — Revue CEO du produit visible
 
-- vision ;
-- acteurs ;
-- parcours ;
-- bounded contexts ;
-- événements métier ;
-- écrans ;
-- fonctionnalités ;
-- KPI ;
-- modèle économique.
+À chaque version, le CEO doit pouvoir :
 
-### Étape 4 — Pilote terrain
+- ouvrir le produit ;
+- comprendre immédiatement la promesse ;
+- suivre un parcours complet ;
+- identifier les incohérences ;
+- décider ce qui doit être gardé, corrigé, simplifié ou supprimé.
 
-Choisir :
+Les décisions se prennent à partir du produit visible, pas uniquement à partir des documents.
 
-- un territoire ;
-- un problème unique ;
-- un sponsor opérationnel réel ;
-- cinq à quinze utilisateurs réels ;
-- une baseline ;
-- trois KPI maximum ;
-- une durée de test limitée.
+### Étape 5 — Test rapide avec utilisateurs
 
-Le pilote doit mesurer une valeur opérationnelle, par exemple :
+Dès qu'un parcours est suffisamment cohérent, le montrer à quelques utilisateurs ou relais terrain.
 
-- réduction du délai entre signalement et décision ;
-- réduction du nombre de relances ;
-- augmentation du taux d'actions clôturées ;
-- amélioration de la visibilité sur les engagements.
+Le but n'est pas encore de lancer une infrastructure nationale. Le but est de vérifier :
 
-### Étape 5 — Audit Codex
+- est-ce compris ;
+- est-ce utile ;
+- est-ce crédible ;
+- est-ce utilisable ;
+- est-ce que l'acteur reviendrait ;
+- quelle valeur opérationnelle est réellement perçue.
 
-Quand le quota Codex sera disponible, lui demander un audit strict du dépôt, sans développement.
+### Étape 6 — Audit Claude ciblé
 
-Livrables attendus :
+Claude intervient seulement à des moments de décision :
 
-- carte de l'existant ;
-- liste des routes et composants ;
-- liste des données mockées ;
-- doublons et composants obsolètes ;
-- écarts entre code et source de vérité ;
-- dette technique ;
-- plan de nettoyage ;
-- estimation de l'effort pour un pilote fonctionnel.
+- après une évolution majeure du positionnement ;
+- avant un engagement institutionnel important ;
+- avant une levée de fonds ;
+- lorsqu'une contradiction stratégique importante apparaît ;
+- pour challenger une version visible du produit et non uniquement une documentation théorique.
 
-### Étape 6 — Reprise du développement
+Les audits doivent être ciblés, espacés et orientés décision.
 
-Le développement ne reprend qu'après validation des quatre conditions suivantes :
+## 4. À faire maintenant
 
-1. positionnement tranché ;
-2. source de vérité validée ;
-3. pilote cadré ;
-4. backlog réduit au flux prioritaire.
+- trancher le premier positionnement produit ;
+- choisir un parcours unique à rendre visible ;
+- préparer un brief de développement Codex court ;
+- développer une version cohérente ;
+- la visualiser et la tester ;
+- décider la suite à partir de ce retour.
 
-## 3. Décisions recommandées à ce stade
+## 5. À ne pas faire maintenant
 
-### À faire maintenant
+- produire de nouveaux packs documentaires ;
+- demander à Codex un nouvel audit général ;
+- construire une matrice exhaustive avant de toucher au produit ;
+- modéliser tous les bounded contexts avant le prochain test ;
+- enrichir simultanément tous les espaces acteurs ;
+- ajouter de nouveaux moteurs métier sans parcours démontrable ;
+- confondre volume de documentation et avancement produit.
 
-- geler les nouveaux documents ;
-- trancher le positionnement ;
-- produire la source de vérité ;
-- préparer la matrice de vérité ;
-- cadrer un pilote terrain ;
-- préparer le prompt d'audit Codex.
+## 6. Rythme de travail recommandé
 
-### À ne pas faire maintenant
+Chaque cycle doit suivre cette logique :
 
-- enrichir les dashboards ;
-- ajouter de nouveaux moteurs ;
-- implémenter les 13 bounded contexts ;
-- étendre à d'autres filières ;
-- travailler le scoring ou les services financiers ;
-- lancer une communication institutionnelle forte ;
-- présenter le produit comme un MVP opérationnel.
+1. décision CEO ;
+2. brief court ;
+3. développement Codex ;
+4. version visible ;
+5. revue CEO ;
+6. test utilisateur ;
+7. ajustement.
 
-## 4. Recommandation stratégique
+Claude intervient ponctuellement pour challenger les décisions structurantes, pas dans chaque cycle de développement.
 
-La prochaine décision structurante est le choix entre :
+## 7. Critère de progression
 
-- une **plateforme transactionnelle de filière**, plus proche du produit déjà codé ;
-- une **infrastructure de coordination**, plus proche de la vision stratégique et du besoin institutionnel.
+Une étape est considérée comme avancée lorsqu'il existe un résultat visible et testable :
 
-La seconde option semble plus cohérente avec l'ambition Mbàmbulaan, mais elle exige d'accepter que le code actuel soit principalement un prototype exploratoire et non la base du MVP final.
+- un parcours fonctionne ;
+- une décision est compréhensible ;
+- un utilisateur peut accomplir une action ;
+- une valeur métier peut être expliquée et observée.
 
-## 5. Critère de sortie de la phase de consolidation
-
-Cette phase est terminée lorsque l'équipe peut répondre en une page, sans contradiction, aux questions suivantes :
-
-- Quel problème précis résolvons-nous en premier ?
-- Pour qui ?
-- Qui bénéficie ?
-- Qui décide ?
-- Qui paie ?
-- Quel flux unique testons-nous ?
-- Quel résultat mesurable devons-nous obtenir ?
-- Qu'est-ce qui est explicitement hors périmètre ?
+Un document seul ne constitue pas une progression produit.
