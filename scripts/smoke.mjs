@@ -3,7 +3,7 @@ import { setTimeout as delay } from "node:timers/promises";
 
 const port = 3419;
 const base = `http://127.0.0.1:${port}`;
-const server = spawn("npm", ["run", "start", "--", "--port", String(port)], {
+const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--port", String(port)], {
   stdio: ["ignore", "pipe", "pipe"],
   env: { ...process.env, NODE_ENV: "production" }
 });
