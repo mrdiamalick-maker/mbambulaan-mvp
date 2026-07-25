@@ -10,6 +10,7 @@ import type {
   Tension,
   Weighing,
 } from "./types";
+import { assertValidDomainData } from "./validation";
 
 export interface CreateExpectedReturnInput {
   id: EntityId;
@@ -85,28 +86,28 @@ export interface RecordOutcomeInput {
 }
 
 function cloneData(data: DomainData): DomainData {
-  return {
-    actors: [...data.actors],
-    organizations: [...data.organizations],
-    territories: [...data.territories],
-    landingSites: [...data.landingSites],
-    vessels: [...data.vessels],
-    expectedReturns: [...data.expectedReturns],
-    landings: [...data.landings],
-    weighings: [...data.weighings],
-    lots: [...data.lots],
-    marketNeeds: [...data.marketNeeds],
-    capacities: [...data.capacities],
-    tensions: [...data.tensions],
-    commitments: [...data.commitments],
-    outcomes: [...data.outcomes],
-  };
+  return structuredClone(data);
+}
+
+function ensureUniqueId(
+  data: DomainData,
+  collection: keyof DomainData,
+  id: EntityId,
+): void {
+  const exists = (data[collection] as Array<{ id: EntityId }>).some(
+    (item) => item.id === id,
+  );
+
+  if (exists) {
+    throw new Error(`L'identifiant ${id} existe déjà dans ${collection}.`);
+  }
 }
 
 export class DomainService {
   private data: DomainData;
 
   constructor(initialData: DomainData = domainRepository.getData()) {
+    assertValidDomainData(initialData);
     this.data = cloneData(initialData);
   }
 
@@ -114,22 +115,39 @@ export class DomainService {
     return cloneData(this.data);
   }
 
+  private commit(nextData: DomainData): void {
+    assertValidDomainData(nextData);
+    this.data = nextData;
+  }
+
   announceExpectedReturn(input: CreateExpectedReturnInput): ExpectedReturn {
+    ensureUniqueId(this.data, "expectedReturns", input.id);
+
     const item: ExpectedReturn = { ...input, status: "announced" };
-    this.data.expectedReturns = [...this.data.expectedReturns, item];
+    this.commit({
+      ...this.data,
+      expectedReturns: [...this.data.expectedReturns, item],
+    });
     return item;
   }
 
   confirmLanding(input: ConfirmLandingInput): Landing {
+    ensureUniqueId(this.data, "landings", input.id);
+
     const landing: Landing = { ...input, status: "confirmed" };
-    this.data.landings = [...this.data.landings, landing];
+    const expectedReturns = input.expectedReturnId
+      ? this.data.expectedReturns.map((item) =>
+          item.id === input.expectedReturnId
+            ? { ...item, status: "arrived" as const }
+            : item,
+        )
+      : this.data.expectedReturns;
 
-    if (input.expectedReturnId) {
-      this.data.expectedReturns = this.data.expectedReturns.map((item) =>
-        item.id === input.expectedReturnId ? { ...item, status: "arrived" } : item,
-      );
-    }
-
+    this.commit({
+      ...this.data,
+      expectedReturns,
+      landings: [...this.data.landings, landing],
+    });
     return landing;
   }
 
@@ -138,8 +156,13 @@ export class DomainService {
       throw new Error("Le poids doit être strictement positif.");
     }
 
+    ensureUniqueId(this.data, "weighings", input.id);
+
     const weighing: Weighing = { ...input };
-    this.data.weighings = [...this.data.weighings, weighing];
+    this.commit({
+      ...this.data,
+      weighings: [...this.data.weighings, weighing],
+    });
     return weighing;
   }
 
@@ -148,39 +171,61 @@ export class DomainService {
       throw new Error("Le poids du lot doit être strictement positif.");
     }
 
+    ensureUniqueId(this.data, "lots", input.id);
+
     const lot: Lot = {
       ...input,
       availabilityStatus: "available",
       currency: input.askingPricePerKg ? "XOF" : undefined,
     };
 
-    this.data.lots = [...this.data.lots, lot];
+    this.commit({
+      ...this.data,
+      lots: [...this.data.lots, lot],
+    });
     return lot;
   }
 
   reportTension(input: ReportTensionInput): Tension {
+    ensureUniqueId(this.data, "tensions", input.id);
+
     const tension: Tension = { ...input, status: "open" };
-    this.data.tensions = [...this.data.tensions, tension];
+    this.commit({
+      ...this.data,
+      tensions: [...this.data.tensions, tension],
+    });
     return tension;
   }
 
   createCommitment(input: CreateCommitmentInput): Commitment {
     if (!input.actorId && !input.organizationId) {
-      throw new Error("Un engagement doit être porté par un acteur ou une organisation.");
+      throw new Error(
+        "Un engagement doit être porté par un acteur ou une organisation.",
+      );
     }
 
+    ensureUniqueId(this.data, "commitments", input.id);
+
     const commitment: Commitment = { ...input, status: "proposed" };
-    this.data.commitments = [...this.data.commitments, commitment];
+    this.commit({
+      ...this.data,
+      commitments: [...this.data.commitments, commitment],
+    });
     return commitment;
   }
 
   recordOutcome(input: RecordOutcomeInput): Outcome {
+    ensureUniqueId(this.data, "outcomes", input.id);
+
     const outcome: Outcome = {
       ...input,
       currency: input.valueCreated ? "XOF" : undefined,
     };
 
-    this.data.outcomes = [...this.data.outcomes, outcome];
+    this.commit({
+      ...this.data,
+      outcomes: [...this.data.outcomes, outcome],
+    });
     return outcome;
   }
 }
