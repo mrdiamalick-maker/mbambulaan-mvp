@@ -1,5 +1,5 @@
-import { ModuleGateNotice } from "@/components/premium/ModuleGateNotice";
+import { redirect } from "next/navigation";
 
 export default function CoordinationPage() {
-  return <ModuleGateNotice moduleName="Coordination" />;
+  redirect("/coordinateur");
 }
