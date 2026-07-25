@@ -1,10 +1,10 @@
-# Mbàmbulaan MVP
+# Mbàmbulaan
 
-Premiere version professionnelle du MVP Mbàmbulaan, construite avec Next.js 15, TypeScript et Tailwind CSS.
+Infrastructure numérique de coordination territoriale pour la pêche artisanale sénégalaise.
 
-## Objectif
+Cette version démontre une chaîne opérationnelle unique :
 
-Mbàmbulaan prépare une plateforme qui relie les acteurs de la filiere halieutique: pecheurs, quais, mareyeurs, transformateurs et collectivites. Cette version pose la landing page publique et l'architecture des prochaines pages metier.
+`observation → situation qualifiée → priorité → coordination → intervention → résultat → apprentissage`
 
 ## Stack
 
@@ -12,6 +12,8 @@ Mbàmbulaan prépare une plateforme qui relie les acteurs de la filiere halieuti
 - TypeScript
 - Tailwind CSS
 - App Router
+- PostgreSQL (optionnel en démonstration, requis en production)
+- PWA avec brouillons terrain hors connexion
 
 ## Commandes
 
@@ -19,3 +21,30 @@ Mbàmbulaan prépare une plateforme qui relie les acteurs de la filiere halieuti
 npm install
 npm run dev
 ```
+
+Puis ouvrir :
+
+- `http://localhost:3000/` : entrée publique ;
+- `http://localhost:3000/demo` : parcours guidé unique ;
+- `http://localhost:3000/app/travail` : briefing opérationnel ;
+- `http://localhost:3000/app/situations/sit-glace` : scénario machine à glace.
+
+Le code OTP de démonstration locale est `246810`. Aucun SMS ou message WhatsApp réel n'est envoyé.
+
+## Validation
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+## Configuration
+
+```bash
+DATABASE_URL=postgres://...
+SESSION_SECRET=...
+```
+
+Sans `DATABASE_URL`, le produit utilise un état en mémoire réservé à la démonstration. Les données affichées sont déterministes et ne constituent pas des statistiques officielles.

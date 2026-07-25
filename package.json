@@ -6,11 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/**/*.test.ts",
+    "test:e2e": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.0.0",
+    "lucide-react": "^1.26.0",
     "next": "^15.0.0",
+    "postgres": "^3.4.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -18,7 +23,10 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.21",
     "tailwindcss": "^4.0.0",
+    "tsx": "^4.23.1",
     "typescript": "^5.0.0"
   }
 }
