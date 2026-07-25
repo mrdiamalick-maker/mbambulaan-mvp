@@ -89,15 +89,6 @@ export interface CatchEstimate {
   estimatedWeightKg: number;
 }
 
-export type ServiceNeedType = "ice" | "cold_storage" | "transport" | "handling";
-
-export interface ServiceNeed {
-  type: ServiceNeedType;
-  quantity?: number;
-  unit?: "kg" | "vehicle" | "team";
-  note?: string;
-}
-
 export type ExpectedReturnStatus =
   | "announced"
   | "approaching"
@@ -110,10 +101,70 @@ export interface ExpectedReturn {
   expectedLandingSiteId: EntityId;
   expectedAt: ISODateTime;
   estimatedCatch: CatchEstimate[];
-  serviceNeeds: ServiceNeed[];
   status: ExpectedReturnStatus;
   createdByActorId: EntityId;
   createdAt: ISODateTime;
+}
+
+export type ServiceNeedType = "ice" | "cold_storage" | "transport" | "handling";
+export type ServiceNeedUnit = "kg" | "vehicle" | "team" | "slot";
+export type ServiceNeedPriority = "normal" | "urgent" | "critical";
+export type ServiceNeedStatus =
+  | "open"
+  | "partially_allocated"
+  | "allocated"
+  | "fulfilled"
+  | "cancelled";
+
+export interface ServiceNeed {
+  id: EntityId;
+  expectedReturnId: EntityId;
+  requestedByActorId: EntityId;
+  needType: ServiceNeedType;
+  requestedQuantity: number;
+  unit: ServiceNeedUnit;
+  neededAt: ISODateTime;
+  territoryId: EntityId;
+  landingSiteId?: EntityId;
+  priority: ServiceNeedPriority;
+  status: ServiceNeedStatus;
+  note?: string;
+  createdAt: ISODateTime;
+}
+
+export type ServiceAllocationStatus =
+  | "proposed"
+  | "reserved"
+  | "in_progress"
+  | "fulfilled"
+  | "cancelled"
+  | "expired";
+
+export interface ServiceAllocation {
+  id: EntityId;
+  serviceNeedId: EntityId;
+  capacityId: EntityId;
+  allocatedQuantity: number;
+  unit: ServiceNeedUnit;
+  providerOrganizationId: EntityId;
+  beneficiaryOrganizationId?: EntityId;
+  beneficiaryActorId?: EntityId;
+  allocatedByActorId: EntityId;
+  allocatedAt: ISODateTime;
+  expiresAt?: ISODateTime;
+  status: ServiceAllocationStatus;
+}
+
+export type ServiceExecutionStatus = "confirmed" | "contested";
+
+export interface ServiceExecution {
+  id: EntityId;
+  allocationId: EntityId;
+  executedQuantity: number;
+  executedAt: ISODateTime;
+  confirmedByActorId: EntityId;
+  evidence: OutcomeEvidence[];
+  status: ServiceExecutionStatus;
 }
 
 export type LandingStatus = "draft" | "confirmed" | "cancelled";
@@ -183,9 +234,14 @@ export interface Capacity {
   providerOrganizationId: EntityId;
   capacityType: CapacityType;
   territoryId: EntityId;
+  landingSiteId?: EntityId;
+  initialQuantity: number;
   availableQuantity: number;
   unit: "kg" | "vehicle" | "slot";
   availableFrom: ISODateTime;
+  availableUntil?: ISODateTime;
+  declaredByActorId: EntityId;
+  createdAt: ISODateTime;
   status: CapacityStatus;
 }
 
@@ -205,7 +261,13 @@ export interface Tension {
   tensionType: TensionType;
   severity: Severity;
   territoryId: EntityId;
-  relatedEntityType: "expected_return" | "landing" | "lot" | "capacity" | "market_need";
+  relatedEntityType:
+    | "expected_return"
+    | "service_need"
+    | "landing"
+    | "lot"
+    | "capacity"
+    | "market_need";
   relatedEntityId: EntityId;
   description: string;
   status: TensionStatus;
@@ -241,7 +303,14 @@ export interface OutcomeEvidence {
 
 export interface Outcome {
   id: EntityId;
-  relatedEntityType: "tension" | "landing" | "lot" | "market_need";
+  relatedEntityType:
+    | "tension"
+    | "service_need"
+    | "service_allocation"
+    | "service_execution"
+    | "landing"
+    | "lot"
+    | "market_need";
   relatedEntityId: EntityId;
   outcomeType: OutcomeType;
   description: string;
@@ -259,6 +328,9 @@ export interface DomainData {
   landingSites: LandingSite[];
   vessels: Vessel[];
   expectedReturns: ExpectedReturn[];
+  serviceNeeds: ServiceNeed[];
+  serviceAllocations: ServiceAllocation[];
+  serviceExecutions: ServiceExecution[];
   landings: Landing[];
   weighings: Weighing[];
   lots: Lot[];
