@@ -50,7 +50,7 @@ Ce document doit fixer sans ambiguïté :
 - le hors-périmètre ;
 - l’ordre de lecture des documents en cas de contradiction.
 
-Statut : à produire.
+Statut : produit et disponible dans `docs/execution/source-de-verite-produit-codex.md`.
 
 ## Livrable B — Audit d’écart code / cible
 
@@ -87,7 +87,7 @@ Le contrat doit imposer :
 - PR prête à relire ;
 - liste explicite des écarts résiduels.
 
-Statut : à intégrer dans le prompt maître.
+Statut : intégré dans `docs/execution/prompt-maitre-codex.md`.
 
 ---
 
@@ -114,13 +114,21 @@ Intentions :
 - suivre les blocages ;
 - clôturer avec un élément de confirmation.
 
-## Acteurs à rendre visibles uniquement en lecture de démonstration
-
 ### Responsable opérationnel
 
+Le responsable opérationnel est interactif dans ce premier incrément.
+
+Il doit pouvoir :
+
 - voir les interventions affectées ;
+- démarrer une intervention ;
 - mettre à jour l’avancement ;
-- fournir une confirmation d’intervention.
+- signaler un blocage ;
+- renseigner un motif d’attente ;
+- fournir une confirmation d’intervention ;
+- déclarer la fin de l’intervention.
+
+## Acteur à rendre visible principalement en lecture et pilotage
 
 ### Décideur / Ministère
 
@@ -183,6 +191,12 @@ Le scénario doit montrer de bout en bout :
 - preuve
 - marketplace
 - matching
+
+Le terme `confirmation` est interdit comme libellé de statut principal. Il reste autorisé dans les expressions métier suivantes :
+
+- confirmation d’intervention ;
+- élément de confirmation ;
+- confirmation de création.
 
 ## Alternatives préférées
 
@@ -281,21 +295,24 @@ Les composants existants correspondants doivent être isolés de la navigation p
 - écarts résiduels ;
 - captures d’écran.
 
+Les critères subjectifs de compréhension et de valeur perçue sont évalués en revue humaine post-PR. Codex ne doit pas s’auto-certifier sur ces critères.
+
 ---
 
 # 7. Règle d’arbitrage documentaire
 
 En cas de contradiction, Codex doit appliquer l’ordre suivant :
 
-1. prompt maître d’exécution ;
-2. présent document de readiness ;
-3. Issue #42 ;
-4. spécifications fonctionnelles du flux pilote ;
-5. parcours acteurs et wireframes ;
-6. MVP détaillé ;
-7. architecture et modèle de domaine ;
-8. autres documents stratégiques ;
-9. code existant.
+1. `docs/execution/source-de-verite-produit-codex.md` ;
+2. `docs/execution/prompt-maitre-codex.md` ;
+3. présent document de readiness ;
+4. Issue #42 ;
+5. spécifications fonctionnelles du flux pilote ;
+6. parcours acteurs et wireframes ;
+7. MVP détaillé ;
+8. architecture et modèle de domaine ;
+9. autres documents stratégiques ;
+10. code existant.
 
 Le code existant n’est pas une source de vérité produit. Il est une base technique à réutiliser lorsqu’elle sert la cible.
 
@@ -322,7 +339,7 @@ Après ce challenge, les arbitrages sont intégrés une seule fois, puis Codex d
 
 # 9. Décision de lancement
 
-Nous sommes prêts à préparer le prompt maître dès que les éléments suivants sont consolidés :
+Les éléments nécessaires sont désormais consolidés :
 
 - source de vérité exécutable ;
 - scénario et données de démonstration ;
