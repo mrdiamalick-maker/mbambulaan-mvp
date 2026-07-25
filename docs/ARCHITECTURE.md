@@ -1,96 +1,43 @@
-# Architecture — Mbàmbulaan MVP
+# Architecture d'exécution — Mbàmbulaan
 
 ## Vue d’ensemble
 
-Le MVP est une application Next.js avec données locales mockées.
-
-L’objectif actuel n’est pas de créer une architecture finale de production, mais de séparer correctement :
-
-- l’interface ;
-- les données ;
-- les règles métier ;
-- les moteurs d’intelligence métier.
+Mbàmbulaan est un monolithe modulaire Next.js. Tous les rôles utilisent les mêmes objets métier et la même source de vérité. Les vues et les commandes autorisées changent selon le mandat, jamais le produit.
 
 ## Structure cible actuelle
 
 ```text
 src/
-  app/
-    arrivages/
-    besoins/
-    opportunites/
-    transactions/
-    notifications/
-    dashboard/
-    quais/
-    coordination/
-    demo/
-    espaces/
-  components/
-    arrivages/
-    besoins/
-    opportunites/
-    transactions/
-    notifications/
-    dashboard/
-    quais/
-    coordination/
-    demo/
-    espaces/
-  data/
-    arrivages.json
-    besoins.json
-    demo.json
-  lib/
-    coordination.ts
-    matching.ts
-    recommendation.ts
-    trust.ts
-    impact.ts
-    tension.ts
-    prioritization.ts
-    alerts.ts
-    traceability.ts
-    reference.ts
+  app/               routes publiques, produit et contrats HTTP
+  components/        shell, vues métier et composants d'affichage
+  data/              tenant de démonstration déterministe
+  domain/            objets, commandes, transitions et invariants
+  server/            sessions, permissions et persistance
+db/migrations/       schéma PostgreSQL versionné
+tests/               règles métier et permissions
 ```
 
 ## Principes d’architecture
 
-### 1. Les pages orchestrent
+### Source de vérité
 
-Les fichiers `src/app/**/page.tsx` doivent rester simples.
+`src/server/repository.ts` persiste un état de tenant dans PostgreSQL lorsque `DATABASE_URL` est configuré. Le mode mémoire est un repli explicite de démonstration. Les commandes sont idempotentes.
 
-Ils chargent les données et passent les résultats aux composants.
+### Règles métier
 
-### 2. Les composants affichent
+`src/domain/rules.ts` protège les transitions : prochaine étape, responsable et échéance après prise en charge, motif de blocage, résultat et élément de confirmation avant clôture.
 
-Les composants React doivent gérer l’UX et l’affichage.
+### Accès et sécurité
 
-Ils ne doivent pas contenir la logique métier principale.
+Les sessions sont signées côté serveur. `src/server/permissions.ts` contrôle chaque commande par mandat. Les changements sensibles alimentent le journal d'audit.
 
-### 3. Les moteurs métier calculent
+### Déconnexion et reprise
 
-Les modules dans `src/lib` portent la logique métier.
+Le formulaire terrain conserve uniquement les brouillons non synchronisés sur l'appareil. La donnée métier validée reste côté serveur. Les identifiants et clés d'idempotence empêchent les doublons lors d'une reprise réseau.
 
-Exemples :
+### Limites connues
 
-- `coordination.ts` : coordination générale ;
-- `recommendation.ts` : recommandation ;
-- `trust.ts` : score de confiance ;
-- `impact.ts` : indicateurs d’impact ;
-- `tension.ts` : tension territoriale ;
-- `prioritization.ts` : priorités métier ;
-- `alerts.ts` : alertes ;
-- `traceability.ts` : traçabilité.
-
-## Évolution vers une V1
-
-À terme, les fichiers JSON pourront être remplacés par :
-
-- une API ;
-- une base de données ;
-- un système d’authentification ;
-- un back-office ;
-- des intégrations partenaires.
-
-La séparation actuelle doit permettre cette évolution sans réécrire toute l’interface.
+- le fournisseur OTP/SMS doit être branché pour la production ;
+- le stockage objet S3 des médias est préparé au niveau produit mais pas connecté ;
+- la migration JSONB initiale devra être normalisée progressivement lorsque les volumes réels seront connus ;
+- le tenant de démonstration ne contient aucune statistique officielle.
