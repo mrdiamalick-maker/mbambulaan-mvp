@@ -40,12 +40,23 @@ const roleLabels: Record<Role, string> = {
   administrateur: "Administrateur"
 };
 
+const roleSequence: Role[] = [
+  "agent_terrain",
+  "coordinateur",
+  "responsable_initiative",
+  "decideur",
+  "partenaire",
+  "expert",
+  "administrateur"
+];
+
 export function ProductShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { state, role, persistence, loading, error, changeRole, reset } = useProduct();
   const [open, setOpen] = useState(false);
   const unread = state?.notifications.filter((item) => item.role === role && !item.read).length ?? 0;
   const items = role === "administrateur" ? [...nav, { href: "/app/administration", label: "Administration", icon: Settings }] : nav;
+  const step = roleSequence.indexOf(role) + 1;
 
   return (
     <div className="min-h-screen bg-[#f4f7f6]">
@@ -64,17 +75,14 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
           <span className="hidden border border-[#d8e1e2] bg-[#f8faf9] px-2.5 py-1 text-xs font-semibold text-[#60737a] lg:inline">
             Données simulées · {persistence === "postgresql" ? "PostgreSQL" : "mémoire locale"}
           </span>
-          <label className="hidden items-center gap-2 sm:flex">
-            <span className="sr-only">Vue actuelle</span>
+          <div className="hidden items-center gap-2 border border-[#cfdcde] bg-white px-3 py-2 sm:flex" aria-label="Étape actuelle de la démonstration">
             <CircleUserRound size={17} className="text-[#087287]" />
-            <select
-              value={role}
-              onChange={(event) => void changeRole(event.target.value as Role)}
-              className="max-w-52 border border-[#cfdcde] bg-white px-2 py-2 text-sm font-semibold text-[#17313a]"
-            >
-              {Object.entries(roleLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
-            </select>
-          </label>
+            <span className="text-xs font-semibold text-[#60737a]">Étape {step}/7</span>
+            <strong className="text-sm text-[#17313a]">{roleLabels[role]}</strong>
+          </div>
+          <Link href="/demo" className="hidden border border-[#b9dfe4] px-3 py-2 text-sm font-bold text-[#075466] hover:bg-[#eaf8fa] lg:inline-flex">
+            Voir le parcours
+          </Link>
           <button className="relative p-2 text-[#075466]" aria-label={`${unread} notifications non lues`}>
             <Bell size={20} />
             {unread > 0 && <span className="absolute right-1 top-1 size-2 rounded-full bg-[#c94f3d]" />}
@@ -86,6 +94,11 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <aside className="no-print fixed bottom-0 left-0 top-16 z-30 hidden w-64 border-r border-[#cfdcde] bg-[#062d36] p-4 text-white md:block">
+        <div className="mb-4 border-b border-white/15 pb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8fcfd5]">Parcours de démonstration</p>
+          <p className="mt-2 text-sm font-bold">{roleLabels[role]}</p>
+          <p className="mt-1 text-xs leading-5 text-[#b9dfe4]">Étape {step} sur 7 du cycle de coordination.</p>
+        </div>
         <nav aria-label="Navigation principale" className="space-y-1">
           {items.map((item) => {
             const active = pathname.startsWith(item.href);
@@ -109,6 +122,10 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
             <strong>Navigation</strong>
             <button onClick={() => setOpen(false)} className="p-2" aria-label="Fermer la navigation"><X /></button>
           </div>
+          <div className="mt-6 border border-white/15 p-4">
+            <p className="text-xs uppercase tracking-[0.16em] text-[#8fcfd5]">Parcours de démonstration</p>
+            <p className="mt-2 font-bold">Étape {step}/7 · {roleLabels[role]}</p>
+          </div>
           <nav className="mt-8 space-y-2">
             {items.map((item) => (
               <Link onClick={() => setOpen(false)} key={item.href} href={item.href} className="flex items-center gap-3 border-b border-white/10 py-4 font-semibold">
@@ -116,12 +133,14 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
           </nav>
-          <label className="mt-8 block">
-            <span className="text-xs text-[#b9dfe4]">Vue actuelle</span>
-            <select value={role} onChange={(event) => void changeRole(event.target.value as Role)} className="mt-2 w-full bg-white p-3 text-[#17313a]">
-              {Object.entries(roleLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
-            </select>
-          </label>
+          <div className="mt-8 flex gap-3">
+            <Link onClick={() => setOpen(false)} href="/demo" className="flex-1 border border-white/30 px-4 py-3 text-center text-sm font-bold">
+              Voir le parcours
+            </Link>
+            <button onClick={() => void reset()} className="flex-1 border border-white/30 px-4 py-3 text-sm font-bold">
+              Réinitialiser
+            </button>
+          </div>
         </div>
       )}
 
