@@ -6,6 +6,10 @@ on:
   push:
     branches: [main, feature-etat-control-tower-refonte]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     name: Validate product
