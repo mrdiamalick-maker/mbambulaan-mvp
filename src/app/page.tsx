@@ -1,5 +1,5 @@
-import { InstitutionalLanding } from "@/components/landing/InstitutionalLanding";
+import { CoordinationLanding } from "@/components/coordination-demo/CoordinationLanding";
 
 export default function HomePage() {
-  return <InstitutionalLanding />;
+  return <CoordinationLanding />;
 }
