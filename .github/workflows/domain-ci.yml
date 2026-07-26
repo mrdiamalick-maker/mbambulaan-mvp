@@ -1,0 +1,30 @@
+name: Domain CI
+
+on:
+  push:
+    branches:
+      - feature/service-coordination-domain
+  pull_request:
+
+jobs:
+  domain-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Domain tests
+        run: npm test
