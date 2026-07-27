@@ -23,13 +23,26 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Typecheck
+        id: typecheck
+        continue-on-error: true
         shell: bash
         run: |
-          set +e
-          npm run typecheck > /tmp/typecheck.log 2>&1
-          status=$?
-          tail -n 120 /tmp/typecheck.log
-          exit $status
+          mkdir -p ci-diagnostics
+          npm run typecheck > ci-diagnostics/typecheck.log 2>&1
+
+      - name: Publish TypeScript diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: typecheck-diagnostics
+          path: ci-diagnostics/typecheck.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Typecheck gate
+        if: always()
+        shell: bash
+        run: test "${{ steps.typecheck.outcome }}" = "success"
 
       - name: Domain tests
         run: npm test
