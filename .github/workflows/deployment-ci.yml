@@ -20,4 +20,53 @@ jobs:
 
       - name: Render and validate Kubernetes base
         run: |
-         
+          kubectl kustomize infra/kubernetes/base > rendered-base.yaml
+          grep -q "kind: Deployment" rendered-base.yaml
+          grep -q "kind: HorizontalPodAutoscaler" rendered-base.yaml
+          grep -q "kind: PodDisruptionBudget" rendered-base.yaml
+          grep -q "kind: NetworkPolicy" rendered-base.yaml
+          grep -q "kind: Job" rendered-base.yaml
+
+      - name: Render environment overlays
+        run: |
+          for environment in integration staging production; do
+            kubectl kustomize "infra/kubernetes/overlays/${environment}" > "rendered-${environment}.yaml"
+            grep -q "app.kubernetes.io/environment: ${environment}" "rendered-${environment}.yaml"
+            grep -q "kind: Deployment" "rendered-${environment}.yaml"
+            grep -q "kind: Job" "rendered-${environment}.yaml"
+          done
+          grep -q "kind: ExternalSecret" rendered-production.yaml
+          grep -q "MBAMBULAAN_ENV: production" rendered-production.yaml
+          grep -q "MIGRATION_MODE: validate" rendered-production.yaml
+
+      - name: Build hardened container image
+        run: docker build --tag mbambulaan-platform:${{ github.sha }} .
+
+      - name: Inspect container user
+        run: |
+          user=$(docker inspect --format '{{.Config.User}}' mbambulaan-platform:${{ github.sha }})
+          test "$user" = "1001:1001"
+
+      - name: Inspect container healthcheck
+        run: |
+          health=$(docker inspect --format '{{json .Config.Healthcheck}}' mbambulaan-platform:${{ github.sha }})
+          test "$health" != "null"
+
+      - name: Inspect migration assets
+        run: |
+          docker run --rm --entrypoint sh mbambulaan-platform:${{ github.sha }} -c 'test -x /usr/bin/psql && test -d /app/infra/postgres/migrations'
+
+      - name: Verify container startup and liveness
+        run: |
+          container=$(docker run -d --rm -p 3000:3000 \
+            -e SERVICE_STARTED_AT=2026-01-01T00:00:00.000Z \
+            mbambulaan-platform:${{ github.sha }})
+          cleanup() { docker logs "$container" || true; docker stop "$container" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/api/health/live >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
