@@ -187,10 +187,11 @@ export class NationalAccessControl {
       delegation = await this.repository.findDelegation(input.delegationId);
       if (!delegation || delegation.delegateIdentityId !== input.identityId || delegation.status !== "active" || !this.isActiveWindow(delegation, input.occurredAt)) reasons.push("Délégation absente, inactive ou expirée.");
       else {
-        if (!delegation.allowedActionTypes.includes(input.actionType)) reasons.push("Action non autorisée par la délégation.");
-        if (input.amountXof !== undefined && delegation.maximumAmountXof !== undefined && input.amountXof > delegation.maximumAmountXof) reasons.push("Montant supérieur au plafond de délégation.");
-        if (input.territoryIds.some((id) => !delegation.territoryIds.includes(id))) reasons.push("Territoire hors délégation.");
-        delegation.permissionCodes.forEach((permission) => permissions.add(permission));
+        const activeDelegation = delegation;
+        if (!activeDelegation.allowedActionTypes.includes(input.actionType)) reasons.push("Action non autorisée par la délégation.");
+        if (input.amountXof !== undefined && activeDelegation.maximumAmountXof !== undefined && input.amountXof > activeDelegation.maximumAmountXof) reasons.push("Montant supérieur au plafond de délégation.");
+        if (input.territoryIds.some((id) => !activeDelegation.territoryIds.includes(id))) reasons.push("Territoire hors délégation.");
+        activeDelegation.permissionCodes.forEach((permission) => permissions.add(permission));
         await this.audit({ identityId: input.identityId, sessionId: input.sessionId, eventType: "delegation_used", actionType: input.actionType, resourceType: input.resourceType, resourceId: input.resourceId, territoryIds: input.territoryIds, reasons: [], correlationId: input.correlationId, occurredAt: input.occurredAt });
       }
     }
