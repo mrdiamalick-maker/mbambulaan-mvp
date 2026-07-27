@@ -6,6 +6,10 @@ on:
       - feature/service-coordination-domain
   pull_request:
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   package-and-manifests:
     runs-on: ubuntu-latest
@@ -41,6 +45,33 @@ jobs:
 
       - name: Build hardened container image
         run: docker build --tag mbambulaan-platform:${{ github.sha }} .
+
+      - name: Scan repository dependencies
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: 1
+
+      - name: Scan container image
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          image-ref: mbambulaan-platform:${{ github.sha }}
+          scanners: vuln,secret,misconfig
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: 1
+          format: sarif
+          output: trivy-image.sarif
+
+      - name: Upload image security findings
+        if: always() && hashFiles('trivy-image.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
 
       - name: Inspect container user
         run: |
