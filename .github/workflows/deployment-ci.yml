@@ -28,7 +28,23 @@ jobs:
           grep -q "kind: Job" rendered-platform.yaml
 
       - name: Build hardened container image
-        run: docker build --tag mbambulaan-platform:${{ github.sha }} .
+        id: image
+        continue-on-error: true
+        run: |
+          mkdir -p ci-diagnostics
+          docker build --progress=plain --tag mbambulaan-platform:${{ github.sha }} . > ci-diagnostics/docker-build.log 2>&1
+
+      - name: Publish Docker diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-build-diagnostics
+          path: ci-diagnostics/docker-build.log
+          retention-days: 7
+
+      - name: Container build gate
+        if: always()
+        run: test "${{ steps.image.outcome }}" = "success"
 
       - name: Inspect container user
         run: |
