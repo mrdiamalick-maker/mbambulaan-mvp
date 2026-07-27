@@ -11,18 +11,7 @@ export type RuntimeEventType =
   | "operational.flow.completed"
   | "atlas.question.requested";
 
-export interface RuntimeEvent<TPayload = Record<string, unknown>> {
-  id: string;
-  type: RuntimeEventType;
-  occurredAt: string;
-  correlationId: string;
-  causationId?: string;
-  tenantId: string;
-  territoryId: string;
-  payload: TPayload;
-}
-
-interface OperationalFlowPayload {
+export interface OperationalFlowPayload {
   flowId: string;
   flowKind: "physical" | "service" | "financial" | "information" | "authority" | "commitment";
   fromEntityId: string;
@@ -34,7 +23,7 @@ interface OperationalFlowPayload {
   valueXof?: number;
 }
 
-interface AtlasQuestionPayload {
+export interface AtlasQuestionPayload {
   questionId: string;
   workspaceId: string;
   askedByActorId: string;
@@ -42,6 +31,28 @@ interface AtlasQuestionPayload {
   decisionDomain: AtlasQuestion["decisionDomain"];
   horizon: AtlasQuestion["horizon"];
 }
+
+interface RuntimeEventPayloadMap {
+  "operational.flow.blocked": OperationalFlowPayload;
+  "operational.flow.completed": OperationalFlowPayload;
+  "atlas.question.requested": AtlasQuestionPayload;
+}
+
+interface RuntimeEventBase {
+  id: string;
+  occurredAt: string;
+  correlationId: string;
+  causationId?: string;
+  tenantId: string;
+  territoryId: string;
+}
+
+export type RuntimeEvent<TType extends RuntimeEventType = RuntimeEventType> = {
+  [K in TType]: RuntimeEventBase & {
+    type: K;
+    payload: RuntimeEventPayloadMap[K];
+  };
+}[TType];
 
 export interface RuntimeAuditRecord {
   id: string;
@@ -98,7 +109,7 @@ export class IntegratedPlatformRuntime {
     return this.snapshot();
   }
 
-  publish<TPayload>(event: RuntimeEvent<TPayload>) {
+  publish<TType extends RuntimeEventType>(event: RuntimeEvent<TType>) {
     if (!this.running) throw new Error("Le runtime Mbàmbulaan doit être démarré avant publication.");
     if (this.processedEventIds.has(event.id) || this.outbox.some((item) => item.event.id === event.id)) {
       this.audit.push({
@@ -171,17 +182,21 @@ export class IntegratedPlatformRuntime {
 
   private handle(event: RuntimeEvent, processedAt: string) {
     if (event.type === "operational.flow.blocked" || event.type === "operational.flow.completed") {
-      this.projectOperationalFlow(event as RuntimeEvent<OperationalFlowPayload>, processedAt);
+      this.projectOperationalFlow(event, processedAt);
       return;
     }
     if (event.type === "atlas.question.requested") {
-      this.answerAtlasQuestion(event as RuntimeEvent<AtlasQuestionPayload>, processedAt);
+      this.answerAtlasQuestion(event, processedAt);
       return;
     }
-    throw new Error(`Type d'événement non pris en charge : ${event.type}`);
+    const exhaustive: never = event;
+    throw new Error(`Type d'événement non pris en charge : ${JSON.stringify(exhaustive)}`);
   }
 
-  private projectOperationalFlow(event: RuntimeEvent<OperationalFlowPayload>, processedAt: string) {
+  private projectOperationalFlow(
+    event: RuntimeEvent<"operational.flow.blocked" | "operational.flow.completed">,
+    processedAt: string,
+  ) {
     const payload = event.payload;
     const fromNodeId = `twin-${payload.fromEntityId}`;
     const toNodeId = `twin-${payload.toEntityId}`;
@@ -220,19 +235,21 @@ export class IntegratedPlatformRuntime {
     });
     const signals = this.digitalTwin.detectSignals(processedAt);
     this.digitalTwin.createSnapshot(`snapshot-${event.id}`, processedAt, [event.territoryId]);
-    if (signals.length > 0) this.knowledgeGraph.ingestEvidence(signals.map((signal) => ({
-      id: `runtime-${signal.id}`,
-      sourceType: "twin_signal",
-      sourceEntityId: signal.id,
-      title: signal.description,
-      summary: signal.description,
-      observedAt: signal.detectedAt,
-      reliabilityScore: 90,
-      freshnessScore: 100,
-    })));
+    if (signals.length > 0) {
+      this.knowledgeGraph.ingestEvidence(signals.map((signal) => ({
+        id: `runtime-${signal.id}`,
+        sourceType: "twin_signal" as const,
+        sourceEntityId: signal.id,
+        title: signal.description,
+        summary: signal.description,
+        observedAt: signal.detectedAt,
+        reliabilityScore: 90,
+        freshnessScore: 100,
+      })));
+    }
   }
 
-  private answerAtlasQuestion(event: RuntimeEvent<AtlasQuestionPayload>, processedAt: string) {
+  private answerAtlasQuestion(event: RuntimeEvent<"atlas.question.requested">, processedAt: string) {
     const payload = event.payload;
     const result = this.atlas.ask({
       id: payload.questionId,
