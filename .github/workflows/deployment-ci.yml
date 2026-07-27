@@ -47,7 +47,7 @@ jobs:
         run: docker build --tag mbambulaan-platform:${{ github.sha }} .
 
       - name: Scan repository dependencies
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -57,7 +57,7 @@ jobs:
           exit-code: 1
 
       - name: Scan container image
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: mbambulaan-platform:${{ github.sha }}
           scanners: vuln,secret,misconfig
