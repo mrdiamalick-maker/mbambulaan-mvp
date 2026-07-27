@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/domain/**/*.test.ts"
+    "typecheck": "tsc --noEmit --pretty false",
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.0.0",
