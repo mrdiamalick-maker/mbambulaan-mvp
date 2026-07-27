@@ -92,7 +92,7 @@ jobs:
         run: |
           overlay="infra/kubernetes/overlays/integration"
           cp "${overlay}/kustomization.yaml" "${overlay}/kustomization.yaml.bak"
-          sed -i -E 's#newName: ghcr.io/mrdiamalick-maker/mbambulaan-mvp#newName: mbambulaan-platform#' "${overlay}/kustomization.yaml"
+          sed -i -E '/name: ghcr.io\/mrdiamalick-maker\/mbambulaan-mvp/a\    newName: mbambulaan-platform' "${overlay}/kustomization.yaml"
           sed -i -E 's#newTag: integration#newTag: ci#' "${overlay}/kustomization.yaml"
           kubectl kustomize "$overlay" > rendered-integration.yaml
           mv "${overlay}/kustomization.yaml.bak" "${overlay}/kustomization.yaml"
@@ -160,7 +160,7 @@ jobs:
           kubectl -n mbambulaan-data get all -o yaml > deployment-evidence/data-resources.yaml || true
           kubectl -n mbambulaan-integration get events --sort-by=.lastTimestamp > deployment-evidence/application-events.txt || true
           kubectl -n mbambulaan-integration logs job/mbambulaan-database-migration-integration > deployment-evidence/migration.log 2>&1 || true
-          cp rendered-integration.yaml deployment-evidence/rendered-integration.yaml
+          cp rendered-integration.yaml deployment-evidence/rendered-integration.yaml 2>/dev/null || true
           cp installation.log deployment-evidence/installation.log 2>/dev/null || true
           cp port-forward.log deployment-evidence/port-forward.log 2>/dev/null || true
 
