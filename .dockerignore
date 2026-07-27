@@ -1,0 +1,12 @@
+.git
+.github
+.next
+node_modules
+npm-debug.log*
+Dockerfile*
+README.md
+coverage
+ci-diagnostics
+.env
+.env.*
+!.env.example
