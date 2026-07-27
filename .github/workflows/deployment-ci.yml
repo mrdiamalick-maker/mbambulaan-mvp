@@ -20,8 +20,8 @@ jobs:
 
       - name: Validate Kubernetes manifests
         run: |
-          kubectl apply --dry-run=client --validate=false -f infra/kubernetes/base/platform.yaml
-          kubectl apply --dry-run=client --validate=false -f infra/kubernetes/base/migration-job.yaml
+          kubectl create --dry-run=client --validate=false -f infra/kubernetes/base/platform.yaml -o yaml > /dev/null
+          kubectl create --dry-run=client --validate=false -f infra/kubernetes/base/migration-job.yaml -o yaml > /dev/null
 
       - name: Build hardened container image
         run: docker build --tag mbambulaan-platform:${{ github.sha }} .
