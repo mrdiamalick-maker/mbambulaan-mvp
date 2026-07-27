@@ -134,22 +134,28 @@ jobs:
             deployment/mbambulaan-platform-integration \
             --timeout=10m
 
-      - name: Verify liveness and readiness
+      - name: Verify liveness, readiness and commercial flow
         run: |
           kubectl -n mbambulaan-integration port-forward service/mbambulaan-platform-integration 18080:80 > port-forward.log 2>&1 &
           port_forward_pid=$!
           cleanup() { kill "$port_forward_pid" >/dev/null 2>&1 || true; cat port-forward.log || true; }
           trap cleanup EXIT
+          ready=false
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:18080/api/health/live >/dev/null \
               && curl --fail --silent http://127.0.0.1:18080/api/health/ready >/dev/null; then
-              exit 0
+              ready=true
+              break
             fi
             sleep 2
           done
-          kubectl -n mbambulaan-integration get all
-          kubectl -n mbambulaan-integration describe pods
-          exit 1
+          if [ "$ready" != "true" ]; then
+            kubectl -n mbambulaan-integration get all
+            kubectl -n mbambulaan-integration describe pods
+            exit 1
+          fi
+          chmod +x scripts/verify-commercial-e2e.sh
+          BASE_URL=http://127.0.0.1:18080 scripts/verify-commercial-e2e.sh | tee commercial-e2e.log
 
       - name: Publish installation evidence
         if: always()
@@ -163,6 +169,7 @@ jobs:
           cp rendered-integration.yaml deployment-evidence/rendered-integration.yaml 2>/dev/null || true
           cp installation.log deployment-evidence/installation.log 2>/dev/null || true
           cp port-forward.log deployment-evidence/port-forward.log 2>/dev/null || true
+          cp commercial-e2e.log deployment-evidence/commercial-e2e.log 2>/dev/null || true
 
       - name: Upload installation evidence
         if: always()
