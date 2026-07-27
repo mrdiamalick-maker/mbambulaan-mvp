@@ -47,10 +47,15 @@ export function AtlasConsole() {
     setBusy(name);
     try {
       const payload = await work();
-      setLogs((current) => [{ title: name, status: "success", payload }, ...current].slice(0, 8));
+      const entry: LogEntry = { title: name, status: "success", payload };
+      setLogs((current) => [entry, ...current].slice(0, 8));
       await refresh();
     } catch (error) {
-      setLogs((current) => [{ title: `${name} — ${error instanceof Error ? error.message : String(error)}`, status: "error" }, ...current].slice(0, 8));
+      const entry: LogEntry = {
+        title: `${name} — ${error instanceof Error ? error.message : String(error)}`,
+        status: "error",
+      };
+      setLogs((current) => [entry, ...current].slice(0, 8));
     } finally {
       setBusy(undefined);
     }
