@@ -392,8 +392,8 @@ export class EndToEndQualityComplianceCertificationTraceabilityCapability {
     const score = Math.max(0, 100 - blockers.length * 25 - warnings.length * 10 - orphanNodeIds.length * 3 - brokenQuantityNodeIds.length * 5 - missingControlNodeIds.length * 3);
     item.blockers = blockers;
     item.warnings = warnings;
-    this.touch(item, generatedAt);
-    return { caseId: item.id, score, complete: blockers.length === 0, orphanNodeIds, nodesWithoutEvidenceIds, brokenQuantityNodeIds, missingControlNodeIds, blockers, warnings, generatedAt };
+    this.touch(item, input.generatedAt);
+    return { caseId: item.id, score, complete: blockers.length === 0, orphanNodeIds, nodesWithoutEvidenceIds, brokenQuantityNodeIds, missingControlNodeIds, blockers, warnings, generatedAt: input.generatedAt };
   }
 
   getQualityCommandCenter(input: { caseId: EntityId; generatedAt: ISODateTime }) {

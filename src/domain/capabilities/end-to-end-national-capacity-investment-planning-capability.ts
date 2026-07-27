@@ -234,7 +234,7 @@ export class EndToEndNationalCapacityInvestmentPlanningCapability {
     input.project.status = "qualified";
     plan.projects.push(structuredClone(input.project));
     plan.status = "prioritizing";
-    this.touch(plan, proposedAt);
+    this.touch(plan, input.proposedAt);
     return structuredClone(input.project);
   }
 

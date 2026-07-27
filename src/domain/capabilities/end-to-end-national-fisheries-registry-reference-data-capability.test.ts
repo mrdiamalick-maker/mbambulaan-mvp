@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "../../test/vitest-compat";
 import { EndToEndNationalFisheriesRegistryReferenceDataCapability, type RegistryRecord } from "./end-to-end-national-fisheries-registry-reference-data-capability";
 
 const createRecord = (overrides: Partial<RegistryRecord> & Pick<RegistryRecord, "id" | "entityType" | "canonicalName">): RegistryRecord => ({

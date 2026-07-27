@@ -235,7 +235,7 @@ test("le pilotage national relie objectifs, simulation, décision, intervention 
       id: "intervention-1",
       decisionId: "decision-1",
       territoryIds: ["territory-joal"],
-      interventionType: "cold_chain_support",
+      interventionType: "logistics_support",
       ownerActorId: "ministry-1",
       partnerActorIds: ["coordinator-1", "cooperative-1"],
       status: "proposed",

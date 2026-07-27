@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "../../test/vitest-compat";
 import { EndToEndQualityComplianceCertificationTraceabilityCapability } from "./end-to-end-quality-compliance-certification-traceability-capability";
 
 const t = (value: string) => value as `${string}T${string}Z`;

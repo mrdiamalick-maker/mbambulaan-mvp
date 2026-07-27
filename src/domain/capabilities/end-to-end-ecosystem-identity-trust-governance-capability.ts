@@ -264,7 +264,7 @@ export class EndToEndEcosystemIdentityTrustGovernanceCapability {
     const policy = this.requirePolicy(item, request.actionType, request.scopeType, request.scopeId);
     const approverDecision = this.authorize({ caseId: item.id, identityId: input.approverIdentityId, actionType: "approve", scopeType: request.scopeType, scopeId: request.scopeId, requiredPermissionCodes: ["approve"], occurredAt: input.decidedAt });
     if (approverDecision.decision !== "allowed") throw new Error("L'approbateur n'est pas autorisé.");
-    if (!approved) {
+    if (!input.approved) {
       request.status = "rejected";
       request.rejectionReason = input.reason;
       request.decidedAt = input.decidedAt;
@@ -378,7 +378,7 @@ export class EndToEndEcosystemIdentityTrustGovernanceCapability {
     identity.evidenceIds = this.unique([...identity.evidenceIds, ...input.evidenceIds]);
     identity.updatedAt = input.suspendedAt;
     for (const delegation of item.delegations.filter((entry) => entry.delegatorIdentityId === identity.id || entry.delegateIdentityId === identity.id)) delegation.status = "suspended";
-    item.warnings.push(`Identité suspendue ${identity.id} : ${reason}`);
+    item.warnings.push(`Identité suspendue ${identity.id} : ${input.reason}`);
     this.touch(item, input.suspendedAt);
     return structuredClone(identity);
   }

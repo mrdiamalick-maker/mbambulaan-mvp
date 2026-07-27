@@ -270,7 +270,7 @@ export class EndToEndEthicalFinancingRiskSharingCapability {
     input.offer.status = "proposed";
     item.offers.push(structuredClone(input.offer));
     need.status = "matched";
-    this.touch(item, proposedAt);
+    this.touch(item, input.proposedAt);
     return structuredClone(input.offer);
   }
 

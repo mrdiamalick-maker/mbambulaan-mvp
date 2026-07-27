@@ -306,7 +306,7 @@ export class EndToEndPublicProgramPolicyImpactCapability {
     if (committed <= 0) throw new Error("Aucun budget n'est engagé.");
     item.status = "active";
     for (const intervention of item.interventions.filter((entry) => entry.status === "ready" || entry.status === "planned")) intervention.status = "active";
-    this.touch(item, launchedAt);
+    this.touch(item, input.launchedAt);
     return structuredClone(item);
   }
 

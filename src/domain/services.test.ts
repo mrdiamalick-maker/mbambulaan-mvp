@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { domainData } from "./data";
 import {
-  getCompatibleCapacitiesForServiceNeed,
+  getCompatibleCapacitiesForNeed,
   getServiceNeedCoverage,
   getServiceNeedsAtRisk,
 } from "./selectors";
@@ -462,14 +462,15 @@ test("l'annulation d'une allocation restitue la capacité et rouvre le besoin", 
 test("les sélecteurs identifient la couverture et les capacités compatibles", () => {
   const snapshot = structuredClone(domainData);
   const coverage = getServiceNeedCoverage(snapshot, "service-need-003");
-  const compatible = getCompatibleCapacitiesForServiceNeed(
+  assert.ok(coverage);
+  const compatible = getCompatibleCapacitiesForNeed(
     snapshot,
     "service-need-004",
   );
 
   assert.equal(coverage.requestedQuantity, 700);
   assert.equal(coverage.allocatedQuantity, 500);
-  assert.equal(coverage.remainingQuantity, 200);
+  assert.equal(coverage.remainingToAllocate, 200);
   assert.equal(coverage.allocationCoverageRate, 500 / 700);
   assert.equal(compatible.some((item) => item.id === "capacity-002"), true);
 });
@@ -478,7 +479,6 @@ test("les besoins proches de leur échéance et insuffisamment couverts sont dé
   const atRisk = getServiceNeedsAtRisk(
     structuredClone(domainData),
     "2026-07-25T09:50:00Z",
-    60,
   );
 
   assert.equal(atRisk.some((item) => item.id === "service-need-003"), true);

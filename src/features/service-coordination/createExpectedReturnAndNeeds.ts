@@ -7,13 +7,13 @@ import {
   type CreateServiceNeedResult,
 } from "../../application/createServiceNeed";
 import type {
-  AnnounceExpectedReturnInput,
+  CreateExpectedReturnInput,
   CreateServiceNeedInput,
   DomainService,
 } from "../../domain/services";
 
 export interface CreateExpectedReturnAndNeedsInput {
-  expectedReturn: AnnounceExpectedReturnInput;
+  expectedReturn: CreateExpectedReturnInput;
   serviceNeeds: Omit<CreateServiceNeedInput, "expectedReturnId">[];
 }
 
