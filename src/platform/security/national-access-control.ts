@@ -82,15 +82,7 @@ export interface SecurityAuditEvent {
   id: EntityId;
   identityId?: EntityId;
   sessionId?: EntityId;
-  eventType:
-    | "authentication_succeeded"
-    | "authentication_failed"
-    | "session_revoked"
-    | "authorization_allowed"
-    | "authorization_denied"
-    | "step_up_required"
-    | "delegation_used"
-    | "security_policy_violation";
+  eventType: "authentication_succeeded" | "authentication_failed" | "session_revoked" | "authorization_allowed" | "authorization_denied" | "step_up_required" | "delegation_used" | "security_policy_violation";
   actionType?: string;
   resourceType?: string;
   resourceId?: EntityId;
@@ -112,6 +104,7 @@ export interface AuthorizationRequest {
   amountXof?: number;
   delegationId?: EntityId;
   requiredAuthenticationLevel?: AuthenticationLevel;
+  prohibitedRoleCombinations?: string[][];
   occurredAt: ISODateTime;
   correlationId?: EntityId;
 }
@@ -128,6 +121,7 @@ export interface AuthorizationDecision {
 
 export interface SecurityRepository {
   findIdentity(identityId: EntityId): Promise<SecurityIdentity | undefined>;
+  findSessionById(sessionId: EntityId): Promise<SecuritySession | undefined>;
   findSessionByTokenHash(tokenHash: string): Promise<SecuritySession | undefined>;
   saveSession(session: SecuritySession): Promise<void>;
   listMemberships(identityId: EntityId): Promise<OrganizationMembership[]>;
@@ -143,41 +137,17 @@ export interface TokenHasher { hash(token: string): string; }
 const authOrder: AuthenticationLevel[] = ["anonymous", "basic", "verified", "strong"];
 
 export class NationalAccessControl {
-  constructor(
-    private readonly repository: SecurityRepository,
-    private readonly clock: SecurityClock,
-    private readonly ids: SecurityIdGenerator,
-  ) {}
+  constructor(private readonly repository: SecurityRepository, private readonly clock: SecurityClock, private readonly ids: SecurityIdGenerator) {}
 
-  async createSession(input: {
-    id: EntityId;
-    identityId: EntityId;
-    tokenHash: string;
-    authenticationLevel: AuthenticationLevel;
-    factors: AuthenticationFactor[];
-    organizationId?: EntityId;
-    selectedTerritoryIds: EntityId[];
-    expiresAt: ISODateTime;
-    deviceIdHash?: string;
-    ipAddressHash?: string;
-  }) {
+  async createSession(input: { id: EntityId; identityId: EntityId; tokenHash: string; authenticationLevel: AuthenticationLevel; factors: AuthenticationFactor[]; organizationId?: EntityId; selectedTerritoryIds: EntityId[]; expiresAt: ISODateTime; deviceIdHash?: string; ipAddressHash?: string }) {
     const identity = await this.repository.findIdentity(input.identityId);
     if (!identity || identity.status !== "active") throw new Error("L'identité doit être active pour ouvrir une session.");
     if (Date.parse(input.expiresAt) <= Date.parse(this.clock.now())) throw new Error("La session doit expirer dans le futur.");
-    if (input.authenticationLevel === "strong" && input.factors.length < 2 && !input.factors.includes("passkey")) {
-      throw new Error("Une authentification forte nécessite deux facteurs ou une passkey.");
-    }
+    if (input.authenticationLevel === "strong" && input.factors.length < 2 && !input.factors.includes("passkey")) throw new Error("Une authentification forte nécessite deux facteurs ou une passkey.");
     const memberships = (await this.repository.listMemberships(input.identityId)).filter((item) => this.isActiveWindow(item, this.clock.now()));
     const authorizedTerritories = new Set(memberships.flatMap((item) => item.territoryIds));
-    if (input.selectedTerritoryIds.some((territoryId) => !authorizedTerritories.has(territoryId))) {
-      throw new Error("La session demande un territoire hors des appartenances actives.");
-    }
-    const session: SecuritySession = {
-      ...input,
-      issuedAt: this.clock.now(),
-      lastSeenAt: this.clock.now(),
-      status: "active",
-    };
+    if (input.selectedTerritoryIds.some((territoryId) => !authorizedTerritories.has(territoryId))) throw new Error("La session demande un territoire hors des appartenances actives.");
+    const session: SecuritySession = { ...input, issuedAt: this.clock.now(), lastSeenAt: this.clock.now(), status: "active" };
     await this.repository.saveSession(session);
     await this.audit({ identityId: input.identityId, sessionId: input.id, eventType: "authentication_succeeded", territoryIds: input.selectedTerritoryIds, reasons: [], occurredAt: this.clock.now() });
     return structuredClone(session);
@@ -199,26 +169,29 @@ export class NationalAccessControl {
     if (!identity || identity.status !== "active") reasons.push("Identité absente ou non active.");
 
     if (input.sessionId) {
-      const session = await this.findSessionByIdThroughTokenUnsupported(input.sessionId);
-      if (session) level = session.authenticationLevel;
-    }
+      const session = await this.repository.findSessionById(input.sessionId);
+      if (!session || session.identityId !== input.identityId || session.status !== "active" || Date.parse(session.expiresAt) <= Date.parse(input.occurredAt)) reasons.push("Session absente, expirée, révoquée ou attribuée à une autre identité.");
+      else {
+        level = session.authenticationLevel;
+        if (input.territoryIds.some((territoryId) => !session.selectedTerritoryIds.includes(territoryId))) reasons.push("Territoire hors périmètre de la session.");
+      }
+    } else if ((input.requiredAuthenticationLevel ?? "basic") !== "anonymous") reasons.push("Session requise.");
 
-    const grants = (await this.repository.listGrants(input.identityId)).filter((grant) =>
-      grant.status === "active" && this.isActiveWindow(grant, input.occurredAt) &&
-      (!input.organizationId || !grant.organizationId || grant.organizationId === input.organizationId) &&
-      input.territoryIds.every((territoryId) => grant.scopeType === "national" || grant.territoryIds.includes(territoryId)),
-    );
+    const grants = (await this.repository.listGrants(input.identityId)).filter((grant) => grant.status === "active" && this.isActiveWindow(grant, input.occurredAt) && (!input.organizationId || !grant.organizationId || grant.organizationId === input.organizationId) && input.territoryIds.every((territoryId) => grant.scopeType === "national" || grant.territoryIds.includes(territoryId)));
     const permissions = new Set(grants.flatMap((grant) => grant.permissionCodes));
+    const roleCodes = grants.map((grant) => grant.roleCode);
+    for (const combination of input.prohibitedRoleCombinations ?? []) if (combination.every((role) => roleCodes.includes(role))) reasons.push(`Séparation des responsabilités violée : ${combination.join(" + ")}.`);
+
     let delegation: SecurityDelegation | undefined;
     if (input.delegationId) {
       delegation = await this.repository.findDelegation(input.delegationId);
-      if (!delegation || delegation.delegateIdentityId !== input.identityId || delegation.status !== "active" || !this.isActiveWindow(delegation, input.occurredAt)) {
-        reasons.push("Délégation absente, inactive ou expirée.");
-      } else {
+      if (!delegation || delegation.delegateIdentityId !== input.identityId || delegation.status !== "active" || !this.isActiveWindow(delegation, input.occurredAt)) reasons.push("Délégation absente, inactive ou expirée.");
+      else {
         if (!delegation.allowedActionTypes.includes(input.actionType)) reasons.push("Action non autorisée par la délégation.");
         if (input.amountXof !== undefined && delegation.maximumAmountXof !== undefined && input.amountXof > delegation.maximumAmountXof) reasons.push("Montant supérieur au plafond de délégation.");
-        if (input.territoryIds.some((id) => !delegation!.territoryIds.includes(id))) reasons.push("Territoire hors délégation.");
+        if (input.territoryIds.some((id) => !delegation.territoryIds.includes(id))) reasons.push("Territoire hors délégation.");
         delegation.permissionCodes.forEach((permission) => permissions.add(permission));
+        await this.audit({ identityId: input.identityId, sessionId: input.sessionId, eventType: "delegation_used", actionType: input.actionType, resourceType: input.resourceType, resourceId: input.resourceId, territoryIds: input.territoryIds, reasons: [], correlationId: input.correlationId, occurredAt: input.occurredAt });
       }
     }
 
@@ -226,31 +199,9 @@ export class NationalAccessControl {
     if (missing.length) reasons.push(`Permissions manquantes : ${missing.join(", ")}.`);
     const requiredLevel = input.requiredAuthenticationLevel ?? "basic";
     let decision: AuthorizationDecision["decision"] = reasons.length ? "denied" : "allowed";
-    if (!reasons.length && authOrder.indexOf(level) < authOrder.indexOf(requiredLevel)) {
-      decision = "step_up_required";
-      reasons.push(`Niveau ${requiredLevel} requis.`);
-    }
-    const result: AuthorizationDecision = {
-      decision,
-      reasons,
-      permissionCodes: [...permissions],
-      territoryIds: [...input.territoryIds],
-      grantIds: grants.map((grant) => grant.id),
-      delegationId: delegation?.id,
-      authenticationLevel: level,
-    };
-    await this.audit({
-      identityId: input.identityId,
-      sessionId: input.sessionId,
-      eventType: decision === "allowed" ? "authorization_allowed" : decision === "step_up_required" ? "step_up_required" : "authorization_denied",
-      actionType: input.actionType,
-      resourceType: input.resourceType,
-      resourceId: input.resourceId,
-      territoryIds: input.territoryIds,
-      reasons,
-      correlationId: input.correlationId,
-      occurredAt: input.occurredAt,
-    });
+    if (!reasons.length && authOrder.indexOf(level) < authOrder.indexOf(requiredLevel)) { decision = "step_up_required"; reasons.push(`Niveau ${requiredLevel} requis.`); }
+    const result: AuthorizationDecision = { decision, reasons, permissionCodes: [...permissions], territoryIds: [...input.territoryIds], grantIds: grants.map((grant) => grant.id), delegationId: delegation?.id, authenticationLevel: level };
+    await this.audit({ identityId: input.identityId, sessionId: input.sessionId, eventType: decision === "allowed" ? "authorization_allowed" : decision === "step_up_required" ? "step_up_required" : "authorization_denied", actionType: input.actionType, resourceType: input.resourceType, resourceId: input.resourceId, territoryIds: input.territoryIds, reasons, correlationId: input.correlationId, occurredAt: input.occurredAt });
     return result;
   }
 
@@ -259,41 +210,19 @@ export class NationalAccessControl {
     const identity = await this.repository.findIdentity(session.identityId);
     if (!identity || identity.status !== "active") throw new Error("Identité inactive.");
     const memberships = (await this.repository.listMemberships(identity.id)).filter((item) => this.isActiveWindow(item, this.clock.now()));
-    const grants = (await this.repository.listGrants(identity.id)).filter((item) => item.status === "active" && this.isActiveWindow(item, this.clock.now()));
-    return {
-      identityId: identity.id,
-      organizationId: session.organizationId ?? memberships[0]?.organizationId,
-      territoryIds: [...new Set(session.selectedTerritoryIds)],
-      permissions: [...new Set(grants.flatMap((grant) => grant.permissionCodes))],
-      authenticationLevel: session.authenticationLevel,
-    };
+    const grants = (await this.repository.listGrants(identity.id)).filter((item) => item.status === "active" && this.isActiveWindow(item, this.clock.now()) && session.selectedTerritoryIds.every((territoryId) => item.scopeType === "national" || item.territoryIds.includes(territoryId)));
+    return { identityId: identity.id, organizationId: session.organizationId ?? memberships[0]?.organizationId, territoryIds: [...new Set(session.selectedTerritoryIds)], permissions: [...new Set(grants.flatMap((grant) => grant.permissionCodes))], authenticationLevel: session.authenticationLevel };
   }
 
-  private async findSessionByIdThroughTokenUnsupported(_sessionId: EntityId): Promise<SecuritySession | undefined> {
-    return undefined;
-  }
-
-  private isActiveWindow(item: { validFrom: ISODateTime; validUntil?: ISODateTime; status: string }, at: ISODateTime) {
-    return item.status === "active" && Date.parse(item.validFrom) <= Date.parse(at) && (!item.validUntil || Date.parse(item.validUntil) > Date.parse(at));
-  }
-
-  private async audit(event: Omit<SecurityAuditEvent, "id">) {
-    await this.repository.appendAudit({ id: this.ids.next("security-audit"), ...event });
-  }
+  private isActiveWindow(item: { validFrom: ISODateTime; validUntil?: ISODateTime; status: string }, at: ISODateTime) { return item.status === "active" && Date.parse(item.validFrom) <= Date.parse(at) && (!item.validUntil || Date.parse(item.validUntil) > Date.parse(at)); }
+  private async audit(event: Omit<SecurityAuditEvent, "id">) { await this.repository.appendAudit({ id: this.ids.next("security-audit"), ...event }); }
 }
 
 export class BearerTokenApiAuthenticator implements ApiAuthenticator {
-  constructor(
-    private readonly repository: SecurityRepository,
-    private readonly accessControl: NationalAccessControl,
-    private readonly hasher: TokenHasher,
-  ) {}
-
+  constructor(private readonly repository: SecurityRepository, private readonly accessControl: NationalAccessControl, private readonly hasher: TokenHasher) {}
   async authenticate(request: ApiRequest): Promise<ApiPrincipal> {
     const authorization = request.headers.authorization;
-    if (!authorization?.startsWith("Bearer ")) {
-      return { identityId: "anonymous", territoryIds: [], permissions: [], authenticationLevel: "anonymous" };
-    }
+    if (!authorization?.startsWith("Bearer ")) return { identityId: "anonymous", territoryIds: [], permissions: [], authenticationLevel: "anonymous" };
     const token = authorization.slice("Bearer ".length).trim();
     if (!token) throw new Error("Jeton Bearer vide.");
     const session = await this.repository.findSessionByTokenHash(this.hasher.hash(token));
@@ -309,8 +238,8 @@ export class InMemorySecurityRepository implements SecurityRepository {
   readonly grants: PermissionGrant[] = [];
   readonly delegations = new Map<EntityId, SecurityDelegation>();
   readonly audits: SecurityAuditEvent[] = [];
-
   async findIdentity(identityId: EntityId) { const item = this.identities.get(identityId); return item ? structuredClone(item) : undefined; }
+  async findSessionById(sessionId: EntityId) { const item = this.sessions.get(sessionId); return item ? structuredClone(item) : undefined; }
   async findSessionByTokenHash(tokenHash: string) { const item = [...this.sessions.values()].find((session) => session.tokenHash === tokenHash); return item ? structuredClone(item) : undefined; }
   async saveSession(session: SecuritySession) { this.sessions.set(session.id, structuredClone(session)); }
   async listMemberships(identityId: EntityId) { return structuredClone(this.memberships.filter((item) => item.identityId === identityId)); }
