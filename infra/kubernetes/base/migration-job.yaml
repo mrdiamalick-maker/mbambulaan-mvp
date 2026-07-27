@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mbambulaan-database-migration
+  namespace: mbambulaan
+  labels:
+    app.kubernetes.io/name: mbambulaan-database-migration
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mbambulaan-database-migration
+    spec:
+      restartPolicy: Never
+      serviceAccountName: mbambulaan-platform
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migration
+          image: ghcr.io/mrdiamalick-maker/mbambulaan-mvp:latest
+          command: ["sh", "-c"]
+          args:
+            - >-
+              test "$MIGRATION_APPROVAL" = "approved" &&
+              for file in /app/infra/postgres/migrations/*.sql; do
+                echo "Applying $file";
+                psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file "$file";
+              done
+          env:
+            - name: MIGRATION_APPROVAL
+              value: approved
+          envFrom:
+            - secretRef:
+                name: mbambulaan-platform-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
