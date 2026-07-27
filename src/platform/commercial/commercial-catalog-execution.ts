@@ -22,6 +22,7 @@ export interface CatalogExecutionLinkRepository {
   findByOrderId(orderId: string): Promise<CatalogExecutionLink | undefined>;
   list(): Promise<CatalogExecutionLink[]>;
   save(link: CatalogExecutionLink): Promise<void>;
+  reassignLogistics(orderId: string, logisticsOrganizationId: string): Promise<CatalogExecutionLink>;
 }
 
 export class VolatileCatalogExecutionLinkRepository implements CatalogExecutionLinkRepository {
@@ -36,6 +37,12 @@ export class VolatileCatalogExecutionLinkRepository implements CatalogExecutionL
   }
   async list() { return structuredClone([...this.links.values()]); }
   async save(link: CatalogExecutionLink) { this.links.set(link.reservationId, structuredClone(link)); }
+  async reassignLogistics(orderId: string, logisticsOrganizationId: string) {
+    const link = [...this.links.values()].find((item) => item.orderId === orderId);
+    if (!link) throw new Error("Liaison commerciale introuvable.");
+    link.logisticsOrganizationId = logisticsOrganizationId;
+    return structuredClone(link);
+  }
 }
 
 export class PostgresCatalogExecutionLinkRepository implements CatalogExecutionLinkRepository {
@@ -68,12 +75,28 @@ export class PostgresCatalogExecutionLinkRepository implements CatalogExecutionL
        link.logisticsOptionId, link.territoryId, link.createdAt],
     );
   }
+  async reassignLogistics(orderId: string, logisticsOrganizationId: string) {
+    const result = await getRuntimeSqlExecutor().query<Record<string, unknown>>(
+      `UPDATE mbambulaan.catalog_execution_links
+       SET logistics_organization_id=$2
+       WHERE order_id=$1
+       RETURNING *`,
+      [orderId, logisticsOrganizationId],
+    );
+    if (!result.rows[0]) throw new Error("Liaison commerciale introuvable.");
+    return mapLink(result.rows[0]);
+  }
 }
 
 export class CommercialCatalogExecutionService {
   constructor(private readonly links: CatalogExecutionLinkRepository) {}
 
   async listLinks() { return this.links.list(); }
+
+  async reassignLogistics(orderId: string, logisticsOrganizationId: string) {
+    if (!logisticsOrganizationId.trim()) throw new Error("Le nouvel opérateur logistique est obligatoire.");
+    return this.links.reassignLogistics(orderId, logisticsOrganizationId);
+  }
 
   async convertConfirmedReservation(input: { reservationId: string; buyerIdentity: DemoIdentity; at?: string }) {
     const existing = await this.links.findByReservationId(input.reservationId);
