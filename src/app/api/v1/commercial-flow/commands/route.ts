@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authorizeDemoRequest } from "@/platform/access/request-authorization";
 import type { CommercialWorkflowCommand } from "@/platform/commercial/commercial-actor-workflow";
+import { getCommercialCatalogExecutionService } from "@/platform/commercial/commercial-catalog-execution";
 import { getPersistentCommercialWorkflow } from "@/platform/commercial/persistent-commercial-workflow";
 
 export async function GET(request: Request) {
@@ -27,6 +28,9 @@ export async function POST(request: Request) {
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
 
   try {
+    if (body.command.type === "start_transport" || body.command.type === "confirm_delivery") {
+      await getCommercialCatalogExecutionService().assertSelectedLogistics(body.command.orderId, authorization.identity);
+    }
     const snapshot = await getPersistentCommercialWorkflow().execute({
       commandId: body.commandId,
       identity: authorization.identity,
