@@ -3,6 +3,7 @@ import type { SqlExecutor } from "@/platform/persistence/postgres-platform-adapt
 import { getRuntimeSqlExecutor, hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
 import { getPersistentCommercialWorkflow } from "./persistent-commercial-workflow";
 import { getPersistentCommercialIncidents } from "./persistent-commercial-incidents";
+import { getCommercialCatalogExecutionService } from "./commercial-catalog-execution";
 import { CommercialSettlementAdjustments, type SettlementAdjustmentType } from "./commercial-settlement-adjustments";
 
 export type SettlementAdjustmentCommand =
@@ -92,6 +93,9 @@ export class PersistentCommercialSettlementAdjustments {
           command: input.command,
           occurredAt: input.command.at ?? new Date().toISOString(),
         });
+        if (input.command.type === "execute" && result.type === "logistics_reassignment" && result.replacementLogisticsOrganizationId) {
+          await getCommercialCatalogExecutionService().reassignLogistics(result.orderId, result.replacementLogisticsOrganizationId);
+        }
       } catch (error) {
         this.hydrated = false;
         await this.hydrate();
@@ -106,9 +110,7 @@ export class PersistentCommercialSettlementAdjustments {
     this.engine.reset();
     const execution = await getPersistentCommercialWorkflow().snapshot();
     const incidents = await getPersistentCommercialIncidents().snapshot();
-    for (const entry of await this.journal.list()) {
-      apply(this.engine, entry.organizationId, entry.command, execution, incidents);
-    }
+    for (const entry of await this.journal.list()) apply(this.engine, entry.organizationId, entry.command, execution, incidents);
     this.hydrated = true;
   }
 
