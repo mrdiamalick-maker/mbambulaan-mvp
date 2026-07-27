@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authorizeDemoRequest } from "@/platform/access/request-authorization";
+import { getCommercialCatalogExecutionService } from "@/platform/commercial/commercial-catalog-execution";
 import { getCommercialCatalog } from "@/platform/commercial/commercial-catalog-registry";
 
 export async function GET(request: Request) {
@@ -20,6 +21,9 @@ export async function POST(request: Request) {
   try {
     switch (action) {
       case "seed_demo": {
+        if (!new Set(["cooperative_manager", "platform_admin"]).has(authorization.identity.roleCode)) {
+          return NextResponse.json({ error: { code: "SELLER_REQUIRED", message: "Seul un vendeur ou administrateur peut initialiser le catalogue." } }, { status: 403 });
+        }
         catalog.reset();
         catalog.upsertLogisticsOption({
           id: "log-dakar-cold",
@@ -33,7 +37,9 @@ export async function POST(request: Request) {
         });
         catalog.createOffer({
           id: "offer-thiof-01",
-          sellerOrganizationId: "org-cooperative-dakar",
+          sellerOrganizationId: authorization.identity.roleCode === "cooperative_manager"
+            ? authorization.identity.organizationId
+            : "org-cooperative-dakar",
           territoryId: "territory-dakar",
           speciesCode: "thiof",
           qualityGrade: "A",
@@ -48,6 +54,7 @@ export async function POST(request: Request) {
         return NextResponse.json(catalog.snapshot("2026-07-27T08:01:00.000Z"), { status: 201 });
       }
       case "reserve": {
+        assertBuyer(authorization.identity.roleCode);
         const reservation = catalog.reserve({
           id: String(body.reservationId),
           offerId: String(body.offerId),
@@ -58,9 +65,18 @@ export async function POST(request: Request) {
         });
         return NextResponse.json({ reservation, catalog: catalog.snapshot() }, { status: 201 });
       }
-      case "confirm_reservation":
-        return NextResponse.json({ reservation: catalog.confirmReservation(String(body.reservationId)), catalog: catalog.snapshot() });
+      case "confirm_reservation": {
+        assertBuyer(authorization.identity.roleCode);
+        const reservationId = String(body.reservationId);
+        const reservation = catalog.confirmReservation(reservationId);
+        const conversion = await getCommercialCatalogExecutionService().convertConfirmedReservation({
+          reservationId,
+          buyerIdentity: authorization.identity,
+        });
+        return NextResponse.json({ reservation, conversion, catalog: catalog.snapshot() });
+      }
       case "cancel_reservation":
+        assertBuyer(authorization.identity.roleCode);
         return NextResponse.json({ reservation: catalog.cancelReservation(String(body.reservationId)), catalog: catalog.snapshot() });
       default:
         return NextResponse.json({ error: { code: "UNKNOWN_CATALOG_ACTION", message: "Action catalogue inconnue." } }, { status: 400 });
@@ -68,4 +84,8 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json({ error: { code: "CATALOG_ACTION_FAILED", message: error instanceof Error ? error.message : String(error) } }, { status: 422 });
   }
+}
+
+function assertBuyer(roleCode: string) {
+  if (roleCode !== "buyer_operator") throw new Error("Seul un acheteur professionnel peut gérer une réservation.");
 }
