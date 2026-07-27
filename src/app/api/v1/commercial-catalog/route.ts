@@ -10,9 +10,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => undefined) as Record<string, unknown> | undefined;
-  const action = typeof body?.action === "string" ? body.action : undefined;
-  if (!action) return NextResponse.json({ error: { code: "INVALID_CATALOG_ACTION", message: "L'action catalogue est obligatoire." } }, { status: 400 });
+  const parsed = await request.json().catch(() => undefined) as Record<string, unknown> | undefined;
+  const action = typeof parsed?.action === "string" ? parsed.action : undefined;
+  if (!parsed || !action) {
+    return NextResponse.json({ error: { code: "INVALID_CATALOG_ACTION", message: "L'action catalogue est obligatoire." } }, { status: 400 });
+  }
+  const body = parsed;
 
   const authorization = authorizeDemoRequest({ request, permission: "trade.write" });
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
