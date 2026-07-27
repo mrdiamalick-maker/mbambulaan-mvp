@@ -11,6 +11,7 @@ permissions:
   packages: write
   id-token: write
   attestations: write
+  security-events: write
 
 jobs:
   publish:
@@ -52,6 +53,23 @@ jobs:
           provenance: mode=max
           sbom: true
 
+      - name: Scan published image digest
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          image-ref: ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+          scanners: vuln,secret,misconfig
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: 1
+          format: sarif
+          output: trivy-release.sarif
+
+      - name: Upload release security findings
+        if: always() && hashFiles('trivy-release.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-release.sarif
+
       - name: Attest image
         uses: actions/attest-build-provenance@v2
         with:
@@ -59,7 +77,14 @@ jobs:
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
+      - name: Verify published image manifest
+        run: |
+          docker buildx imagetools inspect "ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}"
+
       - name: Publish release summary
         run: |
-          echo "### Image publiée" >> "$GITHUB_STEP_SUMMARY"
-          echo "\`ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Image publiée et vérifiée" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image : \`ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SBOM : générée" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Provenance : attestée" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Vulnérabilités HIGH/CRITICAL : bloquantes" >> "$GITHUB_STEP_SUMMARY"
