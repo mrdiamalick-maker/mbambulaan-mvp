@@ -1,5 +1,8 @@
 BEGIN;
 
+CREATE SCHEMA IF NOT EXISTS mbambulaan;
+SET search_path TO mbambulaan, public;
+
 CREATE TABLE IF NOT EXISTS national_reference_records (
   id text PRIMARY KEY,
   reference_type text NOT NULL,
@@ -104,8 +107,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_duplicate_candidate_pair
   )
   WHERE status = 'open';
 
-INSERT INTO schema_migrations(version, description)
-VALUES ('0007', 'National reference data, governance and data quality')
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version text PRIMARY KEY,
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO schema_migrations(version)
+VALUES ('0007')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
