@@ -23,6 +23,8 @@ on:
 
 permissions:
   contents: read
+  packages: read
+  attestations: read
 
 concurrency:
   group: mbambulaan-${{ inputs.environment }}
@@ -39,6 +41,13 @@ jobs:
       - name: Validate immutable digest
         run: |
           echo '${{ inputs.image_digest }}' | grep -Eq '^sha256:[a-f0-9]{64}$'
+
+      - name: Verify image provenance attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ghcr.io/${{ github.repository }}@${{ inputs.image_digest }}
+        run: |
+          gh attestation verify "oci://${IMAGE}" --repo "${{ github.repository }}"
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
@@ -128,3 +137,4 @@ jobs:
           echo "### Promotion réussie" >> "$GITHUB_STEP_SUMMARY"
           echo "- Environnement : ${{ inputs.environment }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Image : \`ghcr.io/${{ github.repository }}@${{ inputs.image_digest }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Provenance : attestation vérifiée" >> "$GITHUB_STEP_SUMMARY"
