@@ -1,4 +1,4 @@
-import type { DemoPermission } from "./demo-access-control";
+import type { DemoIdentity, DemoPermission, DemoSession } from "./demo-access-control";
 import { getDemoAccessControl } from "./demo-access-registry";
 
 export interface DemoRequestAuthorizationInput {
@@ -8,11 +8,23 @@ export interface DemoRequestAuthorizationInput {
   productCode?: string;
 }
 
-export function authorizeDemoRequest(input: DemoRequestAuthorizationInput) {
+export type DemoRequestAuthorizationResult =
+  | {
+      allowed: false;
+      status: 401 | 403;
+      error: { code: string; message: string };
+    }
+  | {
+      allowed: true;
+      identity: DemoIdentity;
+      session: DemoSession;
+    };
+
+export function authorizeDemoRequest(input: DemoRequestAuthorizationInput): DemoRequestAuthorizationResult {
   const sessionId = input.request.headers.get("x-mbambulaan-demo-session")?.trim();
   if (!sessionId) {
     return {
-      allowed: false as const,
+      allowed: false,
       status: 401,
       error: { code: "DEMO_SESSION_REQUIRED", message: "Une session de démonstration est obligatoire." },
     };
@@ -25,9 +37,9 @@ export function authorizeDemoRequest(input: DemoRequestAuthorizationInput) {
     productCode: input.productCode,
   });
 
-  if (!authorization.allowed) {
+  if (!authorization.allowed || !authorization.identity || !authorization.session) {
     return {
-      allowed: false as const,
+      allowed: false,
       status: 403,
       error: {
         code: "DEMO_ACCESS_DENIED",
@@ -37,7 +49,7 @@ export function authorizeDemoRequest(input: DemoRequestAuthorizationInput) {
   }
 
   return {
-    allowed: true as const,
+    allowed: true,
     identity: authorization.identity,
     session: authorization.session,
   };
