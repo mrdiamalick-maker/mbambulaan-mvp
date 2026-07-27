@@ -55,7 +55,8 @@ post /api/v1/commercial-flow/commands "$finance_session" \
   "{\"commandId\":\"e2e-payment-confirm-001\",\"command\":{\"type\":\"confirm_payment\",\"paymentId\":\"$payment_id\",\"providerReference\":\"MM-E2E-001\"}}" >/tmp/payment-confirmed.json
 
 final_response="$(post /api/v1/commercial-flow/commands "$finance_session" \
-  "{\"commandId\":\"e2e-reconcile-001\",\"command\":{\"type\":\"reconcile_order\",\"orderId\":\"$order_id\"}}")"\nprintf '%s' "$final_response" | jq -e --arg order "$order_id" '
+  "{\"commandId\":\"e2e-reconcile-001\",\"command\":{\"type\":\"reconcile_order\",\"orderId\":\"$order_id\"}}")"
+printf '%s' "$final_response" | jq -e --arg order "$order_id" '
   (.orders[] | select(.id == $order) | .status) == "reconciled"
   and .economics.platformRevenueXof == 25000
   and .economics.confirmedPaymentsXof == 1125000
