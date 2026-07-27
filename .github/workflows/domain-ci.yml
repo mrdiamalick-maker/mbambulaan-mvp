@@ -28,3 +28,6 @@ jobs:
 
       - name: Domain tests
         run: npm test
+
+      - name: Application build
+        run: npm run build
