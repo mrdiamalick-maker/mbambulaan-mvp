@@ -23,7 +23,13 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Typecheck
-        run: npm run typecheck
+        shell: bash
+        run: |
+          set +e
+          npm run typecheck > /tmp/typecheck.log 2>&1
+          status=$?
+          tail -n 120 /tmp/typecheck.log
+          exit $status
 
       - name: Domain tests
         run: npm test
