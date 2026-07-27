@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const actors = [
   { key: "seller", label: "Coopérative", identityId: "demo-cooperative-dakar", description: "Publier et allouer" },
@@ -10,35 +10,70 @@ const actors = [
 ] as const;
 
 type ActorKey = typeof actors[number]["key"];
-
-type Step = {
+type WorkItemKind = "publish_offer" | "reserve_offer" | "confirm_reservation" | "allocate_order" | "start_transport" | "confirm_delivery" | "request_payment" | "confirm_payment" | "reconcile_order";
+type WorkItem = {
   id: string;
-  actor: ActorKey;
-  label: string;
-  run: (sessionId: string) => Promise<unknown>;
+  kind: WorkItemKind;
+  title: string;
+  description: string;
+  priority: "normal" | "high";
+  offerId?: string;
+  logisticsOptionId?: string;
+  suggestedQuantityKg?: number;
+  orderId?: string;
+  reservationId?: string;
+  paymentId?: string;
+  amountXof?: number;
 };
+type QueueResponse = { items: WorkItem[] };
+type FlowSnapshot = { economics?: { platformRevenueXof?: number; confirmedPaymentsXof?: number }; orders?: Array<{ status: string }> };
 
 export function FieldCommerceConsole() {
   const [activeActor, setActiveActor] = useState<ActorKey>("seller");
-  const [completed, setCompleted] = useState<string[]>([]);
+  const [sessionId, setSessionId] = useState<string>();
+  const [items, setItems] = useState<WorkItem[]>([]);
   const [busy, setBusy] = useState<string>();
-  const [message, setMessage] = useState("Commencez par publier le catalogue vendeur.");
+  const [message, setMessage] = useState("Chargement des tâches terrain…");
+  const [flow, setFlow] = useState<FlowSnapshot>();
 
-  async function createSession(identityId: string) {
+  const createSession = useCallback(async (actorKey: ActorKey) => {
+    const actor = actors.find((item) => item.key === actorKey)!;
     const response = await fetch("/api/v1/access/sessions", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ identityId, territoryId: identityId === "demo-finance-officer" ? "territory-national" : "territory-dakar" }),
+      body: JSON.stringify({ identityId: actor.identityId, territoryId: actorKey === "finance" ? "territory-national" : "territory-dakar" }),
     });
     if (!response.ok) throw new Error("Impossible d'ouvrir la session acteur.");
     const data = await response.json() as { session: { id: string } };
     return data.session.id;
-  }
+  }, []);
 
-  async function post(url: string, sessionId: string, body: unknown) {
+  const load = useCallback(async (actorKey: ActorKey) => {
+    setMessage("Mise à jour des tâches…");
+    try {
+      const token = await createSession(actorKey);
+      setSessionId(token);
+      const [queueResponse, flowResponse] = await Promise.all([
+        fetch("/api/v1/commercial-work-queue", { headers: { "x-mbambulaan-demo-session": token } }),
+        fetch("/api/v1/commercial-flow/commands", { headers: { "x-mbambulaan-demo-session": token } }),
+      ]);
+      const queueData = await queueResponse.json() as QueueResponse & { error?: { message?: string } };
+      if (!queueResponse.ok) throw new Error(queueData.error?.message ?? "Impossible de charger les tâches.");
+      setItems(queueData.items);
+      if (flowResponse.ok) setFlow(await flowResponse.json() as FlowSnapshot);
+      setMessage(queueData.items.length > 0 ? `${queueData.items.length} action(s) à traiter.` : "Aucune action en attente pour cet acteur.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Chargement impossible.");
+      setItems([]);
+    }
+  }, [createSession]);
+
+  useEffect(() => { void load(activeActor); }, [activeActor, load]);
+
+  async function post(url: string, token: string, body: unknown) {
     const response = await fetch(url, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-mbambulaan-demo-session": sessionId },
+      headers: { "content-type": "application/json", "x-mbambulaan-demo-session": token },
       body: JSON.stringify(body),
     });
     const data = await response.json();
@@ -46,96 +81,26 @@ export function FieldCommerceConsole() {
     return data;
   }
 
-  const steps = useMemo<Step[]>(() => [
-    {
-      id: "seed",
-      actor: "seller",
-      label: "Publier 1 000 kg de thiof",
-      run: (sessionId) => post("/api/v1/commercial-catalog", sessionId, { action: "seed_demo", commandId: "terrain-seed-001", at: "2026-07-27T08:00:00.000Z" }),
-    },
-    {
-      id: "reserve",
-      actor: "buyer",
-      label: "Réserver 400 kg avec chaîne du froid",
-      run: (sessionId) => post("/api/v1/commercial-catalog", sessionId, {
-        action: "reserve", commandId: "terrain-reserve-001", reservationId: "reservation-terrain-001",
-        offerId: "offer-thiof-01", quantityKg: 400, logisticsOptionId: "log-dakar-cold", at: "2026-07-27T09:00:00.000Z",
-      }),
-    },
-    {
-      id: "confirm",
-      actor: "buyer",
-      label: "Confirmer la réservation",
-      run: (sessionId) => post("/api/v1/commercial-catalog", sessionId, {
-        action: "confirm_reservation", commandId: "terrain-confirm-001", reservationId: "reservation-terrain-001", at: "2026-07-27T09:05:00.000Z",
-      }),
-    },
-    {
-      id: "allocate",
-      actor: "seller",
-      label: "Allouer le lot à la commande",
-      run: (sessionId) => post("/api/v1/commercial-flow/commands", sessionId, {
-        commandId: "terrain-allocate-001", command: { type: "allocate_order", orderId: "order-reservation-terrain-001" },
-      }),
-    },
-    {
-      id: "transport",
-      actor: "logistics",
-      label: "Démarrer le transport",
-      run: (sessionId) => post("/api/v1/commercial-flow/commands", sessionId, {
-        commandId: "terrain-transport-001", command: { type: "start_transport", orderId: "order-reservation-terrain-001" },
-      }),
-    },
-    {
-      id: "delivery",
-      actor: "logistics",
-      label: "Confirmer la livraison avec preuve",
-      run: (sessionId) => post("/api/v1/commercial-flow/commands", sessionId, {
-        commandId: "terrain-delivery-001", command: { type: "confirm_delivery", orderId: "order-reservation-terrain-001", proofId: "photo-livraison-terrain-001" },
-      }),
-    },
-    {
-      id: "payment_request",
-      actor: "buyer",
-      label: "Initier le paiement de 1 125 000 FCFA",
-      run: (sessionId) => post("/api/v1/commercial-flow/commands", sessionId, {
-        commandId: "terrain-payment-request-001", command: { type: "request_payment", orderId: "order-reservation-terrain-001" },
-      }),
-    },
-    {
-      id: "payment_confirm",
-      actor: "finance",
-      label: "Confirmer le paiement reçu",
-      run: (sessionId) => post("/api/v1/commercial-flow/commands", sessionId, {
-        commandId: "terrain-payment-confirm-001", command: { type: "confirm_payment", paymentId: "payment-0001", providerReference: "MM-TERRAIN-001" },
-      }),
-    },
-    {
-      id: "reconcile",
-      actor: "finance",
-      label: "Répartir et réconcilier les fonds",
-      run: (sessionId) => post("/api/v1/commercial-flow/commands", sessionId, {
-        commandId: "terrain-reconcile-001", command: { type: "reconcile_order", orderId: "order-reservation-terrain-001" },
-      }),
-    },
-  ], []);
-
-  const visibleSteps = steps.filter((step) => step.actor === activeActor);
-  const nextIncomplete = steps.find((step) => !completed.includes(step.id));
-
-  async function execute(step: Step) {
-    if (nextIncomplete?.id !== step.id) {
-      setMessage(`Étape bloquée : ${nextIncomplete?.label ?? "le parcours est terminé"}.`);
-      return;
-    }
-    setBusy(step.id);
+  async function execute(item: WorkItem) {
+    if (!sessionId) return;
+    setBusy(item.id);
     try {
-      const actor = actors.find((item) => item.key === step.actor)!;
-      const sessionId = await createSession(actor.identityId);
-      await step.run(sessionId);
-      setCompleted((current) => [...current, step.id]);
-      const next = steps.find((item) => item.id === steps[steps.indexOf(step) + 1]?.id);
-      setMessage(next ? `Étape validée. Prochaine action : ${next.label}.` : "Transaction terminée et réconciliée.");
+      const commandId = `${item.kind}-${crypto.randomUUID()}`;
+      if (item.kind === "publish_offer") {
+        await post("/api/v1/commercial-catalog", sessionId, { action: "seed_demo", commandId, at: new Date().toISOString() });
+      } else if (item.kind === "reserve_offer") {
+        await post("/api/v1/commercial-catalog", sessionId, {
+          action: "reserve", commandId, reservationId: `reservation-${crypto.randomUUID()}`,
+          offerId: item.offerId, quantityKg: item.suggestedQuantityKg, logisticsOptionId: item.logisticsOptionId,
+          ttlMinutes: 60, at: new Date().toISOString(),
+        });
+      } else if (item.kind === "confirm_reservation") {
+        await post("/api/v1/commercial-catalog", sessionId, { action: "confirm_reservation", commandId, reservationId: item.reservationId, at: new Date().toISOString() });
+      } else {
+        await post("/api/v1/commercial-flow/commands", sessionId, { commandId, command: commandFor(item) });
+      }
+      setMessage(`Action validée : ${item.title}.`);
+      await load(activeActor);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Action impossible.");
     } finally {
@@ -143,13 +108,14 @@ export function FieldCommerceConsole() {
     }
   }
 
+  const completedOrders = flow?.orders?.filter((order) => order.status === "reconciled").length ?? 0;
   return (
     <main className="min-h-screen bg-[var(--mb-offwhite)] text-[var(--mb-neutral-900)]">
       <header className="bg-[var(--mb-navy-900)] px-5 py-7 text-white">
         <div className="mx-auto max-w-5xl">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--mb-ocean-400)]">Parcours terrain</p>
-          <h1 className="mt-2 text-3xl font-semibold">Vendre, transporter et payer</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">Chaque acteur réalise uniquement les actions qui lui appartiennent.</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--mb-ocean-400)]">Opérations terrain</p>
+          <h1 className="mt-2 text-3xl font-semibold">Mes actions du jour</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">Les tâches viennent directement des stocks, commandes, livraisons et paiements enregistrés.</p>
         </div>
       </header>
 
@@ -164,37 +130,51 @@ export function FieldCommerceConsole() {
           ))}
         </section>
 
-        <div className="mt-4 rounded-lg border border-[var(--mb-neutral-200)] bg-white p-4 text-sm">{message}</div>
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-[var(--mb-neutral-200)] bg-white p-4 text-sm">
+          <span>{message}</span>
+          <button type="button" onClick={() => void load(activeActor)} className="rounded-md border px-3 py-2 text-xs font-semibold">Actualiser</button>
+        </div>
 
         <section className="mt-5 space-y-3">
-          {visibleSteps.map((step) => {
-            const done = completed.includes(step.id);
-            const enabled = nextIncomplete?.id === step.id;
-            return (
-              <article key={step.id} className="rounded-xl border border-[var(--mb-neutral-200)] bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--mb-neutral-400)]">{done ? "Terminé" : enabled ? "À faire" : "En attente"}</p>
-                    <h2 className="mt-1 text-base font-semibold">{step.label}</h2>
-                  </div>
-                  <button type="button" disabled={!enabled || Boolean(busy)} onClick={() => void execute(step)}
-                    className="min-h-11 rounded-lg bg-[var(--mb-navy-800)] px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-35">
-                    {busy === step.id ? "Validation…" : done ? "Validé" : "Valider"}
-                  </button>
+          {items.map((item) => (
+            <article key={item.id} className="rounded-xl border border-[var(--mb-neutral-200)] bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--mb-ocean-700)]">{item.priority === "high" ? "Prioritaire" : "À faire"}</p>
+                  <h2 className="mt-1 text-base font-semibold">{item.title}</h2>
+                  <p className="mt-1 text-sm text-[var(--mb-neutral-500)]">{item.description}</p>
+                  {item.amountXof !== undefined && <p className="mt-2 text-sm font-semibold">{new Intl.NumberFormat("fr-FR").format(item.amountXof)} FCFA</p>}
                 </div>
-              </article>
-            );
-          })}
+                <button type="button" disabled={Boolean(busy)} onClick={() => void execute(item)}
+                  className="min-h-11 rounded-lg bg-[var(--mb-navy-800)] px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-35">
+                  {busy === item.id ? "Validation…" : "Valider"}
+                </button>
+              </div>
+            </article>
+          ))}
+          {items.length === 0 && <div className="rounded-xl border border-dashed border-[var(--mb-neutral-300)] p-8 text-center text-sm text-[var(--mb-neutral-500)]">Aucune tâche pour le moment. Passez à l’acteur suivant ou actualisez.</div>}
         </section>
 
         <section className="mt-6 grid grid-cols-3 gap-2 text-center">
-          <Metric label="Étapes" value={`${completed.length}/9`} />
-          <Metric label="Acheteur" value="1 125 000" suffix="FCFA" />
-          <Metric label="Mbàmbulaan" value="25 000" suffix="FCFA" />
+          <Metric label="À traiter" value={String(items.length)} />
+          <Metric label="Transactions" value={String(completedOrders)} />
+          <Metric label="Revenu Mbàmbulaan" value={new Intl.NumberFormat("fr-FR").format(flow?.economics?.platformRevenueXof ?? 0)} suffix="FCFA" />
         </section>
       </div>
     </main>
   );
+}
+
+function commandFor(item: WorkItem) {
+  switch (item.kind) {
+    case "allocate_order": return { type: "allocate_order", orderId: item.orderId };
+    case "start_transport": return { type: "start_transport", orderId: item.orderId };
+    case "confirm_delivery": return { type: "confirm_delivery", orderId: item.orderId, proofId: `proof-${crypto.randomUUID()}`, at: new Date().toISOString() };
+    case "request_payment": return { type: "request_payment", orderId: item.orderId, at: new Date().toISOString() };
+    case "confirm_payment": return { type: "confirm_payment", paymentId: item.paymentId, providerReference: `MM-${Date.now()}`, at: new Date().toISOString() };
+    case "reconcile_order": return { type: "reconcile_order", orderId: item.orderId, at: new Date().toISOString() };
+    default: throw new Error("Cette action n'est pas une commande commerciale.");
+  }
 }
 
 function Metric({ label, value, suffix }: { label: string; value: string; suffix?: string }) {
