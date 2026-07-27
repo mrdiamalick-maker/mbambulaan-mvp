@@ -88,6 +88,7 @@ export class AtlasOperationalLoop {
     this.clock.value = at;
     const workItems: WorkItem[] = [];
     for (const [index, action] of scenario.actions.entries()) {
+      const expectedDelayDays = action.expectedDelayDays ?? 1;
       const work = await this.orchestrator.createWork({
         workType: `atlas.${action.actionType}`,
         title: action.description,
@@ -97,13 +98,13 @@ export class AtlasOperationalLoop {
         assignedIdentityId: index === 0 ? "actor-cold-chain-demo" : "actor-government-demo",
         sourceEntityType: "atlas_scenario",
         sourceEntityId: scenario.id,
-        dueAt: new Date(Date.parse(at) + Math.max(1, action.expectedDelayDays) * 86_400_000).toISOString(),
+        dueAt: new Date(Date.parse(at) + Math.max(1, expectedDelayDays) * 86_400_000).toISOString(),
         escalationPolicyCode: "atlas-decision",
         metadata: {
           decisionId: input.decisionId,
           scenarioId: scenario.id,
           actionId: action.id,
-          estimatedCostXof: String(action.estimatedCostXof),
+          estimatedCostXof: String(action.estimatedCostXof ?? 0),
         },
       });
       workItems.push(work);
