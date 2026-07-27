@@ -6,9 +6,6 @@ on:
       - feature/service-coordination-domain
   pull_request:
 
-permissions:
-  contents: write
-
 jobs:
   domain-quality:
     runs-on: ubuntu-latest
@@ -16,43 +13,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.head.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Apply controlled stabilization migration
-        id: migration
-        continue-on-error: true
-        if: hashFiles('scripts/apply-industrialization-stabilization.mjs') != '' && hashFiles('.stabilization-applied') == ''
-        shell: bash
-        run: |
-          mkdir -p ci-diagnostics
-          {
-            node scripts/apply-industrialization-stabilization.mjs
-            touch .stabilization-applied
-            git config user.name "mbambulaan-ci"
-            git config user.email "actions@users.noreply.github.com"
-            git add src .stabilization-applied
-            git commit -m "fix: stabiliser les contrats historiques pour l'industrialisation"
-            target_branch="${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.head.ref }}"
-            git push origin HEAD:"$target_branch"
-          } > ci-diagnostics/migration.log 2>&1
-
-      - name: Publish migration diagnostics
-        if: always() && steps.migration.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: migration-diagnostics
-          path: ci-diagnostics/migration.log
-          retention-days: 7
-
-      - name: Migration gate
-        if: always()
-        run: test "${{ steps.migration.outcome }}" != "failure"
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
