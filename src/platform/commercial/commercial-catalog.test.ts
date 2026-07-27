@@ -41,7 +41,10 @@ test("réservation partielle puis confirmation met à jour le stock", () => {
     logisticsOptionId: "log-dakar-cold",
     at: "2026-07-27T09:00:00.000Z",
   });
-  assert.equal(reservation.totalAmountXof, 1_200_000);
+  assert.equal(reservation.seafoodAmountXof, 1_000_000);
+  assert.equal(reservation.logisticsAmountXof, 100_000);
+  assert.equal(reservation.platformCommissionXof, 25_000);
+  assert.equal(reservation.totalAmountXof, 1_125_000);
   assert.equal(catalog.snapshot("2026-07-27T09:01:00.000Z").availableQuantityKg, 600);
   catalog.confirmReservation("reservation-01", "2026-07-27T09:10:00.000Z");
   const snapshot = catalog.snapshot("2026-07-27T09:11:00.000Z");
