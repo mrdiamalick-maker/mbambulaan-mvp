@@ -1,0 +1,37 @@
+name: Deployment CI
+
+on:
+  push:
+    branches:
+      - feature/service-coordination-domain
+  pull_request:
+
+jobs:
+  package-and-manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.31.0
+
+      - name: Validate Kubernetes manifests
+        run: |
+          kubectl apply --dry-run=client --validate=false -f infra/kubernetes/base/platform.yaml
+          kubectl apply --dry-run=client --validate=false -f infra/kubernetes/base/migration-job.yaml
+
+      - name: Build hardened container image
+        run: docker build --tag mbambulaan-platform:${{ github.sha }} .
+
+      - name: Inspect container user
+        run: |
+          user=$(docker inspect --format '{{.Config.User}}' mbambulaan-platform:${{ github.sha }})
+          test "$user" = "1001:1001"
+
+      - name: Inspect container healthcheck
+        run: |
+          health=$(docker inspect --format '{{json .Config.Healthcheck}}' mbambulaan-platform:${{ github.sha }})
+          test "$health" != "null"
