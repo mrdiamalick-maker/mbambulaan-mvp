@@ -1,12 +1,14 @@
 # syntax=docker/dockerfile:1.7
 FROM node:22-alpine AS dependencies
 WORKDIR /app
+RUN apk upgrade --no-cache
 COPY package.json ./
 RUN npm install --no-audit --no-fund
 
 FROM node:22-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN apk upgrade --no-cache
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 RUN npm run typecheck && npm test && npm run build
@@ -17,7 +19,8 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME=0.0.0.0
-RUN apk add --no-cache postgresql-client \
+RUN apk upgrade --no-cache \
+    && apk add --no-cache postgresql-client \
     && addgroup --system --gid 1001 mbambulaan \
     && adduser --system --uid 1001 --ingroup mbambulaan mbambulaan
 COPY --from=builder --chown=mbambulaan:mbambulaan /app/.next/standalone ./
