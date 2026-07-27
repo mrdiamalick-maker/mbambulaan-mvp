@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { DemoProfileSwitcher, type ActiveDemoAccess } from "@/components/access/DemoProfileSwitcher";
 import type { IntegratedProductSuiteSnapshot, ProductCode } from "@/platform/product-suite/integrated-product-suite";
 
 const productOrder: ProductCode[] = ["fisher", "cooperative", "business", "government", "finance", "knowledge", "atlas"];
@@ -9,6 +10,7 @@ const productOrder: ProductCode[] = ["fisher", "cooperative", "business", "gover
 export function ProductSuiteConsole() {
   const [suite, setSuite] = useState<IntegratedProductSuiteSnapshot>();
   const [selected, setSelected] = useState<ProductCode>("government");
+  const [activeAccess, setActiveAccess] = useState<ActiveDemoAccess>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
 
@@ -30,7 +32,18 @@ export function ProductSuiteConsole() {
     void refresh();
   }, []);
 
-  const product = suite?.products.find((item) => item.code === selected);
+  const handleAccessChange = useCallback((access?: ActiveDemoAccess) => {
+    setActiveAccess(access);
+    const firstProduct = access?.identity.productCodes[0] as ProductCode | undefined;
+    if (firstProduct) setSelected(firstProduct);
+  }, []);
+
+  const accessibleCodes = useMemo(() => {
+    if (!activeAccess) return [] as ProductCode[];
+    return productOrder.filter((code) => activeAccess.identity.productCodes.includes(code));
+  }, [activeAccess]);
+
+  const product = suite?.products.find((item) => item.code === selected && accessibleCodes.includes(item.code));
 
   return (
     <main className="min-h-screen bg-[var(--mb-offwhite)] text-[var(--mb-neutral-900)]">
@@ -40,10 +53,10 @@ export function ProductSuiteConsole() {
             <div>
               <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--mb-ocean-400)]">Produit complet testable</p>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Suite Mbàmbulaan intégrée</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-white/65">Un même runtime, des données communes et sept espaces produits coordonnés autour des acteurs de la filière.</p>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-white/65">Choisissez un acteur pour tester son espace, ses permissions et son périmètre territorial.</p>
             </div>
-            <div className="flex gap-3">
-              <Link href="/atlas" className="inline-flex h-11 items-center rounded border border-white/20 px-4 text-xs font-bold">Ouvrir Atlas</Link>
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
+              <DemoProfileSwitcher onChange={handleAccessChange} />
               <button type="button" onClick={() => void refresh()} className="h-11 rounded bg-white px-4 text-xs font-bold text-[var(--mb-navy-900)]">Actualiser</button>
             </div>
           </div>
@@ -54,22 +67,41 @@ export function ProductSuiteConsole() {
         {error ? <div className="border border-red-300 bg-red-50 p-4 text-sm text-red-800">{error}</div> : null}
         {loading && !suite ? <p className="text-sm text-[var(--mb-neutral-500)]">Chargement du runtime et des produits…</p> : null}
 
-        {suite ? (
+        {!activeAccess ? (
+          <section className="border border-[var(--mb-neutral-200)] bg-white p-8">
+            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.13em] text-[var(--mb-ocean-600)]">Accès multi-acteurs</p>
+            <h2 className="mt-3 text-2xl font-semibold text-[var(--mb-navy-900)]">Sélectionnez un profil de démonstration</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--mb-neutral-600)]">Le portail affichera uniquement les produits autorisés pour cet acteur. Les opérations sensibles restent également contrôlées côté serveur.</p>
+          </section>
+        ) : null}
+
+        {suite && activeAccess ? (
           <>
+            <section className="mb-6 border border-[var(--mb-ocean-200)] bg-[var(--mb-foam)] p-5">
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.13em] text-[var(--mb-ocean-700)]">Session active</p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold text-[var(--mb-navy-900)]">{activeAccess.identity.displayName}</p>
+                  <p className="text-xs text-[var(--mb-neutral-600)]">{activeAccess.identity.organizationName} · {activeAccess.session.activeTerritoryId}</p>
+                </div>
+                <p className="text-xs text-[var(--mb-neutral-500)]">Session valable jusqu’au {new Date(activeAccess.session.expiresAt).toLocaleString("fr-FR")}</p>
+              </div>
+            </section>
+
             <section className="grid gap-px border border-[var(--mb-neutral-200)] bg-[var(--mb-neutral-200)] md:grid-cols-3 xl:grid-cols-6">
               <Metric label="Runtime" value={suite.runtime.running ? "Actif" : "Arrêté"} />
+              <Metric label="Produits autorisés" value={accessibleCodes.length.toString()} />
               <Metric label="Événements en attente" value={suite.runtime.pendingEvents.toString()} />
               <Metric label="Échecs" value={suite.runtime.failedEvents.toString()} />
               <Metric label="Signaux ouverts" value={suite.runtime.openSignals.toString()} />
               <Metric label="Insights Atlas" value={suite.runtime.atlasInsights.toString()} />
-              <Metric label="Nœuds du graphe" value={suite.runtime.graphNodes.toString()} />
             </section>
 
             <section className="mt-8 grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
               <nav className="border border-[var(--mb-neutral-200)] bg-white p-3">
-                <p className="px-3 py-2 font-mono text-[9px] font-bold uppercase tracking-[0.13em] text-[var(--mb-neutral-400)]">Espaces produits</p>
+                <p className="px-3 py-2 font-mono text-[9px] font-bold uppercase tracking-[0.13em] text-[var(--mb-neutral-400)]">Espaces autorisés</p>
                 <div className="mt-2 space-y-1">
-                  {productOrder.map((code) => {
+                  {accessibleCodes.map((code) => {
                     const item = suite.products.find((candidate) => candidate.code === code);
                     if (!item) return null;
                     return (
@@ -94,7 +126,10 @@ export function ProductSuiteConsole() {
                       <h2 className="mt-2 text-3xl font-semibold text-[var(--mb-navy-900)]">{product.name}</h2>
                       <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--mb-neutral-600)]">{product.purpose}</p>
                     </div>
-                    <Link href={`/produit/${product.code}`} className="inline-flex h-10 items-center justify-center rounded bg-[var(--mb-navy-700)] px-4 text-xs font-bold text-white">Ouvrir l’espace</Link>
+                    <div className="flex gap-3">
+                      {product.code === "atlas" ? <Link href="/atlas" className="inline-flex h-10 items-center justify-center rounded border border-[var(--mb-neutral-300)] px-4 text-xs font-bold">Console Atlas</Link> : null}
+                      <Link href={`/produit/${product.code}`} className="inline-flex h-10 items-center justify-center rounded bg-[var(--mb-navy-700)] px-4 text-xs font-bold text-white">Ouvrir l’espace</Link>
+                    </div>
                   </div>
 
                   <div className="mt-6 grid gap-5 md:grid-cols-2">
