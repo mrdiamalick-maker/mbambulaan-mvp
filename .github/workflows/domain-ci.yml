@@ -6,6 +6,9 @@ on:
       - feature/service-coordination-domain
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   domain-quality:
     runs-on: ubuntu-latest
@@ -13,38 +16,33 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.head.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      - name: Apply controlled stabilization migration
+        if: github.event_name == 'push' && hashFiles('scripts/apply-industrialization-stabilization.mjs') != '' && hashFiles('.stabilization-applied') == ''
+        shell: bash
+        run: |
+          node scripts/apply-industrialization-stabilization.mjs
+          touch .stabilization-applied
+          git config user.name "mbambulaan-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git add src .stabilization-applied
+          git commit -m "fix: stabiliser les contrats historiques pour l'industrialisation"
+          git push origin HEAD:${{ github.ref_name }}
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
       - name: Typecheck
-        id: typecheck
-        continue-on-error: true
-        shell: bash
-        run: |
-          mkdir -p ci-diagnostics
-          npm run typecheck > ci-diagnostics/typecheck.log 2>&1
+        run: npm run typecheck
 
-      - name: Publish TypeScript diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: typecheck-diagnostics
-          path: ci-diagnostics/typecheck.log
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Typecheck gate
-        if: always()
-        shell: bash
-        run: test "${{ steps.typecheck.outcome }}" = "success"
-
-      - name: Domain tests
+      - name: Domain and platform tests
         run: npm test
 
       - name: Application build
