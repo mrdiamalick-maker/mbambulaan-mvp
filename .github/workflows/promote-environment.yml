@@ -61,12 +61,8 @@ jobs:
         run: |
           overlay="infra/kubernetes/overlays/${ENVIRONMENT}"
           cp "${overlay}/kustomization.yaml" "${overlay}/kustomization.yaml.bak"
-          cat >> "${overlay}/kustomization.yaml" <<EOF
-          images:
-            - name: ghcr.io/mrdiamalick-maker/mbambulaan-mvp
-              newName: ghcr.io/mrdiamalick-maker/mbambulaan-mvp
-              digest: ${IMAGE_DIGEST}
-          EOF
+          sed -i -E "s/^([[:space:]]*)newTag: .*/\1digest: ${IMAGE_DIGEST}/" "${overlay}/kustomization.yaml"
+          grep -q "digest: ${IMAGE_DIGEST}" "${overlay}/kustomization.yaml"
           kubectl kustomize "$overlay" > rendered-release.yaml
           mv "${overlay}/kustomization.yaml.bak" "${overlay}/kustomization.yaml"
           grep -q "ghcr.io/mrdiamalick-maker/mbambulaan-mvp@${IMAGE_DIGEST}" rendered-release.yaml
