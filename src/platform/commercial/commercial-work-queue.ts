@@ -5,6 +5,7 @@ import { getPersistentCommercialWorkflow } from "./persistent-commercial-workflo
 
 export type CommercialWorkItemKind =
   | "publish_offer"
+  | "reserve_offer"
   | "confirm_reservation"
   | "allocate_order"
   | "start_transport"
@@ -22,6 +23,9 @@ export interface CommercialWorkItem {
   title: string;
   description: string;
   priority: "normal" | "high";
+  offerId?: string;
+  logisticsOptionId?: string;
+  suggestedQuantityKg?: number;
   orderId?: string;
   reservationId?: string;
   paymentId?: string;
@@ -52,7 +56,21 @@ export class CommercialWorkQueue {
     }
 
     if (identity.roleCode === "buyer_operator") {
-      for (const reservation of catalog.reservations.filter((item) => item.buyerOrganizationId === identity.organizationId && item.status === "active")) {
+      const activeReservations = catalog.reservations.filter((item) => item.buyerOrganizationId === identity.organizationId && item.status === "active");
+      const linkedReservationIds = new Set(links.filter((link) => link.buyerOrganizationId === identity.organizationId).map((link) => link.reservationId));
+      if (activeReservations.length === 0) {
+        const offer = catalog.offers.find((item) => item.status === "published" && item.availableQuantityKg - item.reservedQuantityKg >= item.minimumOrderKg);
+        const logistics = offer && catalog.logisticsOptions.find((item) => item.active && item.territoryIds.includes(offer.territoryId));
+        if (offer && logistics && !catalog.reservations.some((item) => linkedReservationIds.has(item.id) && item.offerId === offer.id)) {
+          const suggestedQuantityKg = Math.min(400, offer.availableQuantityKg - offer.reservedQuantityKg);
+          items.push({ id: `reserve-${offer.id}`, kind: "reserve_offer", actorRole: "buyer_operator",
+            organizationId: identity.organizationId, territoryId: offer.territoryId, offerId: offer.id,
+            logisticsOptionId: logistics.id, suggestedQuantityKg, title: "Réserver le stock disponible",
+            description: `${suggestedQuantityKg} kg de ${offer.speciesCode} disponibles avec ${logistics.coldChain ? "chaîne du froid" : "transport standard"}.`,
+            priority: "high", amountXof: Math.round(suggestedQuantityKg * offer.unitPriceXof) });
+        }
+      }
+      for (const reservation of activeReservations) {
         items.push({ id: `confirm-${reservation.id}`, kind: "confirm_reservation", actorRole: "buyer_operator",
           organizationId: identity.organizationId, territoryId: "territory-dakar", reservationId: reservation.id,
           title: "Confirmer la réservation", description: `${reservation.quantityKg} kg réservés jusqu'au ${new Date(reservation.expiresAt).toLocaleTimeString("fr-FR")}.`,
