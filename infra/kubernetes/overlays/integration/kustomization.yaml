@@ -1,0 +1,63 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: mbambulaan-integration
+resources:
+  - ../../base
+nameSuffix: -integration
+labels:
+  - pairs:
+      app.kubernetes.io/environment: integration
+images:
+  - name: ghcr.io/mrdiamalick-maker/mbambulaan-mvp
+    newTag: integration
+patches:
+  - target:
+      kind: Namespace
+      name: mbambulaan
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: mbambulaan-integration
+  - target:
+      kind: ConfigMap
+      name: mbambulaan-platform-config
+    patch: |-
+      - op: replace
+        path: /data/MBAMBULAAN_ENV
+        value: integration
+      - op: replace
+        path: /data/NATIONAL_MODE
+        value: "false"
+      - op: add
+        path: /data/ALLOWED_TERRITORY_IDS
+        value: integration-territory
+      - op: replace
+        path: /data/SECRETS_PROVIDER
+        value: vault
+      - op: replace
+        path: /data/TELEMETRY_ENABLED
+        value: "true"
+  - target:
+      kind: Deployment
+      name: mbambulaan-platform
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: mbambulaan-platform
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 3
+  - target:
+      kind: PodDisruptionBudget
+      name: mbambulaan-platform
+    patch: |-
+      - op: replace
+        path: /spec/minAvailable
+        value: 1
