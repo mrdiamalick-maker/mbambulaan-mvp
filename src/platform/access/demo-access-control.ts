@@ -1,6 +1,7 @@
 export type DemoRoleCode =
   | "fisher"
   | "cooperative_manager"
+  | "buyer_operator"
   | "business_operator"
   | "territorial_coordinator"
   | "government_supervisor"
@@ -71,8 +72,20 @@ const identities: DemoIdentity[] = [
     organizationId: "org-cooperative-dakar",
     organizationName: "Coopérative des pêcheurs de Dakar",
     territoryIds: ["territory-dakar"],
-    productCodes: ["cooperative", "fisher"],
-    permissions: ["campaign.read", "landing.read", "capacity.read", "capacity.write", "trade.read", "finance.read"],
+    productCodes: ["cooperative", "fisher", "business"],
+    permissions: ["campaign.read", "landing.read", "capacity.read", "capacity.write", "trade.read", "trade.write", "finance.read"],
+    locale: "fr",
+    status: "active",
+  },
+  {
+    id: "demo-buyer-hotel-dakar",
+    displayName: "Mamadou Diallo",
+    roleCode: "buyer_operator",
+    organizationId: "org-buyer-hotel-dakar",
+    organizationName: "Hôtel Teranga Dakar",
+    territoryIds: ["territory-dakar"],
+    productCodes: ["business", "finance"],
+    permissions: ["trade.read", "trade.write", "finance.read"],
     locale: "fr",
     status: "active",
   },
