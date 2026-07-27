@@ -77,10 +77,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.labels['app.kubernetes.io/version']
-            - name: SERVICE_STARTED_AT
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.creationTimestamp
           resources:
             requests:
               cpu: 250m
