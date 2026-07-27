@@ -59,9 +59,16 @@ jobs:
           ENVIRONMENT: ${{ inputs.environment }}
           IMAGE_DIGEST: ${{ inputs.image_digest }}
         run: |
-          cp -R "infra/kubernetes/overlays/${ENVIRONMENT}" release-overlay
-          printf '\nimages:\n  - name: ghcr.io/mrdiamalick-maker/mbambulaan-mvp\n    newName: ghcr.io/mrdiamalick-maker/mbambulaan-mvp\n    digest: %s\n' "$IMAGE_DIGEST" >> release-overlay/kustomization.yaml
-          kubectl kustomize release-overlay > rendered-release.yaml
+          overlay="infra/kubernetes/overlays/${ENVIRONMENT}"
+          cp "${overlay}/kustomization.yaml" "${overlay}/kustomization.yaml.bak"
+          cat >> "${overlay}/kustomization.yaml" <<EOF
+          images:
+            - name: ghcr.io/mrdiamalick-maker/mbambulaan-mvp
+              newName: ghcr.io/mrdiamalick-maker/mbambulaan-mvp
+              digest: ${IMAGE_DIGEST}
+          EOF
+          kubectl kustomize "$overlay" > rendered-release.yaml
+          mv "${overlay}/kustomization.yaml.bak" "${overlay}/kustomization.yaml"
           grep -q "ghcr.io/mrdiamalick-maker/mbambulaan-mvp@${IMAGE_DIGEST}" rendered-release.yaml
 
       - name: Capture current revision
@@ -74,25 +81,26 @@ jobs:
           revision=$(kubectl -n "$namespace" rollout history deployment/"$deployment" 2>/dev/null | tail -n 1 | awk '{print $1}' || true)
           echo "revision=${revision}" >> "$GITHUB_OUTPUT"
 
-      - name: Apply migration job
-        if: ${{ inputs.run_migrations }}
+      - name: Apply release resources
         env:
           ENVIRONMENT: ${{ inputs.environment }}
-          IMAGE_DIGEST: ${{ inputs.image_digest }}
         run: |
           namespace="mbambulaan-${ENVIRONMENT}"
           job="mbambulaan-migrate-${ENVIRONMENT}"
-          kubectl -n "$namespace" delete job "$job" --ignore-not-found
-          kubectl apply -f rendered-release.yaml --prune -l app.kubernetes.io/part-of=mbambulaan --prune-allowlist=batch/v1/Job
-          kubectl -n "$namespace" wait --for=condition=complete job/"$job" --timeout=10m
+          if [ '${{ inputs.run_migrations }}' = 'true' ]; then
+            kubectl -n "$namespace" delete job "$job" --ignore-not-found
+          fi
+          kubectl apply -f rendered-release.yaml
+          if [ '${{ inputs.run_migrations }}' = 'true' ]; then
+            kubectl -n "$namespace" wait --for=condition=complete job/"$job" --timeout=10m
+          fi
 
-      - name: Deploy immutable release
+      - name: Verify rollout
         env:
           ENVIRONMENT: ${{ inputs.environment }}
         run: |
           namespace="mbambulaan-${ENVIRONMENT}"
           deployment="mbambulaan-platform-${ENVIRONMENT}"
-          kubectl apply -f rendered-release.yaml
           kubectl -n "$namespace" rollout status deployment/"$deployment" --timeout=10m
 
       - name: Verify health endpoints
