@@ -53,6 +53,12 @@ CREATE TABLE IF NOT EXISTS mbambulaan.actors (
   UNIQUE NULLS NOT DISTINCT (national_id_hash)
 );
 
+INSERT INTO mbambulaan.actors
+  (id, actor_type, display_name, status, verification_level, metadata)
+VALUES
+  ('system:transactional-command-bus', 'system', 'Mbàmbulaan Transactional Command Bus', 'active', 'authority_verified', '{"managed":true}'::jsonb)
+ON CONFLICT (id) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS mbambulaan.aggregate_records (
   aggregate_type text NOT NULL,
   aggregate_id text NOT NULL,
