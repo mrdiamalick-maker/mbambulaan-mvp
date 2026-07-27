@@ -17,8 +17,9 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME=0.0.0.0
-RUN apk add --no-cache postgresql-client && addgroup --system --gid 1001 mbambulaan && adduser --system --uid 1001 --ingroup mbambulaan mbambulaan
-COPY --from=builder --chown=mbambulaan:mbambulaan /app/public ./public
+RUN apk add --no-cache postgresql-client \
+    && addgroup --system --gid 1001 mbambulaan \
+    && adduser --system --uid 1001 --ingroup mbambulaan mbambulaan
 COPY --from=builder --chown=mbambulaan:mbambulaan /app/.next/standalone ./
 COPY --from=builder --chown=mbambulaan:mbambulaan /app/.next/static ./.next/static
 COPY --from=builder --chown=mbambulaan:mbambulaan /app/infra/postgres/migrations ./infra/postgres/migrations
