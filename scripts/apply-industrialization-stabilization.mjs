@@ -4,7 +4,7 @@ function patch(path, replacements) {
   let content = fs.readFileSync(path, "utf8");
   for (const [from, to] of replacements) {
     if (!content.includes(from)) throw new Error(`Occurrence introuvable dans ${path}: ${from}`);
-    content = content.replace(from, to);
+    content = content.split(from).join(to);
   }
   fs.writeFileSync(path, content);
 }
