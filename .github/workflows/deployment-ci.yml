@@ -18,10 +18,14 @@ jobs:
         with:
           version: v1.31.0
 
-      - name: Validate Kubernetes manifests
+      - name: Render and validate Kubernetes manifests
         run: |
-          kubectl create --dry-run=client --validate=false -f infra/kubernetes/base/platform.yaml -o yaml > /dev/null
-          kubectl create --dry-run=client --validate=false -f infra/kubernetes/base/migration-job.yaml -o yaml > /dev/null
+          kubectl kustomize infra/kubernetes/base > rendered-platform.yaml
+          grep -q "kind: Deployment" rendered-platform.yaml
+          grep -q "kind: HorizontalPodAutoscaler" rendered-platform.yaml
+          grep -q "kind: PodDisruptionBudget" rendered-platform.yaml
+          grep -q "kind: NetworkPolicy" rendered-platform.yaml
+          grep -q "kind: Job" rendered-platform.yaml
 
       - name: Build hardened container image
         run: docker build --tag mbambulaan-platform:${{ github.sha }} .
