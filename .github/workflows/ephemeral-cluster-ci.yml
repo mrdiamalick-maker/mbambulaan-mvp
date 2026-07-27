@@ -23,10 +23,10 @@ jobs:
           cluster_name: mbambulaan-ci
 
       - name: Build integration image
-        run: docker build --tag ghcr.io/mrdiamalick-maker/mbambulaan-mvp:integration .
+        run: docker build --tag mbambulaan-platform:ci .
 
       - name: Load image into cluster
-        run: kind load docker-image ghcr.io/mrdiamalick-maker/mbambulaan-mvp:integration --name mbambulaan-ci
+        run: kind load docker-image mbambulaan-platform:ci --name mbambulaan-ci
 
       - name: Provision PostgreSQL dependency
         run: |
@@ -88,9 +88,24 @@ jobs:
           EOF
           kubectl -n mbambulaan-data rollout status deployment/postgres --timeout=5m
 
+      - name: Render integration release with local image
+        run: |
+          overlay="infra/kubernetes/overlays/integration"
+          cp "${overlay}/kustomization.yaml" "${overlay}/kustomization.yaml.bak"
+          sed -i -E 's#newName: ghcr.io/mrdiamalick-maker/mbambulaan-mvp#newName: mbambulaan-platform#' "${overlay}/kustomization.yaml"
+          sed -i -E 's#newTag: integration#newTag: ci#' "${overlay}/kustomization.yaml"
+          kubectl kustomize "$overlay" > rendered-integration.yaml
+          mv "${overlay}/kustomization.yaml.bak" "${overlay}/kustomization.yaml"
+          grep -q 'image: mbambulaan-platform:ci' rendered-integration.yaml
+
       - name: Prepare application namespace and secrets
         run: |
-          kubectl create namespace mbambulaan-integration
+          kubectl apply -f - <<'EOF'
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: mbambulaan-integration
+          EOF
           kubectl -n mbambulaan-integration create secret generic mbambulaan-platform-secrets \
             --from-literal=DATABASE_URL='postgresql://mbambulaan:mbambulaan-ci-password@postgres.mbambulaan-data.svc.cluster.local:5432/mbambulaan' \
             --from-literal=PUBLIC_BASE_URL='http://mbambulaan-platform-integration' \
@@ -100,10 +115,10 @@ jobs:
             --from-literal=ENCRYPTION_KEY_ID='ci-key' \
             --from-literal=TELEMETRY_ENDPOINT='https://telemetry.invalid'
 
-      - name: Render and install integration release
+      - name: Install integration release
         run: |
-          kubectl kustomize infra/kubernetes/overlays/integration > rendered-integration.yaml
-          kubectl apply -f rendered-integration.yaml
+          kubectl apply -f rendered-integration.yaml 2>&1 | tee installation.log
+          kubectl -n mbambulaan-integration get all
 
       - name: Verify database migrations
         run: |
@@ -143,7 +158,11 @@ jobs:
           kubectl get namespaces -o yaml > deployment-evidence/namespaces.yaml
           kubectl -n mbambulaan-integration get all -o yaml > deployment-evidence/application-resources.yaml || true
           kubectl -n mbambulaan-data get all -o yaml > deployment-evidence/data-resources.yaml || true
+          kubectl -n mbambulaan-integration get events --sort-by=.lastTimestamp > deployment-evidence/application-events.txt || true
+          kubectl -n mbambulaan-integration logs job/mbambulaan-database-migration-integration > deployment-evidence/migration.log 2>&1 || true
           cp rendered-integration.yaml deployment-evidence/rendered-integration.yaml
+          cp installation.log deployment-evidence/installation.log 2>/dev/null || true
+          cp port-forward.log deployment-evidence/port-forward.log 2>/dev/null || true
 
       - name: Upload installation evidence
         if: always()
