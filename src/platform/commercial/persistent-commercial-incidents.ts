@@ -1,6 +1,7 @@
 import type { DemoIdentity } from "@/platform/access/demo-access-control";
 import type { SqlExecutor } from "@/platform/persistence/postgres-platform-adapters";
 import { getRuntimeSqlExecutor, hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
+import type { CommercialExecutionSnapshot } from "./commercial-financial-execution";
 import { getPersistentCommercialWorkflow } from "./persistent-commercial-workflow";
 import { CommercialIncidentManagement, type CommercialIncidentType } from "./commercial-incident-management";
 
@@ -117,7 +118,7 @@ function validateRole(identity: DemoIdentity, command: CommercialIncidentCommand
   }
 }
 
-function apply(engine: CommercialIncidentManagement, identity: DemoIdentity, command: CommercialIncidentCommand, execution: Awaited<ReturnType<ReturnType<typeof getPersistentCommercialWorkflow>["snapshot"]>>) {
+function apply(engine: CommercialIncidentManagement, identity: DemoIdentity, command: CommercialIncidentCommand, execution: CommercialExecutionSnapshot) {
   switch (command.type) {
     case "open": return engine.open({
       id: command.incidentId, orderId: command.orderId, type: command.incidentType,
