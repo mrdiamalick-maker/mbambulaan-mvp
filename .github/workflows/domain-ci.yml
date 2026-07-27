@@ -23,27 +23,27 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Typecheck
-        run: npm run typecheck
-
-      - name: Domain and platform tests
-        id: tests
+        id: typecheck
         continue-on-error: true
         shell: bash
         run: |
           mkdir -p ci-diagnostics
-          npm test > ci-diagnostics/tests.log 2>&1
+          npm run typecheck > ci-diagnostics/typecheck.log 2>&1
 
-      - name: Publish test diagnostics
+      - name: Publish TypeScript diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: residual-test-diagnostics
-          path: ci-diagnostics/tests.log
+          name: security-typecheck-diagnostics
+          path: ci-diagnostics/typecheck.log
           retention-days: 7
 
-      - name: Test gate
+      - name: Typecheck gate
         if: always()
-        run: test "${{ steps.tests.outcome }}" = "success"
+        run: test "${{ steps.typecheck.outcome }}" = "success"
+
+      - name: Domain and platform tests
+        run: npm test
 
       - name: Application build
         run: npm run build
