@@ -14,7 +14,7 @@ const governanceCommands = new Set<DevelopmentProgramCommand["type"]>([
 ]);
 
 export async function GET(request: Request) {
-  const authorization = authorizeDemoRequest({ request, permission: "government.read", productCode: "development" });
+  const authorization = authorizeDemoRequest({ request, permission: "government.read" });
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
   return NextResponse.json(getDevelopmentProgramRuntime().snapshot());
 }
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   }
 
   const permission = governanceCommands.has(body.command.type) ? "government.write" : "knowledge.write";
-  const authorization = authorizeDemoRequest({ request, permission, productCode: "development" });
+  const authorization = authorizeDemoRequest({ request, permission });
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
 
   try {
