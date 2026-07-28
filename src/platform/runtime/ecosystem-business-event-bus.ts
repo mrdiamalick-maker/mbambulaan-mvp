@@ -34,6 +34,7 @@ export interface EcosystemBusinessEventDelivery {
   status: "processed" | "failed" | "ignored_duplicate";
   attempts: number;
   processedAt: string;
+  nextRetryAt?: string;
   error?: string;
 }
 
@@ -48,33 +49,31 @@ export class EcosystemBusinessEventBus {
     this.handlers.push(handler);
   }
 
-  async publish(event: EcosystemBusinessEvent, processedAt = new Date().toISOString()) {
-    if (!event.id || !event.type || !event.correlationId || !event.entityId) throw new Error("L'événement métier est incomplet.");
-    if (!event.territoryIds.length) throw new Error("Au moins un territoire est obligatoire.");
-    if (!this.events.some((item) => item.id === event.id)) this.events.push(structuredClone(event));
-
-    for (const handler of this.handlers.filter((item) => item.eventTypes.includes(event.type))) {
-      const key = `${event.id}:${handler.name}`;
-      if (this.processedKeys.has(key)) {
-        this.deliveries.push({ eventId: event.id, handlerName: handler.name, status: "ignored_duplicate", attempts: 0, processedAt });
-        continue;
-      }
-      const previousAttempts = this.deliveries.filter((item) => item.eventId === event.id && item.handlerName === handler.name).length;
-      try {
-        await handler.handle(structuredClone(event));
-        this.processedKeys.add(key);
-        this.deliveries.push({ eventId: event.id, handlerName: handler.name, status: "processed", attempts: previousAttempts + 1, processedAt });
-      } catch (error) {
-        this.deliveries.push({
-          eventId: event.id,
-          handlerName: handler.name,
-          status: "failed",
-          attempts: previousAttempts + 1,
-          processedAt,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
+  restore(input: { events: EcosystemBusinessEvent[]; deliveries: EcosystemBusinessEventDelivery[] }) {
+    this.events.splice(0, this.events.length, ...structuredClone(input.events));
+    this.deliveries.splice(0, this.deliveries.length, ...structuredClone(input.deliveries));
+    this.processedKeys.clear();
+    for (const delivery of input.deliveries) {
+      if (delivery.status === "processed") this.processedKeys.add(`${delivery.eventId}:${delivery.handlerName}`);
     }
+  }
+
+  async publish(event: EcosystemBusinessEvent, processedAt = new Date().toISOString()) {
+    this.validateEvent(event);
+    if (!this.events.some((item) => item.id === event.id)) this.events.push(structuredClone(event));
+    for (const handler of this.handlers.filter((item) => item.eventTypes.includes(event.type))) {
+      await this.deliver(event, handler, processedAt);
+    }
+    return this.snapshot();
+  }
+
+  async retry(eventId: string, handlerName: string, processedAt = new Date().toISOString()) {
+    const event = this.events.find((item) => item.id === eventId);
+    if (!event) throw new Error(`Événement métier introuvable : ${eventId}.`);
+    const handler = this.handlers.find((item) => item.name === handlerName && item.eventTypes.includes(event.type));
+    if (!handler) throw new Error(`Abonné métier introuvable : ${handlerName}.`);
+    this.processedKeys.delete(`${eventId}:${handlerName}`);
+    await this.deliver(event, handler, processedAt, true);
     return this.snapshot();
   }
 
@@ -82,14 +81,57 @@ export class EcosystemBusinessEventBus {
     return structuredClone({
       events: this.events,
       deliveries: this.deliveries,
+      deadLetters: this.latestDeliveries().filter((item) => item.status === "failed"),
       subscriptions: this.handlers.map((item) => ({ name: item.name, eventTypes: item.eventTypes })),
       metrics: {
         eventCount: this.events.length,
-        processedDeliveryCount: this.deliveries.filter((item) => item.status === "processed").length,
-        failedDeliveryCount: this.deliveries.filter((item) => item.status === "failed").length,
+        processedDeliveryCount: this.latestDeliveries().filter((item) => item.status === "processed").length,
+        failedDeliveryCount: this.latestDeliveries().filter((item) => item.status === "failed").length,
         duplicateDeliveryCount: this.deliveries.filter((item) => item.status === "ignored_duplicate").length,
       },
     });
+  }
+
+  private async deliver(event: EcosystemBusinessEvent, handler: EcosystemBusinessEventHandler, processedAt: string, force = false) {
+    const key = `${event.id}:${handler.name}`;
+    if (!force && this.processedKeys.has(key)) {
+      this.deliveries.push({ eventId: event.id, handlerName: handler.name, status: "ignored_duplicate", attempts: 0, processedAt });
+      return;
+    }
+    const previousAttempts = this.deliveries
+      .filter((item) => item.eventId === event.id && item.handlerName === handler.name && item.status !== "ignored_duplicate")
+      .reduce((maximum, item) => Math.max(maximum, item.attempts), 0);
+    try {
+      await handler.handle(structuredClone(event));
+      this.processedKeys.add(key);
+      this.deliveries.push({ eventId: event.id, handlerName: handler.name, status: "processed", attempts: previousAttempts + 1, processedAt });
+    } catch (error) {
+      const attempts = previousAttempts + 1;
+      const retryMinutes = Math.min(24 * 60, 5 * 2 ** Math.max(0, attempts - 1));
+      this.deliveries.push({
+        eventId: event.id,
+        handlerName: handler.name,
+        status: "failed",
+        attempts,
+        processedAt,
+        nextRetryAt: new Date(Date.parse(processedAt) + retryMinutes * 60_000).toISOString(),
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private latestDeliveries() {
+    const latest = new Map<string, EcosystemBusinessEventDelivery>();
+    for (const delivery of this.deliveries) {
+      if (delivery.status === "ignored_duplicate") continue;
+      latest.set(`${delivery.eventId}:${delivery.handlerName}`, delivery);
+    }
+    return Array.from(latest.values());
+  }
+
+  private validateEvent(event: EcosystemBusinessEvent) {
+    if (!event.id || !event.type || !event.correlationId || !event.entityId) throw new Error("L'événement métier est incomplet.");
+    if (!event.territoryIds.length) throw new Error("Au moins un territoire est obligatoire.");
   }
 }
 
