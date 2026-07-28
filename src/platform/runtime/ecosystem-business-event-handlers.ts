@@ -3,6 +3,7 @@ import { getPersistentUnifiedWorkOrchestrationRuntime } from "@/platform/coordin
 import { getUnifiedWorkOrchestrationRuntime } from "@/platform/coordination/unified-work-orchestration-runtime";
 import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
 import type { EcosystemBusinessEventHandler } from "./ecosystem-business-event-bus";
+import { getNationalCoordinationSignalProjection } from "./national-coordination-signal-projection";
 
 export function buildDefaultBusinessEventHandlers(): EcosystemBusinessEventHandler[] {
   return [
@@ -117,6 +118,21 @@ export function buildDefaultBusinessEventHandlers(): EcosystemBusinessEventHandl
         } else {
           getUnifiedWorkOrchestrationRuntime().execute({ commandId, command });
         }
+      },
+    },
+    {
+      name: "national-coordination-signal-projector",
+      eventTypes: [
+        "commerce.incident.reported",
+        "finance.adjustment.approved",
+        "contracts.obligation.breached",
+        "governance.decision.recorded",
+        "crisis.situation.reported",
+        "documents.requirement.missing",
+        "coordination.notification.failed",
+      ],
+      handle(event) {
+        getNationalCoordinationSignalProjection().project(event);
       },
     },
   ];
