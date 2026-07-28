@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authorizeDemoRequest } from "@/platform/access/request-authorization";
 import { getPersistentCommercialIncidents, type CommercialIncidentCommand } from "@/platform/commercial/persistent-commercial-incidents";
+import { publishEcosystemBusinessEvent } from "@/platform/runtime/publish-ecosystem-business-event";
 
 export async function GET(request: Request) {
   const authorization = authorizeDemoRequest({ request, permission: "trade.read" });
@@ -27,7 +28,52 @@ export async function POST(request: Request) {
       territoryId: authorization.session.activeTerritoryId,
       command: body.command,
     });
-    return NextResponse.json(result, { status: 201 });
+
+    const occurredAt = body.command.at ?? new Date().toISOString();
+    let businessEvent: unknown;
+    if (body.command.type === "open") {
+      businessEvent = await publishEcosystemBusinessEvent({
+        id: `event-commercial-incident-${body.commandId}`,
+        type: "commerce.incident.reported",
+        occurredAt,
+        correlationId: `commercial-order-${body.command.orderId}`,
+        causationId: body.commandId,
+        actorId: authorization.identity.id,
+        organizationId: authorization.identity.organizationId,
+        territoryIds: [authorization.session.activeTerritoryId],
+        entityType: "commercial_incident",
+        entityId: body.command.incidentId,
+        payload: {
+          orderId: body.command.orderId,
+          incidentType: body.command.incidentType,
+          summary: body.command.description,
+          critical: ["cold_chain_break", "delivery_refusal"].includes(body.command.incidentType),
+        },
+      });
+    } else if (body.command.type === "assess") {
+      const adjustmentXof = (body.command.logisticsPenaltyXof ?? 0) + (body.command.platformGoodwillXof ?? 0);
+      businessEvent = await publishEcosystemBusinessEvent({
+        id: `event-finance-adjustment-${body.commandId}`,
+        type: "finance.adjustment.approved",
+        occurredAt,
+        correlationId: `commercial-incident-${body.command.incidentId}`,
+        causationId: body.commandId,
+        actorId: authorization.identity.id,
+        organizationId: authorization.identity.organizationId,
+        territoryIds: [authorization.session.activeTerritoryId],
+        entityType: "commercial_incident",
+        entityId: body.command.incidentId,
+        payload: {
+          summary: body.command.note,
+          authorizedAmountXof: adjustmentXof,
+          affectedQuantityKg: body.command.deliveredQuantityKg,
+          replacementLogisticsOrganizationId: body.command.replacementLogisticsOrganizationId,
+          adjustmentNature: "contractual_compensation",
+        },
+      });
+    }
+
+    return NextResponse.json({ ...result, businessEvent }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: { code: "COMMERCIAL_INCIDENT_COMMAND_FAILED", message: error instanceof Error ? error.message : String(error) } }, { status: 422 });
   }
