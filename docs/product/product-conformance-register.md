@@ -62,12 +62,12 @@ Règle : aucun produit ne doit absorber les responsabilités d’un autre. Tous 
 |---|---|---|---|---|---|---|---|---|
 | Identité, rôles et confiance | Oui | Oui | Oui | Partiel | Partiel | Partiel | Partiel | Administration réelle des acteurs et qualification progressive. |
 | Campagnes et visibilité opérationnelle | Oui | Oui | Partiel | Fisher partiel | Partiel | Partiel | Partiel | Parcours campagne-retour-débarquement complet et mobile. |
-| Débarquement, pesée, qualité et traçabilité | Oui | Oui | Partiel | Fisher/Cooperative partiel | Partiel | Partiel | Partiel | Relier réellement les lots au flux commercial et à la durabilité. |
+| Débarquement, pesée, qualité et traçabilité | Oui | Oui renforcé | Moteur exécutable | Fisher/Cooperative à exposer | Tests métier renforcés | Écart, risques et destination calculés | Partiel | Brancher API, persistance et parcours acteurs sur le nouveau moteur. |
 | Capacités, services et allocation | Oui | Oui | Oui | Cooperative/Business partiel | Oui | Oui | Partiel | Généraliser aux services de quai, froid, transformation et équipements. |
 | Commerce, transaction et règlement | Oui | Oui | Oui | Business/Cooperative partiel | Oui | Oui | Oui | Finaliser annulation effective, compensations et paiements réels. |
-| Conservation, transformation et valorisation produit | Oui | Oui | Partiel | Business partiel | Non | Partiel | Partiel | Construire une boucle lot à risque vers stockage ou transformation. |
-| Valorisation communautaire et partage de valeur | Oui | Partiel | Non | Community restauré | Non | Partiel | Partiel | Construire contribution, décision collective, affectation et impact. |
-| Durabilité, ressources et résilience climatique | Oui | Oui | Partiel | Government/Atlas partiel | Partiel | Oui | Partiel | Relier effort, espèce, zone, saison et décision opérationnelle. |
+| Conservation, transformation et valorisation produit | Oui | Oui | Décision de destination initiale | Business à exposer | Tests transformation anti-perte | Signaux de valeur initiale | Partiel | Relier décision à capacités réelles, engagements et résultat mesuré. |
+| Valorisation communautaire et partage de valeur | Oui | Partiel renforcé | Orientation communautaire initiale | Community restauré | Test de destination communautaire | Signaux communautaires initiaux | Partiel | Construire initiative, décision collective, contribution, affectation et impact. |
+| Durabilité, ressources et résilience climatique | Oui | Oui | Signaux de réduction des pertes initiaux | Government/Atlas partiel | Tests de destination durable | Oui partiel | Partiel | Relier effort, espèce, zone, saison et décision opérationnelle. |
 | Tensions, incidents et continuité | Oui | Oui | Oui | Plusieurs produits partiels | Oui | Oui | Partiel | Unifier incidents commerciaux, opérationnels et territoriaux. |
 | Pilotage territorial et politiques publiques | Oui | Oui | Oui | Government/Atlas | Partiel | Oui | Oui | Alimenter le cockpit avec résultats économiques, sociaux et environnementaux réels. |
 | Connaissance et intelligence sectorielle | Oui | Oui | Partiel | Knowledge/Atlas | Partiel | Partiel | Oui | Transformer incidents, données et pratiques en contenus actionnables. |
