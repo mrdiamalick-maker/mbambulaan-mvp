@@ -45,11 +45,11 @@ export async function POST(request: Request) {
       ? await getPersistentOperationalContractRuntime().execute(execution)
       : getOperationalContractRuntime().execute(execution);
 
-    let businessEvent: unknown;
+    const businessEvents: unknown[] = [];
     if (body.command.type === "register_contract") {
       const reference = body.command.contract.signedContractDocumentIds[0];
       if (reference) {
-        businessEvent = await publishEcosystemBusinessEvent({
+        businessEvents.push(await publishEcosystemBusinessEvent({
           id: `event-contract-${body.commandId}`,
           type: "contracts.contract.registered",
           occurredAt: body.command.contract.effectiveAt ?? new Date().toISOString(),
@@ -61,11 +61,63 @@ export async function POST(request: Request) {
           entityType: "contract",
           entityId: body.command.contract.id,
           payload: { signedContractReference: reference, checksumSha256: reference },
-        });
+        }));
       }
     }
 
-    return NextResponse.json({ ...result, persistence: persistent ? "postgres" : "memory", businessEvent }, { status: 201 });
+    if (body.command.type === "record_execution" && body.command.record.outcome === "breached") {
+      const obligation = result.snapshot.obligations.find((item) => item.id === body.command.record.obligationId);
+      if (obligation) {
+        businessEvents.push(await publishEcosystemBusinessEvent({
+          id: `event-obligation-breach-${body.commandId}`,
+          type: "contracts.obligation.breached",
+          occurredAt: body.command.record.recordedAt,
+          correlationId: `contract-${obligation.contractId}`,
+          causationId: body.commandId,
+          actorId: authorization.identity.id,
+          organizationId: obligation.responsibleOrganizationId,
+          territoryIds: obligation.territoryIds,
+          entityType: "contract_obligation",
+          entityId: obligation.id,
+          payload: {
+            contractId: obligation.contractId,
+            summary: body.command.record.comment,
+            measuredValue: body.command.record.measuredValue,
+            targetValue: obligation.targetValue,
+            unit: obligation.unit,
+            responsibleActorId: obligation.responsibleActorId,
+            completionDocumentIds: body.command.record.completionDocumentIds,
+          },
+        }));
+      }
+    }
+
+    if (body.command.type === "record_governance_decision") {
+      const contract = result.snapshot.contracts.find((item) => item.id === body.command.decision.contractId);
+      if (contract) {
+        businessEvents.push(await publishEcosystemBusinessEvent({
+          id: `event-governance-decision-${body.commandId}`,
+          type: "governance.decision.recorded",
+          occurredAt: body.command.decision.decidedAt,
+          correlationId: `contract-${body.command.decision.contractId}`,
+          causationId: body.commandId,
+          actorId: body.command.decision.decidedByActorId,
+          organizationId: authorization.identity.organizationId,
+          territoryIds: contract.territoryIds,
+          entityType: "governance_decision",
+          entityId: body.command.decision.id,
+          payload: {
+            decisionType: body.command.decision.decisionType,
+            summary: body.command.decision.reason,
+            contractId: body.command.decision.contractId,
+            obligationId: body.command.decision.obligationId,
+            decisionDocumentIds: body.command.decision.decisionDocumentIds,
+          },
+        }));
+      }
+    }
+
+    return NextResponse.json({ ...result, persistence: persistent ? "postgres" : "memory", businessEvents }, { status: 201 });
   } catch (error) {
     return NextResponse.json({
       error: {
