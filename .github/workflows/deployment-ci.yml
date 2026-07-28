@@ -43,8 +43,10 @@ jobs:
           grep -q "MBAMBULAAN_ENV: production" rendered-production.yaml
           grep -q "MIGRATION_MODE: validate" rendered-production.yaml
 
-      - name: Build hardened container image
-        run: docker build --tag mbambulaan-platform:${{ github.sha }} .
+      - name: Build hardened images
+        run: |
+          docker build --target runner --tag mbambulaan-platform:${{ github.sha }} .
+          docker build --target migration --tag mbambulaan-migrations:${{ github.sha }} .
 
       - name: Report repository vulnerabilities and misconfigurations
         uses: aquasecurity/trivy-action@v0.36.0
@@ -65,7 +67,7 @@ jobs:
         with:
           sarif_file: trivy-repository.sarif
 
-      - name: Report container vulnerabilities
+      - name: Report runtime image vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: mbambulaan-platform:${{ github.sha }}
@@ -74,16 +76,16 @@ jobs:
           ignore-unfixed: true
           exit-code: 0
           format: sarif
-          output: trivy-image.sarif
+          output: trivy-runtime.sarif
 
-      - name: Upload image security findings
+      - name: Upload runtime security findings
         continue-on-error: true
-        if: always() && hashFiles('trivy-image.sarif') != ''
+        if: always() && hashFiles('trivy-runtime.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: trivy-image.sarif
+          sarif_file: trivy-runtime.sarif
 
-      - name: Block critical container vulnerabilities
+      - name: Block critical runtime vulnerabilities
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: mbambulaan-platform:${{ github.sha }}
@@ -93,21 +95,31 @@ jobs:
           exit-code: 1
           format: table
 
-      - name: Inspect container user
+      - name: Block critical migration vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: mbambulaan-migrations:${{ github.sha }}
+          scanners: vuln,misconfig
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+          format: table
+
+      - name: Inspect runtime container
         run: |
           user=$(docker inspect --format '{{.Config.User}}' mbambulaan-platform:${{ github.sha }})
           test "$user" = "1001:1001"
-
-      - name: Inspect container healthcheck
-        run: |
           health=$(docker inspect --format '{{json .Config.Healthcheck}}' mbambulaan-platform:${{ github.sha }})
           test "$health" != "null"
+          docker run --rm --entrypoint sh mbambulaan-platform:${{ github.sha }} -c 'test ! -x /usr/bin/psql && test ! -d /app/infra/postgres/migrations'
 
-      - name: Inspect migration assets
+      - name: Inspect migration container
         run: |
-          docker run --rm --entrypoint sh mbambulaan-platform:${{ github.sha }} -c 'test -x /usr/bin/psql && test -d /app/infra/postgres/migrations'
+          user=$(docker inspect --format '{{.Config.User}}' mbambulaan-migrations:${{ github.sha }})
+          test "$user" = "1001:1001"
+          docker run --rm --entrypoint sh mbambulaan-migrations:${{ github.sha }} -c 'test -x /usr/local/bin/psql || test -x /usr/bin/psql; test -d /app/infra/postgres/migrations'
 
-      - name: Verify container startup and liveness
+      - name: Verify runtime startup and liveness
         run: |
           container=$(docker run -d --rm -p 3000:3000 \
             -e SERVICE_STARTED_AT=2026-01-01T00:00:00.000Z \
