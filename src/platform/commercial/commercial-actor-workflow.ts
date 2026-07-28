@@ -27,9 +27,9 @@ export type CommercialWorkflowCommand =
     }
   | { type: "allocate_order"; orderId: string }
   | { type: "start_transport"; orderId: string }
-  | { type: "confirm_delivery"; orderId: string; proofId: string; at?: string }
+  | { type: "confirm_delivery"; orderId: string; proofId: string; destinationConfirmationReference?: string; documentChecksumSha256?: string; at?: string }
   | { type: "request_payment"; orderId: string; payerOrganizationId?: string; at?: string }
-  | { type: "confirm_payment"; paymentId: string; providerReference?: string; at?: string }
+  | { type: "confirm_payment"; paymentId: string; providerReference?: string; documentChecksumSha256?: string; at?: string }
   | { type: "reconcile_order"; orderId: string; at?: string }
   | { type: "open_dispute"; orderId: string; openedByOrganizationId: string; reason: string; at?: string }
   | { type: "resolve_dispute"; disputeId: string; resolution: string; at?: string };
