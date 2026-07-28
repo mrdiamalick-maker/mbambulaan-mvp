@@ -38,11 +38,12 @@ describe("EthicalFinanceRuntime", () => {
       situationDocumentIds: ["mechanic-report-1"], status: "reported", reportedAt: at,
     } } });
     runtime.execute({ commandId: "approve-support", actorId: "coop-1", activeTerritoryId: territory, command: { type: "approve_support", supportId: "support-1", approvedSupportXof: 500_000 } });
-    const result = runtime.execute({ commandId: "pay-support", actorId: "coop-1", activeTerritoryId: territory, command: { type: "record_support_payment", supportId: "support-1", paymentReference: "SOLIDARITY-001", paidAt: at } });
+    runtime.execute({ commandId: "pay-support", actorId: "coop-1", activeTerritoryId: territory, command: { type: "record_support_payment", supportId: "support-1", paymentReference: "SOLIDARITY-001", paidAt: at } });
+    const snapshot = runtime.snapshot();
 
-    expect(result.snapshot.metrics.activeFinancingAmountXof).toBe(6_000_000);
-    expect(result.snapshot.metrics.solidaritySupportPaidXof).toBe(500_000);
-    expect(result.snapshot.metrics.mbambulaanServiceRevenueXof).toBe(100_000);
+    expect(snapshot.metrics.activeFinancingAmountXof).toBe(6_000_000);
+    expect(snapshot.metrics.solidaritySupportPaidXof).toBe(500_000);
+    expect(snapshot.metrics.mbambulaanServiceRevenueXof).toBe(100_000);
   });
 
   it("refuse une marge sur une avance sans intérêt", () => {
