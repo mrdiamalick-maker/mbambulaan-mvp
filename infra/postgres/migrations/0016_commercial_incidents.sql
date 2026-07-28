@@ -17,8 +17,8 @@ CREATE INDEX IF NOT EXISTS idx_commercial_incident_journal_incident
 CREATE INDEX IF NOT EXISTS idx_commercial_incident_journal_territory
   ON mbambulaan.commercial_incident_journal (territory_id, sequence_id);
 
-INSERT INTO mbambulaan.schema_migrations(version)
-VALUES ('0016')
+INSERT INTO mbambulaan.schema_migrations(version, checksum_sha256, applied_by)
+VALUES ('0016', 'd5153a8e6fa6caad01f67479b366b5d9f3b6350e594dd3f8776d4edb7a2a889c', 'mbambulaan-migration-runner')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
