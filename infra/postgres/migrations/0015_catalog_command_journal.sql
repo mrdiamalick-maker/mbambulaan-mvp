@@ -19,12 +19,8 @@ CREATE INDEX IF NOT EXISTS ix_catalog_command_journal_sequence
 CREATE INDEX IF NOT EXISTS ix_catalog_command_journal_organization
   ON mbambulaan.catalog_command_journal(organization_id, occurred_at DESC);
 
-CREATE TABLE IF NOT EXISTS mbambulaan.schema_migrations (
-  version text PRIMARY KEY,
-  applied_at timestamptz NOT NULL DEFAULT now()
-);
-INSERT INTO mbambulaan.schema_migrations(version)
-VALUES ('0015')
+INSERT INTO mbambulaan.schema_migrations(version, checksum_sha256, applied_by)
+VALUES ('0015', '4298e3b3ed58c3af466ba112a0fe1e45eb478751bb5ed9b0156938f1ba7a3dcf', 'mbambulaan-migration-runner')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
