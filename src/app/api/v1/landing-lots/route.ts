@@ -14,7 +14,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: { code: "INVALID_LANDING_COMMAND", message: "commandId et command sont obligatoires." } }, { status: 400 });
   }
 
-  const authorization = authorizeDemoRequest({ request, permission: "landing.write" });
+  const lotCommands = new Set<LandingLotCommand["type"]>(["create_lot", "make_lot_available", "block_lot", "decide_destination"]);
+  const permission = lotCommands.has(body.command.type) ? "trade.write" : "landing.write";
+  const authorization = authorizeDemoRequest({ request, permission });
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
 
   try {
