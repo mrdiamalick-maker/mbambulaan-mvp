@@ -29,16 +29,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: { code: "INVALID_CONTRACT_ACTION", message: "L'action contractuelle et son identifiant sont obligatoires." } }, { status: 400 });
   }
 
-  const permission = governanceCommands.has(body.command.type) ? "government.write" : "government.read";
+  const commandId = body.commandId;
+  const command = body.command;
+  const permission = governanceCommands.has(command.type) ? "government.write" : "government.read";
   const authorization = authorizeDemoRequest({ request, permission });
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
 
   try {
     const execution = {
-      commandId: body.commandId,
+      commandId,
       actorId: authorization.identity.id,
       activeTerritoryId: authorization.session.activeTerritoryId,
-      command: body.command,
+      command,
     };
     const persistent = hasRuntimeDatabase();
     const result = persistent
@@ -46,34 +48,34 @@ export async function POST(request: Request) {
       : getOperationalContractRuntime().execute(execution);
 
     const businessEvents: unknown[] = [];
-    if (body.command.type === "register_contract") {
-      const reference = body.command.contract.signedContractDocumentIds[0];
+    if (command.type === "register_contract") {
+      const reference = command.contract.signedContractDocumentIds[0];
       if (reference) {
         businessEvents.push(await publishEcosystemBusinessEvent({
-          id: `event-contract-${body.commandId}`,
+          id: `event-contract-${commandId}`,
           type: "contracts.contract.registered",
-          occurredAt: body.command.contract.effectiveAt ?? new Date().toISOString(),
-          correlationId: `contract-${body.command.contract.id}`,
-          causationId: body.commandId,
+          occurredAt: command.contract.effectiveAt ?? new Date().toISOString(),
+          correlationId: `contract-${command.contract.id}`,
+          causationId: commandId,
           actorId: authorization.identity.id,
           organizationId: authorization.identity.organizationId,
-          territoryIds: body.command.contract.territoryIds,
+          territoryIds: command.contract.territoryIds,
           entityType: "contract",
-          entityId: body.command.contract.id,
+          entityId: command.contract.id,
           payload: { signedContractReference: reference, checksumSha256: reference },
         }));
       }
     }
 
-    if (body.command.type === "record_execution" && body.command.record.outcome === "breached") {
-      const obligation = result.snapshot.obligations.find((item) => item.id === body.command.record.obligationId);
+    if (command.type === "record_execution" && command.record.outcome === "breached") {
+      const obligation = result.snapshot.obligations.find((item) => item.id === command.record.obligationId);
       if (obligation) {
         businessEvents.push(await publishEcosystemBusinessEvent({
-          id: `event-obligation-breach-${body.commandId}`,
+          id: `event-obligation-breach-${commandId}`,
           type: "contracts.obligation.breached",
-          occurredAt: body.command.record.recordedAt,
+          occurredAt: command.record.recordedAt,
           correlationId: `contract-${obligation.contractId}`,
-          causationId: body.commandId,
+          causationId: commandId,
           actorId: authorization.identity.id,
           organizationId: obligation.responsibleOrganizationId,
           territoryIds: obligation.territoryIds,
@@ -81,37 +83,37 @@ export async function POST(request: Request) {
           entityId: obligation.id,
           payload: {
             contractId: obligation.contractId,
-            summary: body.command.record.comment,
-            measuredValue: body.command.record.measuredValue,
+            summary: command.record.comment,
+            measuredValue: command.record.measuredValue,
             targetValue: obligation.targetValue,
             unit: obligation.unit,
             responsibleActorId: obligation.responsibleActorId,
-            completionDocumentIds: body.command.record.completionDocumentIds,
+            completionDocumentIds: command.record.completionDocumentIds,
           },
         }));
       }
     }
 
-    if (body.command.type === "record_governance_decision") {
-      const contract = result.snapshot.contracts.find((item) => item.id === body.command.decision.contractId);
+    if (command.type === "record_governance_decision") {
+      const contract = result.snapshot.contracts.find((item) => item.id === command.decision.contractId);
       if (contract) {
         businessEvents.push(await publishEcosystemBusinessEvent({
-          id: `event-governance-decision-${body.commandId}`,
+          id: `event-governance-decision-${commandId}`,
           type: "governance.decision.recorded",
-          occurredAt: body.command.decision.decidedAt,
-          correlationId: `contract-${body.command.decision.contractId}`,
-          causationId: body.commandId,
-          actorId: body.command.decision.decidedByActorId,
+          occurredAt: command.decision.decidedAt,
+          correlationId: `contract-${command.decision.contractId}`,
+          causationId: commandId,
+          actorId: command.decision.decidedByActorId,
           organizationId: authorization.identity.organizationId,
           territoryIds: contract.territoryIds,
           entityType: "governance_decision",
-          entityId: body.command.decision.id,
+          entityId: command.decision.id,
           payload: {
-            decisionType: body.command.decision.decisionType,
-            summary: body.command.decision.reason,
-            contractId: body.command.decision.contractId,
-            obligationId: body.command.decision.obligationId,
-            decisionDocumentIds: body.command.decision.decisionDocumentIds,
+            decisionType: command.decision.decisionType,
+            summary: command.decision.reason,
+            contractId: command.decision.contractId,
+            obligationId: command.decision.obligationId,
+            decisionDocumentIds: command.decision.decisionDocumentIds,
           },
         }));
       }
