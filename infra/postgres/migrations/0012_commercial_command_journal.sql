@@ -22,12 +22,8 @@ CREATE INDEX IF NOT EXISTS ix_commercial_command_journal_actor
 CREATE INDEX IF NOT EXISTS ix_commercial_command_journal_territory
   ON mbambulaan.commercial_command_journal(territory_id, occurred_at DESC);
 
-CREATE TABLE IF NOT EXISTS mbambulaan.schema_migrations (
-  version text PRIMARY KEY,
-  applied_at timestamptz NOT NULL DEFAULT now()
-);
-INSERT INTO mbambulaan.schema_migrations(version)
-VALUES ('0012')
+INSERT INTO mbambulaan.schema_migrations(version, checksum_sha256, applied_by)
+VALUES ('0012', '84b2a5d834daee2fff7eb5e31f44ba68eb860d86d2cf8e37606a26fa775cf23b', 'mbambulaan-migration-runner')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
