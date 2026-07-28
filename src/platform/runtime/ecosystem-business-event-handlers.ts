@@ -101,6 +101,7 @@ export function buildDefaultBusinessEventHandlers(): EcosystemBusinessEventHandl
             territoryId: event.territoryIds[0],
             relatedEntityType: event.entityType,
             relatedEntityId: event.entityId,
+            sourceCorrelationId: event.correlationId,
             dueAt: String(event.payload.dueAt ?? event.occurredAt),
             notificationChannels: ["in_app" as const],
             status: "open" as const,
@@ -135,6 +136,17 @@ export function buildDefaultBusinessEventHandlers(): EcosystemBusinessEventHandl
       async handle(event) {
         if (hasRuntimeDatabase()) await getPersistentNationalCoordinationSignalService().project(event);
         else getNationalCoordinationSignalProjection().project(event);
+      },
+    },
+    {
+      name: "national-coordination-resolution-projector",
+      eventTypes: ["coordination.work.completed", "crisis.recovery.recorded"],
+      async handle(event) {
+        if (hasRuntimeDatabase()) {
+          await getPersistentNationalCoordinationSignalService().resolveByCorrelation(event.correlationId, event.occurredAt);
+        } else {
+          getNationalCoordinationSignalProjection().resolveByCorrelation(event.correlationId);
+        }
       },
     },
   ];
