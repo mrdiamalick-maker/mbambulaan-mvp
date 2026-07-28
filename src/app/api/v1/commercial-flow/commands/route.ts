@@ -3,7 +3,7 @@ import { authorizeDemoRequest } from "@/platform/access/request-authorization";
 import type { CommercialWorkflowCommand } from "@/platform/commercial/commercial-actor-workflow";
 import { getCommercialCatalogExecutionService } from "@/platform/commercial/commercial-catalog-execution";
 import { getPersistentCommercialWorkflow } from "@/platform/commercial/persistent-commercial-workflow";
-import { getDocumentEventIngestionService } from "@/platform/documents/document-event-ingestion-service";
+import { publishEcosystemBusinessEvent } from "@/platform/runtime/publish-ecosystem-business-event";
 
 function commandOccurredAt(command: CommercialWorkflowCommand) {
   return "at" in command && command.at ? command.at : new Date().toISOString();
@@ -43,34 +43,44 @@ export async function POST(request: Request) {
       command: body.command,
     });
 
-    let documentIngestion: unknown;
+    let businessEvent: unknown;
     const occurredAt = commandOccurredAt(body.command);
+    const common = {
+      occurredAt,
+      correlationId: `commercial-${body.commandId}`,
+      causationId: body.commandId,
+      actorId: authorization.identity.id,
+      organizationId: authorization.identity.organizationId,
+      territoryIds: [authorization.session.activeTerritoryId],
+    };
     if (body.command.type === "confirm_delivery") {
-      documentIngestion = await getDocumentEventIngestionService().ingest({
-        type: "commercial_delivery_confirmed",
+      businessEvent = await publishEcosystemBusinessEvent({
+        id: `event-commerce-delivery-${body.commandId}`,
+        type: "commerce.delivery.confirmed",
+        ...common,
+        entityType: "commercial_order",
         entityId: body.command.orderId,
-        organizationId: authorization.identity.organizationId,
-        actorId: authorization.identity.id,
-        territoryIds: [authorization.session.activeTerritoryId],
-        occurredAt,
-        deliveryNoteReference: body.command.proofId,
-        destinationConfirmationReference: body.command.destinationConfirmationReference,
-        checksumSha256: body.command.documentChecksumSha256 ?? body.command.proofId,
+        payload: {
+          deliveryNoteReference: body.command.proofId,
+          destinationConfirmationReference: body.command.destinationConfirmationReference,
+          checksumSha256: body.command.documentChecksumSha256 ?? body.command.proofId,
+        },
       });
     } else if (body.command.type === "confirm_payment" && body.command.providerReference) {
-      documentIngestion = await getDocumentEventIngestionService().ingest({
-        type: "finance_transfer_confirmed",
+      businessEvent = await publishEcosystemBusinessEvent({
+        id: `event-finance-payment-${body.commandId}`,
+        type: "finance.payment.confirmed",
+        ...common,
+        entityType: "payment",
         entityId: body.command.paymentId,
-        organizationId: authorization.identity.organizationId,
-        actorId: authorization.identity.id,
-        territoryIds: [authorization.session.activeTerritoryId],
-        occurredAt,
-        transferReference: body.command.providerReference,
-        checksumSha256: body.command.documentChecksumSha256 ?? body.command.providerReference,
+        payload: {
+          transferReference: body.command.providerReference,
+          checksumSha256: body.command.documentChecksumSha256 ?? body.command.providerReference,
+        },
       });
     }
 
-    return NextResponse.json({ ...snapshot, documentIngestion }, { status: 201 });
+    return NextResponse.json({ ...snapshot, businessEvent }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: { code: "COMMERCIAL_COMMAND_FAILED", message: error instanceof Error ? error.message : String(error) } }, { status: 422 });
   }
