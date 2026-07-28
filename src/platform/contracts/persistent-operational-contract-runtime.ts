@@ -2,12 +2,14 @@ import { getRuntimeSqlExecutor } from "@/platform/persistence/postgres-runtime-p
 import { OperationalContractRuntime, type OperationalContractCommand } from "./operational-contract-runtime";
 import { PostgresOperationalContractCommandJournal } from "./postgres-operational-contract-command-journal";
 
+type OperationalContractExecutionResult = ReturnType<OperationalContractRuntime["execute"]>;
+
 export class PersistentOperationalContractRuntime {
   private runtime = new OperationalContractRuntime();
   private hydrated = false;
   private readonly journal = new PostgresOperationalContractCommandJournal(getRuntimeSqlExecutor);
 
-  async execute(input: { commandId: string; actorId: string; activeTerritoryId: string; command: OperationalContractCommand; occurredAt?: string }) {
+  async execute(input: { commandId: string; actorId: string; activeTerritoryId: string; command: OperationalContractCommand; occurredAt?: string }): Promise<OperationalContractExecutionResult> {
     await this.hydrate();
     const result = this.runtime.execute(input);
     await this.journal.append({
@@ -20,7 +22,7 @@ export class PersistentOperationalContractRuntime {
     return result;
   }
 
-  async snapshot(at?: string) {
+  async snapshot(at?: string): Promise<ReturnType<OperationalContractRuntime["snapshot"]>> {
     await this.hydrate();
     return this.runtime.snapshot(at);
   }
