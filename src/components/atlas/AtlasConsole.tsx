@@ -61,7 +61,7 @@ export function AtlasConsole() {
     }
   };
 
-  const injectColdChainRisk = () => execute("Incident chaîne du froid injecté", async () => {
+  const reportColdChainTension = () => execute("Tension chaîne du froid signalée", async () => {
     const stamp = Date.now();
     const event = await callApi("/api/v1/runtime/events", {
       method: "POST",
@@ -88,7 +88,7 @@ export function AtlasConsole() {
     return { event, processing };
   });
 
-  const askAtlas = () => execute("Question Atlas analysée", async () => {
+  const askAtlas = () => execute("Analyse territoriale produite", async () => {
     const stamp = Date.now();
     return callApi("/api/v1/atlas/questions", {
       method: "POST",
@@ -105,7 +105,7 @@ export function AtlasConsole() {
     });
   });
 
-  const createAndEvaluateScenario = () => execute("Scénario Atlas évalué", async () => {
+  const createAndEvaluateScenario = () => execute("Scénario d'arbitrage évalué", async () => {
     const stamp = Date.now();
     const scenarioId = `scenario-ui-cold-chain-${stamp}`;
     const scenario = await callApi("/api/v1/atlas/scenarios", {
@@ -142,14 +142,14 @@ export function AtlasConsole() {
     return { scenario, evaluation };
   });
 
-  const generateBriefing = () => execute("Briefing exécutif généré", async () => {
+  const generateBriefing = () => execute("Note de décision générée", async () => {
     const stamp = Date.now();
     return callApi("/api/v1/atlas/briefings", {
       method: "POST",
       body: JSON.stringify({
         id: `briefing-ui-${stamp}`,
         workspaceId: "atlas-national-operations",
-        title: "Briefing opérationnel — chaîne du froid",
+        title: "Note de décision — chaîne du froid à Dakar",
         generatedAt: new Date().toISOString(),
       }),
     });
@@ -159,53 +159,59 @@ export function AtlasConsole() {
     <main className="min-h-screen bg-[var(--mb-offwhite)] text-[var(--mb-neutral-900)]">
       <header className="border-b border-[var(--mb-neutral-200)] bg-[var(--mb-navy-900)] text-white">
         <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--mb-ocean-400)]">Mbàmbulaan · Intelligence décisionnelle</p>
-          <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">Console Atlas</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/65">Testez la chaîne complète : incident terrain, signal, question, preuves, scénario, évaluation et briefing.</p>
+          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--mb-ocean-400)]">Mbàmbulaan Atlas · Pilotage national de la filière</p>
+          <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">Cockpit CEO / Ministère</h1>
+          <p className="mt-3 max-w-4xl text-sm leading-6 text-white/65">Identifier une tension territoriale, consolider les preuves, comparer les options d'intervention, arbitrer les capacités et préparer une décision d'investissement ou de politique publique.</p>
         </div>
       </header>
 
       <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric label="Runtime" value={status?.running ? "Opérationnel" : "Indisponible"} />
-          <Metric label="Signaux ouverts" value={status?.digitalTwin.openSignals ?? 0} />
-          <Metric label="Insights Atlas" value={status?.atlas.insights ?? 0} />
-          <Metric label="Nœuds du graphe" value={status?.knowledgeGraph.nodes ?? 0} />
+          <Metric label="Couverture de pilotage" value={status?.running ? "Active" : "Indisponible"} />
+          <Metric label="Tensions territoriales ouvertes" value={status?.digitalTwin.openSignals ?? 0} />
+          <Metric label="Analyses disponibles" value={status?.atlas.insights ?? 0} />
+          <Metric label="Objets sectoriels suivis" value={status?.knowledgeGraph.nodes ?? 0} />
         </section>
 
         <section className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,.72fr)]">
           <div className="border border-[var(--mb-neutral-200)] bg-white p-6">
-            <p className="font-mono text-[10px] font-bold uppercase text-[var(--mb-ocean-600)]">Parcours de test</p>
-            <h2 className="mt-2 text-2xl font-semibold text-[var(--mb-navy-900)]">Chaîne du froid à Dakar</h2>
-            <p className="mt-3 text-sm leading-6 text-[var(--mb-neutral-600)]">Exécutez les étapes dans l’ordre. Chaque action appelle les API réelles du runtime intégré.</p>
+            <p className="font-mono text-[10px] font-bold uppercase text-[var(--mb-ocean-600)]">Parcours de décision</p>
+            <h2 className="mt-2 text-2xl font-semibold text-[var(--mb-navy-900)]">Sécuriser la chaîne du froid à Dakar</h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--mb-neutral-600)]">Le scénario relie un problème terrain à une décision institutionnelle : tension, analyse, arbitrage de capacité et note de décision.</p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <ActionButton step="1" title="Injecter un incident" detail="Crée un flux frigorifique bloqué et un signal opérationnel." busy={busy} action="Incident chaîne du froid injecté" onClick={injectColdChainRisk} />
-              <ActionButton step="2" title="Interroger Atlas" detail="Produit les preuves et insights à partir du jumeau numérique." busy={busy} action="Question Atlas analysée" onClick={askAtlas} />
-              <ActionButton step="3" title="Évaluer un scénario" detail="Compare valeur, résilience, coût et risque d’exécution." busy={busy} action="Scénario Atlas évalué" onClick={createAndEvaluateScenario} />
-              <ActionButton step="4" title="Générer le briefing" detail="Prépare la synthèse exécutive et les décisions recommandées." busy={busy} action="Briefing exécutif généré" onClick={generateBriefing} />
+              <ActionButton step="1" title="Signaler la tension" detail="Enregistre 2 400 kg exposés à un risque de rupture de la chaîne du froid." busy={busy} action="Tension chaîne du froid signalée" onClick={reportColdChainTension} />
+              <ActionButton step="2" title="Analyser le territoire" detail="Consolide les capacités, volumes, acteurs concernés et preuves disponibles." busy={busy} action="Analyse territoriale produite" onClick={askAtlas} />
+              <ActionButton step="3" title="Comparer les options" detail="Évalue le coût, le délai, la résilience et la valeur préservée de chaque option." busy={busy} action="Scénario d'arbitrage évalué" onClick={createAndEvaluateScenario} />
+              <ActionButton step="4" title="Préparer la décision" detail="Produit une note exploitable par le ministère, la direction ou un financeur." busy={busy} action="Note de décision générée" onClick={generateBriefing} />
             </div>
           </div>
 
           <aside className="border border-[var(--mb-neutral-200)] bg-white p-6">
             <div className="flex items-center justify-between gap-3">
-              <div><p className="font-mono text-[10px] font-bold uppercase text-[var(--mb-ocean-600)]">État système</p><h2 className="mt-2 text-xl font-semibold">Infrastructure logique</h2></div>
+              <div><p className="font-mono text-[10px] font-bold uppercase text-[var(--mb-ocean-600)]">Portefeuille de décision</p><h2 className="mt-2 text-xl font-semibold">État du pilotage</h2></div>
               <button type="button" onClick={() => refresh()} className="rounded border border-[var(--mb-neutral-300)] px-3 py-2 text-xs font-bold">Actualiser</button>
             </div>
             <dl className="mt-5 space-y-3 text-sm">
-              <StatusRow label="Événements en attente" value={status?.pendingEvents ?? 0} />
-              <StatusRow label="Événements échoués" value={status?.failedEvents ?? 0} />
-              <StatusRow label="Flux numériques" value={status?.digitalTwin.flows ?? 0} />
-              <StatusRow label="Questions Atlas" value={status?.atlas.questions ?? 0} />
-              <StatusRow label="Scénarios Atlas" value={status?.atlas.scenarios ?? 0} />
-              <StatusRow label="Briefings" value={status?.atlas.briefings ?? 0} />
+              <StatusRow label="Informations à consolider" value={status?.pendingEvents ?? 0} />
+              <StatusRow label="Anomalies de traitement" value={status?.failedEvents ?? 0} />
+              <StatusRow label="Flux opérationnels suivis" value={status?.digitalTwin.flows ?? 0} />
+              <StatusRow label="Questions de pilotage" value={status?.atlas.questions ?? 0} />
+              <StatusRow label="Scénarios d'arbitrage" value={status?.atlas.scenarios ?? 0} />
+              <StatusRow label="Notes de décision" value={status?.atlas.briefings ?? 0} />
             </dl>
           </aside>
         </section>
 
+        <section className="mt-6 grid gap-4 lg:grid-cols-3">
+          <DecisionCard title="Valeur opérationnelle" text="Réduction des pertes, mobilisation des capacités disponibles et sécurisation des débarquements." />
+          <DecisionCard title="Valeur institutionnelle" text="Ciblage des investissements, priorisation territoriale et suivi des engagements publics." />
+          <DecisionCard title="Valeur économique Mbàmbulaan" text="Licence Atlas/Government, services de données, intégration et reporting de décision." />
+        </section>
+
         <section className="mt-6 border border-[var(--mb-neutral-200)] bg-white p-6">
-          <p className="font-mono text-[10px] font-bold uppercase text-[var(--mb-ocean-600)]">Journal d’exécution</p>
+          <p className="font-mono text-[10px] font-bold uppercase text-[var(--mb-ocean-600)]">Journal de décision</p>
           <div className="mt-4 space-y-3">
-            {logs.length === 0 ? <p className="text-sm text-[var(--mb-neutral-500)]">Aucune action exécutée.</p> : logs.map((entry, index) => (
+            {logs.length === 0 ? <p className="text-sm text-[var(--mb-neutral-500)]">Aucune décision préparée pour le moment.</p> : logs.map((entry, index) => (
               <article key={`${entry.title}-${index}`} className="border border-[var(--mb-neutral-200)] p-4">
                 <div className="flex items-center justify-between gap-3"><strong className="text-sm">{entry.title}</strong><span className="font-mono text-[10px] uppercase">{entry.status}</span></div>
                 {entry.payload ? <pre className="mt-3 max-h-72 overflow-auto bg-[var(--mb-neutral-50)] p-3 text-[11px] leading-5">{JSON.stringify(entry.payload, null, 2)}</pre> : null}
@@ -224,6 +230,10 @@ function Metric({ label, value }: { label: string; value: string | number }) {
 
 function StatusRow({ label, value }: { label: string; value: number }) {
   return <div className="flex items-center justify-between border-b border-[var(--mb-neutral-100)] pb-3"><dt className="text-[var(--mb-neutral-600)]">{label}</dt><dd className="font-semibold">{value}</dd></div>;
+}
+
+function DecisionCard({ title, text }: { title: string; text: string }) {
+  return <article className="border border-[var(--mb-neutral-200)] bg-white p-5"><h3 className="text-lg font-semibold text-[var(--mb-navy-900)]">{title}</h3><p className="mt-2 text-sm leading-6 text-[var(--mb-neutral-600)]">{text}</p></article>;
 }
 
 function ActionButton({ step, title, detail, busy, action, onClick }: { step: string; title: string; detail: string; busy?: string; action: string; onClick: () => void }) {
