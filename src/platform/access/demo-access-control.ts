@@ -254,6 +254,10 @@ export class DemoAccessControl {
     return { allowed: true as const, reason: "authorized", identity, session };
   }
 
+  reset() {
+    this.sessions.clear();
+  }
+
   private canAccessTerritory(identity: DemoIdentity, territoryId: string) {
     return identity.territoryIds.includes("territory-national") || identity.territoryIds.includes(territoryId);
   }
