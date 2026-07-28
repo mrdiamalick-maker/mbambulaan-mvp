@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { authorizeDemoRequest } from "@/platform/access/request-authorization";
 import { getOperationalContractRuntime, type OperationalContractCommand } from "@/platform/contracts/operational-contract-runtime";
 import { getPersistentOperationalContractRuntime } from "@/platform/contracts/persistent-operational-contract-runtime";
-import { getDocumentEventIngestionService } from "@/platform/documents/document-event-ingestion-service";
 import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
+import { publishEcosystemBusinessEvent } from "@/platform/runtime/publish-ecosystem-business-event";
 
 const governanceCommands = new Set<OperationalContractCommand["type"]>([
   "register_contract",
@@ -45,24 +45,27 @@ export async function POST(request: Request) {
       ? await getPersistentOperationalContractRuntime().execute(execution)
       : getOperationalContractRuntime().execute(execution);
 
-    let documentIngestion: unknown;
+    let businessEvent: unknown;
     if (body.command.type === "register_contract") {
       const reference = body.command.contract.signedContractDocumentIds[0];
       if (reference) {
-        documentIngestion = await getDocumentEventIngestionService().ingest({
-          type: "contract_signed",
-          entityId: body.command.contract.id,
-          organizationId: authorization.identity.organizationId,
-          actorId: authorization.identity.id,
-          territoryIds: body.command.contract.territoryIds,
+        businessEvent = await publishEcosystemBusinessEvent({
+          id: `event-contract-${body.commandId}`,
+          type: "contracts.contract.registered",
           occurredAt: body.command.contract.effectiveAt ?? new Date().toISOString(),
-          signedContractReference: reference,
-          checksumSha256: reference,
+          correlationId: `contract-${body.command.contract.id}`,
+          causationId: body.commandId,
+          actorId: authorization.identity.id,
+          organizationId: authorization.identity.organizationId,
+          territoryIds: body.command.contract.territoryIds,
+          entityType: "contract",
+          entityId: body.command.contract.id,
+          payload: { signedContractReference: reference, checksumSha256: reference },
         });
       }
     }
 
-    return NextResponse.json({ ...result, persistence: persistent ? "postgres" : "memory", documentIngestion }, { status: 201 });
+    return NextResponse.json({ ...result, persistence: persistent ? "postgres" : "memory", businessEvent }, { status: 201 });
   } catch (error) {
     return NextResponse.json({
       error: {
