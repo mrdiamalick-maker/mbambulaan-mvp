@@ -6,7 +6,7 @@ type Snapshot = {
   needs: Array<{ id: string; title: string; status: string; priorityScore: number }>;
   initiatives: Array<{ id: string; title: string; status: string; targetAmountXof: number }>;
   contributions: Array<{ amountXof: number }>;
-  allocations: Array<{ amountXof: number; status: string }>;
+  allocations: Array<{ id: string; amountXof: number; status: string }>;
   outcomes: Array<{ beneficiaryCount: number; incomeCreatedXof: number; platformRevenueXof: number }>;
   metrics: {
     totalContributionsXof: number;
