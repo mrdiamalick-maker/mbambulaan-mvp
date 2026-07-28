@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { authorizeDemoRequest } from "@/platform/access/request-authorization";
 import { getEcosystemCrisisResponseRuntime, type CrisisCommand } from "@/platform/crisis/ecosystem-crisis-response-runtime";
 import { getPersistentCrisisResponseRuntime } from "@/platform/crisis/persistent-crisis-response-runtime";
-import { getDocumentEventIngestionService } from "@/platform/documents/document-event-ingestion-service";
 import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
+import { publishEcosystemBusinessEvent } from "@/platform/runtime/publish-ecosystem-business-event";
 
 const decisionCommands = new Set<CrisisCommand["type"]>([
   "qualify_crisis",
@@ -43,24 +43,27 @@ export async function POST(request: Request) {
       ? await getPersistentCrisisResponseRuntime().execute(input)
       : getEcosystemCrisisResponseRuntime().execute(input);
 
-    let documentIngestion: unknown;
+    let businessEvent: unknown;
     if (body.command.type === "record_recovery_result") {
       const reference = body.command.result.resultDocumentIds[0];
       if (reference) {
-        documentIngestion = await getDocumentEventIngestionService().ingest({
-          type: "crisis_recovery_recorded",
-          entityId: body.command.result.crisisId,
-          organizationId: authorization.identity.organizationId,
-          actorId: authorization.identity.id,
-          territoryIds: [body.command.result.territoryId],
+        businessEvent = await publishEcosystemBusinessEvent({
+          id: `event-crisis-recovery-${body.commandId}`,
+          type: "crisis.recovery.recorded",
           occurredAt: body.command.result.measuredAt,
-          recoveryReportReference: reference,
-          checksumSha256: reference,
+          correlationId: `crisis-${body.command.result.crisisId}`,
+          causationId: body.commandId,
+          actorId: authorization.identity.id,
+          organizationId: authorization.identity.organizationId,
+          territoryIds: [body.command.result.territoryId],
+          entityType: "crisis",
+          entityId: body.command.result.crisisId,
+          payload: { recoveryReportReference: reference, checksumSha256: reference },
         });
       }
     }
 
-    return NextResponse.json({ ...result, persistence, documentIngestion }, { status: 201 });
+    return NextResponse.json({ ...result, persistence, businessEvent }, { status: 201 });
   } catch (error) {
     return NextResponse.json({
       error: {
