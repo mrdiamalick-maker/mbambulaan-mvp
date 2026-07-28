@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductWorkspace, type ProductCode } from "@/platform/product-suite/integrated-product-suite";
 
-const productCodes: ProductCode[] = ["fisher", "cooperative", "business", "government", "finance", "knowledge", "atlas"];
+const productCodes: ProductCode[] = ["fisher", "cooperative", "business", "government", "development", "finance", "community", "knowledge", "atlas"];
 
 export function generateStaticParams() {
   return productCodes.map((code) => ({ code }));
