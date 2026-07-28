@@ -107,13 +107,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_duplicate_candidate_pair
   )
   WHERE status = 'open';
 
-CREATE TABLE IF NOT EXISTS schema_migrations (
-  version text PRIMARY KEY,
-  applied_at timestamptz NOT NULL DEFAULT now()
-);
-
-INSERT INTO schema_migrations(version)
-VALUES ('0007')
+INSERT INTO schema_migrations(version, checksum_sha256, applied_by)
+VALUES ('0007', 'f15cea39f11dc0371cfb9a4b7b1c38d5c636feb72d70e2759b0e505905ee9d01', 'mbambulaan-migration-runner')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
