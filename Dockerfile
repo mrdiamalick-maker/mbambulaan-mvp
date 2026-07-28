@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1.7
-FROM node:22-alpine AS dependencies
+FROM node:22-alpine3.24 AS dependencies
 WORKDIR /app
 RUN apk upgrade --no-cache
 COPY package.json ./
 RUN npm install --no-audit --no-fund
 
-FROM node:22-alpine AS builder
+FROM node:22-alpine3.24 AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN apk upgrade --no-cache
@@ -21,7 +21,7 @@ USER 1001:1001
 ENTRYPOINT ["sh", "-c"]
 CMD ["echo 'Migration image requires an explicit migration command' && exit 1"]
 
-FROM node:22-alpine AS runner
+FROM node:22-alpine3.24 AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
