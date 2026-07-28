@@ -49,6 +49,12 @@ export interface EcosystemBusinessEventSnapshot {
   events: EcosystemBusinessEvent[];
   deliveries: EcosystemBusinessEventDelivery[];
   deadLetters: EcosystemBusinessEventDelivery[];
+  metrics: {
+    eventCount: number;
+    processedDeliveryCount: number;
+    failedDeliveryCount: number;
+    duplicateDeliveryCount: number;
+  };
 }
 
 function retryAt(processedAt: string, attempts: number) {
@@ -69,13 +75,16 @@ export class EcosystemBusinessEventBus {
     if (this.events.has(event.id)) {
       for (const handler of this.handlers.values()) {
         if (!handler.eventTypes.includes(event.type)) continue;
-        this.deliveries.push({
-          eventId: event.id,
-          handlerName: handler.name,
-          status: "ignored_duplicate",
-          attempts: this.latestDelivery(event.id, handler.name)?.attempts ?? 0,
-          processedAt,
-        });
+        const latest = this.latestDelivery(event.id, handler.name);
+        if (latest?.status === "delivered") {
+          this.deliveries.push({
+            eventId: event.id,
+            handlerName: handler.name,
+            status: "ignored_duplicate",
+            attempts: latest.attempts,
+            processedAt,
+          });
+        }
       }
       return this.snapshot();
     }
@@ -109,15 +118,29 @@ export class EcosystemBusinessEventBus {
     const events = [...this.events.values()].sort((left, right) => left.occurredAt.localeCompare(right.occurredAt) || left.id.localeCompare(right.id));
     const deliveries = [...this.deliveries];
     const latest = new Map<string, EcosystemBusinessEventDelivery>();
-    for (const delivery of deliveries) latest.set(`${delivery.eventId}:${delivery.handlerName}`, delivery);
-    const deadLetters = [...latest.values()].filter((delivery) => delivery.status === "failed");
-    return { events, deliveries, deadLetters };
+    for (const delivery of deliveries) {
+      if (delivery.status === "ignored_duplicate") continue;
+      latest.set(`${delivery.eventId}:${delivery.handlerName}`, delivery);
+    }
+    const latestDeliveries = [...latest.values()];
+    const deadLetters = latestDeliveries.filter((delivery) => delivery.status === "failed");
+    return {
+      events,
+      deliveries,
+      deadLetters,
+      metrics: {
+        eventCount: events.length,
+        processedDeliveryCount: latestDeliveries.filter((delivery) => delivery.status === "delivered").length,
+        failedDeliveryCount: deadLetters.length,
+        duplicateDeliveryCount: deliveries.filter((delivery) => delivery.status === "ignored_duplicate").length,
+      },
+    };
   }
 
   private latestDelivery(eventId: string, handlerName: string) {
     for (let index = this.deliveries.length - 1; index >= 0; index -= 1) {
       const delivery = this.deliveries[index];
-      if (delivery.eventId === eventId && delivery.handlerName === handlerName) return delivery;
+      if (delivery.eventId === eventId && delivery.handlerName === handlerName && delivery.status !== "ignored_duplicate") return delivery;
     }
     return undefined;
   }
