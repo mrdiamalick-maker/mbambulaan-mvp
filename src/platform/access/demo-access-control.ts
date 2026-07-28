@@ -1,5 +1,7 @@
 export type DemoRoleCode =
   | "fisher"
+  | "landing_site_agent"
+  | "weigher"
   | "cooperative_manager"
   | "buyer_operator"
   | "business_operator"
@@ -61,8 +63,32 @@ const identities: DemoIdentity[] = [
     organizationName: "Pirogue Jamm ak Jàmm",
     territoryIds: ["territory-joal"],
     productCodes: ["fisher"],
-    permissions: ["campaign.read", "campaign.write", "landing.read", "landing.write"],
+    permissions: ["campaign.read", "campaign.write", "landing.read"],
     locale: "wo",
+    status: "active",
+  },
+  {
+    id: "demo-landing-agent-dakar",
+    displayName: "Abdoulaye Seck",
+    roleCode: "landing_site_agent",
+    organizationId: "org-landing-site-dakar",
+    organizationName: "Site de débarquement pilote de Dakar",
+    territoryIds: ["territory-dakar"],
+    productCodes: ["fisher", "cooperative", "government"],
+    permissions: ["campaign.read", "landing.read", "landing.write", "capacity.read"],
+    locale: "fr",
+    status: "active",
+  },
+  {
+    id: "demo-weigher-dakar",
+    displayName: "Ndeye Fatou Diagne",
+    roleCode: "weigher",
+    organizationId: "org-landing-site-dakar",
+    organizationName: "Site de débarquement pilote de Dakar",
+    territoryIds: ["territory-dakar"],
+    productCodes: ["cooperative", "knowledge"],
+    permissions: ["landing.read", "landing.write", "knowledge.read"],
+    locale: "fr",
     status: "active",
   },
   {
@@ -168,7 +194,7 @@ const identities: DemoIdentity[] = [
     organizationId: "org-mbambulaan",
     organizationName: "Mbàmbulaan",
     territoryIds: ["territory-national"],
-    productCodes: ["fisher", "cooperative", "business", "government", "finance", "knowledge", "atlas"],
+    productCodes: ["fisher", "cooperative", "business", "government", "development", "finance", "community", "knowledge", "atlas"],
     permissions: ["campaign.read", "campaign.write", "landing.read", "landing.write", "capacity.read", "capacity.write", "trade.read", "trade.write", "finance.read", "finance.write", "knowledge.read", "knowledge.write", "government.read", "government.write", "atlas.read", "atlas.ask", "atlas.approve", "admin.manage"],
     locale: "fr",
     status: "active",
@@ -219,17 +245,13 @@ export class DemoAccessControl {
     at?: string;
   }) {
     const session = this.getSession(input.sessionId, input.at);
-    if (!session) return { allowed: false, reason: "session_invalid_or_expired" as const };
+    if (!session) return { allowed: false as const, reason: "session_invalid_or_expired" };
     const identity = this.getIdentity(session.identityId);
-    if (!identity) return { allowed: false, reason: "identity_not_found" as const };
-    if (!identity.permissions.includes(input.permission)) return { allowed: false, reason: "permission_denied" as const };
-    if (input.territoryId && !this.canAccessTerritory(identity, input.territoryId)) return { allowed: false, reason: "territory_denied" as const };
-    if (input.productCode && !identity.productCodes.includes(input.productCode)) return { allowed: false, reason: "product_denied" as const };
-    return { allowed: true, identity, session } as const;
-  }
-
-  reset() {
-    this.sessions.clear();
+    if (!identity) return { allowed: false as const, reason: "identity_not_found" };
+    if (!identity.permissions.includes(input.permission)) return { allowed: false as const, reason: "permission_missing" };
+    if (input.territoryId && !this.canAccessTerritory(identity, input.territoryId)) return { allowed: false as const, reason: "territory_denied" };
+    if (input.productCode && !identity.productCodes.includes(input.productCode)) return { allowed: false as const, reason: "product_denied" };
+    return { allowed: true as const, reason: "authorized", identity, session };
   }
 
   private canAccessTerritory(identity: DemoIdentity, territoryId: string) {
