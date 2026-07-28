@@ -82,7 +82,7 @@ test("active puis restreint le mandat d'un responsable cooperatif", () => {
     },
   });
 
-  const result = runtime.execute({
+  runtime.execute({
     commandId: "cmd-actor-5",
     actorId: "actor-national-admin",
     activeTerritoryId: "territory-national",
@@ -101,9 +101,10 @@ test("active puis restreint le mandat d'un responsable cooperatif", () => {
     },
   });
 
-  assert.equal(result.snapshot.metrics.restrictedMandateCount, 1);
-  assert.equal(result.snapshot.mandates[0].status, "restricted");
-  assert.deepEqual(result.snapshot.mandates[0].restrictions, ["Double signature au-delà de 2 000 000 FCFA"]);
+  const snapshot = runtime.snapshot();
+  assert.equal(snapshot.metrics.restrictedMandateCount, 1);
+  assert.equal(snapshot.mandates[0].status, "restricted");
+  assert.deepEqual(snapshot.mandates[0].restrictions, ["Double signature au-delà de 2 000 000 FCFA"]);
 });
 
 test("refuse d'accorder un role qui n'a pas ete demande", () => {
