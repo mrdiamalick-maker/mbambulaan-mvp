@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { hasRuntimeDatabase, getRuntimeSqlExecutor } from "@/platform/persistence/postgres-runtime-pool";
+import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
 import { getOperationalDocumentRegistry } from "./operational-document-registry";
 import { getPersistentOperationalDocumentRegistry } from "./persistent-operational-document-registry";
 import { OperationalDocumentProjector, type DocumentSourceEvent } from "./operational-document-projector";
