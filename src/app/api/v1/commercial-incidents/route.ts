@@ -47,7 +47,7 @@ export async function POST(request: Request) {
           orderId: body.command.orderId,
           incidentType: body.command.incidentType,
           summary: body.command.description,
-          critical: ["cold_chain_break", "delivery_refusal"].includes(body.command.incidentType),
+          critical: ["cold_chain_break", "delivery_refused"].includes(body.command.incidentType),
         },
       });
     } else if (body.command.type === "assess") {
