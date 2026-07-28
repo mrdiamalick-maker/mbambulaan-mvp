@@ -5,6 +5,10 @@ import { getCommercialCatalogExecutionService } from "@/platform/commercial/comm
 import { getPersistentCommercialWorkflow } from "@/platform/commercial/persistent-commercial-workflow";
 import { getDocumentEventIngestionService } from "@/platform/documents/document-event-ingestion-service";
 
+function commandOccurredAt(command: CommercialWorkflowCommand) {
+  return "at" in command && command.at ? command.at : new Date().toISOString();
+}
+
 export async function GET(request: Request) {
   const authorization = authorizeDemoRequest({ request, permission: "trade.read" });
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
     });
 
     let documentIngestion: unknown;
-    const occurredAt = body.command.at ?? new Date().toISOString();
+    const occurredAt = commandOccurredAt(body.command);
     if (body.command.type === "confirm_delivery") {
       documentIngestion = await getDocumentEventIngestionService().ingest({
         type: "commercial_delivery_confirmed",
