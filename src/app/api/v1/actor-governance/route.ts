@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { authorizeDemoRequest } from "@/platform/access/request-authorization";
 import { getEcosystemActorGovernanceRuntime, type ActorGovernanceCommand } from "@/platform/identity/ecosystem-actor-governance-runtime";
+import { getPersistentActorGovernanceRuntime } from "@/platform/identity/persistent-actor-governance-runtime";
+import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
 
 const decisionCommands = new Set<ActorGovernanceCommand["type"]>([
   "record_review",
@@ -11,7 +13,11 @@ const decisionCommands = new Set<ActorGovernanceCommand["type"]>([
 export async function GET(request: Request) {
   const authorization = authorizeDemoRequest({ request, permission: "government.read" });
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
-  return NextResponse.json(getEcosystemActorGovernanceRuntime().snapshot());
+  const persistent = hasRuntimeDatabase();
+  const snapshot = persistent
+    ? await getPersistentActorGovernanceRuntime().snapshot()
+    : getEcosystemActorGovernanceRuntime().snapshot();
+  return NextResponse.json({ ...snapshot, persistence: persistent ? "postgres" : "memory" });
 }
 
 export async function POST(request: Request) {
@@ -25,13 +31,17 @@ export async function POST(request: Request) {
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
 
   try {
-    const result = getEcosystemActorGovernanceRuntime().execute({
+    const execution = {
       commandId: body.commandId,
       actorId: authorization.identity.id,
       activeTerritoryId: authorization.session.activeTerritoryId,
       command: body.command,
-    });
-    return NextResponse.json(result, { status: 201 });
+    };
+    const persistent = hasRuntimeDatabase();
+    const result = persistent
+      ? await getPersistentActorGovernanceRuntime().execute(execution)
+      : getEcosystemActorGovernanceRuntime().execute(execution);
+    return NextResponse.json({ ...result, persistence: persistent ? "postgres" : "memory" }, { status: 201 });
   } catch (error) {
     return NextResponse.json({
       error: {
