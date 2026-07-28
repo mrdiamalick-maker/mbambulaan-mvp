@@ -13,6 +13,7 @@ export interface UnifiedWorkItem {
   territoryId: string;
   relatedEntityType: string;
   relatedEntityId: string;
+  sourceCorrelationId?: string;
   dueAt: string;
   escalationPolicyId?: string;
   notificationChannels: Array<"in_app" | "email" | "sms" | "whatsapp">;
