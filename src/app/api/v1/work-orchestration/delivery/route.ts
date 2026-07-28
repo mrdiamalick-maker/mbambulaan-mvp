@@ -6,6 +6,10 @@ import { getPersistentUnifiedWorkOrchestrationRuntime } from "@/platform/coordin
 import { getUnifiedWorkOrchestrationRuntime } from "@/platform/coordination/unified-work-orchestration-runtime";
 import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
 
+type DeliveryAction =
+  | { action: "prepare"; notificationId?: string; recipientReference?: string; territoryId?: string; at?: string }
+  | { action: "confirm"; attemptId?: string; providerReference?: string; deliveredAt?: string };
+
 export async function GET(request: Request) {
   const authorization = authorizeDemoRequest({ request, permission: "admin.manage" });
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
@@ -22,10 +26,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const authorization = authorizeDemoRequest({ request, permission: "admin.manage" });
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
-  const body = await request.json().catch(() => undefined) as
-    | { action?: "prepare"; notificationId?: string; recipientReference?: string; territoryId?: string; at?: string }
-    | { action?: "confirm"; attemptId?: string; providerReference?: string; deliveredAt?: string }
-    | undefined;
+  const body = await request.json().catch(() => undefined) as DeliveryAction | undefined;
   if (!body?.action) return NextResponse.json({ error: { code: "INVALID_DELIVERY_ACTION", message: "L'action de remise est obligatoire." } }, { status: 400 });
   try {
     const persistent = hasRuntimeDatabase();
