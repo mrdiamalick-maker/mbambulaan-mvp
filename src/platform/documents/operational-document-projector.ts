@@ -1,7 +1,7 @@
 import type { OperationalDocument, OperationalDocumentType } from "./operational-document-registry";
 
 export type DocumentSourceEvent =
-  | { type: "commercial_delivery_confirmed"; entityId: string; organizationId: string; actorId: string; territoryIds: string[]; occurredAt: string; deliveryNoteReference: string; destinationConfirmationReference: string; checksumSha256: string }
+  | { type: "commercial_delivery_confirmed"; entityId: string; organizationId: string; actorId: string; territoryIds: string[]; occurredAt: string; deliveryNoteReference?: string; destinationConfirmationReference?: string; checksumSha256: string }
   | { type: "finance_transfer_confirmed"; entityId: string; organizationId: string; actorId: string; territoryIds: string[]; occurredAt: string; transferReference: string; checksumSha256: string }
   | { type: "crisis_recovery_recorded"; entityId: string; organizationId: string; actorId: string; territoryIds: string[]; occurredAt: string; recoveryReportReference: string; checksumSha256: string }
   | { type: "contract_signed"; entityId: string; organizationId: string; actorId: string; territoryIds: string[]; occurredAt: string; signedContractReference: string; checksumSha256: string }
@@ -10,11 +10,12 @@ export type DocumentSourceEvent =
 export class OperationalDocumentProjector {
   project(event: DocumentSourceEvent): OperationalDocument[] {
     switch (event.type) {
-      case "commercial_delivery_confirmed":
-        return [
-          this.document(event, "delivery_note", "commercial_order", event.deliveryNoteReference, "Bon de livraison"),
-          this.document(event, "destination_confirmation", "commercial_order", event.destinationConfirmationReference, "Confirmation du site destinataire"),
-        ];
+      case "commercial_delivery_confirmed": {
+        const documents: OperationalDocument[] = [];
+        if (event.deliveryNoteReference) documents.push(this.document(event, "delivery_note", "commercial_order", event.deliveryNoteReference, "Bon de livraison"));
+        if (event.destinationConfirmationReference) documents.push(this.document(event, "destination_confirmation", "commercial_order", event.destinationConfirmationReference, "Confirmation du site destinataire"));
+        return documents;
+      }
       case "finance_transfer_confirmed":
         return [this.document(event, "transfer_reference", "payment", event.transferReference, "Référence de virement")];
       case "crisis_recovery_recorded":
