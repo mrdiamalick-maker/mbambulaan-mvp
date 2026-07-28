@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authorizeDemoRequest } from "@/platform/access/request-authorization";
 import { getOperationalContractRuntime, type OperationalContractCommand } from "@/platform/contracts/operational-contract-runtime";
 import { getPersistentOperationalContractRuntime } from "@/platform/contracts/persistent-operational-contract-runtime";
+import { getDocumentEventIngestionService } from "@/platform/documents/document-event-ingestion-service";
 import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
 
 const governanceCommands = new Set<OperationalContractCommand["type"]>([
@@ -43,7 +44,25 @@ export async function POST(request: Request) {
     const result = persistent
       ? await getPersistentOperationalContractRuntime().execute(execution)
       : getOperationalContractRuntime().execute(execution);
-    return NextResponse.json({ ...result, persistence: persistent ? "postgres" : "memory" }, { status: 201 });
+
+    let documentIngestion: unknown;
+    if (body.command.type === "register_contract") {
+      const reference = body.command.contract.signedContractDocumentIds[0];
+      if (reference) {
+        documentIngestion = await getDocumentEventIngestionService().ingest({
+          type: "contract_signed",
+          entityId: body.command.contract.id,
+          organizationId: authorization.identity.organizationId,
+          actorId: authorization.identity.id,
+          territoryIds: body.command.contract.territoryIds,
+          occurredAt: body.command.contract.effectiveAt ?? new Date().toISOString(),
+          signedContractReference: reference,
+          checksumSha256: reference,
+        });
+      }
+    }
+
+    return NextResponse.json({ ...result, persistence: persistent ? "postgres" : "memory", documentIngestion }, { status: 201 });
   } catch (error) {
     return NextResponse.json({
       error: {
