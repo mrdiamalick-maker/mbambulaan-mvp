@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { authorizeDemoRequest } from "@/platform/access/request-authorization";
-import { getDocumentEventIngestionService } from "@/platform/documents/document-event-ingestion-service";
 import { getEcosystemActorGovernanceRuntime, type ActorGovernanceCommand } from "@/platform/identity/ecosystem-actor-governance-runtime";
 import { getPersistentActorGovernanceRuntime } from "@/platform/identity/persistent-actor-governance-runtime";
 import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
+import { publishEcosystemBusinessEvent } from "@/platform/runtime/publish-ecosystem-business-event";
 
 const decisionCommands = new Set<ActorGovernanceCommand["type"]>([
   "record_review",
@@ -43,24 +43,27 @@ export async function POST(request: Request) {
       ? await getPersistentActorGovernanceRuntime().execute(execution)
       : getEcosystemActorGovernanceRuntime().execute(execution);
 
-    let documentIngestion: unknown;
+    let businessEvent: unknown;
     if (body.command.type === "activate_mandate") {
       const reference = body.command.mandate.activationDocumentIds[0];
       if (reference) {
-        documentIngestion = await getDocumentEventIngestionService().ingest({
-          type: "actor_mandate_activated",
-          entityId: body.command.mandate.actorId,
-          organizationId: body.command.mandate.organizationId ?? authorization.identity.organizationId,
-          actorId: authorization.identity.id,
-          territoryIds: body.command.mandate.territoryIds,
+        businessEvent = await publishEcosystemBusinessEvent({
+          id: `event-mandate-${body.commandId}`,
+          type: "identity.mandate.activated",
           occurredAt: body.command.mandate.validFrom,
-          mandateDecisionReference: reference,
-          checksumSha256: reference,
+          correlationId: `actor-${body.command.mandate.actorId}`,
+          causationId: body.commandId,
+          actorId: authorization.identity.id,
+          organizationId: body.command.mandate.organizationId ?? authorization.identity.organizationId,
+          territoryIds: body.command.mandate.territoryIds,
+          entityType: "actor",
+          entityId: body.command.mandate.actorId,
+          payload: { mandateDecisionReference: reference, checksumSha256: reference },
         });
       }
     }
 
-    return NextResponse.json({ ...result, persistence: persistent ? "postgres" : "memory", documentIngestion }, { status: 201 });
+    return NextResponse.json({ ...result, persistence: persistent ? "postgres" : "memory", businessEvent }, { status: 201 });
   } catch (error) {
     return NextResponse.json({
       error: {
