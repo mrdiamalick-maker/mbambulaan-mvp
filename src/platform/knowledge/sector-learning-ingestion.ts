@@ -14,6 +14,8 @@ export interface SectorBusinessEvent {
 
 const sourceTypes: Record<string, KnowledgeSourceType> = {
   commercial_incident_resolved: "incident",
+  crisis_recovery_result_recorded: "incident",
+  interterritorial_capacity_transfer_received: "incident",
   landing_reconciled: "landing",
   commercial_order_reconciled: "commercial_execution",
   value_recovery_completed: "value_recovery",
@@ -26,7 +28,7 @@ const sourceTypes: Record<string, KnowledgeSourceType> = {
 export function convertBusinessEventToKnowledgeSource(event: SectorBusinessEvent): KnowledgeSource {
   const sourceType = sourceTypes[event.eventType];
   if (!sourceType) throw new Error(`Événement non pris en charge par Knowledge : ${event.eventType}.`);
-  if (event.evidenceIds.length === 0) throw new Error("Un événement doit être prouvé avant ingestion dans Knowledge.");
+  if (event.evidenceIds.length === 0) throw new Error("Un constat, un relevé ou un document de référence est obligatoire avant capitalisation dans Knowledge.");
 
   const title = readText(event.payload.title) ?? titleFor(event.eventType, event.aggregateId);
   const summary = readText(event.payload.summary) ?? summarizePayload(event.payload);
@@ -53,12 +55,14 @@ function readText(value: unknown) {
 function titleFor(eventType: string, aggregateId: string) {
   const labels: Record<string, string> = {
     commercial_incident_resolved: "Incident commercial résolu",
-    landing_reconciled: "Débarquement réconcilié",
-    commercial_order_reconciled: "Transaction commerciale réconciliée",
+    crisis_recovery_result_recorded: "Résultat de reprise après crise",
+    interterritorial_capacity_transfer_received: "Capacité reçue d'un autre territoire",
+    landing_reconciled: "Débarquement rapproché",
+    commercial_order_reconciled: "Vente et règlement rapprochés",
     value_recovery_completed: "Plan de valorisation achevé",
     climate_resource_outcome_recorded: "Résultat de résilience mesuré",
     development_impact_evaluated: "Impact de programme évalué",
-    field_observation_verified: "Observation terrain vérifiée",
+    field_observation_verified: "Observation terrain confirmée",
     research_finding_validated: "Résultat de recherche validé",
   };
   return `${labels[eventType]} — ${aggregateId}`;
@@ -67,7 +71,7 @@ function titleFor(eventType: string, aggregateId: string) {
 function summarizePayload(payload: Record<string, unknown>) {
   const entries = Object.entries(payload)
     .filter(([, value]) => ["string", "number", "boolean"].includes(typeof value))
-    .slice(0, 6)
+    .slice(0, 8)
     .map(([key, value]) => `${key}: ${String(value)}`);
   return entries.join(" ; ");
 }
