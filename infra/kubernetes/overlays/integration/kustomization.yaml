@@ -10,6 +10,8 @@ labels:
 images:
   - name: ghcr.io/mrdiamalick-maker/mbambulaan-mvp
     newTag: integration
+  - name: ghcr.io/mrdiamalick-maker/mbambulaan-migrations
+    newTag: integration
 patches:
   - target:
       kind: Namespace
