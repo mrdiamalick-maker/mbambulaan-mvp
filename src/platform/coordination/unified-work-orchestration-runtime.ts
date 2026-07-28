@@ -63,13 +63,31 @@ export type UnifiedWorkCommand =
   | { type: "register_escalation_policy"; policy: EscalationPolicy }
   | { type: "mark_notification_sent"; notificationId: string; sentAt: string };
 
+export interface UnifiedWorkSnapshot {
+  workItems: UnifiedWorkItem[];
+  escalationPolicies: EscalationPolicy[];
+  notifications: WorkNotification[];
+  metrics: {
+    openCount: number;
+    overdueCount: number;
+    criticalCount: number;
+    blockedCount: number;
+    scheduledNotificationCount: number;
+  };
+}
+
+export interface UnifiedWorkExecutionResult {
+  result: unknown;
+  snapshot: UnifiedWorkSnapshot;
+}
+
 export class UnifiedWorkOrchestrationRuntime {
   private readonly workItems: UnifiedWorkItem[] = [];
   private readonly policies: EscalationPolicy[] = [];
   private readonly notifications: WorkNotification[] = [];
-  private readonly processed = new Map<string, unknown>();
+  private readonly processed = new Map<string, UnifiedWorkExecutionResult>();
 
-  execute(input: { commandId: string; command: UnifiedWorkCommand }) {
+  execute(input: { commandId: string; command: UnifiedWorkCommand }): UnifiedWorkExecutionResult {
     const previous = this.processed.get(input.commandId);
     if (previous) return structuredClone(previous);
     const command = input.command;
@@ -140,12 +158,12 @@ export class UnifiedWorkOrchestrationRuntime {
       result = item;
     }
 
-    const response = { result: structuredClone(result), snapshot: this.snapshot() };
+    const response: UnifiedWorkExecutionResult = { result: structuredClone(result), snapshot: this.snapshot() };
     this.processed.set(input.commandId, structuredClone(response));
     return response;
   }
 
-  planNotifications(at: string) {
+  planNotifications(at: string): UnifiedWorkSnapshot {
     const now = Date.parse(at);
     for (const item of this.workItems) {
       if (["completed", "cancelled"].includes(item.status)) continue;
@@ -163,7 +181,7 @@ export class UnifiedWorkOrchestrationRuntime {
     return this.snapshot(at);
   }
 
-  snapshot(at = new Date().toISOString()) {
+  snapshot(at = new Date().toISOString()): UnifiedWorkSnapshot {
     const now = Date.parse(at);
     return structuredClone({
       workItems: this.workItems,
