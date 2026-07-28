@@ -50,6 +50,6 @@ export class PersistentInterterritorialCapacityCoordination {
 
 const globalRuntime = globalThis as typeof globalThis & { __mbPersistentCapacityCoordination?: PersistentInterterritorialCapacityCoordination };
 export function getPersistentInterterritorialCapacityCoordination() {
-  globalThis.__mbPersistentCapacityCoordination ??= new PersistentInterterritorialCapacityCoordination();
-  return globalThis.__mbPersistentCapacityCoordination;
+  globalRuntime.__mbPersistentCapacityCoordination ??= new PersistentInterterritorialCapacityCoordination();
+  return globalRuntime.__mbPersistentCapacityCoordination;
 }
