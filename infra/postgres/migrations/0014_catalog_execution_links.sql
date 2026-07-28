@@ -20,12 +20,8 @@ CREATE INDEX IF NOT EXISTS ix_catalog_execution_links_logistics
 CREATE INDEX IF NOT EXISTS ix_catalog_execution_links_buyer
   ON mbambulaan.catalog_execution_links(buyer_organization_id, created_at DESC);
 
-CREATE TABLE IF NOT EXISTS mbambulaan.schema_migrations (
-  version text PRIMARY KEY,
-  applied_at timestamptz NOT NULL DEFAULT now()
-);
-INSERT INTO mbambulaan.schema_migrations(version)
-VALUES ('0014')
+INSERT INTO mbambulaan.schema_migrations(version, checksum_sha256, applied_by)
+VALUES ('0014', '07a8e31c03ce18180509eeb3107b8f7788f06e60b69cc91eccf6e1ec87917fc9', 'mbambulaan-migration-runner')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
