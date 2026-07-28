@@ -41,6 +41,13 @@ export class PersistentNotificationDeliveryService {
     return attempt;
   }
 
+  async applyProviderEvent(input: { providerReference: string; status: "delivered" | "failed"; occurredAt: string; failureReason?: string; retryDelayMinutes?: number }) {
+    await this.hydrate();
+    const attempt = this.gateway.applyProviderEvent(input);
+    await this.repository.saveAttempt(attempt);
+    return attempt;
+  }
+
   async dueRetries(at: string) {
     await this.hydrate();
     return this.gateway.dueRetries(at);
