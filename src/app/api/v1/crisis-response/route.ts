@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { authorizeDemoRequest } from "@/platform/access/request-authorization";
-import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
 import { getEcosystemCrisisResponseRuntime, type CrisisCommand } from "@/platform/crisis/ecosystem-crisis-response-runtime";
 import { getPersistentCrisisResponseRuntime } from "@/platform/crisis/persistent-crisis-response-runtime";
+import { getDocumentEventIngestionService } from "@/platform/documents/document-event-ingestion-service";
+import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
 
 const decisionCommands = new Set<CrisisCommand["type"]>([
   "qualify_crisis",
@@ -41,7 +42,25 @@ export async function POST(request: Request) {
     const result = persistence === "postgres"
       ? await getPersistentCrisisResponseRuntime().execute(input)
       : getEcosystemCrisisResponseRuntime().execute(input);
-    return NextResponse.json({ ...result, persistence }, { status: 201 });
+
+    let documentIngestion: unknown;
+    if (body.command.type === "record_recovery_result") {
+      const reference = body.command.result.resultDocumentIds[0];
+      if (reference) {
+        documentIngestion = await getDocumentEventIngestionService().ingest({
+          type: "crisis_recovery_recorded",
+          entityId: body.command.result.crisisId,
+          organizationId: authorization.identity.organizationId,
+          actorId: authorization.identity.id,
+          territoryIds: [body.command.result.territoryId],
+          occurredAt: body.command.result.measuredAt,
+          recoveryReportReference: reference,
+          checksumSha256: reference,
+        });
+      }
+    }
+
+    return NextResponse.json({ ...result, persistence, documentIngestion }, { status: 201 });
   } catch (error) {
     return NextResponse.json({
       error: {
