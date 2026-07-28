@@ -1,10 +1,11 @@
+import { getRuntimeSqlExecutor } from "@/platform/persistence/postgres-runtime-pool";
 import { OperationalDocumentRegistry, type OperationalDocumentCommand } from "./operational-document-registry";
 import { PostgresOperationalDocumentCommandJournal } from "./postgres-operational-document-command-journal";
 
 export class PersistentOperationalDocumentRegistry {
   private runtime = new OperationalDocumentRegistry();
   private hydrated = false;
-  private readonly journal = new PostgresOperationalDocumentCommandJournal();
+  private readonly journal = new PostgresOperationalDocumentCommandJournal(getRuntimeSqlExecutor);
 
   async execute(input: {
     commandId: string;
