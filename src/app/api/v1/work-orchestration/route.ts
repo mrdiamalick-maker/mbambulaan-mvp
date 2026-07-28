@@ -3,6 +3,7 @@ import { authorizeDemoRequest } from "@/platform/access/request-authorization";
 import { getPersistentUnifiedWorkOrchestrationRuntime } from "@/platform/coordination/persistent-unified-work-orchestration-runtime";
 import { getUnifiedWorkOrchestrationRuntime, type UnifiedWorkCommand } from "@/platform/coordination/unified-work-orchestration-runtime";
 import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
+import { publishEcosystemBusinessEvent } from "@/platform/runtime/publish-ecosystem-business-event";
 
 export async function GET(request: Request) {
   const authorization = authorizeDemoRequest({ request, permission: "government.read" });
@@ -49,7 +50,33 @@ export async function POST(request: Request) {
         ? await getPersistentUnifiedWorkOrchestrationRuntime().planNotifications(body.planAt)
         : getUnifiedWorkOrchestrationRuntime().planNotifications(body.planAt)
       : undefined;
-    return NextResponse.json({ ...result, planned, persistence: persistent ? "postgres" : "memory" }, { status: 201 });
+
+    let businessEvent: unknown;
+    if (body.command.type === "complete_work") {
+      const item = result.snapshot.workItems.find((entry) => entry.id === body.command.workItemId);
+      if (item?.sourceCorrelationId) {
+        businessEvent = await publishEcosystemBusinessEvent({
+          id: `event-work-completed-${body.commandId}`,
+          type: "coordination.work.completed",
+          occurredAt: body.command.at,
+          correlationId: item.sourceCorrelationId,
+          causationId: body.commandId,
+          actorId: authorization.identity.id,
+          organizationId: item.organizationId,
+          territoryIds: [item.territoryId],
+          entityType: "work_item",
+          entityId: item.id,
+          payload: {
+            workType: item.workType,
+            relatedEntityType: item.relatedEntityType,
+            relatedEntityId: item.relatedEntityId,
+            completedByActorId: authorization.identity.id,
+          },
+        });
+      }
+    }
+
+    return NextResponse.json({ ...result, planned, businessEvent, persistence: persistent ? "postgres" : "memory" }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: { code: "WORK_COMMAND_REFUSED", message: error instanceof Error ? error.message : String(error) } }, { status: 422 });
   }
