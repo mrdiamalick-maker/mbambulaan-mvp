@@ -24,7 +24,7 @@ export function buildDefaultBusinessEventHandlers(): EcosystemBusinessEventHandl
             actorId: event.actorId,
             territoryIds: event.territoryIds,
             occurredAt: event.occurredAt,
-            deliveryNoteReference: String(event.payload.deliveryNoteReference ?? ""),
+            deliveryNoteReference: event.payload.deliveryNoteReference ? String(event.payload.deliveryNoteReference) : undefined,
             destinationConfirmationReference: event.payload.destinationConfirmationReference ? String(event.payload.destinationConfirmationReference) : undefined,
             checksumSha256: String(event.payload.checksumSha256 ?? event.id),
           });
@@ -105,9 +105,18 @@ export function buildDefaultBusinessEventHandlers(): EcosystemBusinessEventHandl
             createdAt: event.occurredAt,
           },
         };
-        const input = { commandId: `project-${event.id}`, command };
-        if (hasRuntimeDatabase()) await getPersistentUnifiedWorkOrchestrationRuntime().execute(input);
-        else getUnifiedWorkOrchestrationRuntime().execute(input);
+        const commandId = `project-${event.id}`;
+        if (hasRuntimeDatabase()) {
+          await getPersistentUnifiedWorkOrchestrationRuntime().execute({
+            commandId,
+            actorId: event.actorId,
+            activeTerritoryId: event.territoryIds[0],
+            command,
+            occurredAt: event.occurredAt,
+          });
+        } else {
+          getUnifiedWorkOrchestrationRuntime().execute({ commandId, command });
+        }
       },
     },
   ];
