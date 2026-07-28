@@ -86,12 +86,8 @@ CREATE INDEX IF NOT EXISTS ix_commercial_disputes_open
   ON mbambulaan.commercial_disputes(order_id, opened_at DESC)
   WHERE status = 'open';
 
-CREATE TABLE IF NOT EXISTS mbambulaan.schema_migrations (
-  version text PRIMARY KEY,
-  applied_at timestamptz NOT NULL DEFAULT now()
-);
-INSERT INTO mbambulaan.schema_migrations(version)
-VALUES ('0011')
+INSERT INTO mbambulaan.schema_migrations(version, checksum_sha256, applied_by)
+VALUES ('0011', 'a8d0b6f0939cfd883251f62b265f971ef8a5ab97eee32b91460f08b965601d93', 'mbambulaan-migration-runner')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
