@@ -5,22 +5,22 @@ const steps = [
     number: "01",
     title: "Comprendre la coordination",
     text: "Voir les acteurs, les territoires, les tensions et les décisions que Mbàmbulaan rend visibles.",
-    href: "/produit",
+    href: "/atlas",
     action: "Découvrir l’écosystème",
   },
   {
     number: "02",
     title: "Exécuter une transaction",
     text: "Publier une offre, réserver, allouer, transporter, livrer, payer et réconcilier avec quatre rôles distincts.",
-    href: "/terrain-commerce",
-    action: "Tester le parcours terrain",
+    href: "/pilote",
+    action: "Ouvrir l’espace pilote",
   },
   {
     number: "03",
     title: "Traiter un incident",
-    text: "Simuler une livraison partielle, calculer les responsabilités et déterminer le remboursement acheteur.",
-    href: "/incidents-commerce",
-    action: "Tester un incident",
+    text: "Simuler une livraison partielle, calculer les responsabilités et déterminer le remboursement acheteur dans le même espace.",
+    href: "/pilote",
+    action: "Continuer dans le pilote",
   },
   {
     number: "04",
@@ -47,7 +47,7 @@ export default function DemonstrationPilotePage() {
           <h1 className="mt-3 max-w-4xl text-3xl font-semibold sm:text-4xl">Démontrer que Mbàmbulaan coordonne une transaction réelle et crée une valeur mesurable</h1>
           <p className="mt-4 max-w-3xl text-sm leading-6 text-white/70">Cette démonstration ne cherche pas à présenter une plateforme nationale terminée. Elle valide quatre hypothèses : utilité opérationnelle, adoption, confiance et modèle économique.</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/terrain-commerce" className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[var(--mb-navy-900)]">Commencer le test</Link>
+            <Link href="/pilote" className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[var(--mb-navy-900)]">Commencer le test unifié</Link>
             <Link href="/rentabilite" className="rounded-lg border border-white/30 px-4 py-2 text-sm font-semibold text-white">Voir le modèle économique</Link>
           </div>
         </div>
@@ -56,7 +56,7 @@ export default function DemonstrationPilotePage() {
       <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6">
         <section className="grid gap-4 lg:grid-cols-4">
           <Metric value="4" label="rôles coordonnés" />
-          <Metric value="1" label="transaction bout en bout" />
+          <Metric value="1" label="espace pilote unifié" />
           <Metric value="3" label="flux financiers réconciliés" />
           <Metric value="0" label="service payant obligatoire" />
         </section>
