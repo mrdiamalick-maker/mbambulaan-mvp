@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { authorizeDemoRequest } from "@/platform/access/request-authorization";
 import { getOperationalContractRuntime, type OperationalContractCommand } from "@/platform/contracts/operational-contract-runtime";
+import { getPersistentOperationalContractRuntime } from "@/platform/contracts/persistent-operational-contract-runtime";
+import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
 
 const governanceCommands = new Set<OperationalContractCommand["type"]>([
   "register_contract",
@@ -13,7 +15,11 @@ const governanceCommands = new Set<OperationalContractCommand["type"]>([
 export async function GET(request: Request) {
   const authorization = authorizeDemoRequest({ request, permission: "government.read" });
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
-  return NextResponse.json(getOperationalContractRuntime().snapshot());
+  const persistent = hasRuntimeDatabase();
+  const snapshot = persistent
+    ? await getPersistentOperationalContractRuntime().snapshot()
+    : getOperationalContractRuntime().snapshot();
+  return NextResponse.json({ ...snapshot, persistence: persistent ? "postgres" : "memory" });
 }
 
 export async function POST(request: Request) {
@@ -27,13 +33,17 @@ export async function POST(request: Request) {
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
 
   try {
-    const result = getOperationalContractRuntime().execute({
+    const execution = {
       commandId: body.commandId,
       actorId: authorization.identity.id,
       activeTerritoryId: authorization.session.activeTerritoryId,
       command: body.command,
-    });
-    return NextResponse.json(result, { status: 201 });
+    };
+    const persistent = hasRuntimeDatabase();
+    const result = persistent
+      ? await getPersistentOperationalContractRuntime().execute(execution)
+      : getOperationalContractRuntime().execute(execution);
+    return NextResponse.json({ ...result, persistence: persistent ? "postgres" : "memory" }, { status: 201 });
   } catch (error) {
     return NextResponse.json({
       error: {
