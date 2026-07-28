@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authorizeDemoRequest } from "@/platform/access/request-authorization";
+import { getDocumentEventIngestionService } from "@/platform/documents/document-event-ingestion-service";
 import { getEcosystemActorGovernanceRuntime, type ActorGovernanceCommand } from "@/platform/identity/ecosystem-actor-governance-runtime";
 import { getPersistentActorGovernanceRuntime } from "@/platform/identity/persistent-actor-governance-runtime";
 import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
@@ -41,7 +42,25 @@ export async function POST(request: Request) {
     const result = persistent
       ? await getPersistentActorGovernanceRuntime().execute(execution)
       : getEcosystemActorGovernanceRuntime().execute(execution);
-    return NextResponse.json({ ...result, persistence: persistent ? "postgres" : "memory" }, { status: 201 });
+
+    let documentIngestion: unknown;
+    if (body.command.type === "activate_mandate") {
+      const reference = body.command.mandate.activationDocumentIds[0];
+      if (reference) {
+        documentIngestion = await getDocumentEventIngestionService().ingest({
+          type: "actor_mandate_activated",
+          entityId: body.command.mandate.actorId,
+          organizationId: body.command.mandate.organizationId ?? authorization.identity.organizationId,
+          actorId: authorization.identity.id,
+          territoryIds: body.command.mandate.territoryIds,
+          occurredAt: body.command.mandate.validFrom,
+          mandateDecisionReference: reference,
+          checksumSha256: reference,
+        });
+      }
+    }
+
+    return NextResponse.json({ ...result, persistence: persistent ? "postgres" : "memory", documentIngestion }, { status: 201 });
   } catch (error) {
     return NextResponse.json({
       error: {
