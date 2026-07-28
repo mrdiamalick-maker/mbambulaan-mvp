@@ -1,5 +1,5 @@
 import type { ActiveActorMandate } from "./ecosystem-actor-governance-runtime";
-import type { ActorDelegation } from "./actor-governance-control";
+import type { TemporaryDelegation } from "./actor-governance-control";
 
 export interface MandateAuthorizationRequest {
   actorId: string;
@@ -51,7 +51,7 @@ export class MandateAuthorizationProjection {
   decide(input: {
     request: MandateAuthorizationRequest;
     mandates: ActiveActorMandate[];
-    delegations?: ActorDelegation[];
+    delegations?: TemporaryDelegation[];
   }): MandateAuthorizationDecision {
     const directMandates = input.mandates.filter((item) => item.actorId === input.request.actorId);
     for (const mandate of directMandates) {
@@ -99,7 +99,7 @@ export class MandateAuthorizationProjection {
     };
   }
 
-  private evaluateDelegation(delegation: ActorDelegation, mandate: ActiveActorMandate, request: MandateAuthorizationRequest): MandateAuthorizationDecision {
+  private evaluateDelegation(delegation: TemporaryDelegation, mandate: ActiveActorMandate, request: MandateAuthorizationRequest): MandateAuthorizationDecision {
     if (delegation.status !== "active") return this.deniedDelegation("mandate_inactive", delegation, mandate);
     if (Date.parse(delegation.validUntil) <= Date.parse(request.at)) return this.deniedDelegation("delegation_expired", delegation, mandate);
     if (!delegation.territoryIds.includes(request.territoryId)) return this.deniedDelegation("territory_denied", delegation, mandate);
@@ -125,7 +125,7 @@ export class MandateAuthorizationProjection {
     return { allowed: false, reason, mandateId: mandate.id, requiresDualApproval: false, restrictions: [...mandate.restrictions] };
   }
 
-  private deniedDelegation(reason: MandateAuthorizationDecision["reason"], delegation: ActorDelegation, mandate: ActiveActorMandate): MandateAuthorizationDecision {
+  private deniedDelegation(reason: MandateAuthorizationDecision["reason"], delegation: TemporaryDelegation, mandate: ActiveActorMandate): MandateAuthorizationDecision {
     return { allowed: false, reason, mandateId: mandate.id, delegationId: delegation.id, requiresDualApproval: delegation.requiresDualApproval, restrictions: [...mandate.restrictions] };
   }
 }
