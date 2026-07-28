@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: migration
-          image: ghcr.io/mrdiamalick-maker/mbambulaan-mvp:latest
+          image: ghcr.io/mrdiamalick-maker/mbambulaan-migrations:latest
           command: ["sh", "-c"]
           args:
             - |
