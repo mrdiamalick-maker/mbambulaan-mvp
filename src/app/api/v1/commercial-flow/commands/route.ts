@@ -3,6 +3,7 @@ import { authorizeDemoRequest } from "@/platform/access/request-authorization";
 import type { CommercialWorkflowCommand } from "@/platform/commercial/commercial-actor-workflow";
 import { getCommercialCatalogExecutionService } from "@/platform/commercial/commercial-catalog-execution";
 import { getPersistentCommercialWorkflow } from "@/platform/commercial/persistent-commercial-workflow";
+import { getDocumentEventIngestionService } from "@/platform/documents/document-event-ingestion-service";
 
 export async function GET(request: Request) {
   const authorization = authorizeDemoRequest({ request, permission: "trade.read" });
@@ -37,7 +38,35 @@ export async function POST(request: Request) {
       territoryId: authorization.session.activeTerritoryId,
       command: body.command,
     });
-    return NextResponse.json(snapshot, { status: 201 });
+
+    let documentIngestion: unknown;
+    const occurredAt = body.command.at ?? new Date().toISOString();
+    if (body.command.type === "confirm_delivery") {
+      documentIngestion = await getDocumentEventIngestionService().ingest({
+        type: "commercial_delivery_confirmed",
+        entityId: body.command.orderId,
+        organizationId: authorization.identity.organizationId,
+        actorId: authorization.identity.id,
+        territoryIds: [authorization.session.activeTerritoryId],
+        occurredAt,
+        deliveryNoteReference: body.command.proofId,
+        destinationConfirmationReference: body.command.destinationConfirmationReference,
+        checksumSha256: body.command.documentChecksumSha256 ?? body.command.proofId,
+      });
+    } else if (body.command.type === "confirm_payment" && body.command.providerReference) {
+      documentIngestion = await getDocumentEventIngestionService().ingest({
+        type: "finance_transfer_confirmed",
+        entityId: body.command.paymentId,
+        organizationId: authorization.identity.organizationId,
+        actorId: authorization.identity.id,
+        territoryIds: [authorization.session.activeTerritoryId],
+        occurredAt,
+        transferReference: body.command.providerReference,
+        checksumSha256: body.command.documentChecksumSha256 ?? body.command.providerReference,
+      });
+    }
+
+    return NextResponse.json({ ...snapshot, documentIngestion }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: { code: "COMMERCIAL_COMMAND_FAILED", message: error instanceof Error ? error.message : String(error) } }, { status: 422 });
   }
