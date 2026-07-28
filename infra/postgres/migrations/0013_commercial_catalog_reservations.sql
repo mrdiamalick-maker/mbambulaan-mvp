@@ -59,12 +59,8 @@ CREATE INDEX IF NOT EXISTS ix_catalog_reservations_active
   ON mbambulaan.catalog_reservations(offer_id, expires_at)
   WHERE status = 'active';
 
-CREATE TABLE IF NOT EXISTS mbambulaan.schema_migrations (
-  version text PRIMARY KEY,
-  applied_at timestamptz NOT NULL DEFAULT now()
-);
-INSERT INTO mbambulaan.schema_migrations(version)
-VALUES ('0013')
+INSERT INTO mbambulaan.schema_migrations(version, checksum_sha256, applied_by)
+VALUES ('0013', '18303683dba5587003399c2103c2cbd8448bed6601514d9ea159a5af102e1310', 'mbambulaan-migration-runner')
 ON CONFLICT (version) DO NOTHING;
 
 COMMIT;
