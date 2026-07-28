@@ -32,35 +32,40 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const body = await request.json().catch(() => undefined) as { commandId?: string; command?: UnifiedWorkCommand; planAt?: string } | undefined;
   if (!body?.commandId || !body.command?.type) return NextResponse.json({ error: { code: "INVALID_WORK_COMMAND", message: "La commande et son identifiant sont obligatoires." } }, { status: 400 });
-  const permission = body.command.type === "mark_notification_sent" ? "admin.manage" : "government.write";
+
+  const commandId = body.commandId;
+  const command = body.command;
+  const planAt = body.planAt;
+  const permission = command.type === "mark_notification_sent" ? "admin.manage" : "government.write";
   const authorization = authorizeDemoRequest({ request, permission });
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
+
   try {
     const persistent = hasRuntimeDatabase();
     const result = persistent
       ? await getPersistentUnifiedWorkOrchestrationRuntime().execute({
-          commandId: body.commandId,
+          commandId,
           actorId: authorization.identity.id,
           activeTerritoryId: authorization.session.activeTerritoryId,
-          command: body.command,
+          command,
         })
-      : getUnifiedWorkOrchestrationRuntime().execute({ commandId: body.commandId, command: body.command });
-    const planned = body.planAt
+      : getUnifiedWorkOrchestrationRuntime().execute({ commandId, command });
+    const planned = planAt
       ? persistent
-        ? await getPersistentUnifiedWorkOrchestrationRuntime().planNotifications(body.planAt)
-        : getUnifiedWorkOrchestrationRuntime().planNotifications(body.planAt)
+        ? await getPersistentUnifiedWorkOrchestrationRuntime().planNotifications(planAt)
+        : getUnifiedWorkOrchestrationRuntime().planNotifications(planAt)
       : undefined;
 
     let businessEvent: unknown;
-    if (body.command.type === "complete_work") {
-      const item = result.snapshot.workItems.find((entry) => entry.id === body.command.workItemId);
+    if (command.type === "complete_work") {
+      const item = result.snapshot.workItems.find((entry) => entry.id === command.workItemId);
       if (item?.sourceCorrelationId) {
         businessEvent = await publishEcosystemBusinessEvent({
-          id: `event-work-completed-${body.commandId}`,
+          id: `event-work-completed-${commandId}`,
           type: "coordination.work.completed",
-          occurredAt: body.command.at,
+          occurredAt: command.at,
           correlationId: item.sourceCorrelationId,
-          causationId: body.commandId,
+          causationId: commandId,
           actorId: authorization.identity.id,
           organizationId: item.organizationId,
           territoryIds: [item.territoryId],
