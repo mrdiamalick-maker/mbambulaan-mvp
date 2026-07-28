@@ -4,6 +4,7 @@ import { getUnifiedWorkOrchestrationRuntime } from "@/platform/coordination/unif
 import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
 import type { EcosystemBusinessEventHandler } from "./ecosystem-business-event-bus";
 import { getNationalCoordinationSignalProjection } from "./national-coordination-signal-projection";
+import { getPersistentNationalCoordinationSignalService } from "./persistent-national-coordination-signal-service";
 
 export function buildDefaultBusinessEventHandlers(): EcosystemBusinessEventHandler[] {
   return [
@@ -131,8 +132,9 @@ export function buildDefaultBusinessEventHandlers(): EcosystemBusinessEventHandl
         "documents.requirement.missing",
         "coordination.notification.failed",
       ],
-      handle(event) {
-        getNationalCoordinationSignalProjection().project(event);
+      async handle(event) {
+        if (hasRuntimeDatabase()) await getPersistentNationalCoordinationSignalService().project(event);
+        else getNationalCoordinationSignalProjection().project(event);
       },
     },
   ];
