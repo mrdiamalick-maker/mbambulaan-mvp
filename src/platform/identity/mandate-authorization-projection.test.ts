@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { MandateAuthorizationProjection } from "./mandate-authorization-projection";
 import type { ActiveActorMandate } from "./ecosystem-actor-governance-runtime";
-import type { ActorDelegation } from "./actor-governance-control";
+import type { TemporaryDelegation } from "./actor-governance-control";
 
 const mandate: ActiveActorMandate = {
   id: "mandate-1",
@@ -72,7 +72,7 @@ test("exige une double validation lorsqu'elle est imposee par le mandat", () => 
 
 test("autorise une delegation temporaire bornee", () => {
   const projection = new MandateAuthorizationProjection();
-  const delegation: ActorDelegation = {
+  const delegation: TemporaryDelegation = {
     id: "delegation-1",
     mandateId: "mandate-1",
     delegatorActorId: "actor-awa",
