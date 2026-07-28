@@ -65,13 +65,7 @@ export class NotificationDeliveryGateway {
       attempt.nextRetryAt = undefined;
       return structuredClone(attempt);
     } catch (error) {
-      attempt.status = "failed";
-      attempt.failedAt = input.at;
-      attempt.failureReason = error instanceof Error ? error.message : String(error);
-      const baseDelay = input.retryDelayMinutes ?? 15;
-      const delayMinutes = Math.min(24 * 60, baseDelay * 2 ** Math.max(0, attempt.attemptNumber - 1));
-      attempt.nextRetryAt = new Date(Date.parse(input.at) + delayMinutes * 60_000).toISOString();
-      return structuredClone(attempt);
+      return this.failAttempt(attempt, input.at, error instanceof Error ? error.message : String(error), input.retryDelayMinutes);
     }
   }
 
@@ -82,6 +76,14 @@ export class NotificationDeliveryGateway {
     attempt.status = "delivered";
     attempt.deliveredAt = input.deliveredAt;
     return structuredClone(attempt);
+  }
+
+  applyProviderEvent(input: { providerReference: string; status: "delivered" | "failed"; occurredAt: string; failureReason?: string; retryDelayMinutes?: number }) {
+    const attempt = this.attempts.find((item) => item.providerReference === input.providerReference);
+    if (!attempt) throw new Error(`Aucune tentative ne correspond à la référence fournisseur ${input.providerReference}.`);
+    if (input.status === "delivered") return this.confirmDelivery({ attemptId: attempt.id, providerReference: input.providerReference, deliveredAt: input.occurredAt });
+    if (attempt.status !== "submitted") throw new Error("Seule une tentative soumise peut être déclarée en échec par le fournisseur.");
+    return this.failAttempt(attempt, input.occurredAt, input.failureReason ?? "Échec déclaré par le fournisseur.", input.retryDelayMinutes);
   }
 
   dueRetries(at: string) {
@@ -101,6 +103,15 @@ export class NotificationDeliveryGateway {
         retryDueCount: this.dueRetries(new Date().toISOString()).length,
       },
     });
+  }
+
+  private failAttempt(attempt: NotificationDeliveryAttempt, at: string, reason: string, retryDelayMinutes = 15) {
+    attempt.status = "failed";
+    attempt.failedAt = at;
+    attempt.failureReason = reason;
+    const delayMinutes = Math.min(24 * 60, retryDelayMinutes * 2 ** Math.max(0, attempt.attemptNumber - 1));
+    attempt.nextRetryAt = new Date(Date.parse(at) + delayMinutes * 60_000).toISOString();
+    return structuredClone(attempt);
   }
 
   private latestFor(notificationId: string, channel: WorkNotification["channel"]) {
