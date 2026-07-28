@@ -23,6 +23,13 @@ export class PersistentEcosystemBusinessEventService {
     return snapshot;
   }
 
+  async retryDue(at = new Date().toISOString()) {
+    await this.hydrate();
+    const due = await this.repository.listDueFailures(at);
+    for (const item of due) await this.retry({ ...item, processedAt: at });
+    return { retriedCount: due.length, snapshot: this.bus.snapshot() };
+  }
+
   async dueFailures(at = new Date().toISOString()) {
     await this.hydrate();
     return this.repository.listDueFailures(at);
