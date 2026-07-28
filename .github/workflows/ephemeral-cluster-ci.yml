@@ -96,13 +96,9 @@ jobs:
         run: |
           overlay="infra/kubernetes/overlays/integration"
           cp "${overlay}/kustomization.yaml" "${overlay}/kustomization.yaml.bak"
-          cat >> "${overlay}/kustomization.yaml" <<'EOF'
-            - name: ghcr.io/mrdiamalick-maker/mbambulaan-migrations
-              newName: mbambulaan-migrations
-              newTag: ci
-          EOF
           sed -i -E '/name: ghcr.io\/mrdiamalick-maker\/mbambulaan-mvp/a\    newName: mbambulaan-platform' "${overlay}/kustomization.yaml"
-          sed -i -E '0,/newTag: integration/s//newTag: ci/' "${overlay}/kustomization.yaml"
+          sed -i -E '/name: ghcr.io\/mrdiamalick-maker\/mbambulaan-migrations/a\    newName: mbambulaan-migrations' "${overlay}/kustomization.yaml"
+          sed -i -E 's#newTag: integration#newTag: ci#g' "${overlay}/kustomization.yaml"
           kubectl kustomize "$overlay" > rendered-integration.yaml
           mv "${overlay}/kustomization.yaml.bak" "${overlay}/kustomization.yaml"
           grep -q 'image: mbambulaan-platform:ci' rendered-integration.yaml
