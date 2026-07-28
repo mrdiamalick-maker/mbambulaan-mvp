@@ -28,7 +28,7 @@ const initial: Snapshot = {
 export function CommunityValueWorkstation() {
   const [sessionId, setSessionId] = useState<string>();
   const [snapshot, setSnapshot] = useState<Snapshot>(initial);
-  const [message, setMessage] = useState("Initialisation du poste communautaire…");
+  const [message, setMessage] = useState("Ouverture du poste communautaire…");
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -39,14 +39,14 @@ export function CommunityValueWorkstation() {
         body: JSON.stringify({ identityId: "demo-government-supervisor", territoryId: "territory-national" }),
       });
       const sessionBody = await sessionResponse.json();
-      if (!sessionResponse.ok) throw new Error(sessionBody?.error?.message ?? "Session impossible.");
+      if (!sessionResponse.ok) throw new Error(sessionBody?.error?.message ?? "Impossible d’ouvrir la session.");
       const token = sessionBody.session.id as string;
       setSessionId(token);
       const response = await fetch("/api/v1/community-value", { headers: { "x-mbambulaan-demo-session": token } });
       const body = await response.json();
-      if (!response.ok) throw new Error(body?.error?.message ?? "Lecture impossible.");
+      if (!response.ok) throw new Error(body?.error?.message ?? "Impossible de charger la situation actuelle.");
       setSnapshot(body);
-      setMessage("Gouvernance locale, fonds et impact communautaire réunis dans une même boucle.");
+      setMessage("La communauté peut suivre le besoin, la décision, les fonds mobilisés, leur utilisation et les résultats obtenus.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Chargement impossible.");
     }
@@ -64,7 +64,7 @@ export function CommunityValueWorkstation() {
         body: JSON.stringify({ commandId: `${String(command.type)}-${crypto.randomUUID()}`, command }),
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body?.error?.message ?? "Action refusée.");
+      if (!response.ok) throw new Error(body?.error?.message ?? "Cette action ne peut pas être réalisée.");
       setSnapshot(body.snapshot);
       setMessage(success);
     } catch (error) {
@@ -87,7 +87,7 @@ export function CommunityValueWorkstation() {
         <div className="mx-auto max-w-6xl">
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--mb-ocean-400)]">Mbàmbulaan Community</p>
           <h1 className="mt-2 text-3xl font-semibold">Du besoin collectif à la valeur partagée</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/65">La communauté qualifie le besoin, décide, mobilise les fonds, contrôle l’affectation et mesure les bénéficiaires, les revenus et les emplois créés.</p>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/65">La communauté décrit le besoin, décide ensemble, mobilise les fonds, suit leur utilisation et mesure les bénéficiaires, les revenus et les emplois créés.</p>
         </div>
       </header>
 
@@ -95,34 +95,34 @@ export function CommunityValueWorkstation() {
         <div className="rounded-lg border border-[var(--mb-neutral-200)] bg-white p-4 text-sm">{message}</div>
 
         <section className="mt-5 grid gap-4 lg:grid-cols-4">
-          <Step title="1. Besoin" status={need?.status ?? "À signaler"} value={need?.title ?? "Aucun besoin collectif"}>
-            {!need && <Action disabled={busy} onClick={() => execute({ type: "report_need", need: { id: `need-${crypto.randomUUID()}`, territoryId: "territory-dakar", title: "Atelier collectif de transformation", description: "Améliorer les revenus et réduire les pertes", objective: "women_income", affectedActorIds: ["actor-women-01"], evidenceIds: ["evidence-need-demo"], priorityScore: 92, status: "reported", reportedByActorId: "actor-women-01", reportedAt: at } }, "Besoin collectif signalé avec preuve.")}>Signaler le besoin</Action>}
-            {need?.status === "reported" && <Action disabled={busy} onClick={() => execute({ type: "qualify_need", needId: need.id }, "Besoin qualifié et prêt à devenir une initiative.")}>Qualifier</Action>}
+          <Step title="1. Besoin collectif" status={need?.status ?? "À signaler"} value={need?.title ?? "Aucun besoin signalé"}>
+            {!need && <Action disabled={busy} onClick={() => execute({ type: "report_need", need: { id: `need-${crypto.randomUUID()}`, territoryId: "territory-dakar", title: "Atelier collectif de transformation", description: "Améliorer les revenus et réduire les pertes", objective: "women_income", affectedActorIds: ["actor-women-01"], evidenceIds: ["meeting-report-demo"], priorityScore: 92, status: "reported", reportedByActorId: "actor-women-01", reportedAt: at } }, "Besoin enregistré avec le compte rendu de la réunion locale.")}>Enregistrer le besoin</Action>}
+            {need?.status === "reported" && <Action disabled={busy} onClick={() => execute({ type: "qualify_need", needId: need.id }, "Le besoin est confirmé et peut devenir une initiative.")}>Confirmer le besoin</Action>}
           </Step>
 
-          <Step title="2. Décision" status={initiative?.status ?? "À créer"} value={initiative?.title ?? "Aucune initiative"}>
-            {need?.status === "qualified" && !initiative && <Action disabled={busy} onClick={() => execute({ type: "create_initiative", initiative: { id: `initiative-${crypto.randomUUID()}`, needId: need.id, territoryId: "territory-dakar", title: "Atelier collectif de transformation", objective: "women_income", governanceOrganizationId: "org-community-dakar", beneficiaryOrganizationIds: ["org-women-processors-dakar"], targetBeneficiaryCount: 30, targetAmountXof: 12_000_000, platformFeeBps: 250, status: "draft", createdAt: at } }, "Initiative créée.")}>Créer l’initiative</Action>}
-            {initiative?.status === "draft" && <Action disabled={busy} onClick={() => execute({ type: "open_vote", initiativeId: initiative.id }, "Vote communautaire ouvert.")}>Ouvrir le vote</Action>}
+          <Step title="2. Décision locale" status={initiative?.status ?? "À préparer"} value={initiative?.title ?? "Aucune initiative"}>
+            {need?.status === "qualified" && !initiative && <Action disabled={busy} onClick={() => execute({ type: "create_initiative", initiative: { id: `initiative-${crypto.randomUUID()}`, needId: need.id, territoryId: "territory-dakar", title: "Atelier collectif de transformation", objective: "women_income", governanceOrganizationId: "org-community-dakar", beneficiaryOrganizationIds: ["org-women-processors-dakar"], targetBeneficiaryCount: 30, targetAmountXof: 12_000_000, platformFeeBps: 250, status: "draft", createdAt: at } }, "Initiative préparée pour la consultation locale.")}>Préparer l’initiative</Action>}
+            {initiative?.status === "draft" && <Action disabled={busy} onClick={() => execute({ type: "open_vote", initiativeId: initiative.id }, "Consultation locale ouverte.")}>Ouvrir la consultation</Action>}
             {initiative?.status === "voting" && snapshot.contributions.length === 0 && <Action disabled={busy} onClick={async () => {
-              await execute({ type: "cast_vote", vote: { id: `vote-${crypto.randomUUID()}`, initiativeId: initiative.id, voterActorId: "actor-community-01", voterOrganizationId: "org-community-dakar", choice: "approve", evidenceIds: ["evidence-vote-demo"], votedAt: at } }, "Vote favorable enregistré.");
-            }}>Voter favorablement</Action>}
-            {initiative?.status === "voting" && <Action disabled={busy} onClick={() => execute({ type: "close_vote", initiativeId: initiative.id, at }, "Initiative approuvée à la majorité.")}>Clore le vote</Action>}
+              await execute({ type: "cast_vote", vote: { id: `vote-${crypto.randomUUID()}`, initiativeId: initiative.id, voterActorId: "actor-community-01", voterOrganizationId: "org-community-dakar", choice: "approve", evidenceIds: ["signed-attendance-and-vote-result-demo"], votedAt: at } }, "Avis favorable enregistré avec la feuille de présence et le résultat du vote.");
+            }}>Enregistrer l’avis favorable</Action>}
+            {initiative?.status === "voting" && <Action disabled={busy} onClick={() => execute({ type: "close_vote", initiativeId: initiative.id, at }, "Initiative adoptée à la majorité.")}>Clore la consultation</Action>}
           </Step>
 
-          <Step title="3. Fonds" status={funded ? "Financé" : "À financer"} value={`${snapshot.metrics.totalContributionsXof.toLocaleString("fr-FR")} FCFA mobilisés`}>
-            {initiative?.status === "funding" && !funded && <Action disabled={busy} onClick={() => execute({ type: "record_contribution", contribution: { id: `contribution-${crypto.randomUUID()}`, initiativeId: initiative.id, contributorActorId: "program-01", contributorOrganizationId: "org-program", sourceType: "public_program", amountXof: 12_000_000, evidenceIds: ["evidence-funding-demo"], contributedAt: at } }, "Financement reçu et prouvé.")}>Mobiliser 12 M FCFA</Action>}
-            {funded && !allocated && <Action disabled={busy} onClick={() => execute({ type: "approve_allocation", allocation: { id: `allocation-${crypto.randomUUID()}`, initiativeId: initiative.id, beneficiaryOrganizationId: "org-women-processors-dakar", purpose: "Équipements et formation", amountXof: 10_000_000, approvedByActorId: "actor-community-01", evidenceIds: ["evidence-allocation-demo"], status: "approved", approvedAt: at } }, "Affectation approuvée sans dépasser les fonds.")}>Affecter 10 M FCFA</Action>}
+          <Step title="3. Fonds et utilisation" status={funded ? "Fonds reçus" : "À financer"} value={`${snapshot.metrics.totalContributionsXof.toLocaleString("fr-FR")} FCFA mobilisés`}>
+            {initiative?.status === "funding" && !funded && <Action disabled={busy} onClick={() => execute({ type: "record_contribution", contribution: { id: `contribution-${crypto.randomUUID()}`, initiativeId: initiative.id, contributorActorId: "program-01", contributorOrganizationId: "org-program", sourceType: "public_program", amountXof: 12_000_000, evidenceIds: ["bank-transfer-reference-demo"], contributedAt: at } }, "Financement reçu avec la référence du virement.")}>Enregistrer le financement</Action>}
+            {funded && !allocated && <Action disabled={busy} onClick={() => execute({ type: "approve_allocation", allocation: { id: `allocation-${crypto.randomUUID()}`, initiativeId: initiative.id, beneficiaryOrganizationId: "org-women-processors-dakar", purpose: "Équipements et formation", amountXof: 10_000_000, approvedByActorId: "actor-community-01", evidenceIds: ["signed-allocation-decision-demo"], status: "approved", approvedAt: at } }, "Utilisation des fonds autorisée par une décision d’affectation signée.")}>Autoriser 10 M FCFA</Action>}
           </Step>
 
-          <Step title="4. Impact" status={completed ? "Mesuré" : allocated?.status ?? "À exécuter"} value={`${snapshot.metrics.beneficiaryCount} bénéficiaires`}>
-            {allocated?.status === "approved" && <Action disabled={busy} onClick={() => execute({ type: "record_delivery", proof: { id: `delivery-${crypto.randomUUID()}`, allocationId: allocated.id, deliveredByActorId: "supplier-01", beneficiaryActorIds: ["actor-women-01", "actor-women-02"], description: "Équipements installés et acceptés", monetaryValueXof: 10_000_000, evidenceIds: ["evidence-delivery-demo"], deliveredAt: at, acceptedAt: at } }, "Équipements livrés avec preuve.")}>Prouver la livraison</Action>}
-            {allocated?.status === "delivered" && !completed && <Action disabled={busy} onClick={() => execute({ type: "record_outcome", outcome: { id: `outcome-${crypto.randomUUID()}`, initiativeId: initiative.id, beneficiaryCount: 30, womenBeneficiaryCount: 30, youthBeneficiaryCount: 8, jobsCreated: 6, incomeCreatedXof: 18_000_000, collectiveAssetValueXof: 10_000_000, valueProtectedXof: 7_500_000, platformRevenueXof: 300_000, evidenceIds: ["evidence-impact-demo"], confidenceScore: 82, measuredAt: at } }, "Impact communautaire mesuré.")}>Mesurer l’impact</Action>}
+          <Step title="4. Réalisation et résultats" status={completed ? "Résultats suivis" : allocated?.status ?? "À réaliser"} value={`${snapshot.metrics.beneficiaryCount} bénéficiaires`}>
+            {allocated?.status === "approved" && <Action disabled={busy} onClick={() => execute({ type: "record_delivery", proof: { id: `delivery-${crypto.randomUUID()}`, allocationId: allocated.id, deliveredByActorId: "supplier-01", beneficiaryActorIds: ["actor-women-01", "actor-women-02"], description: "Équipements installés et acceptés", monetaryValueXof: 10_000_000, evidenceIds: ["signed-delivery-note-demo", "beneficiary-reception-confirmation-demo"], deliveredAt: at, acceptedAt: at } }, "Livraison enregistrée avec le bon signé et la confirmation des bénéficiaires.")}>Confirmer la réception</Action>}
+            {allocated?.status === "delivered" && !completed && <Action disabled={busy} onClick={() => execute({ type: "record_outcome", outcome: { id: `outcome-${crypto.randomUUID()}`, initiativeId: initiative.id, beneficiaryCount: 30, womenBeneficiaryCount: 30, youthBeneficiaryCount: 8, jobsCreated: 6, incomeCreatedXof: 18_000_000, collectiveAssetValueXof: 10_000_000, valueProtectedXof: 7_500_000, platformRevenueXof: 300_000, evidenceIds: ["beneficiary-register-demo", "before-after-income-review-demo"], confidenceScore: 82, measuredAt: at } }, "Résultats enregistrés à partir de la liste des bénéficiaires et du suivi des revenus.")}>Enregistrer les résultats</Action>}
           </Step>
         </section>
 
         <section className="mt-5 grid gap-4 md:grid-cols-4">
           <Metric label="Fonds mobilisés" value={`${snapshot.metrics.totalContributionsXof.toLocaleString("fr-FR")} FCFA`} />
-          <Metric label="Solde disponible" value={`${snapshot.metrics.availableBalanceXof.toLocaleString("fr-FR")} FCFA`} />
+          <Metric label="Fonds encore disponibles" value={`${snapshot.metrics.availableBalanceXof.toLocaleString("fr-FR")} FCFA`} />
           <Metric label="Revenus créés" value={`${snapshot.metrics.incomeCreatedXof.toLocaleString("fr-FR")} FCFA`} />
           <Metric label="Revenu Mbàmbulaan" value={`${snapshot.metrics.platformRevenueXof.toLocaleString("fr-FR")} FCFA`} />
         </section>
