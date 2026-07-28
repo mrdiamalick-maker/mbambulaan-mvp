@@ -3,7 +3,9 @@ export type ProductCode =
   | "cooperative"
   | "business"
   | "government"
+  | "development"
   | "finance"
+  | "community"
   | "knowledge"
   | "atlas";
 
@@ -115,6 +117,21 @@ const products: ProductWorkspaceView[] = [
     ],
   },
   {
+    code: "development",
+    name: "Mbàmbulaan Development",
+    actor: "Bailleur, ONG, agence de développement et porteur de programme",
+    purpose: "Concevoir, financer, exécuter et évaluer des interventions sectorielles reliées aux opérations réelles.",
+    payer: "Bailleur, programme public, ONG ou agence de développement",
+    value: "Ciblage plus fiable, engagements suivis et impact démontré jusqu'aux bénéficiaires.",
+    dependencies: ["government", "community", "knowledge", "atlas"],
+    primaryJourney: ["Définir un programme", "Cibler les bénéficiaires", "Engager les partenaires", "Suivre l'exécution", "Mesurer l'impact", "Capitaliser"],
+    capabilities: [
+      { code: "program-design", name: "Programmes d'intervention", description: "Objectifs, territoires, bénéficiaires, budgets et engagements.", status: "available", href: "/programmes", operationalValue: "Relier les financements aux besoins réels de la filière." },
+      { code: "beneficiary-tracking", name: "Bénéficiaires et engagements", description: "Éligibilité, soutien accordé et réalisation vérifiable.", status: "attention", href: "/produit/development", operationalValue: "Éviter la dilution des aides et rendre les responsabilités visibles." },
+      { code: "impact", name: "Mesure d'impact", description: "Résultats économiques, sociaux, territoriaux et environnementaux.", status: "attention", href: "/atlas", operationalValue: "Décider de poursuivre, corriger ou arrêter un programme." },
+    ],
+  },
+  {
     code: "finance",
     name: "Mbàmbulaan Finance",
     actor: "Institution financière, fonds, mutuelle et financeur de programme",
@@ -127,6 +144,21 @@ const products: ProductWorkspaceView[] = [
       { code: "ethical-finance", name: "Finance éthique", description: "Partage du risque et financement adossé aux opérations.", status: "available", href: "/finance", operationalValue: "Financer sans dissocier le capital de l'activité réelle." },
       { code: "risk", name: "Risque et preuves", description: "Décision appuyée sur les événements et documents.", status: "attention", href: "/produit/finance", operationalValue: "Réduire l'asymétrie d'information." },
       { code: "payments", name: "Paiements réels", description: "Décaissement, encaissement et rapprochement.", status: "planned", href: "/produit/finance", operationalValue: "Exécuter les flux financiers dans Mbàmbulaan." },
+    ],
+  },
+  {
+    code: "community",
+    name: "Mbàmbulaan Community",
+    actor: "Communautés de pêche, associations locales, femmes transformatrices et jeunes",
+    purpose: "Organiser la contribution collective, la gouvernance locale et la valorisation sociale créée par la filière.",
+    payer: "Programme communautaire, collectivité, coopérative ou partenaire de développement",
+    value: "Partage de valeur transparent, équipements mutualisés et bénéfices locaux mesurables.",
+    dependencies: ["fisher", "cooperative", "government", "knowledge"],
+    primaryJourney: ["Identifier un besoin collectif", "Proposer une initiative", "Décider ensemble", "Mobiliser une contribution", "Exécuter", "Prouver l'usage", "Mesurer l'impact"],
+    capabilities: [
+      { code: "community-governance", name: "Gouvernance communautaire", description: "Initiatives, décisions, responsables et bénéficiaires.", status: "attention", href: "/produit/community", operationalValue: "Transformer les besoins locaux en décisions traçables." },
+      { code: "shared-value", name: "Partage de valeur", description: "Contributions, fonds collectifs et affectations transparentes.", status: "planned", href: "/produit/community", operationalValue: "Faire bénéficier la communauté de la valeur coordonnée." },
+      { code: "social-impact", name: "Impact social", description: "Inclusion, emploi, revenus et équipements collectifs.", status: "attention", href: "/atlas", operationalValue: "Mesurer les effets réels au-delà du volume transactionnel." },
     ],
   },
   {
