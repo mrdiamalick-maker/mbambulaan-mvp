@@ -18,6 +18,8 @@ Avant chaque gros lot, l’équipe doit vérifier les sources suivantes :
 
 Aucun lot ne doit être lancé à partir de la seule lecture de l’interface ou du dernier développement réalisé.
 
+Le document `full-product-demo-readiness-gate.md` définit le seuil officiel de préparation de la première démonstration du produit complet. Tous les gros lots doivent atteindre au moins **80 %**, avec les dimensions obligatoires d’exécution, acteur, persistance, preuve et sécurité non nulles.
+
 ---
 
 ## 2. Échelle de conformité
@@ -33,6 +35,8 @@ Aucun lot ne doit être lancé à partir de la seule lecture de l’interface ou
 | Monétisable | Le payeur, l’offre et la valeur capturable peuvent être testés. |
 
 Une infrastructure n’est pas considérée comme livrée parce que des classes ou écrans existent. Elle doit atteindre au minimum **Acteur + Prouvé** sur son périmètre MVP.
+
+Pour la démonstration du produit complet, chaque gros lot doit atteindre le statut **Démontrable**, soit un score supérieur ou égal à 80 % selon la méthode de calcul commune.
 
 ---
 
@@ -62,17 +66,18 @@ Règle : aucun produit ne doit absorber les responsabilités d’un autre. Tous 
 |---|---|---|---|---|---|---|---|---|
 | Identité, rôles et confiance | Oui | Oui | Oui | Partiel | Partiel | Partiel | Partiel | Administration réelle des acteurs et qualification progressive. |
 | Campagnes et visibilité opérationnelle | Oui | Oui | Partiel | Fisher partiel | Partiel | Partiel | Partiel | Parcours campagne-retour-débarquement complet et mobile. |
-| Débarquement, pesée, qualité et traçabilité | Oui | Oui renforcé | Moteur exécutable | Fisher/Cooperative à exposer | Tests métier renforcés | Écart, risques et destination calculés | Partiel | Brancher API, persistance et parcours acteurs sur le nouveau moteur. |
+| Débarquement, pesée, qualité et traçabilité | Oui | Oui renforcé | Moteur et API exécutables | Fisher/Cooperative partiels | Tests métier renforcés | Écart, risques et destination calculés | Partiel | Persistance, scénario E2E et connexion au commerce/capacités. |
 | Capacités, services et allocation | Oui | Oui | Oui | Cooperative/Business partiel | Oui | Oui | Partiel | Généraliser aux services de quai, froid, transformation et équipements. |
-| Commerce, transaction et règlement | Oui | Oui | Oui | Business/Cooperative partiel | Oui | Oui | Oui | Finaliser annulation effective, compensations et paiements réels. |
-| Conservation, transformation et valorisation produit | Oui | Oui | Décision de destination initiale | Business à exposer | Tests transformation anti-perte | Signaux de valeur initiale | Partiel | Relier décision à capacités réelles, engagements et résultat mesuré. |
-| Valorisation communautaire et partage de valeur | Oui | Partiel renforcé | Orientation communautaire initiale | Community restauré | Test de destination communautaire | Signaux communautaires initiaux | Partiel | Construire initiative, décision collective, contribution, affectation et impact. |
-| Durabilité, ressources et résilience climatique | Oui | Oui | Signaux de réduction des pertes initiaux | Government/Atlas partiel | Tests de destination durable | Oui partiel | Partiel | Relier effort, espèce, zone, saison et décision opérationnelle. |
+| Commerce, transaction et règlement | Oui | Oui | Oui | Business/Cooperative partiel | Oui | Oui | Oui | Finaliser paiements réels, compensations et robustesse terrain. |
+| Conservation, transformation et valorisation produit | Oui | Oui renforcé | Plan de valorisation exécutable | Business à approfondir | Tests métier | Valeur préservée et pertes évitées | Partiel | Relier aux lots, capacités et preuves persistantes. |
+| Valorisation communautaire et partage de valeur | Oui | Oui renforcé | Initiative et plan exécutables | Community partiel | Tests métier | Bénéficiaires et contribution calculés | Partiel | Parcours Community, gouvernance collective et persistance. |
+| Durabilité, ressources et résilience climatique | Oui | Oui | API et runtime unifiés | Government/Atlas partiel | Tests critiques | Oui | Partiel | Parcours acteurs, persistance et E2E territorial. |
 | Tensions, incidents et continuité | Oui | Oui | Oui | Plusieurs produits partiels | Oui | Oui | Partiel | Unifier incidents commerciaux, opérationnels et territoriaux. |
-| Pilotage territorial et politiques publiques | Oui | Oui | Oui | Government/Atlas | Partiel | Oui | Oui | Alimenter le cockpit avec résultats économiques, sociaux et environnementaux réels. |
+| Pilotage territorial et politiques publiques | Oui | Oui | Oui | Government/Atlas | Partiel | Oui | Oui | Alimenter le cockpit avec résultats réels des autres infrastructures. |
+| Programmes de développement et impact | Oui | Oui | API et runtime exécutables | Development partiel | Tests métier | Budget, couverture et impact calculés | Partiel | Profil acteur, persistance, UI et scénario E2E. |
 | Connaissance et intelligence sectorielle | Oui | Oui | Partiel | Knowledge/Atlas | Partiel | Partiel | Oui | Transformer incidents, données et pratiques en contenus actionnables. |
 | Financement, assurance et investissement | Oui | Oui | Partiel | Finance/Development | Partiel | Partiel | Oui | Construire un dossier de financement issu de preuves réelles. |
-| Intégration et interopérabilité | Oui | Oui | Partiel | Transverse | Partiel | Oui | Oui | Prioriser un canal terrain, paiement et export institutionnel. |
+| Intégration et interopérabilité | Oui | Oui | Partiel | Transverse | Partiel | Oui | Oui | Prioriser persistance transverse, paiement et export institutionnel. |
 
 Cette matrice doit être mise à jour après chaque lot significatif.
 
@@ -113,6 +118,8 @@ Si l’un de ces éléments manque, le lot doit être cadré avant d’être dé
 - Ne jamais automatiser une règle importante sans la rendre explicable et dérogeable lorsque nécessaire.
 - Ne jamais intégrer un fournisseur externe avant d’avoir validé la valeur et le coût du flux.
 - Ne jamais supprimer ou marginaliser un produit acteur prévu dans le système produit.
+- Ne jamais qualifier une démonstration de « produit complet » si un gros lot officiel reste sous 80 %.
+- Limiter le travail en cours à deux gros lots maximum : un lot fonctionnel et un lot transverse de stabilisation.
 
 ---
 
@@ -130,4 +137,4 @@ Le prochain audit doit comparer les documents et le code selon cet ordre :
 8. mesures de valeur ;
 9. modèles économiques.
 
-Le résultat doit produire une backlog priorisée par **écart de conformité**, et non par facilité technique.
+Le résultat doit produire une backlog priorisée par **écart de conformité au seuil de 80 %**, et non par facilité technique.
