@@ -84,15 +84,37 @@ export type OperationalContractCommand =
   | { type: "update_corrective_plan"; planId: string; status: CorrectiveActionPlan["status"] }
   | { type: "record_governance_decision"; decision: ContractGovernanceDecision };
 
+export interface OperationalContractSnapshot {
+  contracts: OperationalContract[];
+  obligations: OperationalObligation[];
+  executionRecords: ObligationExecutionRecord[];
+  correctivePlans: CorrectiveActionPlan[];
+  governanceDecisions: ContractGovernanceDecision[];
+  metrics: {
+    activeContractCount: number;
+    atRiskContractCount: number;
+    dueObligationCount: number;
+    breachedObligationCount: number;
+    fulfillmentPercent: number;
+    correctivePlanOpenCount: number;
+    institutionalConstraintCount: number;
+  };
+}
+
+export interface OperationalContractExecutionResult {
+  result: unknown;
+  snapshot: OperationalContractSnapshot;
+}
+
 export class OperationalContractRuntime {
   private readonly contracts: OperationalContract[] = [];
   private readonly obligations: OperationalObligation[] = [];
   private readonly executionRecords: ObligationExecutionRecord[] = [];
   private readonly correctivePlans: CorrectiveActionPlan[] = [];
   private readonly decisions: ContractGovernanceDecision[] = [];
-  private readonly processed = new Map<string, unknown>();
+  private readonly processed = new Map<string, OperationalContractExecutionResult>();
 
-  execute(input: { commandId: string; actorId: string; activeTerritoryId: string; command: OperationalContractCommand }) {
+  execute(input: { commandId: string; actorId: string; activeTerritoryId: string; command: OperationalContractCommand }): OperationalContractExecutionResult {
     const previous = this.processed.get(input.commandId);
     if (previous) return structuredClone(previous);
     let result: unknown;
@@ -185,12 +207,12 @@ export class OperationalContractRuntime {
       }
     }
 
-    const response = { result: structuredClone(result), snapshot: this.snapshot() };
+    const response: OperationalContractExecutionResult = { result: structuredClone(result), snapshot: this.snapshot() };
     this.processed.set(input.commandId, structuredClone(response));
     return response;
   }
 
-  snapshot(at = new Date().toISOString()) {
+  snapshot(at = new Date().toISOString()): OperationalContractSnapshot {
     for (const contract of this.contracts) {
       if (contract.expiresAt && contract.expiresAt < at && !["closed", "suspended"].includes(contract.status)) contract.status = "expired";
     }
