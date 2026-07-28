@@ -20,6 +20,10 @@ export interface NationalCoordinationSignal {
 export class NationalCoordinationSignalProjection {
   private readonly signals: NationalCoordinationSignal[] = [];
 
+  restore(signals: NationalCoordinationSignal[]) {
+    this.signals.splice(0, this.signals.length, ...structuredClone(signals));
+  }
+
   project(event: EcosystemBusinessEvent) {
     const signal = this.toSignal(event);
     if (!signal) return undefined;
@@ -30,22 +34,46 @@ export class NationalCoordinationSignalProjection {
   }
 
   resolveByCorrelation(correlationId: string) {
+    const resolved: NationalCoordinationSignal[] = [];
     for (const signal of this.signals) {
-      if (signal.correlationId === correlationId) signal.status = "resolved";
+      if (signal.correlationId === correlationId) {
+        signal.status = "resolved";
+        resolved.push(structuredClone(signal));
+      }
     }
+    return resolved;
   }
 
   snapshot(input?: { territoryId?: string; correlationId?: string }) {
-    const filtered = this.signals.filter((signal) =>
-      (!input?.territoryId || signal.territoryIds.includes(input.territoryId) || signal.territoryIds.includes("territory-national"))
-      && (!input?.correlationId || signal.correlationId === input.correlationId),
-    );
+    const filtered = this.signals
+      .filter((signal) =>
+        (!input?.territoryId || signal.territoryIds.includes(input.territoryId) || signal.territoryIds.includes("territory-national"))
+        && (!input?.correlationId || signal.correlationId === input.correlationId),
+      )
+      .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt) || left.id.localeCompare(right.id));
+    const correlations = new Map<string, NationalCoordinationSignal[]>();
+    for (const signal of filtered) {
+      const values = correlations.get(signal.correlationId) ?? [];
+      values.push(signal);
+      correlations.set(signal.correlationId, values);
+    }
     return structuredClone({
       signals: filtered,
+      timelines: Array.from(correlations.entries()).map(([correlationId, signals]) => ({
+        correlationId,
+        startedAt: signals[0]?.occurredAt,
+        lastEventAt: signals.at(-1)?.occurredAt,
+        status: signals.some((item) => item.status === "open") ? "open" : "resolved",
+        criticalCount: signals.filter((item) => item.status === "open" && item.severity === "critical").length,
+        exposedValueXof: signals.reduce((total, item) => total + (item.valueXof ?? 0), 0),
+        exposedQuantityKg: signals.reduce((total, item) => total + (item.quantityKg ?? 0), 0),
+        steps: signals.map((item) => ({ id: item.id, eventType: item.eventType, title: item.title, severity: item.severity, status: item.status, occurredAt: item.occurredAt })),
+      })),
       metrics: {
         openCount: filtered.filter((item) => item.status === "open").length,
         criticalCount: filtered.filter((item) => item.status === "open" && item.severity === "critical").length,
         affectedTerritoryCount: new Set(filtered.flatMap((item) => item.territoryIds)).size,
+        openCorrelationCount: Array.from(correlations.values()).filter((items) => items.some((item) => item.status === "open")).length,
         exposedValueXof: filtered.reduce((total, item) => total + (item.valueXof ?? 0), 0),
         exposedQuantityKg: filtered.reduce((total, item) => total + (item.quantityKg ?? 0), 0),
       },
