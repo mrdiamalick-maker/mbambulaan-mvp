@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { authorizeDemoRequest } from "@/platform/access/request-authorization";
+import { hasRuntimeDatabase } from "@/platform/persistence/postgres-runtime-pool";
 import { getEcosystemCrisisResponseRuntime, type CrisisCommand } from "@/platform/crisis/ecosystem-crisis-response-runtime";
+import { getPersistentCrisisResponseRuntime } from "@/platform/crisis/persistent-crisis-response-runtime";
 
 const decisionCommands = new Set<CrisisCommand["type"]>([
   "qualify_crisis",
@@ -12,7 +14,11 @@ const decisionCommands = new Set<CrisisCommand["type"]>([
 export async function GET(request: Request) {
   const authorization = authorizeDemoRequest({ request, permission: "government.read" });
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
-  return NextResponse.json(getEcosystemCrisisResponseRuntime().snapshot());
+  const persistence = hasRuntimeDatabase() ? "postgres" : "memory";
+  const snapshot = persistence === "postgres"
+    ? await getPersistentCrisisResponseRuntime().snapshot()
+    : getEcosystemCrisisResponseRuntime().snapshot();
+  return NextResponse.json({ ...snapshot, persistence });
 }
 
 export async function POST(request: Request) {
@@ -25,13 +31,17 @@ export async function POST(request: Request) {
   if (!authorization.allowed) return NextResponse.json({ error: authorization.error }, { status: authorization.status });
 
   try {
-    const result = getEcosystemCrisisResponseRuntime().execute({
+    const input = {
       commandId: body.commandId,
       actorId: authorization.identity.id,
       activeTerritoryId: authorization.session.activeTerritoryId,
       command: body.command,
-    });
-    return NextResponse.json(result, { status: 201 });
+    };
+    const persistence = hasRuntimeDatabase() ? "postgres" : "memory";
+    const result = persistence === "postgres"
+      ? await getPersistentCrisisResponseRuntime().execute(input)
+      : getEcosystemCrisisResponseRuntime().execute(input);
+    return NextResponse.json({ ...result, persistence }, { status: 201 });
   } catch (error) {
     return NextResponse.json({
       error: {
