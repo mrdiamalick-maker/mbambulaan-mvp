@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: mbambulaan
+      POSTGRES_USER: mbambulaan
+      POSTGRES_PASSWORD: mbambulaan-local
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mbambulaan -d mbambulaan"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "5432:5432"
+    volumes:
+      - mbambulaan-postgres-data:/var/lib/postgresql/data
+
+  migrations:
+    image: postgres:17-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: mbambulaan-local
+    volumes:
+      - ./infra/postgres/migrations:/migrations:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        for file in /migrations/*.sql; do
+          echo "Applying $$file";
+          psql postgresql://mbambulaan@postgres:5432/mbambulaan --set ON_ERROR_STOP=1 --file "$$file";
+        done
+    restart: "no"
+
+  application:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      MBAMBULAAN_ENV: local
+      MBAMBULAAN_LOCAL_FREE_MODE: "true"
+      ALLOW_PAID_INTEGRATIONS: "false"
+      DATABASE_URL: postgresql://mbambulaan:mbambulaan-local@postgres:5432/mbambulaan
+      DATABASE_PROVIDER_MODE: self_hosted
+      OBJECT_STORAGE_ENDPOINT: http://object-storage-simulator.local
+      OBJECT_STORAGE_BUCKET: mbambulaan-local-evidence
+      OBJECT_STORAGE_REGION: sn-dakar-local
+      OBJECT_STORAGE_PROVIDER_MODE: simulated
+      SMS_PROVIDER_MODE: simulated
+      WHATSAPP_PROVIDER_MODE: simulated
+      MOBILE_MONEY_PROVIDER_MODE: simulated
+      WEATHER_PROVIDER_MODE: simulated
+      ANTIVIRUS_PROVIDER_MODE: simulated
+      TELEMETRY_PROVIDER_MODE: embedded
+      TELEMETRY_ENABLED: "false"
+      ENCRYPTION_KEY_ID: local-development-key
+      SECRETS_PROVIDER: environment
+      MIGRATION_MODE: validate
+      NATIONAL_MODE: "true"
+      PUBLIC_BASE_URL: http://localhost:3000
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  mbambulaan-postgres-data:
