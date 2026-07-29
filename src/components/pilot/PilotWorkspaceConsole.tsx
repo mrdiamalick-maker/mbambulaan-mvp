@@ -5,39 +5,41 @@ import { useState } from "react";
 import { FieldCommerceConsole } from "@/components/commercial/FieldCommerceConsole";
 import { CommercialIncidentConsole } from "@/components/commercial/CommercialIncidentConsole";
 
-type PilotTab = "operations" | "incident" | "preuves" | "decision";
+type PilotTab = "resource" | "campaign" | "operations" | "value" | "incident" | "results";
 
 const tabs: Array<{ key: PilotTab; label: string; description: string }> = [
-  { key: "operations", label: "Opérations", description: "Faire avancer la transaction" },
-  { key: "incident", label: "Incident", description: "Traiter un écart de livraison" },
-  { key: "preuves", label: "Preuves", description: "Vérifier ce qui est traçable" },
-  { key: "decision", label: "Décision sponsor", description: "Lire les résultats du pilote" },
+  { key: "resource", label: "Ressource", description: "Adapter la campagne à l'état des espèces" },
+  { key: "campaign", label: "Retour de campagne", description: "Préparer le débarquement et les services" },
+  { key: "operations", label: "Lots et débouchés", description: "Qualifier, réserver, livrer et régler" },
+  { key: "value", label: "Partage de valeur", description: "Répartir les revenus et contributions" },
+  { key: "incident", label: "Tension", description: "Traiter un écart ou une rupture" },
+  { key: "results", label: "Résultats", description: "Mesurer la valeur créée et préservée" },
 ];
 
 export function PilotWorkspaceConsole() {
-  const [activeTab, setActiveTab] = useState<PilotTab>("operations");
+  const [activeTab, setActiveTab] = useState<PilotTab>("resource");
 
   return (
     <div className="min-h-screen bg-[var(--mb-offwhite)] text-[var(--mb-neutral-900)]">
       <header className="bg-[var(--mb-navy-900)] px-5 py-7 text-white">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-7xl">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--mb-ocean-400)]">Pilote Mbàmbulaan</p>
-              <h1 className="mt-2 text-3xl font-semibold">Un seul espace pour tester le MVP</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-white/65">
-                Exécutez une transaction, traitez un incident, vérifiez les preuves puis challengez la valeur du pilote.
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--mb-ocean-400)]">Pilote transversal Mbàmbulaan</p>
+              <h1 className="mt-2 text-3xl font-semibold">Une boucle complète de coordination de la filière</h1>
+              <p className="mt-3 max-w-4xl text-sm leading-6 text-white/65">
+                De l'état de la ressource au partage de valeur : décision de pêche, retour de campagne, débarquement, services, lots, débouchés, livraison, règlement, solidarité et résultats.
               </p>
             </div>
-            <Link href="/demonstration-pilote" className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white">
-              Revenir au cadrage sponsor
+            <Link href="/ressource-et-valeur" className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white">
+              Ressource et création de valeur
             </Link>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
-        <nav className="grid gap-2 sm:grid-cols-4" aria-label="Parcours du pilote">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
+        <nav className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6" aria-label="Parcours du pilote">
           {tabs.map((tab, index) => (
             <button
               key={tab.key}
@@ -53,67 +55,125 @@ export function PilotWorkspaceConsole() {
         </nav>
 
         <div className="mt-5">
+          {activeTab === "resource" && <ResourcePanel />}
+          {activeTab === "campaign" && <CampaignPanel />}
           {activeTab === "operations" && <FieldCommerceConsole />}
+          {activeTab === "value" && <ValueSharingPanel />}
           {activeTab === "incident" && <CommercialIncidentConsole />}
-          {activeTab === "preuves" && <EvidencePanel />}
-          {activeTab === "decision" && <DecisionPanel />}
+          {activeTab === "results" && <ResultsPanel />}
         </div>
       </div>
     </div>
   );
 }
 
-function EvidencePanel() {
-  const proofs = [
-    ["Commande", "Offre, réservation, quantité, prix et organisations reliées."],
-    ["Livraison", "Opérateur sélectionné, preuve de livraison et horodatage."],
-    ["Paiement", "Montant demandé, confirmation, référence et répartition."],
-    ["Incident", "Motif, quantités acceptées, responsabilités et remboursement."],
+function ResourcePanel() {
+  const decisions = [
+    ["Sardinelle ronde", "Sous pression", "Sortie autorisée avec limitation d'effort", "Préparer glace et acheteurs pour préserver la valeur de chaque kilogramme."],
+    ["Thiof", "Critique", "Sortie ciblée reportée", "Orienter l'équipage vers une espèce autorisée et activer un soutien de continuité si nécessaire."],
+    ["Ethmalose", "Stable", "Sortie autorisée", "Développer les débouchés de transformation pour diversifier le revenu."],
   ];
+
   return (
     <section className="rounded-2xl border border-[var(--mb-neutral-200)] bg-white p-5 shadow-sm">
-      <p className="text-xs font-bold uppercase tracking-wide text-[var(--mb-ocean-700)]">Traçabilité minimale du MVP</p>
-      <h2 className="mt-2 text-2xl font-semibold">Ce que le pilote doit pouvoir prouver</h2>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--mb-neutral-500)]">
-        L’objectif n’est pas de produire un dossier administratif complexe, mais d’éviter les désaccords sur les faits essentiels de la transaction.
-      </p>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {proofs.map(([title, text]) => (
-          <article key={title} className="rounded-xl bg-[var(--mb-neutral-50)] p-4">
-            <h3 className="font-semibold">{title}</h3>
-            <p className="mt-1 text-sm leading-6 text-[var(--mb-neutral-500)]">{text}</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--mb-ocean-700)]">Décision avant sortie</p>
+      <h2 className="mt-2 text-2xl font-semibold">Pêcher selon l'état de la ressource, pas contre elle</h2>
+      <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--mb-neutral-500)]">La rareté ne bloque pas Mbàmbulaan. Elle déclenche une meilleure décision : réduire l'effort quand nécessaire, protéger le revenu et augmenter la valeur créée par les volumes réellement disponibles.</p>
+      <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        {decisions.map(([species, status, decision, action]) => (
+          <article key={species} className="rounded-xl border border-[var(--mb-neutral-200)] p-4">
+            <p className="text-xs font-bold uppercase text-[var(--mb-ocean-700)]">{status}</p>
+            <h3 className="mt-2 text-lg font-semibold">{species}</h3>
+            <p className="mt-3 text-sm font-semibold">{decision}</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--mb-neutral-500)]">{action}</p>
           </article>
         ))}
       </div>
-      <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-        Pour le pilote, les paiements et notifications restent simulés. Une intégration réelle ne sera engagée qu’après validation du sponsor et du partenaire opérationnel.
-      </p>
     </section>
   );
 }
 
-function DecisionPanel() {
-  const decisions = [
-    ["Utilité", "Les acteurs terminent-ils plus facilement la transaction ?"],
-    ["Adoption", "Peuvent-ils avancer avec peu d’assistance ?"],
-    ["Confiance", "Les preuves réduisent-elles les contestations ?"],
-    ["Économie", "Qui paie, combien et pour quelle valeur durable ?"],
+function CampaignPanel() {
+  const steps = [
+    ["Retour annoncé", "Pirogue Ndiambour 12", "Arrivée prévue à 16 h 40 · 820 kg estimés"],
+    ["Site préparé", "Quai de Fass Boye", "Créneau de débarquement confirmé · peseur mobilisé"],
+    ["Services réservés", "Glace, manutention et transport", "900 kg de glace · 4 manutentionnaires · 1 véhicule frigorifique"],
+    ["Débarquement organisé", "Lotissement prévu", "Vente fraîche prioritaire · surplus orienté vers transformation"],
   ];
+
   return (
     <section className="rounded-2xl border border-[var(--mb-neutral-200)] bg-white p-5 shadow-sm">
-      <p className="text-xs font-bold uppercase tracking-wide text-[var(--mb-ocean-700)]">Go / Ajuster / Stop</p>
-      <h2 className="mt-2 text-2xl font-semibold">Décision attendue à la fin du pilote</h2>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {decisions.map(([title, question]) => (
-          <article key={title} className="rounded-xl border border-[var(--mb-neutral-200)] p-4">
-            <h3 className="font-semibold">{title}</h3>
-            <p className="mt-1 text-sm leading-6 text-[var(--mb-neutral-500)]">{question}</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--mb-ocean-700)]">Coordination avant débarquement</p>
+      <h2 className="mt-2 text-2xl font-semibold">Transformer le retour de campagne en opération préparée</h2>
+      <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        {steps.map(([title, owner, detail], index) => (
+          <article key={title} className="rounded-xl bg-[var(--mb-neutral-50)] p-4">
+            <span className="font-mono text-xs font-bold text-[var(--mb-ocean-700)]">0{index + 1}</span>
+            <h3 className="mt-2 font-semibold">{title}</h3>
+            <p className="mt-2 text-sm font-semibold">{owner}</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--mb-neutral-500)]">{detail}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ValueSharingPanel() {
+  const allocations = [
+    ["Valeur du lot réglé", "1 845 000 FCFA", "Premier acheteur"],
+    ["Part nette pêcheur et équipage", "1 420 000 FCFA", "Répartition selon les règles de campagne"],
+    ["Services opérationnels", "265 000 FCFA", "Glace, manutention, transport et froid"],
+    ["Contribution coopérative", "90 000 FCFA", "Services mutualisés et accompagnement"],
+    ["Fonds commun local", "35 000 FCFA", "Continuité, soutien et équipement collectif"],
+    ["Rémunération Mbàmbulaan", "35 000 FCFA", "Coordination, suivi et information de pilotage"],
+  ];
+
+  return (
+    <section className="rounded-2xl border border-[var(--mb-neutral-200)] bg-white p-5 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--mb-ocean-700)]">Flux financiers et communautaires</p>
+      <h2 className="mt-2 text-2xl font-semibold">Rendre visible la destination de chaque franc créé</h2>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {allocations.map(([label, amount, beneficiary]) => (
+          <article key={label} className="rounded-xl border border-[var(--mb-neutral-200)] p-4">
+            <p className="text-xs uppercase tracking-wide text-[var(--mb-neutral-400)]">{label}</p>
+            <p className="mt-2 text-xl font-semibold">{amount}</p>
+            <p className="mt-2 text-sm text-[var(--mb-neutral-500)]">{beneficiary}</p>
+          </article>
+        ))}
+      </div>
+      <p className="mt-5 rounded-xl border border-[var(--mb-neutral-200)] bg-[var(--mb-neutral-50)] p-4 text-sm leading-6">Mbàmbulaan est rémunéré pour un service réel de coordination. La plateforme ne gagne pas davantage lorsque la ressource est surexploitée ou lorsqu'un acteur s'endette plus longtemps.</p>
+    </section>
+  );
+}
+
+function ResultsPanel() {
+  const results = [
+    ["Pertes évitées", "126 kg", "Orientation rapide vers froid et transformation"],
+    ["Valeur nette additionnelle", "218 000 FCFA", "Meilleure qualité et réduction de l'urgence de vente"],
+    ["Effort de pêche évité", "1 sortie ciblée", "Report d'une sortie sur une espèce critique"],
+    ["Revenu protégé", "84 000 FCFA", "Diversification et mécanisme de continuité"],
+    ["Contribution locale", "35 000 FCFA", "Fonds commun de la communauté"],
+    ["Temps de coordination", "-42 %", "Informations et engagements partagés entre acteurs"],
+  ];
+
+  return (
+    <section className="rounded-2xl border border-[var(--mb-neutral-200)] bg-white p-5 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--mb-ocean-700)]">Résultats du parcours</p>
+      <h2 className="mt-2 text-2xl font-semibold">Mesurer ce qui change réellement dans la filière</h2>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {results.map(([label, value, explanation]) => (
+          <article key={label} className="rounded-xl bg-[var(--mb-neutral-50)] p-4">
+            <p className="text-xs uppercase tracking-wide text-[var(--mb-neutral-400)]">{label}</p>
+            <p className="mt-2 text-2xl font-semibold text-[var(--mb-navy-900)]">{value}</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--mb-neutral-500)]">{explanation}</p>
           </article>
         ))}
       </div>
       <div className="mt-5 flex flex-wrap gap-3">
-        <Link href="/rentabilite" className="rounded-lg bg-[var(--mb-navy-800)] px-4 py-3 text-sm font-bold text-white">Voir la viabilité économique</Link>
-        <Link href="/atlas" className="rounded-lg border border-[var(--mb-neutral-300)] px-4 py-3 text-sm font-bold">Voir la coordination globale</Link>
+        <Link href="/government" className="rounded-lg bg-[var(--mb-navy-800)] px-4 py-3 text-sm font-bold text-white">Voir la lecture institutionnelle</Link>
+        <Link href="/development" className="rounded-lg border border-[var(--mb-neutral-300)] px-4 py-3 text-sm font-bold">Voir les programmes de développement</Link>
+        <Link href="/finance" className="rounded-lg border border-[var(--mb-neutral-300)] px-4 py-3 text-sm font-bold">Voir le financement éthique</Link>
       </div>
     </section>
   );
