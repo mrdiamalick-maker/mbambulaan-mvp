@@ -8,12 +8,21 @@ Le parcours de référence est :
 
 Les données incluses sont déterministes, simulées et non officielles.
 
+## Démonstration publique
+
+- URL de recette : [https://mbambulaan-ecosysteme-v1.vercel.app](https://mbambulaan-ecosysteme-v1.vercel.app) ;
+- déploiement de référence : Vercel, 29 juillet 2026 ;
+- commit fonctionnel du portage : `5baa6bd` ;
+- accès sans compte Vercel, mot de passe ou authentification ChatGPT ;
+- données simulées, réinitialisables depuis l’application ;
+- ancienne cible Sites conservée comme historique de build, mais non utilisée pour la recette.
+
 ## Stack
 
 - Next.js 15, React 19, TypeScript strict et Tailwind CSS ;
 - App Router et routes API internes ;
 - domaine partagé dans `src/domain` ;
-- persistance PostgreSQL activable, avec repli mémoire réservé à la démonstration ;
+- persistance PostgreSQL activable, avec état navigateur réservé à la démonstration ;
 - session signée, permissions serveur et comptes de recette ;
 - PWA minimale et brouillon terrain local ;
 - tests unitaires, métier, permissions, intégrité et smoke E2E.
@@ -21,7 +30,7 @@ Les données incluses sont déterministes, simulées et non officielles.
 ## Lancer localement
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -69,15 +78,18 @@ Variables :
 ```bash
 DATABASE_URL=postgres://...
 SESSION_SECRET=...
+DEMO_MODE=true
 ```
 
-Sans `DATABASE_URL`, le produit conserve un snapshot en mémoire pour permettre une démonstration immédiate. Avec PostgreSQL, la couche repository utilise :
+`SESSION_SECRET` est obligatoire sur un environnement public. `DEMO_MODE=true` autorise uniquement les comptes de recette et l’OTP local `246810` ; aucune transmission SMS n’est effectuée.
+
+Sans `DATABASE_URL`, le produit fonctionne en démonstration déterministe : les commandes restent validées par l’API et l’état de la session est conservé dans le stockage local du navigateur. Ce mode résiste aux fonctions serverless sans supposer une mémoire serveur partagée. Avec PostgreSQL, la couche repository utilise :
 
 - `mbambulaan_tenant_state` ;
 - `mbambulaan_command_log` pour l’idempotence ;
 - `mbambulaan_outbox` pour préparer les intégrations futures.
 
-La migration reproductible est `db/migrations/001_initial.sql`. Le bouton **Réinitialiser** et `POST /api/demo/reset` restaurent le seed.
+La migration reproductible est `db/migrations/001_initial.sql`. Le bouton **Réinitialiser** et `POST /api/demo/reset` restaurent le seed. La réinitialisation du navigateur peut aussi être forcée en supprimant la clé `mbambulaan-demo-state-v1` du stockage local.
 
 ## Validation
 
@@ -87,6 +99,8 @@ npm run typecheck
 npm test
 npm run build
 npm run test:e2e
+SMOKE_BASE_URL=https://mbambulaan-ecosysteme-v1.vercel.app npm run test:e2e
+git diff --check
 ```
 
 Le guide complet de recette est [docs/PRODUCT_ACCEPTANCE_TEST.md](docs/PRODUCT_ACCEPTANCE_TEST.md).

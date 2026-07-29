@@ -2,8 +2,12 @@
 
 ## Accès
 
-- URL Sites privée : `https://mbambulaan-ecosysteme-v1.malick-dia-1822.chatgpt.site` ;
-- accès : authentification ChatGPT du propriétaire du site ;
+- URL Vercel publique : `https://mbambulaan-ecosysteme-v1.vercel.app` ;
+- accès validé sans authentification ChatGPT, protection Vercel ou mot de passe ;
+- date de déploiement et de recette : 29 juillet 2026 ;
+- commit fonctionnel du portage : `5baa6bd` ;
+- mode : démonstration déterministe, données simulées et non officielles ;
+- ancienne URL Sites : historique de build uniquement, non utilisée pour la recette ;
 - site public : `/` ;
 - Atlas public : `/atlas` ;
 - offres : `/offres` ;
@@ -30,6 +34,14 @@ La page `/connexion` ouvre directement les comptes de démonstration.
 | Partenaire | Résilience littorale | Multi-territoires | Partenaire démo | Initiative et résultats | Instruire la chaîne du froid |
 
 OTP local alternatif : `246810`.
+
+Variables Vercel :
+
+- `SESSION_SECRET` : secret sensible configuré dans Vercel, jamais committé ;
+- `DEMO_MODE=true` : comptes de recette et OTP local autorisés ;
+- `DATABASE_URL` : optionnelle, absente de la démonstration publique.
+
+En l’absence de base, l’état est conservé dans le navigateur sous `mbambulaan-demo-state-v1`. Les commandes restent contrôlées par les permissions serveur. Le bouton **Réinitialiser** restaure le seed.
 
 ## Parcours opérationnel
 
@@ -113,14 +125,51 @@ Résultat attendu : sortie, débarquement, lots, opportunité, coordination et r
 - interface : bouton **Réinitialiser** ;
 - API : `POST /api/demo/reset` ;
 - seed : `src/data/demo-state.ts`.
+- navigateur : suppression optionnelle de `localStorage["mbambulaan-demo-state-v1"]`.
 
 La réinitialisation restaure le scénario et supprime les actions temporaires.
+
+## Résultats de la recette Vercel
+
+| Scénario obligatoire | Résultat |
+|---|---|
+| Retour et débarquement | Validé : retour, arrivée, débarquement, pesée, lots, opportunité et résultat logistique |
+| Coordination commerciale | Validé : matching explicable, engagement humain, exécution et valorisation |
+| Infrastructure | Validé : qualification, priorité, coordination, intervention, attente, reprise, résultat et clôture |
+| Community | Validé : publication, transformation en situation et continuité d’audit |
+| Atlas | Validé : public/professionnel, six couches, territoire, espèce, période, source, fraîcheur et action liée |
+| Institution | Validé : briefing, priorités, sources, confiance, résultats et rapport imprimable |
+
+Contrôles techniques :
+
+- `npm ci` : OK ;
+- `npm run lint` : OK ;
+- `npm run typecheck` : OK ;
+- `npm test` : 8/8 ;
+- `npm run build` : OK, 32 routes ;
+- `npm run test:e2e` : OK en local ;
+- `SMOKE_BASE_URL=https://mbambulaan-ecosysteme-v1.vercel.app npm run test:e2e` : OK sur Vercel ;
+- `git diff --check` : OK ;
+- aucune erreur console bloquante pendant les captures ;
+- aucun débordement horizontal à 1440 × 1100 et 390 × 844.
+
+Captures finales dans `docs/screenshots` :
+
+- `landing-vercel-desktop.jpg` ;
+- `atlas-vercel-desktop.jpg` ;
+- `operations-vercel-desktop.jpg` ;
+- `pilotage-institutionnel-vercel-desktop.jpg` ;
+- `offres-vercel-desktop.jpg` ;
+- `demo-vercel-mobile.jpg` ;
+- `operations-vercel-mobile.jpg` ;
+- `atlas-vercel-mobile.jpg`.
 
 ## Limites
 
 - données simulées et non officielles ;
 - carte structurée, non SIG réglementaire ;
-- repli mémoire non adapté à la production ;
+- état navigateur de démonstration non adapté à la production ;
+- le mode navigateur de démonstration n’est ni partagé entre appareils ni une source de vérité officielle ;
 - aucune transmission externe ;
 - aucune facturation réelle ;
 - aucune certification ;

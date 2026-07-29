@@ -9,6 +9,8 @@ Site public / Démo / Application
                |
          ProductProvider
                |
+ État navigateur démo / PostgreSQL
+               |
    Routes API + session signée
                |
       Permissions serveur
@@ -17,7 +19,7 @@ Site public / Démo / Application
                |
  Repository + audit + outbox
                |
- PostgreSQL ou tenant démo mémoire
+ PostgreSQL ou état démo navigateur
 ```
 
 ## Frontières
@@ -28,6 +30,7 @@ Site public / Démo / Application
 - `src/server/permissions.ts` : mandat par rôle ;
 - `src/server/session.ts` : session signée ;
 - `src/server/repository.ts` : persistance, idempotence et outbox ;
+- `src/components/providers/ProductProvider.tsx` : état de session, stockage local de démonstration et appels de commandes ;
 - `src/components` : affichage et orchestration d’interactions ;
 - `src/app` : routes publiques, professionnelles et API.
 
@@ -65,11 +68,20 @@ Le scénario infrastructure conserve en parallèle la machine d’état :
 
 `reçue → qualification → priorisée → coordination → intervention → attente éventuelle → résultat → réglée`.
 
-## Persistance progressive
+## Persistance progressive et Vercel
 
-La V1 stocke un snapshot JSONB par tenant, un journal idempotent des commandes et une outbox. Ce compromis garantit :
+La cible de recette officielle est Vercel avec le runtime Next.js natif. OpenNext, Wrangler et Cloudflare ne participent pas au runtime Vercel.
+
+Deux modes sont disponibles :
+
+1. sans `DATABASE_URL`, `/api/state` fournit le seed et le navigateur conserve son snapshot dans `localStorage` ; chaque commande transmet ce snapshot à l’API, qui contrôle le rôle puis applique les règles du domaine avant de retourner l’état suivant ;
+2. avec `DATABASE_URL`, le repository stocke un snapshot JSONB par tenant, un journal idempotent des commandes et une outbox.
+
+Ce compromis garantit :
 
 - une démonstration sans service externe ;
+- un état cohérent pendant la session malgré l’isolation des fonctions serverless ;
+- une réinitialisation déterministe ;
 - des migrations reproductibles ;
 - une transition future vers des tables relationnelles par sous-domaine ;
 - des contrats de commandes stables.
@@ -82,8 +94,9 @@ Les données de démonstration restent séparées par `tenant-demo`.
 - l’API remplace l’`actorId` reçu par celui de la session ;
 - chaque commande est contrôlée selon le rôle ;
 - la session est signée HMAC ;
-- le secret de secours est réservé à la démonstration ;
-- l’OTP local est désactivé en production ;
+- `SESSION_SECRET` est configuré hors dépôt sur Vercel ;
+- l’OTP local est disponible en production uniquement avec `DEMO_MODE=true` ;
+- l’état navigateur est falsifiable par l’utilisateur et n’est donc jamais assimilé à une donnée officielle ;
 - aucune donnée sensible réelle n’est incluse.
 
 ## Extension préparée

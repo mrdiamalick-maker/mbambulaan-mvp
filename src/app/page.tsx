@@ -16,6 +16,7 @@ import {
   Store
 } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
+import { createDemoState } from "@/data/demo-state";
 
 const pillars = [
   ["Atlas", "Territoires, sites, quais et capacités", Globe2],
@@ -33,6 +34,18 @@ const pillars = [
 ] as const;
 
 export default function HomePage() {
+  const state = createDemoState();
+  const indicators = [
+    ["Pirogues suivies", state.vessels.length.toLocaleString("fr-FR")],
+    ["Retours attendus", state.trips.filter((trip) => trip.status !== "debarquee").length.toLocaleString("fr-FR")],
+    ["Débarquements", state.landings.length.toLocaleString("fr-FR")],
+    ["Espèces référencées", state.species.length.toLocaleString("fr-FR")],
+    ["Volume observé", `${(state.landings.reduce((sum, landing) => sum + landing.totalWeightKg, 0) / 1000).toFixed(1)} t`],
+    ["Tensions ouvertes", state.situations.filter((situation) => situation.status !== "reglee").length.toLocaleString("fr-FR")],
+    ["Opportunités", state.opportunities.filter((opportunity) => opportunity.status !== "executee").length.toLocaleString("fr-FR")],
+    ["Capacités critiques", state.infrastructures.filter((infrastructure) => infrastructure.status !== "operationnelle").length.toLocaleString("fr-FR")]
+  ];
+
   return (
     <main className="min-h-screen bg-white">
       <div className="bg-[#062d36] text-white">
@@ -59,6 +72,20 @@ export default function HomePage() {
           </div>
         </section>
       </div>
+
+      <section className="border-b border-[#d8e1e2] bg-white" aria-label="Indicateurs de démonstration">
+        <div className="mx-auto grid max-w-[1500px] grid-cols-2 sm:grid-cols-4 xl:grid-cols-8">
+          {indicators.map(([label, value]) => (
+            <div key={label} className="min-w-0 border-b border-r border-[#d8e1e2] px-4 py-5 last:border-r-0 sm:py-6 xl:border-b-0">
+              <p className="text-2xl font-bold text-[#062d36]">{value}</p>
+              <p className="mt-1 text-xs leading-5 text-[#60737a]">{label}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mx-auto max-w-[1500px] px-5 pb-4 text-xs text-[#60737a] md:px-10">
+          Indicateurs issus du jeu de données déterministe de démonstration. Aucune donnée officielle ou temps réel.
+        </p>
+      </section>
 
       <section className="border-b border-[#d8e1e2] bg-[#f4f7f6]">
         <div className="mx-auto grid max-w-7xl md:grid-cols-3">
