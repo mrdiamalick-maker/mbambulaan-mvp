@@ -1,96 +1,100 @@
-# Architecture — Mbàmbulaan MVP
+# Architecture de l’écosystème Mbàmbulaan
 
-## Vue d’ensemble
+## Principe
 
-Le MVP est une application Next.js avec données locales mockées.
-
-L’objectif actuel n’est pas de créer une architecture finale de production, mais de séparer correctement :
-
-- l’interface ;
-- les données ;
-- les règles métier ;
-- les moteurs d’intelligence métier.
-
-## Structure cible actuelle
+Mbàmbulaan est un produit unique configurable. Les espaces par rôle sont des projections du même domaine et non des applications distinctes.
 
 ```text
-src/
-  app/
-    arrivages/
-    besoins/
-    opportunites/
-    transactions/
-    notifications/
-    dashboard/
-    quais/
-    coordination/
-    demo/
-    espaces/
-  components/
-    arrivages/
-    besoins/
-    opportunites/
-    transactions/
-    notifications/
-    dashboard/
-    quais/
-    coordination/
-    demo/
-    espaces/
-  data/
-    arrivages.json
-    besoins.json
-    demo.json
-  lib/
-    coordination.ts
-    matching.ts
-    recommendation.ts
-    trust.ts
-    impact.ts
-    tension.ts
-    prioritization.ts
-    alerts.ts
-    traceability.ts
-    reference.ts
+Site public / Démo / Application
+               |
+         ProductProvider
+               |
+   Routes API + session signée
+               |
+      Permissions serveur
+               |
+     Commandes du domaine
+               |
+ Repository + audit + outbox
+               |
+ PostgreSQL ou tenant démo mémoire
 ```
 
-## Principes d’architecture
+## Frontières
 
-### 1. Les pages orchestrent
+- `src/domain/types.ts` : objets partagés et commandes ;
+- `src/domain/rules.ts` : transitions, validations, matching simple et traces ;
+- `src/data/demo-state.ts` : seed déterministe interconnecté ;
+- `src/server/permissions.ts` : mandat par rôle ;
+- `src/server/session.ts` : session signée ;
+- `src/server/repository.ts` : persistance, idempotence et outbox ;
+- `src/components` : affichage et orchestration d’interactions ;
+- `src/app` : routes publiques, professionnelles et API.
 
-Les fichiers `src/app/**/page.tsx` doivent rester simples.
+La logique métier essentielle ne réside pas dans les composants.
 
-Ils chargent les données et passent les résultats aux composants.
+## Domaine partagé
 
-### 2. Les composants affichent
+Le modèle relie :
 
-Les composants React doivent gérer l’UX et l’affichage.
+- identité : acteurs, organisations, rôles, plans et entitlements ;
+- géographie : territoires, sites, quais, marchés et zones ;
+- actifs : pirogues, immatriculations et infrastructures ;
+- opérations : sorties, retours, débarquements, pesées, captures et lots ;
+- coordination : signaux, situations, besoins, capacités, opportunités, engagements et résultats ;
+- connaissance : espèces, prix, rareté, sources et confiance ;
+- durabilité : provenance, pratique, complétude et recommandation ;
+- Community : publications, catégories et transformation en situation ;
+- pilotage : rapports, métriques, limites et audit.
 
-Ils ne doivent pas contenir la logique métier principale.
+## Parcours profond
 
-### 3. Les moteurs métier calculent
+Le scénario Joal commence par une pirogue en mer et une machine à glace indisponible. Les commandes font évoluer les mêmes objets :
 
-Les modules dans `src/lib` portent la logique métier.
+1. annonce de retour ;
+2. arrivée au quai ;
+3. enregistrement du débarquement ;
+4. confirmation de la pesée ;
+5. création des lots ;
+6. détection explicable d’une opportunité ;
+7. engagement humain ;
+8. résultat logistique ;
+9. rapport et apprentissage.
 
-Exemples :
+Le scénario infrastructure conserve en parallèle la machine d’état :
 
-- `coordination.ts` : coordination générale ;
-- `recommendation.ts` : recommandation ;
-- `trust.ts` : score de confiance ;
-- `impact.ts` : indicateurs d’impact ;
-- `tension.ts` : tension territoriale ;
-- `prioritization.ts` : priorités métier ;
-- `alerts.ts` : alertes ;
-- `traceability.ts` : traçabilité.
+`reçue → qualification → priorisée → coordination → intervention → attente éventuelle → résultat → réglée`.
 
-## Évolution vers une V1
+## Persistance progressive
 
-À terme, les fichiers JSON pourront être remplacés par :
+La V1 stocke un snapshot JSONB par tenant, un journal idempotent des commandes et une outbox. Ce compromis garantit :
 
-- une API ;
-- une base de données ;
-- un système d’authentification ;
-- un back-office ;
-- des intégrations partenaires.
+- une démonstration sans service externe ;
+- des migrations reproductibles ;
+- une transition future vers des tables relationnelles par sous-domaine ;
+- des contrats de commandes stables.
 
-La séparation actuelle doit permettre cette évolution sans réécrire toute l’interface.
+Les données de démonstration restent séparées par `tenant-demo`.
+
+## Sécurité
+
+- le navigateur ne choisit jamais l’identité portée par l’audit ;
+- l’API remplace l’`actorId` reçu par celui de la session ;
+- chaque commande est contrôlée selon le rôle ;
+- la session est signée HMAC ;
+- le secret de secours est réservé à la démonstration ;
+- l’OTP local est désactivé en production ;
+- aucune donnée sensible réelle n’est incluse.
+
+## Extension préparée
+
+Sans les simuler comme terminées, l’outbox, les partenaires et les entitlements préparent :
+
+- paiement, assurance et financement via partenaires habilités ;
+- stockage objet terrain ;
+- interopérabilité ;
+- API publique gouvernée ;
+- moteur prédictif explicable ;
+- application mobile native.
+
+Ces extensions ne doivent pas modifier le domaine partagé ni fragmenter le produit.

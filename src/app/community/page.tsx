@@ -1,0 +1,9 @@
+import Link from "next/link";
+import { ArrowRight, MessageSquareText } from "lucide-react";
+import { PublicHeader } from "@/components/public/PublicHeader";
+import { createDemoState } from "@/data/demo-state";
+
+export default function PublicCommunityPage() {
+  const state = createDemoState();
+  return <main className="min-h-screen bg-[#f4f7f6]"><PublicHeader /><section className="bg-[#062d36] px-5 py-14 text-white md:px-10"><div className="mx-auto max-w-7xl"><MessageSquareText className="text-[#36c6b1]" /><h1 className="mt-4 max-w-4xl text-4xl font-bold md:text-5xl">Community organise les échanges utiles à la filière.</h1><p className="mt-4 max-w-3xl text-lg leading-8 text-[#c7dde1]">Besoins, capacités, alertes et apprentissages peuvent devenir des situations suivies. La vue publique reste limitée aux contenus partageables.</p></div></section><section className="mx-auto max-w-5xl px-5 py-12 md:px-10"><div className="grid gap-4 md:grid-cols-2">{state.communityPosts.filter((item) => item.category === "apprentissage" || item.category === "opportunite").map((post) => <article key={post.id} className="surface p-5"><span className="rounded-full bg-[#eaf8fa] px-2.5 py-1 text-xs font-bold text-[#075466]">{post.category}</span><h2 className="mt-4 text-lg font-bold">{post.title}</h2><p className="mt-2 text-sm leading-6 text-[#60737a]">{post.body}</p></article>)}</div><div className="mt-8 border border-[#b9dfe4] bg-[#eaf8fa] p-5"><p className="font-bold">L’espace professionnel permet d’agir.</p><p className="mt-2 text-sm text-[#60737a]">Créer, commenter, signaler, modérer et transformer une publication en situation opérationnelle.</p><Link href="/connexion" className="mt-4 inline-flex items-center gap-2 font-bold text-[#075466]">Accès professionnel <ArrowRight size={16} /></Link></div></section></main>;
+}
