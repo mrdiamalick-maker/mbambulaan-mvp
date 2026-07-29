@@ -1,0 +1,58 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { readFileSync } from "node:fs";
+import { createDemoState } from "../src/data/demo-state";
+import { validateSituation } from "../src/domain/rules";
+
+test("le tenant de démonstration relie les objets sans référence orpheline", () => {
+  const state = createDemoState();
+  const territoryIds = new Set(state.territories.map((item) => item.id));
+  const actorIds = new Set(state.actors.map((item) => item.id));
+  const organizationIds = new Set(state.organizations.map((item) => item.id));
+  const siteIds = new Set(state.sites.map((item) => item.id));
+  const vesselIds = new Set(state.vessels.map((item) => item.id));
+  const tripIds = new Set(state.trips.map((item) => item.id));
+  const landingIds = new Set(state.landings.map((item) => item.id));
+  const speciesIds = new Set(state.species.map((item) => item.id));
+  for (const situation of state.situations) {
+    assert.ok(territoryIds.has(situation.territoryId));
+    if (situation.responsibleId) assert.ok(actorIds.has(situation.responsibleId));
+    validateSituation(situation);
+  }
+  for (const initiative of state.initiatives) {
+    initiative.territoryIds.forEach((id) => assert.ok(territoryIds.has(id)));
+    initiative.funding.forEach((fund) => assert.ok(actorIds.has(fund.partnerId)));
+  }
+  state.actors.forEach((item) => assert.ok(organizationIds.has(item.organizationId)));
+  state.vessels.forEach((item) => {
+    assert.ok(siteIds.has(item.homeSiteId));
+    assert.ok(actorIds.has(item.captainId));
+  });
+  state.trips.forEach((item) => assert.ok(vesselIds.has(item.vesselId)));
+  state.landings.forEach((item) => {
+    assert.ok(tripIds.has(item.tripId));
+    assert.ok(siteIds.has(item.siteId));
+    item.catches.forEach((line) => assert.ok(speciesIds.has(line.speciesId)));
+  });
+  state.lots.forEach((item) => {
+    assert.ok(landingIds.has(item.landingId));
+    assert.ok(speciesIds.has(item.speciesId));
+  });
+  state.opportunities.forEach((item) => {
+    assert.ok(state.lots.some((lot) => lot.id === item.lotId));
+    assert.ok(state.needs.some((need) => need.id === item.needId));
+    assert.ok(item.reasons.length > 0);
+  });
+  state.plans.forEach((plan) => {
+    assert.ok(plan.capabilities.length > 0);
+    assert.ok(plan.value.length > 0);
+  });
+});
+
+test("la migration contient le stockage tenant et l'idempotence des commandes", () => {
+  const sql = readFileSync(new URL("../db/migrations/001_initial.sql", import.meta.url), "utf8");
+  assert.match(sql, /mbambulaan_tenant_state/);
+  assert.match(sql, /mbambulaan_command_log/);
+  assert.match(sql, /mbambulaan_outbox/);
+  assert.match(sql, /idempotency_key text primary key/);
+});

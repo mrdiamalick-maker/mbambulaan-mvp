@@ -1,270 +1,455 @@
-export type EntityId = string;
-export type ISODateTime = string;
+export type Role =
+  | "administrateur"
+  | "operateur"
+  | "capitaine"
+  | "mareyeur"
+  | "transformateur"
+  | "prestataire"
+  | "gestionnaire_organisation"
+  | "coordinateur"
+  | "institution"
+  | "partenaire";
 
-export type RecordStatus = "active" | "inactive" | "archived";
-export type ConfidenceLevel = "declared" | "confirmed" | "verified";
-
-export type ActorType =
-  | "fisher"
-  | "captain"
-  | "landing_site_agent"
-  | "weigher"
-  | "buyer"
-  | "processor"
-  | "transporter"
-  | "cold_chain_operator"
-  | "territorial_coordinator"
-  | "institutional_decision_maker";
+export type TrustLevel = "declaree" | "observee" | "verifiee" | "consolidee";
+export type Visibility = "organisation" | "partenaires" | "publique";
+export type Priority = "faible" | "moyenne" | "haute" | "critique";
+export type ActionStatus = "a_faire" | "en_cours" | "bloquee" | "terminee";
+export type SituationStatus =
+  | "recue"
+  | "qualification"
+  | "priorisee"
+  | "coordination"
+  | "intervention"
+  | "attente"
+  | "resultat"
+  | "reglee";
 
 export interface Actor {
-  id: EntityId;
+  id: string;
   name: string;
-  actorType: ActorType;
-  organizationId?: EntityId;
-  territoryId: EntityId;
-  phone?: string;
-  status: RecordStatus;
+  role: Role;
+  organizationId: string;
+  territoryIds: string[];
+  phone: string;
+  verified: boolean;
 }
 
-export type OrganizationType =
-  | "fisher_organization"
-  | "landing_site_management"
-  | "buyer"
-  | "processor"
-  | "transport_provider"
-  | "cold_chain_provider"
-  | "public_authority"
-  | "community_organization";
-
 export interface Organization {
-  id: EntityId;
+  id: string;
   name: string;
-  organizationType: OrganizationType;
-  territoryId: EntityId;
-  status: RecordStatus;
+  type:
+    | "service_public"
+    | "collectivite"
+    | "organisation_professionnelle"
+    | "entreprise"
+    | "partenaire";
 }
 
 export interface Territory {
-  id: EntityId;
+  id: string;
   name: string;
   region: string;
-  status: RecordStatus;
+  latitude: number;
+  longitude: number;
+  activity: "stable" | "vigilance" | "critique";
+  siteIds: string[];
+  infrastructureIds: string[];
 }
 
-export type LandingSiteOperationalStatus =
-  | "operational"
-  | "constrained"
-  | "saturated"
-  | "unavailable";
-
-export interface LandingSiteCapacitySummary {
-  iceKgAvailable?: number;
-  coldStorageKgAvailable?: number;
-  transportKgAvailable?: number;
-  processingKgAvailable?: number;
-}
-
-export interface LandingSite {
-  id: EntityId;
+export interface Site {
+  id: string;
+  territoryId: string;
   name: string;
-  territoryId: EntityId;
-  managerOrganizationId: EntityId;
-  capacities: LandingSiteCapacitySummary;
-  operationalStatus: LandingSiteOperationalStatus;
+  type: "quai" | "marche" | "zone_peche";
+  latitude: number;
+  longitude: number;
+  source: string;
 }
 
-export type VesselStatus = "operational" | "maintenance" | "inactive";
+export interface Infrastructure {
+  id: string;
+  territoryId: string;
+  siteId: string;
+  organizationId: string;
+  name: string;
+  type: "fabrique_glace" | "chambre_froide" | "quai" | "marche" | "balance" | "transport" | "transformation";
+  status: "operationnelle" | "fragile" | "indisponible";
+  theoreticalCapacity: number;
+  availableCapacity: number;
+  unit: string;
+  trust: TrustLevel;
+  updatedAt: string;
+}
 
 export interface Vessel {
-  id: EntityId;
+  id: string;
   name: string;
-  registrationNumber: string;
-  ownerOrganizationId: EntityId;
-  homeLandingSiteId: EntityId;
-  status: VesselStatus;
+  registration: string;
+  ownerId: string;
+  captainId: string;
+  homeSiteId: string;
+  type: "pirogue_artisanale";
+  trust: TrustLevel;
 }
 
-export interface CatchEstimate {
-  species: string;
-  estimatedWeightKg: number;
+export interface FishingTrip {
+  id: string;
+  vesselId: string;
+  captainId: string;
+  departureAt: string;
+  expectedReturnAt: string;
+  announcedReturnAt?: string;
+  arrivedAt?: string;
+  status: "en_mer" | "retour_annonce" | "arrivee_confirmee" | "debarquee";
+  zone: string;
+  crewCount: number;
+  source: string;
 }
 
-export type ServiceNeedType = "ice" | "cold_storage" | "transport" | "handling";
-
-export interface ServiceNeed {
-  type: ServiceNeedType;
-  quantity?: number;
-  unit?: "kg" | "vehicle" | "team";
-  note?: string;
+export interface Species {
+  id: string;
+  name: string;
+  family: string;
+  seasonality: string;
+  sensitivity: "stable" | "surveillance" | "sensible";
+  indicativePriceFcfaKg: number;
 }
 
-export type ExpectedReturnStatus =
-  | "announced"
-  | "approaching"
-  | "arrived"
-  | "cancelled";
-
-export interface ExpectedReturn {
-  id: EntityId;
-  vesselId: EntityId;
-  expectedLandingSiteId: EntityId;
-  expectedAt: ISODateTime;
-  estimatedCatch: CatchEstimate[];
-  serviceNeeds: ServiceNeed[];
-  status: ExpectedReturnStatus;
-  createdByActorId: EntityId;
-  createdAt: ISODateTime;
+export interface CatchLine {
+  id: string;
+  speciesId: string;
+  quantityKg: number;
+  quality: "A" | "B" | "C";
+  productForm: "entier_frais" | "filet" | "transforme";
 }
-
-export type LandingStatus = "draft" | "confirmed" | "cancelled";
 
 export interface Landing {
-  id: EntityId;
-  expectedReturnId?: EntityId;
-  vesselId: EntityId;
-  landingSiteId: EntityId;
-  landedAt: ISODateTime;
-  status: LandingStatus;
-  confirmedByActorId: EntityId;
-}
-
-export type WeighingMethod = "digital_scale" | "mechanical_scale" | "estimated";
-
-export interface Weighing {
-  id: EntityId;
-  landingId: EntityId;
-  measuredAt: ISODateTime;
+  id: string;
+  tripId: string;
+  siteId: string;
+  arrivedAt?: string;
+  weighedAt?: string;
+  status: "attendu" | "arrive" | "pese" | "lots_crees";
+  catches: CatchLine[];
   totalWeightKg: number;
-  method: WeighingMethod;
-  confidenceLevel: ConfidenceLevel;
-  verifiedByActorId?: EntityId;
+  weighingSource: string;
+  trust: TrustLevel;
 }
-
-export type QualityGrade = "premium" | "standard" | "processing";
-export type ConservationStatus = "fresh" | "iced" | "chilled" | "at_risk";
-export type LotAvailabilityStatus =
-  | "available"
-  | "partially_reserved"
-  | "reserved"
-  | "sold"
-  | "unavailable";
 
 export interface Lot {
-  id: EntityId;
-  landingId: EntityId;
-  species: string;
-  weightKg: number;
-  qualityGrade: QualityGrade;
-  conservationStatus: ConservationStatus;
-  availabilityStatus: LotAvailabilityStatus;
-  askingPricePerKg?: number;
-  currency?: "XOF";
-}
-
-export type MarketNeedStatus = "open" | "matched" | "partially_matched" | "closed";
-
-export interface MarketNeed {
-  id: EntityId;
-  actorId?: EntityId;
-  organizationId?: EntityId;
-  species: string;
+  id: string;
+  landingId: string;
+  speciesId: string;
+  siteId: string;
   quantityKg: number;
-  territoryId: EntityId;
-  neededBy: ISODateTime;
-  status: MarketNeedStatus;
-  relatedLotIds: EntityId[];
+  availableKg: number;
+  quality: CatchLine["quality"];
+  productForm: CatchLine["productForm"];
+  conservation: "glace" | "froid" | "ambiant";
+  status: "attendu" | "disponible" | "engage" | "valorise";
+  trust: TrustLevel;
+  traceabilityCompleteness: number;
 }
 
-export type CapacityType = "ice" | "cold_storage" | "transport" | "processing";
-export type CapacityStatus = "available" | "partially_available" | "allocated" | "unavailable";
+export interface Need {
+  id: string;
+  actorId: string;
+  territoryId: string;
+  speciesId: string;
+  quantityKg: number;
+  quality: CatchLine["quality"];
+  purpose: "achat" | "transformation" | "conservation" | "transport";
+  status: "ouvert" | "couvert" | "clos";
+  priority: Priority;
+  createdAt: string;
+  source: string;
+}
 
 export interface Capacity {
-  id: EntityId;
-  providerOrganizationId: EntityId;
-  capacityType: CapacityType;
-  territoryId: EntityId;
+  id: string;
+  infrastructureId: string;
+  type: "glace" | "stockage" | "transport" | "transformation";
   availableQuantity: number;
-  unit: "kg" | "vehicle" | "slot";
-  availableFrom: ISODateTime;
-  status: CapacityStatus;
+  unit: string;
+  validUntil: string;
+  status: "disponible" | "engagee" | "indisponible";
 }
 
-export type TensionType =
-  | "ice_shortage"
-  | "cold_storage_shortage"
-  | "transport_shortage"
-  | "landing_site_saturation"
-  | "market_risk"
-  | "equipment_failure";
-
-export type Severity = "low" | "medium" | "high" | "critical";
-export type TensionStatus = "open" | "coordinating" | "resolved" | "cancelled";
-
-export interface Tension {
-  id: EntityId;
-  tensionType: TensionType;
-  severity: Severity;
-  territoryId: EntityId;
-  relatedEntityType: "expected_return" | "landing" | "lot" | "capacity" | "market_need";
-  relatedEntityId: EntityId;
-  description: string;
-  status: TensionStatus;
-  reportedByActorId: EntityId;
-  reportedAt: ISODateTime;
+export interface Opportunity {
+  id: string;
+  lotId: string;
+  needId: string;
+  territoryId: string;
+  score: number;
+  reasons: string[];
+  status: "detectee" | "proposee" | "engagee" | "executee";
+  humanValidationRequired: boolean;
 }
-
-export type CommitmentStatus = "proposed" | "accepted" | "in_progress" | "completed" | "cancelled";
 
 export interface Commitment {
-  id: EntityId;
-  tensionId: EntityId;
-  actorId?: EntityId;
-  organizationId?: EntityId;
-  action: string;
-  dueAt: ISODateTime;
-  status: CommitmentStatus;
-  completedAt?: ISODateTime;
-}
-
-export type OutcomeType =
-  | "loss_avoided"
-  | "capacity_reallocated"
-  | "market_matched"
-  | "incident_resolved"
-  | "service_continuity_restored";
-
-export interface OutcomeEvidence {
+  id: string;
+  actorId: string;
   label: string;
-  reference?: string;
-  confidenceLevel: ConfidenceLevel;
+  dueAt: string;
+  status: ActionStatus;
+  result?: string;
 }
 
-export interface Outcome {
-  id: EntityId;
-  relatedEntityType: "tension" | "landing" | "lot" | "market_need";
-  relatedEntityId: EntityId;
-  outcomeType: OutcomeType;
+export interface HistoryEntry {
+  id: string;
+  at: string;
+  actor: string;
+  label: string;
+  detail: string;
+}
+
+export interface Observation {
+  id: string;
+  territoryId: string;
+  actorId: string;
+  createdAt: string;
+  channel: "terrain" | "telephone" | "whatsapp_structure" | "poste_quai";
+  category: "infrastructure" | "production" | "marche" | "qualite" | "securite";
+  title: string;
   description: string;
-  valueSavedKg?: number;
-  valueCreated?: number;
-  currency?: "XOF";
-  recordedAt: ISODateTime;
-  evidence: OutcomeEvidence[];
+  trust: TrustLevel;
+  source: string;
 }
 
-export interface DomainData {
-  actors: Actor[];
-  organizations: Organization[];
-  territories: Territory[];
-  landingSites: LandingSite[];
-  vessels: Vessel[];
-  expectedReturns: ExpectedReturn[];
-  landings: Landing[];
-  weighings: Weighing[];
-  lots: Lot[];
-  marketNeeds: MarketNeed[];
-  capacities: Capacity[];
-  tensions: Tension[];
-  commitments: Commitment[];
-  outcomes: Outcome[];
+export interface Situation {
+  id: string;
+  reference: string;
+  observationIds: string[];
+  territoryId: string;
+  title: string;
+  description: string;
+  status: SituationStatus;
+  priority: Priority;
+  trust: TrustLevel;
+  visibility: Visibility;
+  responsibleId?: string;
+  dueAt?: string;
+  waitingReason?: string;
+  nextStep: string;
+  result?: string;
+  confirmation?: string;
+  coordinationId?: string;
+  initiativeId?: string;
+  history: HistoryEntry[];
 }
+
+export interface CoordinationSpace {
+  id: string;
+  situationId?: string;
+  opportunityId?: string;
+  title: string;
+  participantIds: string[];
+  objective: string;
+  decision: string;
+  commitments: Commitment[];
+  risks: string[];
+  nextReviewAt: string;
+}
+
+export interface PriceObservation {
+  id: string;
+  speciesId: string;
+  territoryId: string;
+  marketName: string;
+  priceFcfaKg: number;
+  observedAt: string;
+  source: string;
+  trust: TrustLevel;
+  trend: "baisse" | "stable" | "hausse";
+  flagged: boolean;
+}
+
+export interface ScarcityIndicator {
+  id: string;
+  speciesId: string;
+  territoryId: string;
+  status: "abondant" | "disponible" | "sous_tension" | "rare" | "critique" | "donnee_insuffisante";
+  availableKg: number;
+  requestedKg: number;
+  reasons: string[];
+  trust: TrustLevel;
+}
+
+export interface SustainabilityAssessment {
+  id: string;
+  lotId: string;
+  provenanceComplete: boolean;
+  practice: string;
+  zone: string;
+  status: "favorable" | "vigilance" | "incomplet";
+  reasons: string[];
+  recommendation: string;
+  trust: TrustLevel;
+}
+
+export interface CommunityPost {
+  id: string;
+  authorId: string;
+  territoryId: string;
+  community: string;
+  category: "information" | "alerte" | "opportunite" | "besoin" | "capacite" | "question" | "apprentissage";
+  title: string;
+  body: string;
+  createdAt: string;
+  status: "publie" | "signale" | "transforme";
+  convertedObjectId?: string;
+  comments: Array<{ id: string; authorId: string; body: string }>;
+}
+
+export interface PartnerService {
+  id: string;
+  organizationId: string;
+  name: string;
+  category: "logistique" | "froid" | "maintenance" | "financement" | "assurance";
+  territoryIds: string[];
+  status: "reference" | "qualifie" | "a_activer";
+  trust: TrustLevel;
+  activationConditions: string;
+}
+
+export interface Funding {
+  id: string;
+  partnerId: string;
+  amountFcfa: number;
+  status: "a_mobiliser" | "en_instruction" | "confirme";
+  condition: string;
+}
+
+export interface Initiative {
+  id: string;
+  title: string;
+  territoryIds: string[];
+  situationIds: string[];
+  objective: string;
+  status: "cadrage" | "financee" | "execution" | "terminee";
+  ownerId: string;
+  budgetFcfa: number;
+  funding: Funding[];
+  indicators: Array<{ label: string; baseline: number; target: number; current: number; unit: string }>;
+}
+
+export interface Learning {
+  id: string;
+  situationId: string;
+  title: string;
+  summary: string;
+  reusableIn: string[];
+}
+
+export interface Report {
+  id: string;
+  title: string;
+  territoryIds: string[];
+  generatedAt: string;
+  period: string;
+  status: "pret" | "a_actualiser";
+  metrics: Array<{ label: string; value: string; source: string; trust: TrustLevel; limit: string }>;
+}
+
+export interface Plan {
+  id: string;
+  name: "Public" | "Professionnel" | "Organisation" | "Territoire" | "Institution" | "Partenaire" | "Atlas Premium";
+  target: string;
+  capabilities: string[];
+  limits: string[];
+  value: string;
+  onQuote: boolean;
+}
+
+export interface Subscription {
+  id: string;
+  organizationId: string;
+  planId: string;
+  status: "demonstration" | "active" | "suspendue";
+  entitlements: string[];
+}
+
+export interface Notification {
+  id: string;
+  role: Role;
+  title: string;
+  href: string;
+  read: boolean;
+}
+
+export interface AuditEntry {
+  id: string;
+  at: string;
+  actorId: string;
+  objectType: string;
+  objectId: string;
+  action: string;
+  detail: string;
+}
+
+export interface Tenant {
+  id: string;
+  name: string;
+  mode: "demonstration" | "production";
+}
+
+export interface ProductState {
+  revision: number;
+  tenant: Tenant;
+  organizations: Organization[];
+  actors: Actor[];
+  territories: Territory[];
+  sites: Site[];
+  infrastructures: Infrastructure[];
+  vessels: Vessel[];
+  trips: FishingTrip[];
+  species: Species[];
+  landings: Landing[];
+  lots: Lot[];
+  needs: Need[];
+  capacities: Capacity[];
+  opportunities: Opportunity[];
+  observations: Observation[];
+  situations: Situation[];
+  coordinationSpaces: CoordinationSpace[];
+  priceObservations: PriceObservation[];
+  scarcity: ScarcityIndicator[];
+  sustainability: SustainabilityAssessment[];
+  communityPosts: CommunityPost[];
+  partnerServices: PartnerService[];
+  initiatives: Initiative[];
+  learnings: Learning[];
+  reports: Report[];
+  plans: Plan[];
+  subscriptions: Subscription[];
+  notifications: Notification[];
+  audit: AuditEntry[];
+}
+
+export type Command =
+  | { type: "create_signal"; actorId: string; territoryId: string; title: string; description: string; channel: Observation["channel"] }
+  | { type: "qualify"; situationId: string; actorId: string }
+  | { type: "prioritize"; situationId: string; actorId: string }
+  | { type: "coordinate"; situationId: string; actorId: string }
+  | { type: "start_intervention"; situationId: string; actorId: string }
+  | { type: "wait"; situationId: string; actorId: string; reason: string }
+  | { type: "resume"; situationId: string; actorId: string }
+  | { type: "record_result"; situationId: string; actorId: string; result: string; confirmation: string }
+  | { type: "close"; situationId: string; actorId: string }
+  | { type: "announce_return"; tripId: string; actorId: string }
+  | { type: "confirm_arrival"; tripId: string; actorId: string }
+  | { type: "record_landing"; tripId: string; actorId: string }
+  | { type: "confirm_weighing"; landingId: string; actorId: string }
+  | { type: "create_lots"; landingId: string; actorId: string }
+  | { type: "accept_opportunity"; opportunityId: string; actorId: string }
+  | { type: "complete_logistics"; opportunityId: string; actorId: string }
+  | { type: "create_community_post"; actorId: string; territoryId: string; category: CommunityPost["category"]; title: string; body: string }
+  | { type: "convert_post"; postId: string; actorId: string }
+  | { type: "flag_price"; priceId: string; actorId: string }
+  | { type: "reset_demo"; actorId: string };
+
+export type CommandInput = Command extends infer Item
+  ? Item extends { actorId: string }
+    ? Omit<Item, "actorId">
+    : never
+  : never;
