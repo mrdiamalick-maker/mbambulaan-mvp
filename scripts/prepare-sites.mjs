@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, renameSync, rmSync } from "node:fs";
 
 const source = ".open-next";
 const target = "dist";
@@ -8,11 +8,9 @@ if (!existsSync(`${source}/worker.js`)) {
 }
 
 rmSync(target, { force: true, recursive: true });
-cpSync(source, target, { recursive: true });
 mkdirSync(`${target}/server`, { recursive: true });
-writeFileSync(
-  `${target}/server/index.js`,
-  'export { default } from "../worker.js";\n'
-);
+cpSync(source, `${target}/server`, { recursive: true });
+renameSync(`${target}/server/worker.js`, `${target}/server/index.js`);
+cpSync(`${source}/assets`, `${target}/assets`, { recursive: true });
 
 console.log("Sites artifact prepared in dist/");
