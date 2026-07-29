@@ -1,6 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
-  Anchor,
   ArrowRight,
   Building2,
   CheckCircle2,
@@ -48,27 +48,38 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="bg-[#062d36] text-white">
+      <div className="bg-[#031f2a] text-white">
         <PublicHeader dark />
-        <section className="relative mx-auto grid min-h-[76vh] max-w-[1500px] items-end overflow-hidden px-5 pb-14 pt-16 md:px-10 md:pb-20 lg:grid-cols-[1.05fr_.95fr]">
-          <div className="relative z-10 max-w-4xl">
-            <p className="mb-5 inline-flex items-center gap-2 border border-white/25 bg-white/8 px-3 py-2 text-xs font-bold uppercase tracking-[.08em]"><Anchor size={14} /> Pêche artisanale sénégalaise</p>
-            <h1 className="title-balance text-5xl font-bold leading-[1.02] md:text-7xl">La filière reliée, du retour en mer à la décision.</h1>
-            <p className="title-balance mt-6 max-w-3xl text-lg leading-8 text-[#c7dde1] md:text-xl">Mbàmbulaan rassemble connaissance, opérations, coordination, valorisation et durabilité dans une infrastructure numérique commune.</p>
-            <div className="mt-8 flex flex-wrap gap-3"><Link href="/demo" className="inline-flex items-center gap-2 bg-[#36c6b1] px-6 py-3.5 font-bold text-[#062d36]">Explorer la démonstration <ArrowRight size={18} /></Link><Link href="/atlas" className="border border-white/45 px-6 py-3.5 font-bold">Ouvrir l’Atlas public</Link></div>
-          </div>
-          <div className="relative mt-12 min-h-[420px] lg:mt-0">
-            <div className="map-grid absolute inset-0 border border-white/15 opacity-85" />
-            <div className="absolute inset-y-0 right-0 w-[48%] bg-[#eef0e8]/80 [clip-path:polygon(40%_0,100%_0,100%_100%,25%_100%,48%_78%,32%_62%,50%_43%,30%_24%)]" />
-            {[
-              [35, 17, "Saint-Louis", "stable"],
-              [44, 36, "Kayar", "vigilance"],
-              [40, 50, "Hann", "vigilance"],
-              [47, 63, "Mbour", "vigilance"],
-              [49, 73, "Joal", "critique"],
-              [34, 90, "Kafountine", "stable"]
-            ].map(([left, top, label, status]) => <div key={String(label)} className="absolute z-10" style={{ left: `${left}%`, top: `${top}%` }}><span className={`block size-4 rounded-full border-3 border-white ${status === "critique" ? "bg-[#c94f3d]" : status === "vigilance" ? "bg-[#d89614]" : "bg-[#18a394]"}`} /><span className="mt-1 block bg-[#062d36]/90 px-2 py-1 text-xs font-bold">{label}</span></div>)}
-            <div className="absolute bottom-5 left-5 right-5 border border-white/20 bg-[#062d36]/90 p-4 backdrop-blur"><p className="text-xs font-bold uppercase text-[#36c6b1]">Situation active</p><p className="mt-1 font-bold">Machine à glace indisponible à Joal</p><p className="mt-2 text-xs leading-5 text-[#c7dde1]">Signal terrain → capacité alternative → engagement → résultat documenté.</p></div>
+        <section className="relative mx-auto max-w-[1731px] overflow-hidden bg-[#031f2a]" aria-labelledby="hero-title">
+          <h1 id="hero-title" className="sr-only">Mbàmbulaan, la filière reliée, du retour en mer à la décision.</h1>
+          <Image
+            src="/mbambulaan-hero.png"
+            alt="Mbàmbulaan relie la pirogue, les acteurs de quai, la chaîne du froid et le pilotage territorial."
+            width={1731}
+            height={909}
+            priority
+            sizes="100vw"
+            className="h-auto w-full"
+          />
+        </section>
+        <section className="border-y border-white/15 bg-[#062d36]" aria-label="Accès principaux">
+          <div className="mx-auto flex max-w-[1500px] flex-col gap-5 px-5 py-5 md:px-10 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap gap-3">
+              <Link href="/demo" className="inline-flex items-center gap-2 bg-[#45ded0] px-5 py-3 font-bold text-[#062d36]">
+                Explorer la démonstration <ArrowRight size={17} />
+              </Link>
+              <Link href="/atlas" className="inline-flex items-center border border-white/40 px-5 py-3 font-bold text-white">
+                Ouvrir l’Atlas public
+              </Link>
+              <Link href="/connexion" className="inline-flex items-center bg-white px-5 py-3 font-bold text-[#075466]">
+                Entrer dans Mbàmbulaan Ops
+              </Link>
+            </div>
+            <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-[#c7dde1]">
+              <span>10 profils métier</span>
+              <span>12 piliers reliés</span>
+              <span>Données de démonstration déterministes</span>
+            </div>
           </div>
         </section>
       </div>
