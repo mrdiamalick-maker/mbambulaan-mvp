@@ -2,7 +2,8 @@
 
 ## Accès
 
-- URL Sites : à renseigner après publication ;
+- URL Sites privée : `https://mbambulaan-ecosysteme-v1.malick-dia-1822.chatgpt.site` ;
+- accès : authentification ChatGPT du propriétaire du site ;
 - site public : `/` ;
 - Atlas public : `/atlas` ;
 - offres : `/offres` ;
