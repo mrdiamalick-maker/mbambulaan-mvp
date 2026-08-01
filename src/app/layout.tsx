@@ -8,8 +8,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const metadataBase = new URL(`${protocol}://${host}`);
-  const title = "Mbàmbulaan | Coordination de la pêche artisanale";
-  const description = "Infrastructure numérique de coordination territoriale pour la pêche artisanale sénégalaise.";
+  const title = "Mbàmbulaan | Le jumeau numérique de la filière halieutique";
+  const description = "Voir la filière, coordonner l’action et préserver la valeur de la pêche artisanale sénégalaise.";
 
   return {
     metadataBase,

@@ -1,72 +1,122 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardList, Handshake, MapPinned, ShipWheel } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  CircleDollarSign,
+  Clock3,
+  FileCheck2,
+  Handshake,
+  MapPinned,
+  Radio,
+  ShipWheel,
+  Sparkles
+} from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Metric } from "@/components/ui/Metric";
 import { SituationRow } from "@/components/situations/SituationRow";
 
 const framing = {
-  administrateur: ["À superviser", "Qualité des données, droits, parcours critiques et continuité du service"],
-  operateur: ["À confirmer au quai", "Retours, débarquements, pesées et signaux terrain"],
-  capitaine: ["Votre activité aujourd’hui", "Retour attendu, déclaration et besoins opérationnels"],
-  mareyeur: ["À anticiper", "Lots disponibles, besoins ouverts, prix et engagements"],
-  transformateur: ["À sécuriser", "Approvisionnements, surplus et retraits coordonnés"],
-  prestataire: ["À servir", "Demandes qualifiées, capacités et interventions attendues"],
-  gestionnaire_organisation: ["À coordonner collectivement", "Membres, actifs, besoins et résultats de l’organisation"],
-  coordinateur: ["À coordonner aujourd’hui", "Situations, engagements et blocages entre acteurs"],
-  institution: ["À décider", "Tensions territoriales, résultats et besoins d’investissement"],
-  partenaire: ["À instruire", "Besoins qualifiés, engagements et résultats documentés"]
+  administrateur: { eyebrow: "Supervision du service", title: "Continuité et qualité du dispositif", action: "Contrôler les référentiels", href: "/app/administration" },
+  operateur: { eyebrow: "Permanence opérationnelle", title: "Retours et débarquements à confirmer", action: "Ouvrir les opérations", href: "/app/operations" },
+  capitaine: { eyebrow: "Activité du jour", title: "Votre sortie, du retour au débarquement", action: "Suivre ma sortie", href: "/app/operations" },
+  mareyeur: { eyebrow: "Approvisionnement", title: "Lots disponibles et besoins à rapprocher", action: "Voir les opportunités", href: "/app/marches" },
+  transformateur: { eyebrow: "Approvisionnement", title: "Volumes à sécuriser et capacités à activer", action: "Voir les opportunités", href: "/app/marches" },
+  prestataire: { eyebrow: "Services territoriaux", title: "Interventions et capacités attendues", action: "Voir la coordination", href: "/app/coordination" },
+  gestionnaire_organisation: { eyebrow: "Organisation", title: "Membres, actifs et engagements collectifs", action: "Ouvrir l’organisation", href: "/app/organisation" },
+  coordinateur: { eyebrow: "Centre de situation", title: "Coordonner la filière aujourd’hui", action: "Traiter la priorité", href: "/app/situations" },
+  institution: { eyebrow: "Situation nationale", title: "Voir, arbitrer et documenter l’action publique", action: "Ouvrir le pilotage", href: "/app/pilotage" },
+  partenaire: { eyebrow: "Portefeuille d’impact", title: "Instruire les besoins qualifiés et leurs résultats", action: "Voir les initiatives", href: "/app/initiatives" }
 } as const;
 
 export default function WorkPage() {
   const { state, role } = useProduct();
   if (!state) return null;
+
   const open = state.situations.filter((item) => item.status !== "reglee");
   const critical = open.filter((item) => item.priority === "critique");
   const completed = state.situations.filter((item) => item.status === "reglee");
-  const [title, detail] = framing[role];
+  const trusted = state.situations.filter((item) => item.trust === "verifiee" || item.trust === "consolidee");
+  const awaiting = state.coordinationSpaces.flatMap((item) => item.commitments).filter((item) => item.status === "a_faire" || item.status === "bloquee");
+  const totalFunding = state.initiatives.flatMap((item) => item.funding).reduce((sum, item) => sum + item.amountFcfa, 0);
+  const frame = framing[role];
   const next = role === "partenaire"
     ? open.filter((item) => item.initiativeId)
     : role === "operateur" || role === "capitaine"
-      ? open.filter((item) => item.trust === "declaree")
+      ? open.filter((item) => item.trust === "declaree" || item.trust === "observee")
       : [...critical, ...open.filter((item) => item.priority !== "critique")];
 
   return (
     <>
       <PageHeader
-        eyebrow="Briefing du jour"
-        title={title}
-        description={`${detail}. Chaque entrée indique ce qui est connu, le niveau de confiance et la prochaine action utile.`}
-        actions={<Link href="/demo" className="inline-flex items-center gap-2 border border-[#9ecbd2] px-4 py-2.5 text-sm font-bold text-[#075466]">Parcours guidé <ArrowRight size={16} /></Link>}
+        eyebrow={frame.eyebrow}
+        title={frame.title}
+        description="Une lecture commune de la situation, puis une action claire. Les sources, responsabilités et résultats restent visibles à chaque étape."
+        actions={<Link href={frame.href} className="btn-primary">{frame.action} <ArrowRight size={16} /></Link>}
       />
-      <div className="space-y-8 p-5 lg:p-8">
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric label="Situations ouvertes" value={String(open.length)} detail="Tous territoires et niveaux de confiance" icon={ClipboardList} />
-          <Metric label="À traiter en priorité" value={String(critical.length)} detail="Action ou arbitrage attendu aujourd’hui" icon={AlertTriangle} tone="coral" />
-          <Metric label="Coordinations actives" value={String(state.coordinationSpaces.length)} detail="Engagements répartis entre acteurs" icon={Handshake} tone="lagoon" />
-          <Metric label="Sorties suivies" value={String(state.trips.length)} detail="Retours annoncés, arrivées et débarquements reliés" icon={ShipWheel} tone="sand" />
-        </section>
 
-        <section>
-          <div className="mb-4 flex items-end justify-between gap-4">
-            <div><p className="label">Prochaine action</p><h2 className="mt-1 text-xl font-bold text-[#062d36]">À traiter maintenant</h2></div>
-            <Link href="/app/situations" className="text-sm font-bold text-[#075466]">Voir toutes les situations</Link>
+      <div className="space-y-6 p-5 lg:p-8">
+        <section className="overflow-hidden rounded-[22px] bg-[#062f38] text-white shadow-[0_24px_70px_rgba(4,43,52,.18)]">
+          <div className="grid lg:grid-cols-[1.3fr_.7fr]">
+            <div className="relative overflow-hidden p-6 lg:p-8">
+              <div className="absolute inset-0 opacity-30 ocean-grid" />
+              <div className="relative max-w-3xl">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[.16em] text-[#64decd]"><Radio size={15} /> Point de situation · actualisé aujourd’hui</div>
+                <h2 className="mt-5 text-3xl font-black leading-tight lg:text-4xl">{critical.length > 0 ? `${critical.length} situation critique demande une coordination immédiate.` : "La situation est stable, les engagements restent suivis."}</h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-[#c9dfe2]">{open.length} situations sont ouvertes sur {state.territories.length} territoires. {trusted.length} disposent déjà d’un niveau de confiance vérifié ou consolidé.</p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link href={next[0] ? `/app/situations/${next[0].id}` : "/app/situations"} className="btn-accent">Traiter la prochaine situation <ArrowRight size={16} /></Link>
+                  <Link href="/app/atlas" className="btn-on-dark"><MapPinned size={16} /> Lire le territoire</Link>
+                </div>
+              </div>
+            </div>
+            <div className="border-t border-white/10 bg-white/[.05] p-6 lg:border-l lg:border-t-0 lg:p-8">
+              <p className="text-xs font-black uppercase tracking-[.14em] text-[#9cc9cf]">Ce que le dispositif produit</p>
+              <div className="mt-5 space-y-5">
+                {[
+                  [FileCheck2, `${trusted.length} informations qualifiées`, "utilisables pour décider"],
+                  [Handshake, `${state.coordinationSpaces.length} coordinations actives`, "responsables et échéances connus"],
+                  [CircleDollarSign, `${(totalFunding / 1_000_000).toFixed(0)} M FCFA`, "de financement en instruction"],
+                  [CheckCircle2, `${completed.length} résultat documenté`, "réutilisable par la filière"]
+                ].map(([Icon, value, detail]) => {
+                  const ItemIcon = Icon as typeof FileCheck2;
+                  return <div key={String(value)} className="flex gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#36c6b1]/15 text-[#64decd]"><ItemIcon size={18} /></span><div><p className="font-extrabold">{String(value)}</p><p className="mt-1 text-xs text-[#a9c8cd]">{String(detail)}</p></div></div>;
+                })}
+              </div>
+            </div>
           </div>
-          <div className="surface overflow-hidden">{next.slice(0, 3).map((item) => <SituationRow key={item.id} situation={item} state={state} />)}</div>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          <Link href="/app/atlas" className="surface group p-5 hover:border-[#8dcbd1]">
-            <MapPinned className="text-[#087287]" /><h3 className="mt-4 font-bold">Lire le territoire</h3><p className="mt-2 text-sm leading-6 text-[#60737a]">Situer les quais, les infrastructures et les tensions avant d’agir.</p>
-          </Link>
-          <Link href="/app/coordination" className="surface group p-5 hover:border-[#8dcbd1]">
-            <Handshake className="text-[#18a394]" /><h3 className="mt-4 font-bold">Suivre les engagements</h3><p className="mt-2 text-sm leading-6 text-[#60737a]">Voir qui fait quoi, pour quand, et quels blocages doivent être levés.</p>
-          </Link>
-          <Link href="/app/pilotage" className="surface group p-5 hover:border-[#8dcbd1]">
-            <CheckCircle2 className="text-[#d89614]" /><h3 className="mt-4 font-bold">Mesurer et apprendre</h3><p className="mt-2 text-sm leading-6 text-[#60737a]">{completed.length} situation réglée alimente déjà la connaissance partagée.</p>
-          </Link>
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Metric label="Situations ouvertes" value={String(open.length)} detail="Avec source et prochaine action" icon={Clock3} />
+          <Metric label="Priorités immédiates" value={String(critical.length)} detail="Arbitrage ou intervention attendue" icon={AlertTriangle} tone="coral" />
+          <Metric label="Engagements attendus" value={String(awaiting.length)} detail="À faire ou à débloquer" icon={Handshake} tone="lagoon" />
+          <Metric label="Sorties suivies" value={String(state.trips.length)} detail="Du départ au débarquement" icon={ShipWheel} tone="sand" />
+        </section>
+
+        <section className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
+          <div className="surface overflow-hidden">
+            <div className="flex items-end justify-between gap-4 border-b border-[#d9e3e3] px-5 py-4">
+              <div><p className="label">File de coordination</p><h2 className="mt-1 text-xl font-black text-[#07323c]">À traiter maintenant</h2></div>
+              <Link href="/app/situations" className="link-action">Toutes les situations <ArrowRight size={15} /></Link>
+            </div>
+            {next.length > 0 ? next.slice(0, 4).map((item) => <SituationRow key={item.id} situation={item} state={state} />) : <p className="p-5 text-sm text-[#667b81]">Aucune action ne correspond à cette vue.</p>}
+          </div>
+
+          <aside className="surface p-5">
+            <div className="flex items-center gap-2 text-[#087287]"><Sparkles size={18} /><p className="label">Assistance Mbàmbulaan</p></div>
+            <h2 className="mt-3 text-lg font-black text-[#07323c]">Synthèse explicable, décision humaine</h2>
+            <p className="mt-3 text-sm leading-6 text-[#667b81]">L’assistance peut regrouper les signaux, résumer les preuves et préparer une note. Elle n’agit jamais sans validation et peut être désactivée.</p>
+            <div className="mt-5 rounded-xl border border-[#cce2e1] bg-[#f0f8f6] p-4">
+              <p className="text-xs font-black uppercase tracking-[.12em] text-[#397169]">Suggestion du jour</p>
+              <p className="mt-2 text-sm font-bold text-[#153d44]">Prioriser la continuité du froid entre Joal et Mbour avant le prochain volume annoncé.</p>
+              <p className="mt-2 text-xs leading-5 text-[#667b81]">Fondée sur les capacités déclarées, les situations ouvertes et les engagements existants.</p>
+            </div>
+            <Link href="/app/pilotage" className="btn-secondary mt-5 w-full justify-center">Vérifier dans le pilotage</Link>
+          </aside>
         </section>
       </div>
     </>

@@ -20,9 +20,9 @@ export function CommandButton({
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const styles = {
-    primary: "bg-[#075466] text-white hover:bg-[#063f4d]",
-    secondary: "border border-[#9ecbd2] bg-white text-[#075466] hover:bg-[#eef9fa]",
-    warning: "border border-[#e1c175] bg-[#fff8e8] text-[#76530d] hover:bg-[#fff1cc]"
+    primary: "border border-[#075568] bg-[#075568] text-white shadow-[0_8px_22px_rgba(7,85,104,.16)] hover:-translate-y-px hover:bg-[#064758]",
+    secondary: "border border-[#bfd0d2] bg-white text-[#075568] hover:-translate-y-px hover:bg-[#eef9fa]",
+    warning: "border border-[#e1c175] bg-[#fff8e8] text-[#76530d] hover:-translate-y-px hover:bg-[#fff1cc]"
   };
   const execute = async () => {
     setBusy(true);
@@ -38,7 +38,7 @@ export function CommandButton({
       type="button"
       disabled={disabled || busy}
       onClick={() => void execute()}
-      className={`inline-flex min-h-10 items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${styles[tone]}`}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${styles[tone]}`}
     >
       {busy ? <LoaderCircle size={16} className="animate-spin" /> : done ? <Check size={16} /> : null}
       {done ? "Action enregistrée" : children}

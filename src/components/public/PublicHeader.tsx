@@ -1,25 +1,46 @@
 import Link from "next/link";
-import { ShipWheel } from "lucide-react";
+import { ArrowUpRight, ShipWheel } from "lucide-react";
+
+const links = [
+  { href: "/atlas", label: "Atlas" },
+  { href: "/community", label: "Communauté" },
+  { href: "/durabilite", label: "Durabilité" },
+  { href: "/offres", label: "Solutions" }
+];
 
 export function PublicHeader({ dark = false }: { dark?: boolean }) {
   return (
-    <header className={`relative z-30 flex min-h-18 min-w-0 items-center justify-between gap-2 border-b px-4 md:px-10 ${dark ? "border-white/15 bg-[#062d36] text-white" : "border-[#d8e1e2] bg-white text-[#062d36]"}`}>
-      <Link href="/" className="flex min-w-0 items-center gap-2.5">
-        <span className={`grid size-9 place-items-center ${dark ? "bg-white text-[#075466]" : "bg-[#075466] text-white"}`}><ShipWheel size={19} /></span>
-        <span className="min-w-0"><strong className="block truncate text-sm">Mbàmbulaan</strong><span className={`hidden text-xs sm:block ${dark ? "text-white/70" : "text-[#60737a]"}`}>Écosystème numérique de la filière halieutique</span></span>
-      </Link>
-      <nav className="flex shrink-0 items-center gap-1 text-sm font-bold">
-        <Link href="/atlas" className="hidden px-3 py-2 md:block">Atlas</Link>
-        <Link href="/offres" className="hidden px-3 py-2 md:block">Offres</Link>
-        <Link href="/demo" className="px-2 py-2 sm:px-3">
-          <span className="sm:hidden">Démo</span>
-          <span className="hidden sm:inline">Démonstration</span>
+    <header className={`relative z-30 border-b ${dark ? "border-white/12 bg-[#031a22]/86 text-white backdrop-blur-xl" : "border-[#d9e3e3] bg-white/92 text-[#102e37] backdrop-blur-xl"}`}>
+      <div className="mx-auto flex min-h-[72px] max-w-[1500px] items-center justify-between gap-4 px-5 md:px-10">
+        <Link href="/" className="flex min-w-0 items-center gap-3" aria-label="Mbàmbulaan, accueil">
+          <span className={`grid size-10 place-items-center rounded-xl ${dark ? "bg-white text-[#075568]" : "bg-[#075568] text-white"}`}>
+            <ShipWheel size={20} strokeWidth={1.8} />
+          </span>
+          <span className="min-w-0">
+            <strong className="block truncate text-sm tracking-[-.01em]">Mbàmbulaan</strong>
+            <span className={`hidden text-[11px] font-medium sm:block ${dark ? "text-white/60" : "text-[#667b81]"}`}>
+              Digital Twin de la filière halieutique
+            </span>
+          </span>
         </Link>
-        <Link href="/connexion" className={`${dark ? "bg-white text-[#075466]" : "bg-[#075466] text-white"} px-3 py-2.5 sm:px-4`}>
-          <span className="sm:hidden">Accès</span>
-          <span className="hidden sm:inline">Se connecter</span>
-        </Link>
-      </nav>
+
+        <nav className="hidden items-center gap-1 text-[13px] font-semibold lg:flex" aria-label="Navigation publique">
+          {links.map((link) => (
+            <Link key={link.href} href={link.href} className={`rounded-lg px-3 py-2 transition ${dark ? "text-white/72 hover:bg-white/8 hover:text-white" : "text-[#38535b] hover:bg-[#edf5f4] hover:text-[#075568]"}`}>
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <Link href="/demo" className={`hidden rounded-lg px-3 py-2 text-sm font-bold sm:inline-flex ${dark ? "text-white hover:bg-white/8" : "text-[#075568] hover:bg-[#edf5f4]"}`}>
+            Voir le produit
+          </Link>
+          <Link href="/connexion" className={`${dark ? "bg-white text-[#075568]" : "bg-[#075568] text-white"} inline-flex min-h-10 items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-bold shadow-sm transition hover:-translate-y-px sm:px-4`}>
+            Accès professionnel <ArrowUpRight size={15} />
+          </Link>
+        </div>
+      </div>
     </header>
   );
 }
