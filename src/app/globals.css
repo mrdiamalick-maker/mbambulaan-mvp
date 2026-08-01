@@ -37,7 +37,9 @@ html { scroll-behavior: smooth; }
 body {
   margin: 0;
   min-width: 320px;
-  background: var(--canvas);
+  background:
+    radial-gradient(circle at 92% 0%, rgba(31, 182, 164, .07), transparent 27rem),
+    var(--canvas);
   color: var(--ink);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -52,10 +54,10 @@ a { color: inherit; text-decoration: none; }
 :focus-visible { outline: 3px solid #37c9d4; outline-offset: 3px; }
 
 .surface {
-  background: rgba(255, 255, 255, .97);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(145deg, rgba(255, 255, 255, .99), rgba(247, 251, 249, .97));
+  border: 1px solid #cfddda;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(3, 26, 34, .035), 0 14px 34px rgba(3, 26, 34, .055);
 }
 
 .surface-quiet {
@@ -91,6 +93,174 @@ a { color: inherit; text-decoration: none; }
 }
 
 .title-balance { text-wrap: balance; }
+
+.brand-wordmark {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -.025em;
+}
+
+.pro-page-header {
+  border-bottom: 1px solid #cfddda;
+  background:
+    linear-gradient(90deg, rgba(10, 109, 104, .045), transparent 42%),
+    #fbfdfc;
+  box-shadow: inset 4px 0 0 #1fb6a4;
+}
+
+.public-atlas-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 78% 20%, rgba(51, 190, 176, .18), transparent 25%),
+    linear-gradient(118deg, #082f36 0%, #0b4a4c 53%, #102e37 100%);
+}
+.public-atlas-hero::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size: 52px 52px;
+  content: "";
+  mask-image: linear-gradient(90deg, transparent 30%, black);
+}
+.public-atlas-hero > * { position: relative; z-index: 1; }
+.public-atlas-hero em { color: #e9bf6c; font-style: italic; font-weight: 500; }
+
+.public-trust-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  background: rgba(255,255,255,.07);
+  padding: .55rem .8rem;
+  color: #e8f3f1;
+  backdrop-filter: blur(10px);
+}
+
+.public-kicker {
+  color: #9b6a22;
+  font-size: .67rem;
+  font-weight: 850;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.public-atlas-experience {
+  overflow: hidden;
+  border: 1px solid #d9cdb7;
+  border-radius: 28px;
+  background: #fffaf0;
+  box-shadow: 0 36px 90px rgba(47, 65, 58, .13);
+}
+
+.public-atlas-toolbar {
+  display: grid;
+  gap: 2rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e4dac8;
+  background: linear-gradient(120deg, #fffaf0, #f3ecdf);
+}
+.public-atlas-toolbar h2 { margin-top: .45rem; color: #10373a; font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.55rem, 2.7vw, 2.45rem); line-height: 1.08; }
+.public-atlas-toolbar > div > p:last-child { margin-top: .6rem; max-width: 45rem; color: #60716f; font-size: .86rem; line-height: 1.65; }
+.public-atlas-selectors { display: grid; gap: .75rem; }
+.public-atlas-selectors label > span:first-child { display: block; margin-bottom: .35rem; color: #7c7669; font-size: .62rem; font-weight: 850; letter-spacing: .11em; text-transform: uppercase; }
+.public-select-wrap { display: grid; min-height: 44px; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: .55rem; border: 1px solid #d8cdb8; border-radius: 999px; background: #fffdfa; padding: 0 .85rem; color: #0a6d68; }
+.public-select-wrap select { min-width: 0; appearance: none; border: 0; outline: 0; background: transparent; color: #10373a; font-size: .82rem; font-weight: 750; }
+
+.public-view-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid #e4dac8; background: #f8f1e5; }
+.public-view-tab { display: flex; min-height: 62px; align-items: center; justify-content: center; gap: .55rem; border-right: 1px solid #e4dac8; background: transparent; padding: .75rem; color: #65716d; font-size: .76rem; font-weight: 760; transition: background .18s ease, color .18s ease; }
+.public-view-tab:last-child { border-right: 0; }
+.public-view-tab:hover { background: #fffaf0; color: #0a6d68; }
+.public-view-tab-active { background: #10373a; color: #fff8e9; }
+.public-view-tab-active:hover { background: #16484b; color: white; }
+
+.public-atlas-stage { display: grid; min-height: 620px; grid-template-columns: minmax(0, 1.45fr) minmax(320px, .7fr); }
+.public-coast-map {
+  position: relative;
+  min-height: 620px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255,255,255,.55), transparent 27%),
+    linear-gradient(rgba(9,112,111,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(9,112,111,.055) 1px, transparent 1px),
+    linear-gradient(145deg, #d9efea, #9bcfc8 70%);
+  background-size: auto, 42px 42px, 42px 42px, auto;
+}
+.public-coast-land { position: absolute; inset: 0 0 0 auto; width: 38%; border-left: 2px solid rgba(255,255,255,.8); background: linear-gradient(145deg, #eee5d2, #cdbd9e); clip-path: polygon(28% 0,100% 0,100% 100%,0 100%,12% 88%,4% 78%,20% 66%,8% 56%,23% 45%,11% 34%,29% 23%,17% 12%); box-shadow: -22px 0 60px rgba(13,95,91,.12); }
+.public-map-heading { position: absolute; left: 1.25rem; top: 1.25rem; z-index: 2; display: flex; align-items: center; gap: .7rem; border-radius: 999px; background: rgba(255,250,240,.88); padding: .65rem .85rem; color: #0a6d68; box-shadow: 0 10px 30px rgba(16,55,58,.1); backdrop-filter: blur(10px); }
+.public-map-heading span, .public-map-heading strong { display: block; }
+.public-map-heading span { color: #7c7669; font-size: .57rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.public-map-heading strong { margin-top: .12rem; color: #10373a; font-size: .75rem; }
+.public-map-caption { position: absolute; bottom: 1rem; left: 1.25rem; z-index: 2; max-width: 17rem; color: rgba(16,55,58,.55); font-size: .63rem; font-weight: 700; }
+.public-quay-marker { position: absolute; z-index: 4; display: flex; align-items: center; gap: .45rem; transform: translate(-50%,-50%); text-align: left; }
+.public-marker-dot { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 3px solid #fffaf0; border-radius: 999px; background: #0a6d68; color: white; box-shadow: 0 7px 18px rgba(16,55,58,.28); transition: transform .18s ease, background .18s ease; }
+.public-marker-label { min-width: 92px; border: 1px solid rgba(10,109,104,.16); border-radius: 10px; background: rgba(255,250,240,.91); padding: .45rem .6rem; color: #10373a; font-size: .68rem; font-weight: 820; line-height: 1.05; box-shadow: 0 8px 22px rgba(16,55,58,.11); backdrop-filter: blur(9px); }
+.public-marker-label small { display: block; margin-top: .25rem; color: #827866; font-size: .55rem; font-weight: 650; }
+.public-quay-marker:hover .public-marker-dot, .public-quay-marker-active .public-marker-dot { transform: scale(1.12); background: #c6872d; }
+.public-quay-marker-active .public-marker-label { border-color: #c6872d; background: #10373a; color: #fff8e9; }
+.public-quay-marker-active .public-marker-label small { color: #d9c9a9; }
+
+.public-quay-story { min-width: 0; border-left: 1px solid #d9cdb7; background: #fffdfa; }
+.public-story-cover { padding: 1.5rem 1.6rem; border-bottom: 1px solid #e4dac8; background: linear-gradient(145deg, #f4ead9, #fffaf0); }
+.public-story-cover h2 { margin-top: .45rem; color: #10373a; font-family: Georgia, "Times New Roman", serif; font-size: 2.2rem; line-height: 1; }
+.public-story-cover > p:last-child { margin-top: .55rem; color: #746f64; font-size: .78rem; }
+.public-story-body { padding: 1.6rem; }
+.public-story-intro { color: #526966; font-family: Georgia, "Times New Roman", serif; font-size: 1.08rem; line-height: 1.65; }
+.public-number-grid { display: grid; margin-top: 1.5rem; grid-template-columns: repeat(2,minmax(0,1fr)); overflow: hidden; border: 1px solid #e1d6c2; border-radius: 16px; background: #e1d6c2; gap: 1px; }
+.public-number-grid div { background: #fffaf0; padding: 1rem; }
+.public-number-grid span, .public-number-grid strong { display: block; }
+.public-number-grid span { color: #81796c; font-size: .62rem; font-weight: 760; }
+.public-number-grid strong { margin-top: .35rem; color: #0a6d68; font-family: Georgia, "Times New Roman", serif; font-size: 1.65rem; }
+.public-source-note { display: flex; margin-top: 1.4rem; align-items: flex-start; gap: .55rem; border-top: 1px solid #e4dac8; padding-top: 1rem; color: #7b725f; font-size: .72rem; line-height: 1.55; }
+.public-feature-number { margin-top: 1.5rem; padding: 1.2rem; border-radius: 18px; background: #10373a; color: #fff8e9; }
+.public-feature-number span, .public-feature-number strong, .public-feature-number small { display: block; }
+.public-feature-number span { color: #adcbc7; font-size: .62rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.public-feature-number strong { margin-top: .4rem; font-family: Georgia, "Times New Roman", serif; font-size: 2.7rem; }
+.public-feature-number small { margin-top: .35rem; color: #adcbc7; font-size: .65rem; }
+.public-mini-bars { margin-top: 1.25rem; }
+.public-mini-bars div { margin-top: .8rem; }
+.public-mini-bars span { display: block; color: #6f746b; font-size: .66rem; font-weight: 760; }
+.public-mini-bars i { display: block; height: 5px; margin-top: .35rem; border-radius: 999px; background: linear-gradient(90deg,#0a6d68,#d7a148); }
+.public-capacity-ring { width: 170px; height: 170px; margin: 1.6rem auto; display: grid; place-content: center; border-radius: 999px; background: radial-gradient(circle at center,#fffdfa 57%,transparent 58%), conic-gradient(#0a6d68 var(--progress),#eadfc9 0); text-align: center; }
+.public-capacity-ring strong, .public-capacity-ring span { display: block; }
+.public-capacity-ring strong { color: #10373a; font-family: Georgia, "Times New Roman", serif; font-size: 2.3rem; }
+.public-capacity-ring span { max-width: 6rem; margin-top: .2rem; color: #7a756b; font-size: .61rem; line-height: 1.3; }
+.public-plain-list { border-top: 1px solid #e4dac8; }
+.public-plain-list p { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: .6rem; border-bottom: 1px solid #e4dac8; padding: .75rem 0; color: #0a6d68; }
+.public-plain-list span { color: #4c625f; font-size: .74rem; text-transform: capitalize; }
+.public-plain-list strong { color: #8b601e; font-size: .65rem; }
+.public-species-cloud { display: flex; margin-top: 1.4rem; flex-wrap: wrap; gap: .5rem; }
+.public-species-cloud span { display: inline-flex; align-items: center; gap: .4rem; border: 1px solid #d8cdb8; border-radius: 999px; background: #f6eddd; padding: .55rem .75rem; color: #0a6d68; font-size: .72rem; font-weight: 760; }
+.public-product-lines { margin-top: 1.3rem; border-top: 1px solid #e4dac8; }
+.public-product-lines div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #e4dac8; padding: .8rem 0; font-size: .75rem; }
+.public-product-lines span { color: #596b68; }
+.public-product-lines strong { color: #10373a; }
+
+@media (min-width: 820px) {
+  .public-atlas-toolbar { grid-template-columns: minmax(0,1.3fr) minmax(360px,.7fr); align-items: end; padding: 2rem; }
+  .public-atlas-selectors { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width: 900px) {
+  .public-atlas-stage { grid-template-columns: 1fr; }
+  .public-coast-map { min-height: 540px; }
+  .public-quay-story { border-top: 1px solid #d9cdb7; border-left: 0; }
+}
+
+@media (max-width: 640px) {
+  .public-atlas-experience { border-radius: 20px; }
+  .public-view-tabs { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .public-view-tab:nth-child(2) { border-right: 0; }
+  .public-view-tab:nth-child(-n+2) { border-bottom: 1px solid #e4dac8; }
+  .public-coast-map { min-height: 470px; }
+  .public-marker-label { min-width: 75px; font-size: .6rem; }
+  .public-marker-dot { width: 28px; height: 28px; }
+}
 
 .display-title {
   color: var(--ocean-1000);

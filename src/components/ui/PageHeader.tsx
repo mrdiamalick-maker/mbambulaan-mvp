@@ -1,6 +1,6 @@
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow: string; title: string; description: string; actions?: React.ReactNode }) {
   return (
-    <header className="relative overflow-hidden border-b border-[#d9e3e3] bg-white px-5 py-7 lg:px-8 lg:py-8">
+    <header className="pro-page-header relative overflow-hidden px-5 py-7 lg:px-8 lg:py-8">
       <div className="pointer-events-none absolute -right-24 -top-36 size-72 rounded-full bg-[#e5f7f3]/80 blur-3xl" />
       <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
       <div className="max-w-3xl">
