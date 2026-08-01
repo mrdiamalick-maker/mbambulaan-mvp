@@ -97,6 +97,16 @@ export default function WorkPage() {
           <Metric label="Sorties suivies" value={String(state.trips.length)} detail="Du départ au débarquement" icon={ShipWheel} tone="sand" />
         </section>
 
+        <section className="surface overflow-hidden">
+          <div className="flex flex-col gap-3 border-b border-[#d9e3e3] p-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="label">Pouls du littoral</p><h2 className="mt-1 text-lg font-black text-[#07323c]">Une lecture nationale, quai par quai</h2></div><Link href="/app/atlas" className="link-action">Ouvrir le poste d’observation <ArrowRight size={14} /></Link></div>
+          <div className="grid gap-px bg-[#d9e3e3] sm:grid-cols-2 xl:grid-cols-6">{state.territories.map((territory) => {
+            const territoryOpen = open.filter((item) => item.territoryId === territory.id);
+            const territoryLandings = state.landings.filter((item) => item.siteId === `quai-${territory.id}`);
+            const volume = territoryLandings.reduce((sum, item) => sum + item.totalWeightKg, 0);
+            return <Link href="/app/atlas" key={territory.id} className="group bg-white p-4 transition hover:bg-[#f4fbfa]"><div className="flex items-center justify-between"><span className={`size-2 rounded-full ${territory.activity === "critique" ? "bg-[#c65242]" : territory.activity === "vigilance" ? "bg-[#d8951a]" : "bg-[#1fb6a4]"}`} /><span className="text-[9px] font-black uppercase tracking-[.08em] text-[#8a9a9e]">{territoryOpen.length} ouvert</span></div><p className="mt-3 text-sm font-black">{territory.name}</p><p className="mt-1 text-[11px] text-[#667b81]">{volume ? `${(volume / 1000).toFixed(2)} t documentées` : "Veille territoriale"}</p></Link>;
+          })}</div>
+        </section>
+
         <section className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
           <div className="surface overflow-hidden">
             <div className="flex items-end justify-between gap-4 border-b border-[#d9e3e3] px-5 py-4">

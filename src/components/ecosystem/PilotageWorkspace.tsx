@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   AlertTriangle,
+  ArrowRight,
   BarChart3,
   CheckCircle2,
   Download,
@@ -10,6 +12,7 @@ import {
   Fish,
   Handshake,
   Printer,
+  Radio,
   ShipWheel,
   Sparkles
 } from "lucide-react";
@@ -22,6 +25,7 @@ const palette = ["#087287", "#18a394", "#d89614", "#c95c49", "#779399"];
 export function PilotageWorkspace() {
   const { state } = useProduct();
   const [territoryId, setTerritoryId] = useState("all");
+  const [period, setPeriod] = useState("today");
   if (!state) return null;
 
   const report = state.reports[0];
@@ -52,15 +56,22 @@ export function PilotageWorkspace() {
 
   return (
     <div className="space-y-6">
-      <section className="surface flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
-        <div><p className="label">Périmètre d’analyse</p><p className="mt-1 text-sm text-[#667b81]">Les indicateurs, graphiques et décisions suivent le même filtre territorial.</p></div>
-        <label className="flex items-center gap-3 text-sm font-bold text-[#294951]">
-          Territoire
-          <select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="min-w-52 rounded-xl border border-[#cbdadb] bg-white px-3 py-2.5">
-            <option value="all">Vue nationale</option>
-            {state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </label>
+      <section className="mission-strip">
+        <div className="grid lg:grid-cols-[1.25fr_.75fr]">
+          <div className="relative overflow-hidden p-6 lg:p-7">
+            <div className="absolute inset-0 opacity-35 ocean-grid" />
+            <div className="relative"><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.15em] text-[#70e3d5]"><Radio size={15} /> Brief exécutif</div><h2 className="mt-4 max-w-3xl text-2xl font-black tracking-[-.04em] lg:text-3xl">{critical.length ? `${critical.length} arbitrage critique sur le périmètre.` : "La situation est maîtrisée ; la veille reste active."}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/55">{(totalLanded / 1000).toFixed(2)} t documentées, {vessels.length} pirogues suivies et {infrastructures.filter((item) => item.status !== "operationnelle").length} capacités fragiles. Chaque chiffre renvoie à ses objets sources.</p><div className="mt-5 flex flex-wrap gap-2"><Link href={critical[0] ? `/app/situations/${critical[0].id}` : "/app/situations"} className="btn-accent">{critical[0] ? "Ouvrir l’arbitrage" : "Voir les situations"} <ArrowRight size={15} /></Link><Link href="/app/atlas" className="btn-on-dark">Vérifier dans l’Atlas</Link></div></div>
+          </div>
+          <aside className="border-t border-white/10 bg-white/[.04] p-6 lg:border-l lg:border-t-0"><p className="text-[10px] font-black uppercase tracking-[.13em] text-white/38">Fenêtre de décision</p><div className="mt-5 space-y-5">{[["Périmètre", territoryId === "all" ? "Vue nationale" : state.territories.find((item) => item.id === territoryId)?.name ?? "Territoire"],["Période", period === "today" ? "Aujourd’hui" : period === "7d" ? "7 derniers jours" : "30 derniers jours"],["Confiance", `${Math.round((situations.filter((item) => ["verifiee", "consolidee"].includes(item.trust)).length / Math.max(situations.length, 1)) * 100)}% qualifié`]].map(([label, value]) => <div key={label} className="border-b border-white/8 pb-4 last:border-0"><p className="text-[9px] font-black uppercase tracking-[.12em] text-white/30">{label}</p><p className="mt-1.5 text-sm font-black">{value}</p></div>)}</div></aside>
+        </div>
+      </section>
+
+      <section className="surface flex flex-col gap-4 p-4 md:flex-row md:items-end md:justify-between">
+        <div><p className="label">Périmètre d’analyse</p><p className="mt-1 text-sm text-[#667b81]">Les indicateurs, graphiques et décisions utilisent les mêmes filtres.</p></div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="text-xs font-bold text-[#294951]">Territoire<select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 min-w-52 rounded-xl border border-[#cbdadb] bg-white px-3 py-2.5"><option value="all">Vue nationale</option>{state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label className="text-xs font-bold text-[#294951]">Période<select value={period} onChange={(event) => setPeriod(event.target.value)} className="mt-1.5 min-w-44 rounded-xl border border-[#cbdadb] bg-white px-3 py-2.5"><option value="today">Aujourd’hui</option><option value="7d">7 derniers jours</option><option value="30d">30 derniers jours</option></select></label>
+        </div>
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -120,7 +131,7 @@ export function PilotageWorkspace() {
           <h2 className="mt-3 text-lg font-black">{report.title}</h2>
           <p className="mt-2 text-sm text-[#60737a]">{report.period} · données simulées et traçables</p>
           <div className="mt-5 space-y-4">{report.metrics.map((metric) => <div key={metric.label} className="border-l-3 border-[#18a394] pl-3"><p className="text-xs text-[#60737a]">{metric.label}</p><p className="mt-1 text-xl font-black">{metric.value}</p><p className="mt-1 text-xs leading-5 text-[#60737a]">{metric.source} · limite : {metric.limit}</p></div>)}</div>
-          <div className="mt-6 flex flex-wrap gap-2"><button onClick={() => window.print()} className="btn-primary"><Printer size={15} /> Imprimer</button><button onClick={() => window.print()} className="btn-secondary"><Download size={15} /> Préparer l’export</button></div>
+          <div className="mt-6 flex flex-wrap gap-2"><button onClick={() => window.print()} className="btn-primary"><Printer size={15} /> Ouvrir le rapport</button><button onClick={() => window.print()} className="btn-secondary"><Download size={15} /> Préparer l’export</button></div>
         </aside>
       </section>
 

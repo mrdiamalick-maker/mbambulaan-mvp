@@ -10,6 +10,7 @@ import {
   ChevronDown,
   CircleUserRound,
   ClipboardList,
+  FileBarChart,
   Gauge,
   Globe2,
   Handshake,
@@ -36,7 +37,7 @@ const navGroups: NavGroup[] = [
     label: "Vue commune",
     items: [
       { href: "/app/travail", label: "Centre de situation", shortLabel: "Situation", icon: Home, roles: [] },
-      { href: "/app/atlas", label: "Jumeau territorial", shortLabel: "Atlas", icon: Globe2, roles: [] }
+      { href: "/app/atlas", label: "Atlas professionnel", shortLabel: "Atlas", icon: Globe2, roles: [] }
     ]
   },
   {
@@ -59,6 +60,7 @@ const navGroups: NavGroup[] = [
     label: "Décider",
     items: [
       { href: "/app/pilotage", label: "Pilotage & impact", shortLabel: "Pilotage", icon: Gauge, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] },
+      { href: "/app/resultats", label: "Rapports & connaissances", shortLabel: "Rapports", icon: FileBarChart, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] },
       { href: "/app/organisation", label: "Organisation", shortLabel: "Organisation", icon: Building2, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] }
     ]
   }
@@ -97,7 +99,7 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
         </button>
         <div className="min-w-0">
           <p className="truncate text-[11px] font-extrabold uppercase tracking-[.08em] text-[#7a8e94]">
-            Vue opérationnelle commune
+            Mbàmbulaan Ops · environnement professionnel
           </p>
           <p className="mt-1 truncate text-sm font-bold text-[#102e37]">
             {activeTerritory?.name ?? "Littoral sénégalais"} · {new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}
@@ -109,6 +111,11 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
             <span className="size-2 rounded-full bg-[#1fb6a4]" />
             Démonstration · {persistence === "postgresql" ? "PostgreSQL" : "mémoire locale"}
           </span>
+
+          <div className="hidden items-center gap-1 2xl:flex">
+            <Link href="/app/atlas" className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-xs font-bold text-[#075568] transition hover:bg-[#edf5f4]"><Globe2 size={15} /> Ouvrir l’Atlas</Link>
+            <Link href="/app/coordination" className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-xs font-bold text-[#075568] transition hover:bg-[#edf5f4]"><Handshake size={15} /> Coordonner</Link>
+          </div>
 
           <label className="relative hidden items-center md:flex">
             <CircleUserRound size={17} className="pointer-events-none absolute left-3 text-[#08758a]" />
@@ -137,8 +144,8 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
         <div className="flex h-[72px] items-center gap-3 border-b border-white/10 px-5">
           <span className="grid size-10 place-items-center rounded-xl bg-[#5fe0d3] text-[#031a22]"><ShipWheel size={20} /></span>
           <div>
-            <strong className="block text-sm">Mbàmbulaan</strong>
-            <span className="text-[11px] text-white/48">Digital Twin · Sénégal</span>
+            <strong className="block text-sm">Mbàmbulaan Ops</strong>
+            <span className="text-[11px] text-white/48">Jumeau halieutique professionnel</span>
           </div>
         </div>
 

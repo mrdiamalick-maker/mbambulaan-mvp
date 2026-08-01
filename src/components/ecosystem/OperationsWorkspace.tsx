@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Anchor, ArrowRight, Fish, Scale, ShipWheel, Snowflake, TimerReset } from "lucide-react";
+import { useState } from "react";
+import { Anchor, ArrowRight, ChevronDown, Fish, Radio, Scale, ShipWheel, Snowflake, TimerReset } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { CommandButton } from "@/components/ui/CommandButton";
 import { TrustBadge } from "@/components/ui/Badges";
@@ -16,8 +17,9 @@ const tripAction = {
 
 export function OperationsWorkspace() {
   const { state } = useProduct();
+  const [selectedTripId, setSelectedTripId] = useState("trip-joal");
   if (!state) return null;
-  const primaryTrip = state.trips.find((item) => item.id === "trip-joal") ?? state.trips[0];
+  const primaryTrip = state.trips.find((item) => item.id === selectedTripId) ?? state.trips[0];
   const landing = state.landings.find((item) => item.tripId === primaryTrip.id);
   const vessel = state.vessels.find((item) => item.id === primaryTrip.vesselId);
   const action = tripAction[primaryTrip.status];
@@ -25,6 +27,9 @@ export function OperationsWorkspace() {
 
   return (
     <div className="space-y-8">
+      <section className="mission-strip p-5 lg:p-6">
+        <div className="grid gap-5 lg:grid-cols-[1fr_300px] lg:items-end"><div><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.15em] text-[#70e3d5]"><Radio size={14} /> Console des opérations</div><h2 className="mt-3 text-2xl font-black tracking-[-.04em]">Suivre chaque sortie jusqu’au lot valorisable.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/50">Sélectionnez une pirogue : le cycle, les responsabilités et la prochaine action s’adaptent sans multiplier les points sur l’Atlas.</p></div><label className="ops-filter"><ShipWheel size={16} /><select value={primaryTrip.id} onChange={(event) => setSelectedTripId(event.target.value)} aria-label="Sélectionner une sortie">{state.trips.map((trip) => { const currentVessel = state.vessels.find((item) => item.id === trip.vesselId); return <option key={trip.id} value={trip.id}>{currentVessel?.name} · {trip.status.replaceAll("_", " ")}</option>; })}</select><ChevronDown size={14} /></label></div>
+      </section>
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Pirogues suivies" value={String(state.vessels.length)} detail="Périmètre de démonstration, immatriculations fictives" icon={ShipWheel} />
         <Metric label="Sorties en cours" value={String(state.trips.filter((item) => item.status !== "debarquee").length)} detail="Retours attendus ou annoncés aujourd’hui" icon={TimerReset} tone="sand" />
