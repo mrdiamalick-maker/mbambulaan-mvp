@@ -7,7 +7,6 @@ import {
   Bell,
   BookOpenText,
   Building2,
-  ChevronDown,
   CircleUserRound,
   ClipboardList,
   FileBarChart,
@@ -34,34 +33,34 @@ type NavGroup = { label: string; items: NavItem[] };
 
 const navGroups: NavGroup[] = [
   {
-    label: "Vue commune",
+    label: "Mon espace",
     items: [
-      { href: "/app/travail", label: "Centre de situation", shortLabel: "Situation", icon: Home, roles: [] },
-      { href: "/app/atlas", label: "Atlas professionnel", shortLabel: "Atlas", icon: Globe2, roles: [] }
+      { href: "/app/travail", label: "Aujourd’hui", shortLabel: "Aujourd’hui", icon: Home, roles: [] },
+      { href: "/app/atlas", label: "Mon territoire", shortLabel: "Territoire", icon: Globe2, roles: [] }
     ]
   },
   {
-    label: "Agir",
+    label: "Mes actions",
     items: [
-      { href: "/app/operations", label: "Opérations de pêche", shortLabel: "Opérations", icon: Anchor, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur", "institution"] },
-      { href: "/app/situations", label: "Situations à traiter", shortLabel: "Situations", icon: ClipboardList, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur", "institution"] },
-      { href: "/app/coordination", label: "Coordination", shortLabel: "Coordination", icon: Handshake, roles: ["administrateur", "operateur", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] }
+      { href: "/app/operations", label: "Mes opérations", shortLabel: "Opérations", icon: Anchor, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur", "institution"] },
+      { href: "/app/situations", label: "Mes situations", shortLabel: "Situations", icon: ClipboardList, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur", "institution"] },
+      { href: "/app/coordination", label: "Mes engagements", shortLabel: "Engagements", icon: Handshake, roles: ["administrateur", "operateur", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] }
     ]
   },
   {
-    label: "Valoriser",
+    label: "Ma valeur",
     items: [
-      { href: "/app/marches", label: "Marchés & opportunités", shortLabel: "Marchés", icon: Store, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur", "institution"] },
+      { href: "/app/marches", label: "Opportunités utiles", shortLabel: "Opportunités", icon: Store, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur", "institution"] },
       { href: "/app/community", label: "Communauté & savoirs", shortLabel: "Communauté", icon: BookOpenText, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur"] },
       { href: "/app/durabilite", label: "Durabilité & confiance", shortLabel: "Durabilité", icon: Leaf, roles: ["administrateur", "operateur", "capitaine", "transformateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] }
     ]
   },
   {
-    label: "Décider",
+    label: "Mon pilotage",
     items: [
       { href: "/app/pilotage", label: "Pilotage & impact", shortLabel: "Pilotage", icon: Gauge, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] },
-      { href: "/app/resultats", label: "Rapports & connaissances", shortLabel: "Rapports", icon: FileBarChart, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] },
-      { href: "/app/organisation", label: "Organisation", shortLabel: "Organisation", icon: Building2, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] }
+      { href: "/app/resultats", label: "Mes résultats", shortLabel: "Résultats", icon: FileBarChart, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] },
+      { href: "/app/organisation", label: "Mon organisation", shortLabel: "Organisation", icon: Building2, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] }
     ]
   }
 ];
@@ -85,10 +84,13 @@ function canSee(item: NavItem, role: Role) {
 
 export function ProductShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { state, role, persistence, loading, error, changeRole, reset } = useProduct();
+  const { state, role, persistence, loading, error, reset } = useProduct();
   const [open, setOpen] = useState(false);
   const unread = state?.notifications.filter((item) => item.role === role && !item.read).length ?? 0;
-  const mobileItems = navGroups.flatMap((group) => group.items).filter((item) => canSee(item, role)).slice(0, 4);
+  const visibleGroups = navGroups
+    .map((group) => ({ ...group, items: group.items.filter((item) => canSee(item, role)) }))
+    .filter((group) => group.items.length > 0);
+  const mobileItems = visibleGroups.flatMap((group) => group.items).slice(0, 4);
   const activeTerritory = state?.territories.find((item) => item.activity !== "stable") ?? state?.territories[0];
 
   return (
@@ -99,7 +101,7 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
         </button>
         <div className="min-w-0">
           <p className="truncate text-[11px] font-extrabold uppercase tracking-[.08em] text-[#7a8e94]">
-            Mbàmbulaan Ops · environnement professionnel
+            Mbàmbulaan Ops · {roleLabels[role]}
           </p>
           <p className="mt-1 truncate text-sm font-bold text-[#102e37]">
             {activeTerritory?.name ?? "Littoral sénégalais"} · {new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}
@@ -112,23 +114,10 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
             Démonstration · {persistence === "postgresql" ? "PostgreSQL" : "mémoire locale"}
           </span>
 
-          <div className="hidden items-center gap-1 2xl:flex">
-            <Link href="/app/atlas" className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-xs font-bold text-[#075568] transition hover:bg-[#edf5f4]"><Globe2 size={15} /> Ouvrir l’Atlas</Link>
-            <Link href="/app/coordination" className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-xs font-bold text-[#075568] transition hover:bg-[#edf5f4]"><Handshake size={15} /> Coordonner</Link>
-          </div>
-
-          <label className="relative hidden items-center md:flex">
-            <CircleUserRound size={17} className="pointer-events-none absolute left-3 text-[#08758a]" />
-            <select
-              value={role}
-              onChange={(event) => void changeRole(event.target.value as Role)}
-              className="h-10 max-w-56 appearance-none rounded-lg border border-[#d0ddde] bg-white pl-9 pr-9 text-xs font-bold text-[#102e37] shadow-sm"
-              aria-label="Changer de rôle"
-            >
-              {Object.entries(roleLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
-            </select>
-            <ChevronDown size={14} className="pointer-events-none absolute right-3 text-[#667b81]" />
-          </label>
+          <span className="hidden h-10 items-center gap-2 rounded-lg border border-[#d0ddde] bg-white px-3 text-xs font-bold text-[#102e37] shadow-sm md:inline-flex">
+            <CircleUserRound size={17} className="text-[#08758a]" />
+            {roleLabels[role]}
+          </span>
 
           <button className="relative grid size-10 place-items-center rounded-lg text-[#075568] hover:bg-[#edf5f4]" aria-label={`${unread} notifications non lues`}>
             <Bell size={19} />
@@ -145,31 +134,27 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
           <span className="grid size-10 place-items-center rounded-xl bg-[#5fe0d3] text-[#031a22]"><ShipWheel size={20} /></span>
           <div>
             <strong className="block text-sm">Mbàmbulaan Ops</strong>
-            <span className="text-[11px] text-white/48">Jumeau halieutique professionnel</span>
+            <span className="text-[11px] text-white/48">{roleLabels[role]}</span>
           </div>
         </div>
 
         <nav aria-label="Navigation principale" className="space-y-5 px-3 py-5">
-          {navGroups.map((group) => {
-            const items = group.items.filter((item) => canSee(item, role));
-            if (!items.length) return null;
-            return (
-              <div key={group.label}>
-                <p className="px-3 pb-1.5 text-[9px] font-black uppercase tracking-[.14em] text-white/30">{group.label}</p>
-                <div className="space-y-0.5">
-                  {items.map((item) => {
-                    const active = pathname === item.href || (item.href !== "/app/travail" && pathname.startsWith(item.href));
-                    return (
-                      <Link key={item.href} href={item.href} className={`group flex min-h-10 items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition ${active ? "bg-white/12 text-white shadow-[inset_3px_0_0_#5fe0d3]" : "text-white/62 hover:bg-white/6 hover:text-white"}`}>
-                        <item.icon size={17} className={active ? "text-[#74e1d6]" : "text-white/42 group-hover:text-white/72"} />
-                        <span className="truncate">{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
+          {visibleGroups.map((group) => (
+            <div key={group.label}>
+              <p className="px-3 pb-1.5 text-[9px] font-black uppercase tracking-[.14em] text-white/30">{group.label}</p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const active = pathname === item.href || (item.href !== "/app/travail" && pathname.startsWith(item.href));
+                  return (
+                    <Link key={item.href} href={item.href} className={`group flex min-h-10 items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition ${active ? "bg-white/12 text-white shadow-[inset_3px_0_0_#5fe0d3]" : "text-white/62 hover:bg-white/6 hover:text-white"}`}>
+                      <item.icon size={17} className={active ? "text-[#74e1d6]" : "text-white/42 group-hover:text-white/72"} />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
 
           {role === "administrateur" && (
             <div>
@@ -182,8 +167,8 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="mx-3 mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="flex items-center gap-2 text-[#74e1d6]"><Sparkles size={15} /><p className="text-[10px] font-black uppercase tracking-[.1em]">Assistance activable</p></div>
-          <p className="mt-2 text-xs leading-5 text-white/52">Synthèses explicables, validation humaine obligatoire.</p>
+          <div className="flex items-center gap-2 text-[#74e1d6]"><Sparkles size={15} /><p className="text-[10px] font-black uppercase tracking-[.1em]">Votre périmètre</p></div>
+          <p className="mt-2 text-xs leading-5 text-white/52">Seules les données, actions et informations nécessaires à votre rôle sont affichées.</p>
         </div>
         <div className="border-t border-white/10 px-5 py-4">
           <p className="text-[10px] uppercase tracking-wider text-white/30">Organisation active</p>
@@ -195,39 +180,39 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
       {open && (
         <div className="no-print fixed inset-0 z-[70] overflow-y-auto bg-[#031a22] p-5 text-white lg:hidden">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-[#5fe0d3] text-[#031a22]"><ShipWheel size={20} /></span><strong>Mbàmbulaan</strong></div>
+            <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-[#5fe0d3] text-[#031a22]"><ShipWheel size={20} /></span><div><strong className="block">Mbàmbulaan</strong><span className="text-xs text-white/50">{roleLabels[role]}</span></div></div>
             <button onClick={() => setOpen(false)} className="grid size-10 place-items-center rounded-lg bg-white/8" aria-label="Fermer la navigation"><X /></button>
           </div>
-          <label className="mt-7 block">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Vue actuelle</span>
-            <select value={role} onChange={(event) => void changeRole(event.target.value as Role)} className="mt-2 w-full rounded-lg bg-white p-3 text-sm font-semibold text-[#102e37]">
-              {Object.entries(roleLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
-            </select>
-          </label>
+          <div className="mt-7 rounded-xl border border-white/10 bg-white/5 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Espace actif</p>
+            <p className="mt-2 text-sm font-bold text-white">{roleLabels[role]}</p>
+            <p className="mt-1 text-xs leading-5 text-white/50">Votre rôle est défini par votre session. Le changement de rôle reste disponible uniquement depuis la démonstration.</p>
+          </div>
           <nav className="mt-7 space-y-5">
-            {navGroups.map((group) => {
-              const items = group.items.filter((item) => canSee(item, role));
-              if (!items.length) return null;
-              return (
-                <div key={group.label}>
-                  <p className="mb-2 text-[10px] font-black uppercase tracking-[.12em] text-white/32">{group.label}</p>
-                  <div className="space-y-1">
-                    {items.map((item) => (
-                      <Link onClick={() => setOpen(false)} key={item.href} href={item.href} className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/4 px-4 py-3 font-semibold">
-                        <item.icon size={18} className="text-[#74e1d6]" /> {item.label}
-                      </Link>
-                    ))}
-                  </div>
+            {visibleGroups.map((group) => (
+              <div key={group.label}>
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[.12em] text-white/32">{group.label}</p>
+                <div className="space-y-1">
+                  {group.items.map((item) => (
+                    <Link onClick={() => setOpen(false)} key={item.href} href={item.href} className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/4 px-4 py-3 font-semibold">
+                      <item.icon size={18} className="text-[#74e1d6]" /> {item.label}
+                    </Link>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            ))}
+            {role === "administrateur" && (
+              <Link onClick={() => setOpen(false)} href="/app/administration" className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/4 px-4 py-3 font-semibold">
+                <Settings size={18} className="text-[#74e1d6]" /> Administration
+              </Link>
+            )}
           </nav>
         </div>
       )}
 
       <main className="mobile-safe min-w-0 lg:ml-[260px]">
         {error && <div role="alert" className="border-b border-[#efc8c1] bg-[#fff1ee] px-5 py-3 text-sm font-semibold text-[#9c392b]">{error}</div>}
-        {loading && !state ? <div className="grid min-h-[70vh] place-items-center text-sm text-[#667b81]">Initialisation du jumeau territorial…</div> : children}
+        {loading && !state ? <div className="grid min-h-[70vh] place-items-center text-sm text-[#667b81]">Initialisation de votre espace…</div> : children}
       </main>
 
       <nav className="no-print fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-[#d0ddde] bg-white/96 px-1 backdrop-blur lg:hidden">
