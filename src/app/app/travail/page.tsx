@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Metric } from "@/components/ui/Metric";
 import { MbambulaanSignature } from "@/components/ui/MbambulaanSignature";
 import { SituationRow } from "@/components/situations/SituationRow";
+import { QuayOperatorWorkspace } from "@/components/workspaces/QuayOperatorWorkspace";
 import { professionalSpaces } from "@/config/professional-spaces";
 import type { ProductState, Role, Situation } from "@/domain/types";
 
@@ -44,6 +45,7 @@ function visibleCommitments(state: ProductState, role: Role, actorId: string, si
 export default function WorkPage() {
   const { state, role, actorId } = useProduct();
   if (!state) return null;
+  if (role === "operateur") return <QuayOperatorWorkspace />;
 
   const space = professionalSpaces[role];
   const scopedSituations = visibleSituations(state, role, actorId);
@@ -66,7 +68,7 @@ export default function WorkPage() {
 
   const next = role === "partenaire"
     ? open.filter((item) => item.initiativeId)
-    : role === "operateur" || role === "capitaine"
+    : role === "capitaine"
       ? open.filter((item) => item.trust === "declaree" || item.trust === "observee")
       : role === "mareyeur" || role === "transformateur"
         ? open.filter((item) => item.status === "coordination" || item.status === "intervention" || item.status === "attente")
@@ -128,7 +130,7 @@ export default function WorkPage() {
           <Metric label="Situations ouvertes" value={String(open.length)} detail="Dans votre périmètre" icon={Clock3} />
           <Metric label="Priorités immédiates" value={String(critical.length)} detail="Action attendue" icon={AlertTriangle} tone="coral" />
           <Metric label="Mes engagements" value={String(awaiting.length)} detail="À faire ou à débloquer" icon={Handshake} tone="lagoon" />
-          <Metric label={role === "capitaine" || role === "operateur" ? "Opérations suivies" : "Résultats documentés"} value={String(role === "capitaine" || role === "operateur" ? visibleTripCount : completed.length)} detail={role === "capitaine" || role === "operateur" ? "Dans votre activité" : "Dans votre périmètre"} icon={role === "capitaine" || role === "operateur" ? ShipWheel : CheckCircle2} tone="sand" />
+          <Metric label={role === "capitaine" ? "Opérations suivies" : "Résultats documentés"} value={String(role === "capitaine" ? visibleTripCount : completed.length)} detail={role === "capitaine" ? "Dans votre activité" : "Dans votre périmètre"} icon={role === "capitaine" ? ShipWheel : CheckCircle2} tone="sand" />
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
