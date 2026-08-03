@@ -3,9 +3,23 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, MapPin, MessageCircleMore, Mic, PhoneCall, Send, ShipWheel, ShoppingBasket, Snowflake, TriangleAlert, Wrench, Scale } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  MapPin,
+  MessageCircleMore,
+  Mic,
+  PhoneCall,
+  Scale,
+  Send,
+  ShipWheel,
+  ShoppingBasket,
+  Snowflake,
+  TriangleAlert,
+  Wrench
+} from "lucide-react";
 
-type Flow = "preparation" | "retour" | "pesage" | "achat" | "capacite" | "probleme";
+type Flow = "preparation" | "retour" | "retard" | "quai" | "pesage" | "resume" | "achat" | "capacite" | "probleme";
 
 type FlowConfig = {
   actor: string;
@@ -42,6 +56,28 @@ const flows: Record<Flow, FlowConfig> = {
     confirmation: "C'est enregistré. Le quai de Hann est prévenu et voit votre heure d'arrivée estimée.",
     outcome: "Annonce de retour créée et reliée à la pirogue, au capitaine et au quai."
   },
+  retard: {
+    actor: "Capitaine référencé",
+    clientContext: "Sortie en cours et quai de retour déjà connus",
+    title: "Je serai en retard",
+    intro: "D'accord Mamadou. Nous allons prévenir le quai sans vous demander plus que nécessaire.",
+    icon: TriangleAlert,
+    questions: ["Vous pensez avoir combien de retard ?", "Avez-vous besoin d'aide ?", "Qui devons-nous prévenir en priorité ?"],
+    quickReplies: [["Moins d'1 heure", "1 à 2 heures", "Je ne sais pas encore"], ["Non, prévenez seulement", "Oui, appelez-moi", "Oui, besoin d'aide au retour"], ["Le quai", "Le propriétaire", "L'équipage à terre", "Tout le monde concerné"]],
+    confirmation: "C'est noté. Le quai voit maintenant que votre arrivée est retardée et sait s'il doit vous rappeler.",
+    outcome: "Retard enregistré, personnes concernées prévenues et besoin d'aide transmis sans créer de saisie supplémentaire."
+  },
+  quai: {
+    actor: "Capitaine référencé",
+    clientContext: "Retour annoncé ; le quai répond sur ce qui est prêt",
+    title: "Voir ce qui est prêt au quai",
+    intro: "Le quai de Hann a répondu pour votre arrivée.",
+    icon: ShipWheel,
+    questions: ["Voici la situation : place au quai prête, manutention confirmée, glace encore à confirmer. Que voulez-vous faire ?"],
+    quickReplies: [["C'est bon pour moi", "Attendre la glace", "Appelez-moi", "Changer de besoin"]],
+    confirmation: "Votre réponse est enregistrée. Le quai sait maintenant comment poursuivre la préparation.",
+    outcome: "État de préparation du quai partagé avec le capitaine et réponse du capitaine enregistrée."
+  },
   pesage: {
     actor: "Capitaine référencé",
     clientContext: "Débarquement et pesée déjà enregistrés par le quai",
@@ -52,6 +88,17 @@ const flows: Record<Flow, FlowConfig> = {
     quickReplies: [["Oui, c'est correct", "Non, il faut corriger", "Je ne sais pas", "Appelez-moi"], ["Rien à ajouter", "Le poids semble trop bas", "Le poids semble trop haut", "Autre remarque"]],
     confirmation: "Votre réponse est enregistrée. En cas de désaccord, le quai devra reprendre la vérification avec vous.",
     outcome: "Confirmation ou désaccord de pesée enregistré avec l'auteur, la date et la suite attendue."
+  },
+  resume: {
+    actor: "Capitaine référencé",
+    clientContext: "Sortie terminée et débarquement confirmé",
+    title: "Voir le résumé de ma sortie",
+    intro: "Votre sortie est terminée. Voici seulement les informations utiles à vérifier.",
+    icon: Check,
+    questions: ["Résumé : départ 05h20, retour 16h40, Hann, 420 kg, pesée confirmée. Est-ce correct ?", "Voulez-vous recevoir ce résumé ?"],
+    quickReplies: [["Oui, tout est correct", "Il faut corriger", "Appelez-moi"], ["Oui sur WhatsApp", "Oui plus tard", "Non merci"]],
+    confirmation: "C'est terminé. Votre historique est à jour et le résumé peut vous être envoyé sur WhatsApp.",
+    outcome: "Résumé de sortie validé par le capitaine, historisé et prêt à être partagé dans le canal choisi."
   },
   achat: {
     actor: "Mareyeur référencé",
@@ -88,6 +135,8 @@ const flows: Record<Flow, FlowConfig> = {
   }
 };
 
+const captainFlows: Flow[] = ["preparation", "retour", "retard", "quai", "pesage", "resume"];
+
 export default function WhatsAppSimulationPage() {
   const searchParams = useSearchParams();
   const requested = searchParams.get("parcours") as Flow | null;
@@ -99,6 +148,7 @@ export default function WhatsAppSimulationPage() {
 
   const config = flows[flow];
   const Icon = config.icon;
+  const visibleFlows = config.actor === "Capitaine référencé" ? captainFlows : (Object.keys(flows) as Flow[]);
   const messages = useMemo(() => {
     const history: Array<{ from: "mbambulaan" | "user"; text: string }> = [
       { from: "mbambulaan", text: config.intro },
@@ -154,9 +204,9 @@ export default function WhatsAppSimulationPage() {
               <p className="mt-1 text-xs leading-5 text-white/55">{config.clientContext}</p>
             </div>
 
-            <p className="mt-7 text-xs font-bold uppercase tracking-[.12em] text-white/42">Parcours à visualiser</p>
+            <p className="mt-7 text-xs font-bold uppercase tracking-[.12em] text-white/42">Parcours capitaine à visualiser</p>
             <div className="mt-3 space-y-2">
-              {(Object.keys(flows) as Flow[]).map((item) => {
+              {visibleFlows.map((item) => {
                 const ItemIcon = flows[item].icon;
                 return (
                   <button key={item} onClick={() => chooseFlow(item)} className={`flex w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-3 text-left text-sm font-semibold transition ${flow === item ? "bg-white/12 text-white" : "text-white/62 hover:bg-white/7 hover:text-white"}`}>
@@ -168,7 +218,7 @@ export default function WhatsAppSimulationPage() {
 
             <div className="mt-8 rounded-[var(--radius-sm)] border border-white/10 bg-white/5 p-4">
               <p className="text-xs font-semibold text-white">Ce que nous voulons construire</p>
-              <p className="mt-2 text-xs leading-5 text-white/55">Mbàmbulaan reconnaît le client, utilise les informations déjà connues et transforme une conversation courte en action métier suivie.</p>
+              <p className="mt-2 text-xs leading-5 text-white/55">Le capitaine agit depuis WhatsApp. L'espace professionnel reste optionnel pour l'historique, plusieurs pirogues ou les corrections plus complexes.</p>
             </div>
           </aside>
 
