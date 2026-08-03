@@ -1,28 +1,34 @@
 import Link from "next/link";
-import { ArrowRight, MessageCircleMore, PhoneCall, ShipWheel, ShoppingBasket, Snowflake, TriangleAlert } from "lucide-react";
+import { ArrowRight, MessageCircleMore, PhoneCall, ShipWheel, ShoppingBasket, Snowflake, TriangleAlert, Warehouse } from "lucide-react";
 
 const actions = [
   {
-    title: "Préparer un retour au quai",
-    description: "Visualiser le parcours WhatsApp prévu pour un capitaine déjà connu de Mbàmbulaan.",
+    title: "Parcours capitaine",
+    description: "Visualiser comment le capitaine prépare sa sortie, annonce son retour et confirme la pesée.",
     href: "/terrain/whatsapp?parcours=retour",
     icon: ShipWheel
   },
   {
+    title: "Parcours agent de quai",
+    description: "Visualiser comment l'agent reçoit l'arrivée du capitaine, prépare le quai et partage la pesée.",
+    href: "/terrain/quai-whatsapp",
+    icon: Warehouse
+  },
+  {
     title: "Exprimer un besoin d'achat",
-    description: "Visualiser le parcours WhatsApp d'un mareyeur ou acheteur référencé.",
+    description: "Visualiser le futur parcours WhatsApp d'un mareyeur ou acheteur référencé.",
     href: "/terrain/whatsapp?parcours=achat",
     icon: ShoppingBasket
   },
   {
     title: "Déclarer une capacité disponible",
-    description: "Visualiser le parcours WhatsApp d'un prestataire glace, froid ou transport.",
+    description: "Visualiser le futur parcours WhatsApp d'un prestataire glace, froid ou transport.",
     href: "/terrain/whatsapp?parcours=capacite",
     icon: Snowflake
   },
   {
     title: "Prévenir d'un problème",
-    description: "Visualiser comment un client peut alerter Mbàmbulaan depuis WhatsApp.",
+    description: "Visualiser comment un client peut prévenir Mbàmbulaan depuis WhatsApp.",
     href: "/terrain/whatsapp?parcours=probleme",
     icon: TriangleAlert
   }
@@ -38,11 +44,14 @@ export default function TerrainPage() {
             Visualiser ce que nos clients feront demain depuis WhatsApp ou par téléphone.
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-white/72">
-            Cette page n'est pas une entrée publique sans compte. Elle simule les parcours réservés à des acteurs déjà référencés chez Mbàmbulaan, afin de concevoir l'expérience avant l'intégration réelle de WhatsApp Business et du canal téléphonique.
+            Cette page simule les parcours réservés à des acteurs déjà référencés chez Mbàmbulaan. Les parcours sont reliés par les mêmes objets métier : l'annonce du capitaine devient une arrivée à préparer pour l'agent de quai, puis la réponse du quai repart vers le capitaine.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/terrain/whatsapp" className="btn-accent">
-              <MessageCircleMore size={18} /> Voir l'expérience WhatsApp client
+              <MessageCircleMore size={18} /> Voir le parcours capitaine
+            </Link>
+            <Link href="/terrain/quai-whatsapp" className="btn-on-dark">
+              <Warehouse size={18} /> Voir le parcours agent de quai
             </Link>
             <Link href="/terrain/telephone" className="btn-on-dark">
               <PhoneCall size={18} /> Voir le parcours téléphonique
@@ -70,7 +79,7 @@ export default function TerrainPage() {
         <div className="mt-8 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--sand-100)] p-5">
           <p className="text-sm font-semibold text-[var(--ink)]">Principe produit</p>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Le client est déjà connu de Mbàmbulaan. Son numéro, son rôle, son organisation et son périmètre sont reconnus. WhatsApp et le téléphone deviennent alors des portes d'action simples ; l'espace professionnel reste réservé au suivi, à l'historique et aux décisions plus complexes.
+            Chaque client garde son canal et son point de vue, mais Mbàmbulaan relie les actions. Le capitaine annonce ; l'agent de quai prépare ; le capitaine reçoit la réponse ; la pesée est partagée et confirmée par les deux acteurs.
           </p>
         </div>
       </section>
