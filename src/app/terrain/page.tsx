@@ -3,26 +3,26 @@ import { ArrowRight, MessageCircleMore, PhoneCall, ShipWheel, ShoppingBasket, Sn
 
 const actions = [
   {
-    title: "Je rentre au quai",
-    description: "Prévenir de votre arrivée et dire ce dont vous avez besoin.",
+    title: "Préparer un retour au quai",
+    description: "Visualiser le parcours WhatsApp prévu pour un capitaine déjà connu de Mbàmbulaan.",
     href: "/terrain/whatsapp?parcours=retour",
     icon: ShipWheel
   },
   {
-    title: "Je cherche du poisson",
-    description: "Dire l'espèce, la quantité et le lieu souhaité.",
+    title: "Exprimer un besoin d'achat",
+    description: "Visualiser le parcours WhatsApp d'un mareyeur ou acheteur référencé.",
     href: "/terrain/whatsapp?parcours=achat",
     icon: ShoppingBasket
   },
   {
-    title: "J'ai de la glace ou du froid disponible",
-    description: "Informer les acteurs qu'une capacité peut être utilisée.",
+    title: "Déclarer une capacité disponible",
+    description: "Visualiser le parcours WhatsApp d'un prestataire glace, froid ou transport.",
     href: "/terrain/whatsapp?parcours=capacite",
     icon: Snowflake
   },
   {
-    title: "Quelque chose ne va pas",
-    description: "Dire simplement ce qui se passe sur le terrain.",
+    title: "Prévenir d'un problème",
+    description: "Visualiser comment un client peut alerter Mbàmbulaan depuis WhatsApp.",
     href: "/terrain/whatsapp?parcours=probleme",
     icon: TriangleAlert
   }
@@ -33,19 +33,19 @@ export default function TerrainPage() {
     <main className="min-h-screen bg-[var(--canvas)] px-4 py-8 text-[var(--ink)] sm:px-6 lg:px-10">
       <section className="mx-auto max-w-6xl">
         <div className="rounded-[var(--radius-lg)] bg-[var(--ocean-1000)] px-6 py-8 text-white shadow-[var(--shadow-map)] lg:px-10 lg:py-12">
-          <p className="label-inverse">Accès terrain Mbàmbulaan</p>
-          <h1 className="mt-4 max-w-3xl font-serif text-4xl font-semibold leading-tight sm:text-5xl">
-            Faites votre demande sans créer de compte.
+          <p className="label-inverse">Démonstrateur omnicanal Mbàmbulaan</p>
+          <h1 className="mt-4 max-w-4xl font-serif text-4xl font-semibold leading-tight sm:text-5xl">
+            Visualiser ce que nos clients feront demain depuis WhatsApp ou par téléphone.
           </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-white/72">
-            Choisissez ce que vous voulez faire. Mbàmbulaan vous guide avec des mots simples, comme dans une conversation WhatsApp ou par téléphone.
+          <p className="mt-4 max-w-3xl text-base leading-7 text-white/72">
+            Cette page n'est pas une entrée publique sans compte. Elle simule les parcours réservés à des acteurs déjà référencés chez Mbàmbulaan, afin de concevoir l'expérience avant l'intégration réelle de WhatsApp Business et du canal téléphonique.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/terrain/whatsapp" className="btn-accent">
-              <MessageCircleMore size={18} /> Ouvrir la simulation WhatsApp
+              <MessageCircleMore size={18} /> Voir l'expérience WhatsApp client
             </Link>
             <Link href="/terrain/telephone" className="btn-on-dark">
-              <PhoneCall size={18} /> Demander un appel
+              <PhoneCall size={18} /> Voir le parcours téléphonique
             </Link>
           </div>
         </div>
@@ -68,13 +68,10 @@ export default function TerrainPage() {
         </div>
 
         <div className="mt-8 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--sand-100)] p-5">
-          <p className="text-sm font-semibold text-[var(--ink)]">Vous préférez parler ?</p>
+          <p className="text-sm font-semibold text-[var(--ink)]">Principe produit</p>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Demandez un appel. Une personne reprend avec vous ce que vous voulez faire et l'enregistre dans Mbàmbulaan.
+            Le client est déjà connu de Mbàmbulaan. Son numéro, son rôle, son organisation et son périmètre sont reconnus. WhatsApp et le téléphone deviennent alors des portes d'action simples ; l'espace professionnel reste réservé au suivi, à l'historique et aux décisions plus complexes.
           </p>
-          <Link href="/terrain/telephone" className="link-action mt-4 inline-flex items-center gap-2">
-            Demander à être rappelé <ArrowRight size={15} />
-          </Link>
         </div>
       </section>
     </main>
