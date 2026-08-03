@@ -16,6 +16,7 @@ import {
   Snowflake,
   UsersRound
 } from "lucide-react";
+import { sharedPurchaseDemo } from "@/lib/mbambulaan/purchase-demo";
 
 type Actor = "capitaine" | "operateur" | "mareyeur" | "prestataire";
 
@@ -28,6 +29,7 @@ type Journey = {
   confirmation: string;
   result: string;
   escalation?: string;
+  professionalHref?: string;
 };
 
 type ActorConfig = {
@@ -52,7 +54,8 @@ const actors: Record<Actor, ActorConfig> = {
         questions: ["Dans combien de temps arrivez-vous ?", "De quoi avez-vous besoin ?"],
         replies: [["Moins d’1 heure", "1 à 2 heures", "Plus tard"], ["Place au quai", "Glace", "Manutention", "Rien"]],
         confirmation: "Le quai est prévenu et voit votre besoin.",
-        result: "Retour annoncé et préparation du quai demandée."
+        result: "Retour annoncé et préparation du quai demandée.",
+        professionalHref: "/app/travail"
       },
       {
         id: "pesage",
@@ -62,7 +65,8 @@ const actors: Record<Actor, ActorConfig> = {
         replies: [["Oui", "Non, il faut vérifier", "Appelez-moi"]],
         confirmation: "Votre réponse est enregistrée.",
         result: "Pesée confirmée ou vérification demandée.",
-        escalation: "Un désaccord ouvre le dossier dans l’espace professionnel du quai."
+        escalation: "Un désaccord ouvre le dossier dans l’espace professionnel du quai.",
+        professionalHref: "/app/travail"
       }
     ]
   },
@@ -79,7 +83,8 @@ const actors: Record<Actor, ActorConfig> = {
         questions: ["La place au quai est-elle prête ?", "La glace est-elle disponible ?"],
         replies: [["Oui", "Non", "À confirmer"], ["Oui", "Non", "À confirmer"]],
         confirmation: "Le capitaine reçoit l’état de préparation.",
-        result: "État du quai mis à jour pour la même arrivée."
+        result: "État du quai mis à jour pour la même arrivée.",
+        professionalHref: "/app/travail"
       },
       {
         id: "poids",
@@ -89,25 +94,45 @@ const actors: Record<Actor, ActorConfig> = {
         replies: [["420 kg", "Corriger le poids", "Appelez-moi"]],
         confirmation: "Le poids est envoyé au capitaine.",
         result: "Pesée liée à l’arrivée et attente de confirmation.",
-        escalation: "Une correction ou un désaccord se traite dans l’espace professionnel existant."
+        escalation: "Une correction ou un désaccord se traite dans l’espace professionnel existant.",
+        professionalHref: "/app/travail"
       }
     ]
   },
   mareyeur: {
     label: "Mareyeur",
-    identity: "Awa Ndiaye · Acheteuse référencée",
-    context: "Zones habituelles et préférences d’achat déjà connues.",
+    identity: `${sharedPurchaseDemo.buyer} · Acheteuse référencée`,
+    context: `Besoin ${sharedPurchaseDemo.needId} · zones habituelles et préférences d’achat déjà connues.`,
     icon: ShoppingBasket,
     journeys: [
       {
         id: "achat",
         title: "Je cherche du poisson",
-        intro: "Bonjour Awa. Dites-nous seulement ce qu’il vous faut aujourd’hui.",
-        questions: ["Quelle espèce cherchez-vous ?", "Quelle quantité environ ?", "Où voulez-vous récupérer ?"],
-        replies: [["Sardinelle", "Thiof", "Yaboy", "Autre"], ["Moins de 100 kg", "100 à 500 kg", "Plus de 500 kg"], ["Hann", "Soumbédioune", "Mbour"]],
-        confirmation: "Votre besoin est enregistré.",
-        result: "Besoin relié aux lots, lieux et délais utiles.",
-        escalation: "Comparer plusieurs lots ou organiser l’enlèvement se fait dans l’espace professionnel."
+        intro: `Bonjour ${sharedPurchaseDemo.buyer}. Dites-nous seulement ce qu’il vous faut aujourd’hui.`,
+        questions: ["Quelle espèce cherchez-vous ?", "Quelle quantité environ ?", "Où voulez-vous récupérer ?", "Pour quand ?"],
+        replies: [
+          ["Sardinelle", "Thiof", "Yaboy", "Autre"],
+          ["Moins de 100 kg", "100 à 500 kg", "Plus de 500 kg"],
+          ["Hann", "Soumbédioune", "Mbour"],
+          ["Aujourd’hui", "Demain", "Cette semaine"]
+        ],
+        confirmation: "Votre besoin est enregistré. Mbàmbulaan vous prévient seulement lorsqu’une proposition correspond.",
+        result: "Besoin relié aux lots, lieux, délais et capacités d’enlèvement utiles.",
+        professionalHref: "/app/travail"
+      },
+      {
+        id: "proposition",
+        title: "Répondre à une proposition",
+        intro: `${sharedPurchaseDemo.proposals[0].quantityKg} kg de ${sharedPurchaseDemo.proposals[0].species} sont proposés à ${sharedPurchaseDemo.proposals[0].site}, disponibles à ${sharedPurchaseDemo.proposals[0].availableAt}.`,
+        questions: ["Cette proposition vous intéresse-t-elle ?", "Que voulez-vous faire ensuite ?"],
+        replies: [
+          ["Oui, je suis intéressée", "Non merci", "Montrez-moi une autre proposition", "Appelez-moi"],
+          ["Réserver ce lot", "Organiser l’enlèvement", "Comparer avant de décider"]
+        ],
+        confirmation: "Votre réponse est enregistrée. Le lot n’est réservé que si vous le confirmez.",
+        result: "Intérêt, refus ou demande de comparaison relié au même besoin d’achat.",
+        escalation: "Comparer plusieurs lots, arbitrer le prix, vérifier la qualité ou organiser transport et enlèvement se fait dans l’espace professionnel existant.",
+        professionalHref: "/app/travail"
       }
     ]
   },
@@ -125,7 +150,8 @@ const actors: Record<Actor, ActorConfig> = {
         replies: [["Glace", "Chambre froide", "Transport"], ["Aujourd’hui", "Demain", "Cette semaine"]],
         confirmation: "Votre capacité est visible pour les acteurs concernés.",
         result: "Capacité reliée au prestataire, au lieu et à la période.",
-        escalation: "Le planning, les conflits de capacité et le suivi passent par l’espace professionnel."
+        escalation: "Le planning, les conflits de capacité et le suivi passent par l’espace professionnel.",
+        professionalHref: "/app/travail"
       }
     ]
   }
@@ -181,8 +207,11 @@ export default function MessagingSimulationPage() {
   function answer(value: string) {
     const next = [...answers, value];
     setAnswers(next);
-    if (value === "Appelez-moi" || step + 1 >= journey.questions.length) setDone(true);
-    else setStep(step + 1);
+    if (value === "Appelez-moi" || value === "Comparer avant de décider" || value === "Montrez-moi une autre proposition" || step + 1 >= journey.questions.length) {
+      setDone(true);
+    } else {
+      setStep(step + 1);
+    }
   }
 
   return (
@@ -266,7 +295,7 @@ export default function MessagingSimulationPage() {
                   {journey.escalation && <p className="mt-3 rounded-[var(--radius-sm)] bg-[var(--sand-100)] p-3 text-sm font-semibold text-[var(--ink)]">{journey.escalation}</p>}
                   <div className="mt-5 flex flex-wrap gap-3">
                     <button onClick={() => selectJourney(journey.id)} className="btn-secondary">Rejouer</button>
-                    <Link href="/app/travail" className="btn-primary">Continuer dans mon espace <ArrowRight size={16} /></Link>
+                    <Link href={journey.professionalHref ?? "/app/travail"} className="btn-primary">Continuer dans mon espace <ArrowRight size={16} /></Link>
                   </div>
                 </div>
               )}
