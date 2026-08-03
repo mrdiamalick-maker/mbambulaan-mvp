@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { PwaRegistration } from "@/components/providers/PwaRegistration";
 import "./globals.css";
+import "./brand.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
@@ -33,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#075466"
+  themeColor: "#071d26"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
