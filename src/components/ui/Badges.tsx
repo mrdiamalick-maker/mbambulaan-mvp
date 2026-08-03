@@ -1,6 +1,19 @@
 import { CheckCircle2, CircleAlert, Clock3, Radio } from "lucide-react";
 import type { SituationStatus, TrustLevel } from "@/domain/types";
 
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+
+const badgeVariants: Record<BadgeVariant, string> = {
+  default: "border-transparent bg-[var(--ocean-800)] text-[var(--white)]",
+  secondary: "border-transparent bg-[var(--lagoon-100)] text-[var(--lagoon-600)]",
+  destructive: "border-transparent bg-[var(--coral-100)] text-[var(--coral-600)]",
+  outline: "border-[var(--line-strong)] bg-transparent text-[var(--muted)]"
+};
+
+function Badge({ children, variant = "secondary", title }: { children: React.ReactNode; variant?: BadgeVariant; title?: string }) {
+  return <span title={title} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${badgeVariants[variant]}`}>{children}</span>;
+}
+
 const statusLabels: Record<SituationStatus, string> = {
   recue: "Reçue",
   qualification: "En qualification",
@@ -12,17 +25,22 @@ const statusLabels: Record<SituationStatus, string> = {
   reglee: "Réglée"
 };
 
+const statusVariant: Record<SituationStatus, BadgeVariant> = {
+  recue: "outline",
+  qualification: "secondary",
+  priorisee: "secondary",
+  coordination: "default",
+  intervention: "default",
+  attente: "destructive",
+  resultat: "secondary",
+  reglee: "secondary"
+};
+
 export function StatusBadge({ status }: { status: SituationStatus }) {
   const critical = status === "attente";
   const done = status === "reglee" || status === "resultat";
   const Icon = critical ? CircleAlert : done ? CheckCircle2 : Clock3;
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${
-      critical ? "border-[#efc8c1] bg-[#fff1ee] text-[#9c392b]" : done ? "border-[#b9dfd2] bg-[#e9f7f1] text-[#126b58]" : "border-[#b9dfe4] bg-[#eaf8fa] text-[#08697b]"
-    }`}>
-      <Icon size={13} aria-hidden="true" /> {statusLabels[status]}
-    </span>
-  );
+  return <Badge variant={statusVariant[status]}><Icon size={13} aria-hidden="true" /> {statusLabels[status]}</Badge>;
 }
 
 const trustLabels: Record<TrustLevel, string> = {
@@ -33,17 +51,16 @@ const trustLabels: Record<TrustLevel, string> = {
 };
 
 export function TrustBadge({ trust, source }: { trust: TrustLevel; source?: string }) {
-  return (
-    <span
-      title={source ? `Source : ${source}` : "Niveau établi dans le tenant de démonstration"}
-      className="inline-flex cursor-help items-center gap-1.5 rounded-full border border-[#c8d7da] bg-white px-2.5 py-1 text-xs font-semibold text-[#445b62]"
-    >
-      <Radio size={12} aria-hidden="true" /> {trustLabels[trust]}
-    </span>
-  );
+  return <Badge variant="outline" title={source ? `Source : ${source}` : "Niveau établi dans le tenant de démonstration"}><Radio size={12} aria-hidden="true" /> {trustLabels[trust]}</Badge>;
 }
 
+const priorityVariant = {
+  faible: "outline",
+  moyenne: "secondary",
+  haute: "default",
+  critique: "destructive"
+} satisfies Record<"faible" | "moyenne" | "haute" | "critique", BadgeVariant>;
+
 export function PriorityBadge({ priority }: { priority: "faible" | "moyenne" | "haute" | "critique" }) {
-  const tone = priority === "critique" ? "border-[#efc8c1] bg-[#fff1ee] text-[#9c392b]" : priority === "haute" ? "border-[#ead7a8] bg-[#fff8e8] text-[#875d08]" : "border-[#d4dde0] bg-[#f5f7f7] text-[#52666d]";
-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${tone}`}>{priority[0].toUpperCase() + priority.slice(1)}</span>;
+  return <Badge variant={priorityVariant[priority]}>{priority[0].toUpperCase() + priority.slice(1)}</Badge>;
 }
