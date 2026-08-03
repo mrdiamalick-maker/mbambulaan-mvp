@@ -8,13 +8,13 @@ import {
   Clock3,
   Handshake,
   MapPinned,
-  Radio,
   ShipWheel,
   Target
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Metric } from "@/components/ui/Metric";
+import { MbambulaanSignature } from "@/components/ui/MbambulaanSignature";
 import { SituationRow } from "@/components/situations/SituationRow";
 import { professionalSpaces } from "@/config/professional-spaces";
 import type { ProductState, Role, Situation } from "@/domain/types";
@@ -72,6 +72,12 @@ export default function WorkPage() {
         ? open.filter((item) => item.status === "coordination" || item.status === "intervention" || item.status === "attente")
         : [...critical, ...open.filter((item) => item.priority !== "critique")];
 
+  const signaturePoints = [
+    { label: `${open.length} situations`, position: 18 },
+    { label: `${awaiting.length} engagements`, position: 53 },
+    { label: `${critical.length} priorité${critical.length > 1 ? "s" : ""}`, position: 82, hot: critical.length > 0 }
+  ];
+
   return (
     <>
       <PageHeader
@@ -81,45 +87,44 @@ export default function WorkPage() {
         actions={<Link href={space.primaryAction.href} className="btn-primary">{space.primaryAction.label} <ArrowRight size={16} /></Link>}
       />
 
-      <div className="space-y-6 p-5 lg:p-8">
-        <section className="grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
-          <div className="overflow-hidden rounded-[22px] bg-[#062f38] text-white shadow-[0_24px_70px_rgba(4,43,52,.18)]">
-            <div className="relative overflow-hidden p-6 lg:p-8">
-              <div className="absolute inset-0 opacity-30 ocean-grid" />
-              <div className="relative max-w-3xl">
-                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[.16em] text-[#64decd]"><Radio size={15} /> Votre espace aujourd’hui</div>
-                <h2 className="mt-5 text-3xl font-black leading-tight lg:text-4xl">
-                  {critical.length > 0 ? `${critical.length} priorité critique demande une action.` : "Votre périmètre est stable, les engagements restent suivis."}
-                </h2>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-[#c9dfe2]">Vous ne voyez que vos situations, vos actions, vos engagements et les informations nécessaires à votre rôle.</p>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Link href={next[0] ? `/app/situations/${next[0].id}` : space.primaryAction.href} className="btn-accent">Traiter la prochaine action <ArrowRight size={16} /></Link>
-                  <Link href="/app/atlas" className="btn-on-dark"><MapPinned size={16} /> Lire mon territoire</Link>
-                </div>
-              </div>
+      <div className="space-y-7 p-5 lg:p-8">
+        <MbambulaanSignature
+          title={critical.length > 0 ? `${critical.length} priorité critique demande une action maintenant.` : "Votre périmètre est stable, les engagements restent suivis."}
+          detail="Cette ligne relie les signaux visibles, les engagements attendus et les priorités de votre rôle. Elle devient le repère commun de l’expérience Mbàmbulaan."
+          points={signaturePoints}
+        />
+
+        <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
+          <div className="surface p-6 lg:p-7">
+            <div className="flex items-center gap-2 text-[#2f9d91]"><Target size={18} /><p className="label">Votre prochaine décision</p></div>
+            <h2 className="mt-3 max-w-2xl text-3xl font-black leading-tight text-[#122b33]">{next[0]?.title ?? "Aucune action urgente dans votre périmètre."}</h2>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#66767a]">Vous ne voyez que vos situations, vos actions, vos engagements et les informations nécessaires à votre rôle.</p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href={next[0] ? `/app/situations/${next[0].id}` : space.primaryAction.href} className="btn-accent">Traiter la prochaine action <ArrowRight size={16} /></Link>
+              <Link href="/app/atlas" className="btn-secondary"><MapPinned size={16} /> Lire mon territoire</Link>
             </div>
           </div>
 
-          <aside className="surface p-5 lg:p-6">
-            <div className="flex items-center gap-2 text-[#087287]"><Target size={18} /><p className="label">Valeur de votre espace</p></div>
-            <h2 className="mt-3 text-lg font-black text-[#07323c]">Ce que Mbàmbulaan doit vous apporter</h2>
-            <div className="mt-5 space-y-3">
-              {space.outcomes.map((outcome) => <div key={outcome} className="flex items-start gap-3 rounded-xl border border-[#d7e4e4] bg-[#f7fbfa] p-3"><CheckCircle2 size={17} className="mt-0.5 shrink-0 text-[#169785]" /><p className="text-sm font-bold text-[#23474e]">{outcome}</p></div>)}
+          <aside className="surface p-6 lg:p-7">
+            <p className="label">Valeur de votre espace</p>
+            <h2 className="mt-3 text-2xl font-black text-[#122b33]">Ce que Mbàmbulaan doit vous apporter</h2>
+            <div className="mt-5 space-y-4">
+              {space.outcomes.map((outcome, index) => <div key={outcome} className="flex items-start gap-4 border-t border-black/10 pt-4 first:border-t-0 first:pt-0"><span className="text-2xl text-[#bd5f43]" style={{ fontFamily: "var(--mb-font-display)" }}>0{index + 1}</span><p className="pt-1 text-sm font-bold text-[#23474e]">{outcome}</p></div>)}
             </div>
           </aside>
         </section>
 
         <section className="surface overflow-hidden">
-          <div className="border-b border-[#d9e3e3] px-5 py-4">
+          <div className="border-b border-black/10 px-6 py-5">
             <p className="label">Vos priorités</p>
-            <h2 className="mt-1 text-xl font-black text-[#07323c]">Les trois sujets à surveiller dans cet espace</h2>
+            <h2 className="mt-1 text-2xl font-black text-[#122b33]">Les trois sujets à surveiller dans cet espace</h2>
           </div>
-          <div className="grid gap-px bg-[#d9e3e3] md:grid-cols-3">
-            {space.priorities.map((priority, index) => <div key={priority} className="bg-white p-5"><span className="grid size-8 place-items-center rounded-full bg-[#e8f6f3] text-xs font-black text-[#087287]">{index + 1}</span><p className="mt-4 font-black text-[#07323c]">{priority}</p><p className="mt-2 text-sm leading-6 text-[#667b81]">Ouvrez le détail pour comprendre la source, le responsable et la prochaine action.</p></div>)}
+          <div className="divide-y divide-black/10 md:grid md:grid-cols-3 md:divide-x md:divide-y-0">
+            {space.priorities.map((priority, index) => <div key={priority} className="bg-transparent p-6"><span className="text-4xl text-[#d5bd8a]" style={{ fontFamily: "var(--mb-font-display)" }}>0{index + 1}</span><p className="mt-4 text-lg font-black text-[#122b33]">{priority}</p><p className="mt-2 text-sm leading-6 text-[#66767a]">Ouvrez le détail pour comprendre la source, le responsable et la prochaine action.</p></div>)}
           </div>
         </section>
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="Situations ouvertes" value={String(open.length)} detail="Dans votre périmètre" icon={Clock3} />
           <Metric label="Priorités immédiates" value={String(critical.length)} detail="Action attendue" icon={AlertTriangle} tone="coral" />
           <Metric label="Mes engagements" value={String(awaiting.length)} detail="À faire ou à débloquer" icon={Handshake} tone="lagoon" />
@@ -128,22 +133,22 @@ export default function WorkPage() {
 
         <section className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
           <div className="surface overflow-hidden">
-            <div className="flex items-end justify-between gap-4 border-b border-[#d9e3e3] px-5 py-4">
-              <div><p className="label">Votre file de travail</p><h2 className="mt-1 text-xl font-black text-[#07323c]">À traiter maintenant</h2></div>
+            <div className="flex items-end justify-between gap-4 border-b border-black/10 px-6 py-5">
+              <div><p className="label">Votre file de travail</p><h2 className="mt-1 text-2xl font-black text-[#122b33]">À traiter maintenant</h2></div>
               <Link href="/app/situations" className="link-action">Voir ma file complète <ArrowRight size={15} /></Link>
             </div>
-            {next.length > 0 ? next.slice(0, 4).map((item) => <SituationRow key={item.id} situation={item} state={state} />) : <p className="p-5 text-sm text-[#667b81]">Aucune action ne correspond actuellement à votre rôle et à votre périmètre.</p>}
+            {next.length > 0 ? next.slice(0, 4).map((item) => <SituationRow key={item.id} situation={item} state={state} />) : <p className="p-6 text-sm text-[#66767a]">Aucune action ne correspond actuellement à votre rôle et à votre périmètre.</p>}
           </div>
 
-          <aside className="surface p-5">
-            <div className="flex items-center gap-2 text-[#087287]"><ShipWheel size={18} /><p className="label">Périmètre visible</p></div>
-            <h2 className="mt-3 text-lg font-black text-[#07323c]">Votre espace, pas celui des autres rôles</h2>
-            <p className="mt-3 text-sm leading-6 text-[#667b81]">Votre session, votre organisation, votre territoire et vos droits déterminent les informations affichées. Le changement de rôle reste limité à l’entrée de démonstration.</p>
-            <div className="mt-5 rounded-xl border border-[#cce2e1] bg-[#f0f8f6] p-4">
-              <p className="text-xs font-black uppercase tracking-[.12em] text-[#397169]">Information exploitable</p>
+          <aside className="surface p-6">
+            <div className="flex items-center gap-2 text-[#2f9d91]"><ShipWheel size={18} /><p className="label">Périmètre visible</p></div>
+            <h2 className="mt-3 text-2xl font-black text-[#122b33]">Votre espace, pas celui des autres rôles</h2>
+            <p className="mt-3 text-sm leading-6 text-[#66767a]">Votre session, votre organisation, votre territoire et vos droits déterminent les informations affichées. Le changement de rôle reste limité à l’entrée de démonstration.</p>
+            <div className="mt-6 border-l-2 border-[#bd5f43] pl-4">
+              <p className="text-[10px] font-black uppercase tracking-[.14em] text-[#8b6f3f]">Information exploitable</p>
               <p className="mt-2 text-sm font-bold text-[#153d44]">{trusted.length} situation{trusted.length > 1 ? "s" : ""} de votre périmètre dispose{trusted.length > 1 ? "nt" : ""} d’un niveau de confiance vérifié ou consolidé.</p>
             </div>
-            <Link href={space.primaryAction.href} className="btn-secondary mt-5 w-full justify-center">{space.primaryAction.label}</Link>
+            <Link href={space.primaryAction.href} className="btn-secondary mt-6 w-full justify-center">{space.primaryAction.label}</Link>
           </aside>
         </section>
       </div>
