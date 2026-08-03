@@ -13,13 +13,11 @@ import {
   Scale,
   Send,
   ShipWheel,
-  ShoppingBasket,
-  Snowflake,
   TriangleAlert,
   Wrench
 } from "lucide-react";
 
-type Flow = "preparation" | "retour" | "retard" | "quai" | "pesage" | "resume" | "achat" | "capacite" | "probleme";
+type Flow = "preparation" | "retour" | "retard" | "quai" | "pesage" | "resume";
 
 type FlowConfig = {
   actor: string;
@@ -31,6 +29,7 @@ type FlowConfig = {
   quickReplies: string[][];
   confirmation: string;
   outcome: string;
+  nextFlow?: Flow;
 };
 
 const flows: Record<Flow, FlowConfig> = {
@@ -43,7 +42,8 @@ const flows: Record<Flow, FlowConfig> = {
     questions: ["La pirogue est-elle prête ?", "Avez-vous assez de carburant et de glace ?", "L'équipage est-il au complet ?"],
     quickReplies: [["Oui, tout est prêt", "Problème moteur", "Autre problème"], ["Oui", "Il manque du carburant", "Il manque de la glace"], ["Oui", "Il manque une personne", "Appelez-moi"]],
     confirmation: "C'est enregistré. Vous voyez maintenant ce qui est prêt et ce qui manque avant le départ.",
-    outcome: "État de préparation créé pour la sortie du capitaine, avec les éléments prêts et les blocages éventuels."
+    outcome: "État de préparation créé pour la sortie du capitaine, avec les éléments prêts et les blocages éventuels.",
+    nextFlow: "retour"
   },
   retour: {
     actor: "Capitaine référencé",
@@ -54,7 +54,8 @@ const flows: Record<Flow, FlowConfig> = {
     questions: ["Vous arrivez à quel quai ?", "Dans combien de temps pensez-vous arriver ?", "De quoi avez-vous besoin à l'arrivée ?"],
     quickReplies: [["Mon quai habituel : Hann", "Soumbédioune", "Kayar", "Mbour"], ["Moins d'1 heure", "1 à 2 heures", "Plus de 2 heures"], ["Glace", "Place au quai", "Manutention", "Transport", "Rien pour le moment"]],
     confirmation: "C'est enregistré. Le quai de Hann est prévenu et voit votre heure d'arrivée estimée.",
-    outcome: "Annonce de retour créée et reliée à la pirogue, au capitaine et au quai."
+    outcome: "Annonce de retour créée et reliée à la pirogue, au capitaine et au quai.",
+    nextFlow: "quai"
   },
   retard: {
     actor: "Capitaine référencé",
@@ -65,7 +66,8 @@ const flows: Record<Flow, FlowConfig> = {
     questions: ["Vous pensez avoir combien de retard ?", "Avez-vous besoin d'aide ?", "Qui devons-nous prévenir en priorité ?"],
     quickReplies: [["Moins d'1 heure", "1 à 2 heures", "Je ne sais pas encore"], ["Non, prévenez seulement", "Oui, appelez-moi", "Oui, besoin d'aide au retour"], ["Le quai", "Le propriétaire", "L'équipage à terre", "Tout le monde concerné"]],
     confirmation: "C'est noté. Le quai voit maintenant que votre arrivée est retardée et sait s'il doit vous rappeler.",
-    outcome: "Retard enregistré, personnes concernées prévenues et besoin d'aide transmis sans créer de saisie supplémentaire."
+    outcome: "Retard enregistré, personnes concernées prévenues et besoin d'aide transmis sans créer de saisie supplémentaire.",
+    nextFlow: "quai"
   },
   quai: {
     actor: "Capitaine référencé",
@@ -76,7 +78,8 @@ const flows: Record<Flow, FlowConfig> = {
     questions: ["Voici la situation : place au quai prête, manutention confirmée, glace encore à confirmer. Que voulez-vous faire ?"],
     quickReplies: [["C'est bon pour moi", "Attendre la glace", "Appelez-moi", "Changer de besoin"]],
     confirmation: "Votre réponse est enregistrée. Le quai sait maintenant comment poursuivre la préparation.",
-    outcome: "État de préparation du quai partagé avec le capitaine et réponse du capitaine enregistrée."
+    outcome: "État de préparation du quai partagé avec le capitaine et réponse du capitaine enregistrée.",
+    nextFlow: "pesage"
   },
   pesage: {
     actor: "Capitaine référencé",
@@ -87,7 +90,8 @@ const flows: Record<Flow, FlowConfig> = {
     questions: ["Le poids de 420 kg est-il correct ?", "Souhaitez-vous ajouter quelque chose ?"],
     quickReplies: [["Oui, c'est correct", "Non, il faut corriger", "Je ne sais pas", "Appelez-moi"], ["Rien à ajouter", "Le poids semble trop bas", "Le poids semble trop haut", "Autre remarque"]],
     confirmation: "Votre réponse est enregistrée. En cas de désaccord, le quai devra reprendre la vérification avec vous.",
-    outcome: "Confirmation ou désaccord de pesée enregistré avec l'auteur, la date et la suite attendue."
+    outcome: "Confirmation ou désaccord de pesée enregistré avec l'auteur, la date et la suite attendue.",
+    nextFlow: "resume"
   },
   resume: {
     actor: "Capitaine référencé",
@@ -99,39 +103,6 @@ const flows: Record<Flow, FlowConfig> = {
     quickReplies: [["Oui, tout est correct", "Il faut corriger", "Appelez-moi"], ["Oui sur WhatsApp", "Oui plus tard", "Non merci"]],
     confirmation: "C'est terminé. Votre historique est à jour et le résumé peut vous être envoyé sur WhatsApp.",
     outcome: "Résumé de sortie validé par le capitaine, historisé et prêt à être partagé dans le canal choisi."
-  },
-  achat: {
-    actor: "Mareyeur référencé",
-    clientContext: "Préférences d'achat et zones habituelles connues",
-    title: "Je cherche du poisson",
-    intro: "Bonjour Awa. Dites-nous ce que vous cherchez. Nous utiliserons vos préférences et vos zones habituelles.",
-    icon: ShoppingBasket,
-    questions: ["Quelle espèce cherchez-vous ?", "Quelle quantité environ ?", "Où voulez-vous récupérer le poisson ?"],
-    quickReplies: [["Sardinelle", "Thiof", "Yaboy", "Autre"], ["Moins de 100 kg", "100 à 500 kg", "Plus de 500 kg"], ["Hann", "Soumbédioune", "Kayar", "Mbour"]],
-    confirmation: "Votre besoin est enregistré. Seuls les lots correspondant à votre demande vous seront proposés.",
-    outcome: "Besoin d'achat créé et relié au mareyeur, à l'espèce, au volume et au lieu."
-  },
-  capacite: {
-    actor: "Prestataire référencé",
-    clientContext: "Équipement, zone et conditions déjà enregistrés",
-    title: "J'ai une capacité disponible",
-    intro: "Bonjour Ibrahima. Votre activité de froid est reconnue. Dites-nous ce qui est disponible aujourd'hui.",
-    icon: Snowflake,
-    questions: ["Que pouvez-vous proposer ?", "Quelle quantité est disponible ?", "Jusqu'à quand est-ce disponible ?"],
-    quickReplies: [["Glace", "Chambre froide", "Transport", "Transformation"], ["Petite quantité", "Quantité moyenne", "Grande quantité"], ["Aujourd'hui", "Demain", "Cette semaine"]],
-    confirmation: "Votre capacité est enregistrée et proposée uniquement aux acteurs concernés.",
-    outcome: "Capacité créée et reliée au prestataire, à l'équipement, au territoire et à la durée."
-  },
-  probleme: {
-    actor: "Client Mbàmbulaan référencé",
-    clientContext: "Identité, rôle et territoire déjà connus",
-    title: "Quelque chose ne va pas",
-    intro: "Nous vous avons reconnu. Expliquez simplement ce qui se passe ; l'équipe concernée recevra le message.",
-    icon: TriangleAlert,
-    questions: ["Qu'est-ce qui ne va pas ?", "Où cela se passe-t-il ?", "Faut-il vous rappeler ?"],
-    quickReplies: [["Panne", "Manque de glace", "Retard", "Problème de qualité"], ["Au quai", "En mer", "Au marché", "Sur la route"], ["Oui, appelez-moi", "Non, le message suffit"]],
-    confirmation: "Votre message est transmis à la personne concernée. Vous pouvez suivre la suite dans votre espace si nécessaire.",
-    outcome: "Situation créée avec l'auteur, le lieu, le canal d'origine et la personne à prévenir."
   }
 };
 
@@ -148,7 +119,6 @@ export default function WhatsAppSimulationPage() {
 
   const config = flows[flow];
   const Icon = config.icon;
-  const visibleFlows = config.actor === "Capitaine référencé" ? captainFlows : (Object.keys(flows) as Flow[]);
   const messages = useMemo(() => {
     const history: Array<{ from: "mbambulaan" | "user"; text: string }> = [
       { from: "mbambulaan", text: config.intro },
@@ -195,7 +165,7 @@ export default function WhatsAppSimulationPage() {
               <span className="grid size-11 place-items-center rounded-full bg-[var(--lagoon-500)] text-[var(--ocean-1000)]"><MessageCircleMore size={21} /></span>
               <div>
                 <p className="font-semibold">Mbàmbulaan Business</p>
-                <p className="text-xs text-white/60">Démonstration des parcours clients WhatsApp</p>
+                <p className="text-xs text-white/60">Parcours capitaine WhatsApp</p>
               </div>
             </div>
 
@@ -204,9 +174,9 @@ export default function WhatsAppSimulationPage() {
               <p className="mt-1 text-xs leading-5 text-white/55">{config.clientContext}</p>
             </div>
 
-            <p className="mt-7 text-xs font-bold uppercase tracking-[.12em] text-white/42">Parcours capitaine à visualiser</p>
+            <p className="mt-7 text-xs font-bold uppercase tracking-[.12em] text-white/42">Parcours capitaine</p>
             <div className="mt-3 space-y-2">
-              {visibleFlows.map((item) => {
+              {captainFlows.map((item) => {
                 const ItemIcon = flows[item].icon;
                 return (
                   <button key={item} onClick={() => chooseFlow(item)} className={`flex w-full items-center gap-3 rounded-[var(--radius-sm)] px-3 py-3 text-left text-sm font-semibold transition ${flow === item ? "bg-white/12 text-white" : "text-white/62 hover:bg-white/7 hover:text-white"}`}>
@@ -217,8 +187,8 @@ export default function WhatsAppSimulationPage() {
             </div>
 
             <div className="mt-8 rounded-[var(--radius-sm)] border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-semibold text-white">Ce que nous voulons construire</p>
-              <p className="mt-2 text-xs leading-5 text-white/55">Le capitaine agit depuis WhatsApp. L'espace professionnel reste optionnel pour l'historique, plusieurs pirogues ou les corrections plus complexes.</p>
+              <p className="text-xs font-semibold text-white">Principe produit</p>
+              <p className="mt-2 text-xs leading-5 text-white/55">Le capitaine agit depuis WhatsApp. L'espace professionnel reste optionnel pour l'historique, plusieurs pirogues et les corrections complexes.</p>
             </div>
           </aside>
 
@@ -226,7 +196,7 @@ export default function WhatsAppSimulationPage() {
             <header className="flex items-center gap-3 border-b border-[var(--line)] bg-[var(--white)] px-4 py-3 sm:px-5">
               <span className="grid size-10 place-items-center rounded-full bg-[var(--lagoon-100)] text-[var(--lagoon-600)]"><Icon size={19} /></span>
               <div>
-                <p className="font-semibold text-[var(--ink)]">Mbàmbulaan · Compte client reconnu</p>
+                <p className="font-semibold text-[var(--ink)]">Mbàmbulaan · Capitaine reconnu</p>
                 <p className="text-xs text-[var(--muted)]">Canal WhatsApp Business simulé</p>
               </div>
             </header>
@@ -261,7 +231,7 @@ export default function WhatsAppSimulationPage() {
 
               {done && (
                 <div className="mt-5 rounded-[var(--radius-md)] border border-[var(--lagoon-200)] bg-[var(--white)] p-5">
-                  <p className="text-sm font-semibold text-[var(--ink)]">Ce que le client a demandé</p>
+                  <p className="text-sm font-semibold text-[var(--ink)]">Ce que le capitaine a demandé</p>
                   <div className="mt-3 space-y-2">
                     {answers.map((answer, index) => <p key={`${answer}-${index}`} className="text-sm text-[var(--muted)]"><span className="font-semibold text-[var(--ink)]">{config.questions[index]}</span><br />{answer}</p>)}
                   </div>
@@ -270,8 +240,12 @@ export default function WhatsAppSimulationPage() {
                     <p className="mt-2 text-sm font-semibold text-[var(--ink)]">{config.outcome}</p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <button onClick={() => { setStep(0); setAnswers([]); setDone(false); }} className="btn-secondary">Rejouer le parcours</button>
-                    <Link href="/terrain" className="btn-primary">Retour au démonstrateur</Link>
+                    <button onClick={() => { setStep(0); setAnswers([]); setDone(false); }} className="btn-secondary">Rejouer ce parcours</button>
+                    {config.nextFlow ? (
+                      <button onClick={() => chooseFlow(config.nextFlow!)} className="btn-primary">Continuer le parcours capitaine</button>
+                    ) : (
+                      <Link href="/terrain" className="btn-primary">Retour au démonstrateur</Link>
+                    )}
                   </div>
                 </div>
               )}
