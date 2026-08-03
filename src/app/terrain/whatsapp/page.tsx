@@ -8,46 +8,61 @@ import { ArrowLeft, Check, MapPin, MessageCircleMore, Mic, PhoneCall, Send, Ship
 type Flow = "retour" | "achat" | "capacite" | "probleme";
 
 type FlowConfig = {
+  actor: string;
+  clientContext: string;
   title: string;
   intro: string;
   icon: typeof ShipWheel;
   questions: string[];
   quickReplies: string[][];
   confirmation: string;
+  outcome: string;
 };
 
 const flows: Record<Flow, FlowConfig> = {
   retour: {
+    actor: "Capitaine référencé",
+    clientContext: "Pirogue et quai habituels déjà connus",
     title: "Je rentre au quai",
-    intro: "D'accord. Nous allons préparer votre arrivée.",
+    intro: "Bonjour Mamadou. Votre pirogue Ndeye Fatou est reconnue. Nous allons préparer votre arrivée.",
     icon: ShipWheel,
-    questions: ["À quel quai arrivez-vous ?", "Dans combien de temps pensez-vous arriver ?", "De quoi avez-vous besoin à l'arrivée ?"],
-    quickReplies: [["Hann", "Soumbédioune", "Kayar", "Mbour"], ["Moins d'1 heure", "1 à 2 heures", "Plus de 2 heures"], ["Glace", "Place au quai", "Transport", "Rien pour le moment"]],
-    confirmation: "Votre retour a été enregistré. Le quai peut maintenant se préparer."
+    questions: ["Vous arrivez à quel quai ?", "Dans combien de temps pensez-vous arriver ?", "De quoi avez-vous besoin à l'arrivée ?"],
+    quickReplies: [["Mon quai habituel : Hann", "Soumbédioune", "Kayar", "Mbour"], ["Moins d'1 heure", "1 à 2 heures", "Plus de 2 heures"], ["Glace", "Place au quai", "Transport", "Rien pour le moment"]],
+    confirmation: "C'est enregistré. Le quai de Hann est prévenu et voit votre heure d'arrivée estimée.",
+    outcome: "Annonce de retour créée et reliée à la pirogue, au capitaine et au quai."
   },
   achat: {
+    actor: "Mareyeur référencé",
+    clientContext: "Préférences d'achat et zones habituelles connues",
     title: "Je cherche du poisson",
-    intro: "Dites-nous ce que vous cherchez. Nous vous proposerons seulement les lots utiles.",
+    intro: "Bonjour Awa. Dites-nous ce que vous cherchez. Nous utiliserons vos préférences et vos zones habituelles.",
     icon: ShoppingBasket,
     questions: ["Quelle espèce cherchez-vous ?", "Quelle quantité environ ?", "Où voulez-vous récupérer le poisson ?"],
     quickReplies: [["Sardinelle", "Thiof", "Yaboy", "Autre"], ["Moins de 100 kg", "100 à 500 kg", "Plus de 500 kg"], ["Hann", "Soumbédioune", "Kayar", "Mbour"]],
-    confirmation: "Votre demande a été reçue. Vous serez informé quand un lot correspondant sera disponible."
+    confirmation: "Votre besoin est enregistré. Seuls les lots correspondant à votre demande vous seront proposés.",
+    outcome: "Besoin d'achat créé et relié au mareyeur, à l'espèce, au volume et au lieu."
   },
   capacite: {
+    actor: "Prestataire référencé",
+    clientContext: "Équipement, zone et conditions déjà enregistrés",
     title: "J'ai une capacité disponible",
-    intro: "Indiquez ce que vous pouvez mettre à disposition.",
+    intro: "Bonjour Ibrahima. Votre activité de froid est reconnue. Dites-nous ce qui est disponible aujourd'hui.",
     icon: Snowflake,
     questions: ["Que pouvez-vous proposer ?", "Quelle quantité est disponible ?", "Jusqu'à quand est-ce disponible ?"],
     quickReplies: [["Glace", "Chambre froide", "Transport", "Transformation"], ["Petite quantité", "Quantité moyenne", "Grande quantité"], ["Aujourd'hui", "Demain", "Cette semaine"]],
-    confirmation: "Votre capacité est maintenant visible pour les acteurs qui en ont besoin."
+    confirmation: "Votre capacité est enregistrée et proposée uniquement aux acteurs concernés.",
+    outcome: "Capacité créée et reliée au prestataire, à l'équipement, au territoire et à la durée."
   },
   probleme: {
+    actor: "Client Mbàmbulaan référencé",
+    clientContext: "Identité, rôle et territoire déjà connus",
     title: "Quelque chose ne va pas",
-    intro: "Expliquez simplement ce qui se passe. Une personne vérifiera avant toute action importante.",
+    intro: "Nous vous avons reconnu. Expliquez simplement ce qui se passe ; l'équipe concernée recevra le message.",
     icon: TriangleAlert,
     questions: ["Qu'est-ce qui ne va pas ?", "Où cela se passe-t-il ?", "Faut-il vous rappeler ?"],
     quickReplies: [["Panne", "Manque de glace", "Retard", "Problème de qualité"], ["Au quai", "En mer", "Au marché", "Sur la route"], ["Oui, appelez-moi", "Non, le message suffit"]],
-    confirmation: "Votre message a été reçu. Une personne va vérifier la situation."
+    confirmation: "Votre message est transmis à la personne concernée. Vous pouvez suivre la suite dans votre espace si nécessaire.",
+    outcome: "Situation créée avec l'auteur, le lieu, le canal d'origine et la personne à prévenir."
   }
 };
 
@@ -64,9 +79,8 @@ export default function WhatsAppSimulationPage() {
   const Icon = config.icon;
   const messages = useMemo(() => {
     const history: Array<{ from: "mbambulaan" | "user"; text: string }> = [
-      { from: "mbambulaan", text: "Bonjour, je suis Mbàmbulaan. Que voulez-vous faire aujourd'hui ?" },
-      { from: "user", text: config.title },
-      { from: "mbambulaan", text: config.intro }
+      { from: "mbambulaan", text: config.intro },
+      { from: "user", text: config.title }
     ];
     answers.forEach((answer, index) => {
       history.push({ from: "mbambulaan", text: config.questions[index] });
@@ -96,10 +110,10 @@ export default function WhatsAppSimulationPage() {
       <section className="mx-auto max-w-6xl">
         <div className="mb-4 flex items-center justify-between gap-3">
           <Link href="/terrain" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--ocean-800)]">
-            <ArrowLeft size={16} /> Retour
+            <ArrowLeft size={16} /> Retour au démonstrateur
           </Link>
           <Link href="/terrain/telephone" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ocean-800)]">
-            <PhoneCall size={16} /> Je préfère parler
+            <PhoneCall size={16} /> Voir le canal téléphonique
           </Link>
         </div>
 
@@ -108,12 +122,17 @@ export default function WhatsAppSimulationPage() {
             <div className="flex items-center gap-3">
               <span className="grid size-11 place-items-center rounded-full bg-[var(--lagoon-500)] text-[var(--ocean-1000)]"><MessageCircleMore size={21} /></span>
               <div>
-                <p className="font-semibold">Mbàmbulaan Terrain</p>
-                <p className="text-xs text-white/60">Simulation WhatsApp Business</p>
+                <p className="font-semibold">Mbàmbulaan Business</p>
+                <p className="text-xs text-white/60">Démonstration des parcours clients WhatsApp</p>
               </div>
             </div>
 
-            <p className="mt-8 text-xs font-bold uppercase tracking-[.12em] text-white/42">Choisissez votre besoin</p>
+            <div className="mt-6 rounded-[var(--radius-sm)] border border-white/10 bg-white/5 p-4">
+              <p className="text-xs font-semibold text-white">{config.actor}</p>
+              <p className="mt-1 text-xs leading-5 text-white/55">{config.clientContext}</p>
+            </div>
+
+            <p className="mt-7 text-xs font-bold uppercase tracking-[.12em] text-white/42">Parcours à visualiser</p>
             <div className="mt-3 space-y-2">
               {(Object.keys(flows) as Flow[]).map((item) => {
                 const ItemIcon = flows[item].icon;
@@ -126,8 +145,8 @@ export default function WhatsAppSimulationPage() {
             </div>
 
             <div className="mt-8 rounded-[var(--radius-sm)] border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-semibold text-white">Ce que la simulation montre</p>
-              <p className="mt-2 text-xs leading-5 text-white/55">Une conversation simple devient une demande structurée dans Mbàmbulaan, sans obliger l'acteur à ouvrir un tableau de bord.</p>
+              <p className="text-xs font-semibold text-white">Ce que nous voulons construire</p>
+              <p className="mt-2 text-xs leading-5 text-white/55">Mbàmbulaan reconnaît le client, utilise les informations déjà connues et transforme une conversation courte en action métier suivie.</p>
             </div>
           </aside>
 
@@ -135,8 +154,8 @@ export default function WhatsAppSimulationPage() {
             <header className="flex items-center gap-3 border-b border-[var(--line)] bg-[var(--white)] px-4 py-3 sm:px-5">
               <span className="grid size-10 place-items-center rounded-full bg-[var(--lagoon-100)] text-[var(--lagoon-600)]"><Icon size={19} /></span>
               <div>
-                <p className="font-semibold text-[var(--ink)]">Mbàmbulaan</p>
-                <p className="text-xs text-[var(--muted)]">Disponible · réponse guidée</p>
+                <p className="font-semibold text-[var(--ink)]">Mbàmbulaan · Compte client reconnu</p>
+                <p className="text-xs text-[var(--muted)]">Canal WhatsApp Business simulé</p>
               </div>
             </header>
 
@@ -170,13 +189,17 @@ export default function WhatsAppSimulationPage() {
 
               {done && (
                 <div className="mt-5 rounded-[var(--radius-md)] border border-[var(--lagoon-200)] bg-[var(--white)] p-5">
-                  <p className="text-sm font-semibold text-[var(--ink)]">Ce que Mbàmbulaan a compris</p>
+                  <p className="text-sm font-semibold text-[var(--ink)]">Ce que le client a demandé</p>
                   <div className="mt-3 space-y-2">
-                    {answers.map((answer, index) => <p key={answer} className="text-sm text-[var(--muted)]"><span className="font-semibold text-[var(--ink)]">{config.questions[index]}</span><br />{answer}</p>)}
+                    {answers.map((answer, index) => <p key={`${answer}-${index}`} className="text-sm text-[var(--muted)]"><span className="font-semibold text-[var(--ink)]">{config.questions[index]}</span><br />{answer}</p>)}
+                  </div>
+                  <div className="mt-4 rounded-[var(--radius-sm)] bg-[var(--lagoon-100)] p-4">
+                    <p className="text-xs font-bold uppercase tracking-[.1em] text-[var(--lagoon-600)]">Dans Mbàmbulaan</p>
+                    <p className="mt-2 text-sm font-semibold text-[var(--ink)]">{config.outcome}</p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <button onClick={() => { setStep(0); setAnswers([]); setDone(false); }} className="btn-secondary">Corriger</button>
-                    <Link href="/terrain" className="btn-primary">Terminer</Link>
+                    <button onClick={() => { setStep(0); setAnswers([]); setDone(false); }} className="btn-secondary">Rejouer le parcours</button>
+                    <Link href="/terrain" className="btn-primary">Retour au démonstrateur</Link>
                   </div>
                 </div>
               )}
