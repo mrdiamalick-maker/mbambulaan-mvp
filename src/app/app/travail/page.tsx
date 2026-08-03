@@ -16,8 +16,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Metric } from "@/components/ui/Metric";
 import { MbambulaanSignature } from "@/components/ui/MbambulaanSignature";
 import { SituationRow } from "@/components/situations/SituationRow";
-import { QuayOperatorWorkspace } from "@/components/workspaces/QuayOperatorWorkspace";
 import { professionalSpaces } from "@/config/professional-spaces";
+import { getArrivalSummary, sharedArrivalDemo } from "@/lib/mbambulaan/arrival-demo";
 import type { ProductState, Role, Situation } from "@/domain/types";
 
 function visibleSituations(state: ProductState, role: Role, actorId: string) {
@@ -45,7 +45,6 @@ function visibleCommitments(state: ProductState, role: Role, actorId: string, si
 export default function WorkPage() {
   const { state, role, actorId } = useProduct();
   if (!state) return null;
-  if (role === "operateur") return <QuayOperatorWorkspace />;
 
   const space = professionalSpaces[role];
   const scopedSituations = visibleSituations(state, role, actorId);
@@ -68,17 +67,35 @@ export default function WorkPage() {
 
   const next = role === "partenaire"
     ? open.filter((item) => item.initiativeId)
-    : role === "capitaine"
+    : role === "capitaine" || role === "operateur"
       ? open.filter((item) => item.trust === "declaree" || item.trust === "observee")
       : role === "mareyeur" || role === "transformateur"
         ? open.filter((item) => item.status === "coordination" || item.status === "intervention" || item.status === "attente")
         : [...critical, ...open.filter((item) => item.priority !== "critique")];
 
-  const signaturePoints = [
-    { label: `${open.length} situations`, position: 18 },
-    { label: `${awaiting.length} engagements`, position: 53 },
-    { label: `${critical.length} priorité${critical.length > 1 ? "s" : ""}`, position: 82, hot: critical.length > 0 }
-  ];
+  const operatorSummary = getArrivalSummary(sharedArrivalDemo);
+  const isOperator = role === "operateur";
+  const mainDecision = isOperator
+    ? operatorSummary.nextAction
+    : next[0]?.title ?? "Aucune action urgente dans votre périmètre.";
+  const mainActionHref = isOperator
+    ? "/app/operations"
+    : next[0]
+      ? `/app/situations/${next[0].id}`
+      : space.primaryAction.href;
+  const mainActionLabel = isOperator ? "Ouvrir les arrivées" : "Traiter la prochaine action";
+
+  const signaturePoints = isOperator
+    ? [
+        { label: `${sharedArrivalDemo.eta}`, position: 18 },
+        { label: `${operatorSummary.missingItems.length} besoin à traiter`, position: 55, hot: operatorSummary.missingItems.length > 0 },
+        { label: sharedArrivalDemo.weightKg ? `${sharedArrivalDemo.weightKg} kg` : "Pesée à venir", position: 82 }
+      ]
+    : [
+        { label: `${open.length} situations`, position: 18 },
+        { label: `${awaiting.length} engagements`, position: 53 },
+        { label: `${critical.length} priorité${critical.length > 1 ? "s" : ""}`, position: 82, hot: critical.length > 0 }
+      ];
 
   return (
     <>
@@ -91,18 +108,18 @@ export default function WorkPage() {
 
       <div className="space-y-7 p-5 lg:p-8">
         <MbambulaanSignature
-          title={critical.length > 0 ? `${critical.length} priorité critique demande une action maintenant.` : "Votre périmètre est stable, les engagements restent suivis."}
-          detail="Cette ligne relie les signaux visibles, les engagements attendus et les priorités de votre rôle. Elle devient le repère commun de l’expérience Mbàmbulaan."
+          title={isOperator ? `Arrivée ${sharedArrivalDemo.arrivalId} · ${mainDecision}` : critical.length > 0 ? `${critical.length} priorité critique demande une action maintenant.` : "Votre périmètre est stable, les engagements restent suivis."}
+          detail={isOperator ? `${sharedArrivalDemo.vessel} · ${sharedArrivalDemo.captain} · quai de ${sharedArrivalDemo.quay}. Les réponses WhatsApp, téléphone et espace professionnel portent sur la même arrivée.` : "Cette ligne relie les signaux visibles, les engagements attendus et les priorités de votre rôle. Elle devient le repère commun de l’expérience Mbàmbulaan."}
           points={signaturePoints}
         />
 
         <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
           <div className="surface p-6 lg:p-7">
             <div className="flex items-center gap-2 text-[#2f9d91]"><Target size={18} /><p className="label">Votre prochaine décision</p></div>
-            <h2 className="mt-3 max-w-2xl text-3xl font-black leading-tight text-[#122b33]">{next[0]?.title ?? "Aucune action urgente dans votre périmètre."}</h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#66767a]">Vous ne voyez que vos situations, vos actions, vos engagements et les informations nécessaires à votre rôle.</p>
+            <h2 className="mt-3 max-w-2xl text-3xl font-black leading-tight text-[#122b33]">{mainDecision}</h2>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#66767a]">{isOperator ? "Voyez uniquement l’arrivée à traiter, ce qui est prêt, ce qui manque et la prochaine action utile." : "Vous ne voyez que vos situations, vos actions, vos engagements et les informations nécessaires à votre rôle."}</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href={next[0] ? `/app/situations/${next[0].id}` : space.primaryAction.href} className="btn-accent">Traiter la prochaine action <ArrowRight size={16} /></Link>
+              <Link href={mainActionHref} className="btn-accent">{mainActionLabel} <ArrowRight size={16} /></Link>
               <Link href="/app/atlas" className="btn-secondary"><MapPinned size={16} /> Lire mon territoire</Link>
             </div>
           </div>
@@ -127,19 +144,33 @@ export default function WorkPage() {
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric label="Situations ouvertes" value={String(open.length)} detail="Dans votre périmètre" icon={Clock3} />
-          <Metric label="Priorités immédiates" value={String(critical.length)} detail="Action attendue" icon={AlertTriangle} tone="coral" />
-          <Metric label="Mes engagements" value={String(awaiting.length)} detail="À faire ou à débloquer" icon={Handshake} tone="lagoon" />
-          <Metric label={role === "capitaine" ? "Opérations suivies" : "Résultats documentés"} value={String(role === "capitaine" ? visibleTripCount : completed.length)} detail={role === "capitaine" ? "Dans votre activité" : "Dans votre périmètre"} icon={role === "capitaine" ? ShipWheel : CheckCircle2} tone="sand" />
+          <Metric label={isOperator ? "Arrivées à traiter" : "Situations ouvertes"} value={String(isOperator ? 1 : open.length)} detail="Dans votre périmètre" icon={Clock3} />
+          <Metric label={isOperator ? "Besoins manquants" : "Priorités immédiates"} value={String(isOperator ? operatorSummary.missingItems.length : critical.length)} detail="Action attendue" icon={AlertTriangle} tone="coral" />
+          <Metric label={isOperator ? "Éléments prêts" : "Mes engagements"} value={String(isOperator ? operatorSummary.readyItems.length : awaiting.length)} detail={isOperator ? "Confirmés pour cette arrivée" : "À faire ou à débloquer"} icon={Handshake} tone="lagoon" />
+          <Metric label={role === "capitaine" || isOperator ? "Opérations suivies" : "Résultats documentés"} value={String(role === "capitaine" || isOperator ? visibleTripCount : completed.length)} detail={role === "capitaine" || isOperator ? "Dans votre activité" : "Dans votre périmètre"} icon={role === "capitaine" || isOperator ? ShipWheel : CheckCircle2} tone="sand" />
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
           <div className="surface overflow-hidden">
             <div className="flex items-end justify-between gap-4 border-b border-black/10 px-6 py-5">
               <div><p className="label">Votre file de travail</p><h2 className="mt-1 text-2xl font-black text-[#122b33]">À traiter maintenant</h2></div>
-              <Link href="/app/situations" className="link-action">Voir ma file complète <ArrowRight size={15} /></Link>
+              <Link href={isOperator ? "/app/operations" : "/app/situations"} className="link-action">Voir ma file complète <ArrowRight size={15} /></Link>
             </div>
-            {next.length > 0 ? next.slice(0, 4).map((item) => <SituationRow key={item.id} situation={item} state={state} />) : <p className="p-6 text-sm text-[#66767a]">Aucune action ne correspond actuellement à votre rôle et à votre périmètre.</p>}
+            {isOperator ? (
+              <div className="p-6">
+                <div className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--white)] p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--ink)]">{sharedArrivalDemo.vessel} · {sharedArrivalDemo.captain}</p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">{sharedArrivalDemo.arrivalId} · {sharedArrivalDemo.eta}</p>
+                    </div>
+                    <span className="rounded-full bg-[var(--sand-100)] px-3 py-1 text-xs font-semibold text-[var(--sand-500)]">{operatorSummary.nextAction}</span>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-[var(--muted)]">Besoins : {sharedArrivalDemo.needs.join(", ")}</p>
+                  <Link href="/app/operations" className="btn-secondary mt-5">Ouvrir l’arrivée</Link>
+                </div>
+              </div>
+            ) : next.length > 0 ? next.slice(0, 4).map((item) => <SituationRow key={item.id} situation={item} state={state} />) : <p className="p-6 text-sm text-[#66767a]">Aucune action ne correspond actuellement à votre rôle et à votre périmètre.</p>}
           </div>
 
           <aside className="surface p-6">
@@ -148,7 +179,7 @@ export default function WorkPage() {
             <p className="mt-3 text-sm leading-6 text-[#66767a]">Votre session, votre organisation, votre territoire et vos droits déterminent les informations affichées. Le changement de rôle reste limité à l’entrée de démonstration.</p>
             <div className="mt-6 border-l-2 border-[#bd5f43] pl-4">
               <p className="text-[10px] font-black uppercase tracking-[.14em] text-[#8b6f3f]">Information exploitable</p>
-              <p className="mt-2 text-sm font-bold text-[#153d44]">{trusted.length} situation{trusted.length > 1 ? "s" : ""} de votre périmètre dispose{trusted.length > 1 ? "nt" : ""} d’un niveau de confiance vérifié ou consolidé.</p>
+              <p className="mt-2 text-sm font-bold text-[#153d44]">{isOperator ? `L’arrivée ${sharedArrivalDemo.arrivalId} conserve le même état, quel que soit le canal utilisé.` : `${trusted.length} situation${trusted.length > 1 ? "s" : ""} de votre périmètre dispose${trusted.length > 1 ? "nt" : ""} d’un niveau de confiance vérifié ou consolidé.`}</p>
             </div>
             <Link href={space.primaryAction.href} className="btn-secondary mt-6 w-full justify-center">{space.primaryAction.label}</Link>
           </aside>
