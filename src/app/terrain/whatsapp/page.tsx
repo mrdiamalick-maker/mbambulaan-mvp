@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, MapPin, MessageCircleMore, Mic, PhoneCall, Send, ShipWheel, ShoppingBasket, Snowflake, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Check, MapPin, MessageCircleMore, Mic, PhoneCall, Send, ShipWheel, ShoppingBasket, Snowflake, TriangleAlert, Wrench, Scale } from "lucide-react";
 
-type Flow = "retour" | "achat" | "capacite" | "probleme";
+type Flow = "preparation" | "retour" | "pesage" | "achat" | "capacite" | "probleme";
 
 type FlowConfig = {
   actor: string;
@@ -20,6 +20,17 @@ type FlowConfig = {
 };
 
 const flows: Record<Flow, FlowConfig> = {
+  preparation: {
+    actor: "Capitaine référencé",
+    clientContext: "Pirogue, moteur, équipage et quai habituels déjà connus",
+    title: "Préparer ma sortie",
+    intro: "Bonjour Mamadou. Vérifions seulement ce qui peut bloquer votre départ.",
+    icon: Wrench,
+    questions: ["La pirogue est-elle prête ?", "Avez-vous assez de carburant et de glace ?", "L'équipage est-il au complet ?"],
+    quickReplies: [["Oui, tout est prêt", "Problème moteur", "Autre problème"], ["Oui", "Il manque du carburant", "Il manque de la glace"], ["Oui", "Il manque une personne", "Appelez-moi"]],
+    confirmation: "C'est enregistré. Vous voyez maintenant ce qui est prêt et ce qui manque avant le départ.",
+    outcome: "État de préparation créé pour la sortie du capitaine, avec les éléments prêts et les blocages éventuels."
+  },
   retour: {
     actor: "Capitaine référencé",
     clientContext: "Pirogue et quai habituels déjà connus",
@@ -27,9 +38,20 @@ const flows: Record<Flow, FlowConfig> = {
     intro: "Bonjour Mamadou. Votre pirogue Ndeye Fatou est reconnue. Nous allons préparer votre arrivée.",
     icon: ShipWheel,
     questions: ["Vous arrivez à quel quai ?", "Dans combien de temps pensez-vous arriver ?", "De quoi avez-vous besoin à l'arrivée ?"],
-    quickReplies: [["Mon quai habituel : Hann", "Soumbédioune", "Kayar", "Mbour"], ["Moins d'1 heure", "1 à 2 heures", "Plus de 2 heures"], ["Glace", "Place au quai", "Transport", "Rien pour le moment"]],
+    quickReplies: [["Mon quai habituel : Hann", "Soumbédioune", "Kayar", "Mbour"], ["Moins d'1 heure", "1 à 2 heures", "Plus de 2 heures"], ["Glace", "Place au quai", "Manutention", "Transport", "Rien pour le moment"]],
     confirmation: "C'est enregistré. Le quai de Hann est prévenu et voit votre heure d'arrivée estimée.",
     outcome: "Annonce de retour créée et reliée à la pirogue, au capitaine et au quai."
+  },
+  pesage: {
+    actor: "Capitaine référencé",
+    clientContext: "Débarquement et pesée déjà enregistrés par le quai",
+    title: "Confirmer la pesée",
+    intro: "Le quai a enregistré 420 kg pour votre débarquement. Dites-nous si cela vous paraît correct.",
+    icon: Scale,
+    questions: ["Le poids de 420 kg est-il correct ?", "Souhaitez-vous ajouter quelque chose ?"],
+    quickReplies: [["Oui, c'est correct", "Non, il faut corriger", "Je ne sais pas", "Appelez-moi"], ["Rien à ajouter", "Le poids semble trop bas", "Le poids semble trop haut", "Autre remarque"]],
+    confirmation: "Votre réponse est enregistrée. En cas de désaccord, le quai devra reprendre la vérification avec vous.",
+    outcome: "Confirmation ou désaccord de pesée enregistré avec l'auteur, la date et la suite attendue."
   },
   achat: {
     actor: "Mareyeur référencé",
@@ -69,7 +91,7 @@ const flows: Record<Flow, FlowConfig> = {
 export default function WhatsAppSimulationPage() {
   const searchParams = useSearchParams();
   const requested = searchParams.get("parcours") as Flow | null;
-  const initialFlow: Flow = requested && requested in flows ? requested : "retour";
+  const initialFlow: Flow = requested && requested in flows ? requested : "preparation";
   const [flow, setFlow] = useState<Flow>(initialFlow);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
