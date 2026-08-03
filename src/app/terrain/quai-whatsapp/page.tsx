@@ -3,37 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Check, Clock3, MessageCircleMore, PhoneCall, Scale, ShipWheel, Snowflake, Users } from "lucide-react";
+import { getArrivalSummary, sharedArrivalDemo, type SharedArrivalDemo } from "@/lib/mbambulaan/arrival-demo";
 
 type Step = "arrivee" | "preparation" | "confirmation" | "pesage" | "retour-capitaine";
-
-type ArrivalState = {
-  arrivalId: string;
-  captain: string;
-  vessel: string;
-  quay: string;
-  eta: string;
-  needs: string[];
-  ready: Record<string, boolean | null>;
-  arrived: boolean;
-  weightKg?: number;
-  captainDecision?: "confirmé" | "contesté" | "en attente";
-};
-
-const initialArrival: ArrivalState = {
-  arrivalId: "RET-2026-0814",
-  captain: "Mamadou Diop",
-  vessel: "Ndeye Fatou",
-  quay: "Hann",
-  eta: "dans 1 à 2 heures",
-  needs: ["Place au quai", "Manutention", "Glace"],
-  ready: {
-    "Place au quai": null,
-    Manutention: null,
-    Glace: null
-  },
-  arrived: false,
-  captainDecision: "en attente"
-};
 
 const steps: Array<{ id: Step; label: string; icon: typeof ShipWheel }> = [
   { id: "arrivee", label: "Voir l'arrivée annoncée", icon: ShipWheel },
@@ -45,19 +17,20 @@ const steps: Array<{ id: Step; label: string; icon: typeof ShipWheel }> = [
 
 export default function QuaiWhatsAppPage() {
   const [step, setStep] = useState<Step>("arrivee");
-  const [arrival, setArrival] = useState<ArrivalState>(initialArrival);
+  const [arrival, setArrival] = useState<SharedArrivalDemo>(sharedArrivalDemo);
 
-  const allPreparationAnswered = arrival.needs.every((need) => arrival.ready[need] !== null);
+  const summary = getArrivalSummary(arrival);
 
   const captainMessage = useMemo(() => {
-    if (arrival.captainDecision === "confirmé") return "Le capitaine a confirmé la pesée de 420 kg.";
+    if (arrival.captainDecision === "confirmé") return `Le capitaine a confirmé la pesée de ${arrival.weightKg ?? 0} kg.`;
     if (arrival.captainDecision === "contesté") return "Le capitaine conteste la pesée. Il faut reprendre la vérification avec lui.";
     return "La réponse du capitaine est encore attendue.";
-  }, [arrival.captainDecision]);
+  }, [arrival.captainDecision, arrival.weightKg]);
 
   function setNeedStatus(need: string, value: boolean) {
     setArrival((current) => ({
       ...current,
+      status: "préparation",
       ready: { ...current.ready, [need]: value }
     }));
   }
@@ -102,8 +75,8 @@ export default function QuaiWhatsAppPage() {
             </div>
 
             <div className="mt-8 rounded-[var(--radius-sm)] border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-semibold text-white">Connexion des parcours</p>
-              <p className="mt-2 text-xs leading-5 text-white/55">L'annonce du capitaine crée cette arrivée. Les réponses du quai repartent ensuite vers le capitaine dans la même entreprise Mbàmbulaan.</p>
+              <p className="text-xs font-semibold text-white">Prochaine action</p>
+              <p className="mt-2 text-xs leading-5 text-white/55">{summary.nextAction}</p>
             </div>
           </aside>
 
@@ -112,7 +85,7 @@ export default function QuaiWhatsAppPage() {
               <span className="grid size-10 place-items-center rounded-full bg-[var(--lagoon-100)] text-[var(--lagoon-600)]"><ShipWheel size={19} /></span>
               <div>
                 <p className="font-semibold text-[var(--ink)]">Mbàmbulaan · Agent de quai reconnu</p>
-                <p className="text-xs text-[var(--muted)]">Arrivée {arrival.arrivalId}</p>
+                <p className="text-xs text-[var(--muted)]">Arrivée {arrival.arrivalId} · {arrival.status}</p>
               </div>
             </header>
 
@@ -120,7 +93,7 @@ export default function QuaiWhatsAppPage() {
               {step === "arrivee" && (
                 <section className="space-y-4">
                   <div className="rounded-[18px] rounded-bl-md bg-[var(--white)] p-4 text-sm leading-6 shadow-sm">
-                    Nouvelle arrivée annoncée par le capitaine Mamadou Diop.
+                    Nouvelle arrivée annoncée par le capitaine {arrival.captain}.
                   </div>
                   <div className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--white)] p-5">
                     <p className="text-sm font-semibold">Ce qu'il faut savoir</p>
@@ -150,23 +123,25 @@ export default function QuaiWhatsAppPage() {
                       </div>
                     ))}
                   </div>
-                  {allPreparationAnswered && (
+                  {summary.isPreparationComplete && (
                     <div className="mt-4 rounded-[var(--radius-md)] bg-[var(--lagoon-100)] p-4 text-sm">
-                      La réponse du quai est prête à être envoyée au capitaine.
+                      {summary.missingItems.length === 0
+                        ? "Tout ce qui a été demandé est prêt."
+                        : `Il manque encore : ${summary.missingItems.join(", ")}. Le capitaine sera prévenu.`}
                     </div>
                   )}
-                  <button disabled={!allPreparationAnswered} onClick={() => setStep("confirmation")} className="btn-primary mt-5 disabled:cursor-not-allowed disabled:opacity-50">Envoyer au capitaine</button>
+                  <button disabled={!summary.isPreparationComplete} onClick={() => setStep("confirmation")} className="btn-primary mt-5 disabled:cursor-not-allowed disabled:opacity-50">Envoyer au capitaine</button>
                 </section>
               )}
 
               {step === "confirmation" && (
                 <section className="space-y-4">
                   <div className="rounded-[18px] rounded-bl-md bg-[var(--white)] p-4 text-sm leading-6 shadow-sm">
-                    Le capitaine est arrivé au quai de Hann ?
+                    Le capitaine est arrivé au quai de {arrival.quay} ?
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setArrival((current) => ({ ...current, arrived: true }))} className="rounded-full border border-[var(--line-strong)] bg-[var(--white)] px-4 py-2 text-sm font-semibold text-[var(--ocean-800)]">Oui, il est arrivé</button>
-                    <button className="rounded-full border border-[var(--line-strong)] bg-[var(--white)] px-4 py-2 text-sm font-semibold text-[var(--ocean-800)]">Pas encore</button>
+                    <button onClick={() => setArrival((current) => ({ ...current, arrived: true, status: "arrivée" }))} className="rounded-full border border-[var(--line-strong)] bg-[var(--white)] px-4 py-2 text-sm font-semibold text-[var(--ocean-800)]">Oui, il est arrivé</button>
+                    <button onClick={() => setArrival((current) => ({ ...current, arrived: false }))} className="rounded-full border border-[var(--line-strong)] bg-[var(--white)] px-4 py-2 text-sm font-semibold text-[var(--ocean-800)]">Pas encore</button>
                   </div>
                   {arrival.arrived && (
                     <div className="rounded-[var(--radius-md)] bg-[var(--lagoon-100)] p-4 text-sm">Arrivée confirmée. Vous pouvez passer à la pesée.</div>
@@ -181,7 +156,7 @@ export default function QuaiWhatsAppPage() {
                   <div className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--white)] p-5">
                     <p className="text-sm font-semibold">Poids enregistré pour la démonstration</p>
                     <p className="mt-2 text-3xl font-semibold">420 kg</p>
-                    <button onClick={() => setArrival((current) => ({ ...current, weightKg: 420, captainDecision: "en attente" }))} className="btn-primary mt-5">Envoyer 420 kg au capitaine</button>
+                    <button onClick={() => setArrival((current) => ({ ...current, weightKg: 420, captainDecision: "en attente", status: "pesée" }))} className="btn-primary mt-5">Envoyer 420 kg au capitaine</button>
                   </div>
                   {arrival.weightKg && (
                     <button onClick={() => setStep("retour-capitaine")} className="btn-secondary">Voir la réponse du capitaine</button>
@@ -193,8 +168,8 @@ export default function QuaiWhatsAppPage() {
                 <section className="space-y-4">
                   <div className="rounded-[18px] rounded-bl-md bg-[var(--white)] p-4 text-sm leading-6 shadow-sm">{captainMessage}</div>
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setArrival((current) => ({ ...current, captainDecision: "confirmé" }))} className="rounded-full border border-[var(--line-strong)] bg-[var(--white)] px-4 py-2 text-sm font-semibold text-[var(--ocean-800)]">Simuler une confirmation</button>
-                    <button onClick={() => setArrival((current) => ({ ...current, captainDecision: "contesté" }))} className="rounded-full border border-[var(--line-strong)] bg-[var(--white)] px-4 py-2 text-sm font-semibold text-[var(--ocean-800)]">Simuler un désaccord</button>
+                    <button onClick={() => setArrival((current) => ({ ...current, captainDecision: "confirmé", status: "terminée" }))} className="rounded-full border border-[var(--line-strong)] bg-[var(--white)] px-4 py-2 text-sm font-semibold text-[var(--ocean-800)]">Simuler une confirmation</button>
+                    <button onClick={() => setArrival((current) => ({ ...current, captainDecision: "contesté", status: "pesée" }))} className="rounded-full border border-[var(--line-strong)] bg-[var(--white)] px-4 py-2 text-sm font-semibold text-[var(--ocean-800)]">Simuler un désaccord</button>
                   </div>
                   {arrival.captainDecision === "confirmé" && (
                     <div className="rounded-[var(--radius-md)] bg-[var(--lagoon-100)] p-4 text-sm"><Check className="mr-2 inline" size={16} />La pesée est confirmée pour les deux acteurs.</div>
