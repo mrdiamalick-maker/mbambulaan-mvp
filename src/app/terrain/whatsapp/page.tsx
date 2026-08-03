@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 type Flow = "preparation" | "retour" | "retard" | "quai" | "pesage" | "resume";
+type AnswerPath = "standard" | "callback" | "dispute" | "blocked";
 
 type FlowConfig = {
   actor: string;
@@ -108,6 +109,27 @@ const flows: Record<Flow, FlowConfig> = {
 
 const captainFlows: Flow[] = ["preparation", "retour", "retard", "quai", "pesage", "resume"];
 
+function resolveAnswerPath(flow: Flow, answers: string[]): AnswerPath {
+  if (answers.some((answer) => answer.includes("Appelez-moi"))) return "callback";
+  if (flow === "pesage" && answers[0] === "Non, il faut corriger") return "dispute";
+  if (flow === "quai" && (answers[0] === "Attendre la glace" || answers[0] === "Changer de besoin")) return "blocked";
+  return "standard";
+}
+
+function outcomeCopy(flow: Flow, path: AnswerPath) {
+  if (path === "callback") return "Une demande de rappel est créée avec le contexte du capitaine et la dernière étape du parcours.";
+  if (path === "dispute") return "La pesée est marquée comme contestée. Le quai doit reprendre la vérification avec le capitaine avant de clôturer.";
+  if (path === "blocked") return "Le besoin reste ouvert. Le quai doit confirmer une solution ou proposer une autre option avant l'arrivée.";
+  return flows[flow].outcome;
+}
+
+function confirmationCopy(flow: Flow, path: AnswerPath) {
+  if (path === "callback") return "C'est noté. Une personne vous rappelle avec les informations déjà connues, sans vous faire répéter.";
+  if (path === "dispute") return "Votre désaccord est enregistré. La pesée ne sera pas considérée comme validée avant reprise avec le quai.";
+  if (path === "blocked") return "Votre demande reste en attente. Le quai doit confirmer la suite avant votre arrivée.";
+  return flows[flow].confirmation;
+}
+
 export default function WhatsAppSimulationPage() {
   const searchParams = useSearchParams();
   const requested = searchParams.get("parcours") as Flow | null;
@@ -119,6 +141,7 @@ export default function WhatsAppSimulationPage() {
 
   const config = flows[flow];
   const Icon = config.icon;
+  const answerPath = resolveAnswerPath(flow, answers);
   const messages = useMemo(() => {
     const history: Array<{ from: "mbambulaan" | "user"; text: string }> = [
       { from: "mbambulaan", text: config.intro },
@@ -129,19 +152,37 @@ export default function WhatsAppSimulationPage() {
       history.push({ from: "user", text: answer });
     });
     if (!done && step < config.questions.length) history.push({ from: "mbambulaan", text: config.questions[step] });
-    if (done) history.push({ from: "mbambulaan", text: config.confirmation });
+    if (done) history.push({ from: "mbambulaan", text: confirmationCopy(flow, answerPath) });
     return history;
-  }, [answers, config, done, step]);
+  }, [answerPath, answers, config, done, flow, step]);
 
   function chooseAnswer(answer: string) {
     const nextAnswers = [...answers, answer];
     setAnswers(nextAnswers);
+    if (answer.includes("Appelez-moi")) {
+      setDone(true);
+      return;
+    }
+    if (flow === "pesage" && answer === "Non, il faut corriger") {
+      setDone(true);
+      return;
+    }
+    if (flow === "quai" && (answer === "Attendre la glace" || answer === "Changer de besoin")) {
+      setDone(true);
+      return;
+    }
     if (step + 1 >= config.questions.length) setDone(true);
     else setStep(step + 1);
   }
 
   function chooseFlow(nextFlow: Flow) {
     setFlow(nextFlow);
+    setStep(0);
+    setAnswers([]);
+    setDone(false);
+  }
+
+  function replay() {
     setStep(0);
     setAnswers([]);
     setDone(false);
@@ -235,14 +276,20 @@ export default function WhatsAppSimulationPage() {
                   <div className="mt-3 space-y-2">
                     {answers.map((answer, index) => <p key={`${answer}-${index}`} className="text-sm text-[var(--muted)]"><span className="font-semibold text-[var(--ink)]">{config.questions[index]}</span><br />{answer}</p>)}
                   </div>
-                  <div className="mt-4 rounded-[var(--radius-sm)] bg-[var(--lagoon-100)] p-4">
+                  <div className={`mt-4 rounded-[var(--radius-sm)] p-4 ${answerPath === "standard" ? "bg-[var(--lagoon-100)]" : "bg-[var(--sand-100)]"}`}>
                     <p className="text-xs font-bold uppercase tracking-[.1em] text-[var(--lagoon-600)]">Dans Mbàmbulaan</p>
-                    <p className="mt-2 text-sm font-semibold text-[var(--ink)]">{config.outcome}</p>
+                    <p className="mt-2 text-sm font-semibold text-[var(--ink)]">{outcomeCopy(flow, answerPath)}</p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <button onClick={() => { setStep(0); setAnswers([]); setDone(false); }} className="btn-secondary">Rejouer ce parcours</button>
-                    {config.nextFlow ? (
+                    <button onClick={replay} className="btn-secondary">Rejouer ce parcours</button>
+                    {answerPath === "standard" && config.nextFlow ? (
                       <button onClick={() => chooseFlow(config.nextFlow!)} className="btn-primary">Continuer le parcours capitaine</button>
+                    ) : answerPath === "dispute" ? (
+                      <button onClick={() => chooseFlow("pesage")} className="btn-primary">Reprendre la pesée</button>
+                    ) : answerPath === "blocked" ? (
+                      <button onClick={() => chooseFlow("quai")} className="btn-primary">Voir la réponse du quai</button>
+                    ) : answerPath === "callback" ? (
+                      <Link href="/terrain/telephone" className="btn-primary">Voir la prise en charge par téléphone</Link>
                     ) : (
                       <Link href="/terrain" className="btn-primary">Retour au démonstrateur</Link>
                     )}
