@@ -1,34 +1,36 @@
 import Link from "next/link";
-import { ArrowRight, MessageCircleMore, PhoneCall, ShipWheel, ShoppingBasket, Snowflake, TriangleAlert, Warehouse } from "lucide-react";
+import { ArrowRight, MessageCircleMore, PhoneCall, ShipWheel, ShoppingBasket, Snowflake, TriangleAlert, UsersRound } from "lucide-react";
+import { ConnectedJourneyCard } from "@/components/omnichannel/ConnectedJourneyCard";
+import { OmnichannelSimulationNotice } from "@/components/omnichannel/OmnichannelSimulationNotice";
 
 const actions = [
   {
-    title: "Parcours capitaine",
-    description: "Visualiser comment le capitaine prépare sa sortie, annonce son retour et confirme la pesée.",
+    title: "Parcours du capitaine",
+    description: "Préparer la sortie, annoncer le retour, suivre le quai et confirmer la pesée.",
     href: "/terrain/whatsapp?parcours=retour",
     icon: ShipWheel
   },
   {
-    title: "Parcours agent de quai",
-    description: "Visualiser comment l'agent reçoit l'arrivée du capitaine, prépare le quai et partage la pesée.",
+    title: "Parcours de l'agent de quai",
+    description: "Recevoir l'arrivée, préparer les besoins, confirmer l'arrivée et partager la pesée.",
     href: "/terrain/quai-whatsapp",
-    icon: Warehouse
+    icon: UsersRound
   },
   {
     title: "Exprimer un besoin d'achat",
-    description: "Visualiser le futur parcours WhatsApp d'un mareyeur ou acheteur référencé.",
+    description: "Prévisualiser le futur parcours WhatsApp d'un mareyeur ou acheteur référencé.",
     href: "/terrain/whatsapp?parcours=achat",
     icon: ShoppingBasket
   },
   {
     title: "Déclarer une capacité disponible",
-    description: "Visualiser le futur parcours WhatsApp d'un prestataire glace, froid ou transport.",
+    description: "Prévisualiser le futur parcours d'un prestataire glace, froid ou transport.",
     href: "/terrain/whatsapp?parcours=capacite",
     icon: Snowflake
   },
   {
     title: "Prévenir d'un problème",
-    description: "Visualiser comment un client peut prévenir Mbàmbulaan depuis WhatsApp.",
+    description: "Prévisualiser comment un client connu pourra prévenir les personnes concernées.",
     href: "/terrain/whatsapp?parcours=probleme",
     icon: TriangleAlert
   }
@@ -41,22 +43,30 @@ export default function TerrainPage() {
         <div className="rounded-[var(--radius-lg)] bg-[var(--ocean-1000)] px-6 py-8 text-white shadow-[var(--shadow-map)] lg:px-10 lg:py-12">
           <p className="label-inverse">Démonstrateur omnicanal Mbàmbulaan</p>
           <h1 className="mt-4 max-w-4xl font-serif text-4xl font-semibold leading-tight sm:text-5xl">
-            Visualiser ce que nos clients feront demain depuis WhatsApp ou par téléphone.
+            Concevoir les futurs parcours WhatsApp et téléphone de nos clients.
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-white/72">
-            Cette page simule les parcours réservés à des acteurs déjà référencés chez Mbàmbulaan. Les parcours sont reliés par les mêmes objets métier : l'annonce du capitaine devient une arrivée à préparer pour l'agent de quai, puis la réponse du quai repart vers le capitaine.
+            Les acteurs sont déjà référencés chez Mbàmbulaan. Nous simulons ici les échanges qui auront lieu demain dans leurs canaux habituels et la manière dont ces échanges alimenteront le même parcours métier.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/terrain/whatsapp" className="btn-accent">
               <MessageCircleMore size={18} /> Voir le parcours capitaine
             </Link>
             <Link href="/terrain/quai-whatsapp" className="btn-on-dark">
-              <Warehouse size={18} /> Voir le parcours agent de quai
+              <UsersRound size={18} /> Voir le parcours du quai
             </Link>
             <Link href="/terrain/telephone" className="btn-on-dark">
               <PhoneCall size={18} /> Voir le parcours téléphonique
             </Link>
           </div>
+        </div>
+
+        <div className="mt-6">
+          <OmnichannelSimulationNotice />
+        </div>
+
+        <div className="mt-8">
+          <ConnectedJourneyCard />
         </div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -79,7 +89,7 @@ export default function TerrainPage() {
         <div className="mt-8 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--sand-100)] p-5">
           <p className="text-sm font-semibold text-[var(--ink)]">Principe produit</p>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            Chaque client garde son canal et son point de vue, mais Mbàmbulaan relie les actions. Le capitaine annonce ; l'agent de quai prépare ; le capitaine reçoit la réponse ; la pesée est partagée et confirmée par les deux acteurs.
+            WhatsApp et le téléphone sont des interfaces d'action pour les clients connus. Mbàmbulaan reste le système qui relie les acteurs, conserve l'état partagé et donne aux organisations les moyens de suivre, décider et corriger.
           </p>
         </div>
       </section>
