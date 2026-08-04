@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight, Check, Circle, UsersRound } from "lucide-react";
+import { ArrowRight, Check, Circle, MessageCircleMore, UsersRound } from "lucide-react";
+import { useCoordinationLoop } from "@/components/providers/CoordinationLoopProvider";
 import type { MbambulaanWork } from "@/lib/mbambulaan/work-demo";
 
 type SupportedRole = "capitaine" | "operateur" | "mareyeur" | "transformateur";
@@ -12,6 +15,8 @@ const healthLabels = {
 
 export function WorkFocus({ work, role }: { work: MbambulaanWork; role: SupportedRole }) {
   const view = work.roleViews[role];
+  const { updates } = useCoordinationLoop();
+  const latestUpdate = [...updates].reverse().find((update) => update.workId === work.id);
 
   return (
     <section className="surface overflow-hidden">
@@ -25,6 +30,19 @@ export function WorkFocus({ work, role }: { work: MbambulaanWork; role: Supporte
           <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold">{healthLabels[work.health]}</span>
         </div>
       </div>
+
+      {latestUpdate && (
+        <div className="border-b border-[var(--line)] bg-[var(--lagoon-100)] px-5 py-4 lg:px-7">
+          <div className="flex items-start gap-3">
+            <MessageCircleMore className="mt-0.5 shrink-0 text-[var(--lagoon-600)]" size={18} />
+            <div>
+              <p className="text-xs font-semibold text-[var(--muted)]">Dernière information reçue dans le canal messaging</p>
+              <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{latestUpdate.action}</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">{latestUpdate.detail}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-0 lg:grid-cols-[1fr_.85fr]">
         <div className="p-5 lg:p-7">
