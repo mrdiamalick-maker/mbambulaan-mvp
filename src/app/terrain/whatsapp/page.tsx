@@ -123,35 +123,35 @@ const actors: Record<Actor, ActorConfig> = {
   transformateur: {
     label: "Transformatrice",
     identity: `${sharedTransformationDemo.processor} · ${sharedTransformationDemo.unit}`,
-    context: `Plan ${sharedTransformationDemo.planId} · produit, capacité et échéance déjà connus.`,
+    context: `Production ${sharedTransformationDemo.planId} · produit et échéance déjà connus.`,
     icon: Factory,
     journeys: [
       {
-        id: "besoin-production",
+        id: "manque",
         title: "Il me manque du poisson",
-        intro: `Bonjour ${sharedTransformationDemo.processor}. Votre production de ${sharedTransformationDemo.product} est prévue ${sharedTransformationDemo.requiredBy.toLowerCase()}.`,
-        questions: ["Combien vous manque-t-il ?", "Quelle qualité acceptez-vous ?", "Quand faut-il livrer ?"],
-        replies: [["Moins de 100 kg", "100 à 300 kg", "Plus de 300 kg"], ["Frais uniquement", "Frais ou réfrigéré", "Appelez-moi"], ["Avant 08h", "Avant 10h", "Dans la journée"]],
-        confirmation: "Ce qu’il vous manque est relié à votre production.",
-        result: "Volume manquant, qualité et heure limite enregistrés pour chercher des lots compatibles."
+        intro: `Bonjour ${sharedTransformationDemo.processor}. Que vous manque-t-il pour la production de ${sharedTransformationDemo.product} ?`,
+        questions: ["Quelle quantité manque-t-il ?"],
+        replies: [["Moins de 100 kg", "100 à 300 kg", "Plus de 300 kg", "Appelez-moi"]],
+        confirmation: "C’est enregistré. Mbàmbulaan cherchera des disponibilités compatibles.",
+        result: "La quantité manquante est ajoutée à la même production. La comparaison des options reste dans l’espace professionnel."
       },
       {
-        id: "option-approvisionnement",
-        title: "Répondre à une option",
-        intro: `${sharedTransformationDemo.supplyOptions[0].quantityKg} kg de ${sharedTransformationDemo.supplyOptions[0].species} sont disponibles à ${sharedTransformationDemo.supplyOptions[0].source} à ${sharedTransformationDemo.supplyOptions[0].availableAt}.`,
-        questions: ["Cette option convient-elle à votre production ?", "Que voulez-vous faire ?"],
-        replies: [["Oui", "Non", "Je dois vérifier", "Appelez-moi"], ["Confirmer le volume", "Organiser le transport", "Comparer les options"]],
-        confirmation: "Votre réponse est enregistrée dans la même production.",
-        result: "Option acceptée, refusée ou laissée en attente."
+        id: "reponse-offre",
+        title: "Répondre à une proposition",
+        intro: `${sharedTransformationDemo.supplyOptions[0].quantityKg} kg de ${sharedTransformationDemo.supplyOptions[0].species} sont proposés à ${sharedTransformationDemo.supplyOptions[0].source}.`,
+        questions: ["Cette proposition vous intéresse-t-elle ?"],
+        replies: [["Oui", "Non", "Appelez-moi"]],
+        confirmation: "Votre réponse est enregistrée.",
+        result: "La réponse est reliée à la même production. Comparer plusieurs options, vérifier le froid ou organiser le transport se fait dans l’espace professionnel."
       },
       {
-        id: "production",
-        title: "Confirmer que la production démarre",
+        id: "equipe",
+        title: "Confirmer que l’équipe est prête",
         intro: `${sharedTransformationDemo.securedKg} kg sur ${sharedTransformationDemo.targetKg} kg sont déjà sécurisés.`,
-        questions: ["L’équipe est-elle prête ?", "Le froid et le matériel sont-ils disponibles ?"],
-        replies: [["Oui", "Non", "À confirmer"], ["Oui, tout est prêt", "Il manque le froid", "Il manque du matériel", "Appelez-moi"]],
-        confirmation: "L’état réel de préparation est mis à jour.",
-        result: "La préparation reste reliée aux volumes, à l’équipe et aux moyens disponibles."
+        questions: ["Votre équipe est-elle prête ?"],
+        replies: [["Oui", "Non", "À confirmer", "Appelez-moi"]],
+        confirmation: "L’état de l’équipe est mis à jour.",
+        result: "La préparation de l’équipe est enregistrée. La décision de lancer la production reste dans l’espace professionnel."
       }
     ]
   },
