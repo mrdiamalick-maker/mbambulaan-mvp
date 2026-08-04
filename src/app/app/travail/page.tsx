@@ -17,6 +17,7 @@ import { Metric } from "@/components/ui/Metric";
 import { MbambulaanSignature } from "@/components/ui/MbambulaanSignature";
 import { SituationRow } from "@/components/situations/SituationRow";
 import { MareyeurWorkView } from "@/components/workspaces/MareyeurWorkView";
+import { PrestataireWorkView } from "@/components/workspaces/PrestataireWorkView";
 import { TransformatriceWorkView } from "@/components/workspaces/TransformatriceWorkView";
 import { professionalSpaces } from "@/config/professional-spaces";
 import { getArrivalSummary, sharedArrivalDemo } from "@/lib/mbambulaan/arrival-demo";
@@ -49,6 +50,7 @@ export default function WorkPage() {
   if (!state) return null;
   if (role === "mareyeur") return <MareyeurWorkView />;
   if (role === "transformateur") return <TransformatriceWorkView />;
+  if (role === "prestataire") return <PrestataireWorkView />;
 
   const space = professionalSpaces[role];
   const scopedSituations = visibleSituations(state, role, actorId);
