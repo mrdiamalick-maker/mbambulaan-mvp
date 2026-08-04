@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { CoordinationCapture } from "@/components/providers/CoordinationCapture";
 import { CoordinationLoopProvider } from "@/components/providers/CoordinationLoopProvider";
 import { PwaRegistration } from "@/components/providers/PwaRegistration";
 import "./globals.css";
@@ -43,7 +44,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="fr">
       <body>
         <PwaRegistration />
-        <CoordinationLoopProvider>{children}</CoordinationLoopProvider>
+        <CoordinationLoopProvider>
+          <CoordinationCapture />
+          {children}
+        </CoordinationLoopProvider>
       </body>
     </html>
   );
