@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Metric } from "@/components/ui/Metric";
 import { MbambulaanSignature } from "@/components/ui/MbambulaanSignature";
 import { SituationRow } from "@/components/situations/SituationRow";
+import { MareyeurWorkView } from "@/components/workspaces/MareyeurWorkView";
 import { professionalSpaces } from "@/config/professional-spaces";
 import { getArrivalSummary, sharedArrivalDemo } from "@/lib/mbambulaan/arrival-demo";
 import type { ProductState, Role, Situation } from "@/domain/types";
@@ -45,6 +46,7 @@ function visibleCommitments(state: ProductState, role: Role, actorId: string, si
 export default function WorkPage() {
   const { state, role, actorId } = useProduct();
   if (!state) return null;
+  if (role === "mareyeur") return <MareyeurWorkView />;
 
   const space = professionalSpaces[role];
   const scopedSituations = visibleSituations(state, role, actorId);
@@ -69,7 +71,7 @@ export default function WorkPage() {
     ? open.filter((item) => item.initiativeId)
     : role === "capitaine" || role === "operateur"
       ? open.filter((item) => item.trust === "declaree" || item.trust === "observee")
-      : role === "mareyeur" || role === "transformateur"
+      : role === "transformateur"
         ? open.filter((item) => item.status === "coordination" || item.status === "intervention" || item.status === "attente")
         : [...critical, ...open.filter((item) => item.priority !== "critique")];
 
@@ -138,7 +140,7 @@ export default function WorkPage() {
       <div className="space-y-7 p-5 lg:p-8">
         <MbambulaanSignature
           title={isArrivalRole ? `${sharedArrivalDemo.arrivalId} · ${mainDecision}` : critical.length > 0 ? `${critical.length} priorité critique demande une action maintenant.` : "Votre périmètre est stable, les engagements restent suivis."}
-          detail={isOperator ? `${sharedArrivalDemo.vessel} · ${sharedArrivalDemo.captain} · quai de ${sharedArrivalDemo.quay}. Les réponses WhatsApp, téléphone et espace professionnel portent sur la même arrivée.` : isCaptain ? `Votre sortie, le quai, les besoins et la pesée restent les mêmes quel que soit le canal utilisé.` : "Cette ligne relie les signaux visibles, les engagements attendus et les priorités de votre rôle. Elle devient le repère commun de l’expérience Mbàmbulaan."}
+          detail={isOperator ? `${sharedArrivalDemo.vessel} · ${sharedArrivalDemo.captain} · quai de ${sharedArrivalDemo.quay}. Les réponses WhatsApp, téléphone et espace professionnel portent sur la même arrivée.` : isCaptain ? "Votre sortie, le quai, les besoins et la pesée restent les mêmes quel que soit le canal utilisé." : "Cette ligne relie les signaux visibles, les engagements attendus et les priorités de votre rôle. Elle devient le repère commun de l’expérience Mbàmbulaan."}
           points={signaturePoints}
         />
 
