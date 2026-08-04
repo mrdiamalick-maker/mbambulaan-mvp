@@ -19,6 +19,38 @@ type CoordinationLoopContextValue = {
 const STORAGE_KEY = "mbambulaan-coordination-loop-v1";
 const CoordinationLoopContext = createContext<CoordinationLoopContextValue | null>(null);
 
+const messagingAnswers = new Set([
+  "Moins d’1 heure",
+  "1 à 2 heures",
+  "Plus tard",
+  "Place au quai",
+  "Glace",
+  "Manutention",
+  "Rien",
+  "Oui",
+  "Non",
+  "À confirmer",
+  "Non, il faut vérifier",
+  "420 kg",
+  "Corriger le poids",
+  "Oui, je suis intéressée",
+  "Non merci",
+  "Montrez-moi une autre proposition",
+  "Réserver ce lot",
+  "Organiser l’enlèvement",
+  "Comparer avant de décider",
+  "Moins de 100 kg",
+  "100 à 300 kg",
+  "Plus de 300 kg",
+  "Oui, tout est prêt",
+  "Aujourd’hui",
+  "Demain",
+  "Cette semaine",
+  "Chambre froide",
+  "Transport",
+  "Appelez-moi"
+]);
+
 function readUpdates(): LoopUpdate[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -26,6 +58,12 @@ function readUpdates(): LoopUpdate[] {
   } catch {
     return [];
   }
+}
+
+function actorFromLocation(): LoopUpdate["actor"] {
+  const actor = new URLSearchParams(window.location.search).get("acteur");
+  if (actor === "operateur" || actor === "mareyeur" || actor === "transformateur" || actor === "prestataire") return actor;
+  return "capitaine";
 }
 
 export function CoordinationLoopProvider({ children }: { children: React.ReactNode }) {
@@ -53,6 +91,27 @@ export function CoordinationLoopProvider({ children }: { children: React.ReactNo
       return next;
     });
   }, []);
+
+  useEffect(() => {
+    function captureMessagingAnswer(event: MouseEvent) {
+      if (window.location.pathname !== "/terrain/whatsapp") return;
+      const button = (event.target as HTMLElement | null)?.closest("button");
+      const answer = button?.textContent?.trim();
+      if (!answer || !messagingAnswers.has(answer)) return;
+
+      const actor = actorFromLocation();
+      const actorLabel = actor === "operateur" ? "Agent de quai" : actor === "transformateur" ? "Transformatrice" : actor.charAt(0).toUpperCase() + actor.slice(1);
+      recordUpdate({
+        workId: "RET-2026-0814",
+        actor,
+        action: `${actorLabel} : ${answer}`,
+        detail: "Cette réponse est enregistrée une seule fois et devient visible dans les espaces professionnels concernés."
+      });
+    }
+
+    document.addEventListener("click", captureMessagingAnswer);
+    return () => document.removeEventListener("click", captureMessagingAnswer);
+  }, [recordUpdate]);
 
   const value = useMemo(() => ({ updates, recordUpdate }), [updates, recordUpdate]);
 
