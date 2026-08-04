@@ -17,6 +17,7 @@ import {
   Snowflake,
   UsersRound
 } from "lucide-react";
+import { getChannelMessage, getNextChannel } from "@/lib/mbambulaan/channel-routing";
 import { sharedPurchaseDemo } from "@/lib/mbambulaan/purchase-demo";
 import { sharedTransformationDemo } from "@/lib/mbambulaan/transformation-demo";
 
@@ -30,7 +31,6 @@ type Journey = {
   replies: string[][];
   confirmation: string;
   result: string;
-  escalation?: string;
 };
 
 type ActorConfig = {
@@ -54,7 +54,7 @@ const actors: Record<Actor, ActorConfig> = {
         intro: "Bonjour Mamadou. Nous préparons votre arrivée à Hann.",
         questions: ["Dans combien de temps arrivez-vous ?", "De quoi avez-vous besoin ?"],
         replies: [["Moins d’1 heure", "1 à 2 heures", "Plus tard"], ["Place au quai", "Glace", "Manutention", "Rien"]],
-        confirmation: "Le quai est prévenu et voit votre besoin.",
+        confirmation: "Le quai est prévenu et voit votre demande.",
         result: "Retour annoncé et préparation du quai demandée."
       },
       {
@@ -64,8 +64,7 @@ const actors: Record<Actor, ActorConfig> = {
         questions: ["Le poids est-il correct ?"],
         replies: [["Oui", "Non, il faut vérifier", "Appelez-moi"]],
         confirmation: "Votre réponse est enregistrée.",
-        result: "Pesée confirmée ou vérification demandée.",
-        escalation: "Un désaccord se traite dans l’espace professionnel existant."
+        result: "Pesée confirmée ou vérification demandée."
       }
     ]
   },
@@ -91,15 +90,14 @@ const actors: Record<Actor, ActorConfig> = {
         questions: ["Quel poids envoyer au capitaine ?"],
         replies: [["420 kg", "Corriger le poids", "Appelez-moi"]],
         confirmation: "Le poids est envoyé au capitaine.",
-        result: "Pesée liée à l’arrivée et attente de confirmation.",
-        escalation: "Une correction se traite dans l’espace professionnel existant."
+        result: "Pesée liée à l’arrivée et attente de confirmation."
       }
     ]
   },
   mareyeur: {
     label: "Mareyeur",
     identity: `${sharedPurchaseDemo.buyer} · Acheteuse référencée`,
-    context: `Besoin ${sharedPurchaseDemo.needId} · préférences et zones habituelles déjà connues.`,
+    context: `Recherche ${sharedPurchaseDemo.needId} · préférences et zones habituelles déjà connues.`,
     icon: ShoppingBasket,
     journeys: [
       {
@@ -108,8 +106,8 @@ const actors: Record<Actor, ActorConfig> = {
         intro: `Bonjour ${sharedPurchaseDemo.buyer}. Dites-nous seulement ce qu’il vous faut aujourd’hui.`,
         questions: ["Quelle espèce cherchez-vous ?", "Quelle quantité environ ?", "Où voulez-vous récupérer ?", "Pour quand ?"],
         replies: [["Sardinelle", "Thiof", "Yaboy", "Autre"], ["Moins de 100 kg", "100 à 500 kg", "Plus de 500 kg"], ["Hann", "Soumbédioune", "Mbour"], ["Aujourd’hui", "Demain", "Cette semaine"]],
-        confirmation: "Votre besoin est enregistré. Mbàmbulaan vous prévient lorsqu’une proposition correspond.",
-        result: "Besoin relié aux lots, lieux, délais et capacités d’enlèvement utiles."
+        confirmation: "Votre recherche est enregistrée. Mbàmbulaan vous prévient lorsqu’une proposition correspond.",
+        result: "Votre recherche est reliée aux lots, lieux, délais et possibilités d’enlèvement utiles."
       },
       {
         id: "proposition",
@@ -118,8 +116,7 @@ const actors: Record<Actor, ActorConfig> = {
         questions: ["Cette proposition vous intéresse-t-elle ?", "Que voulez-vous faire ensuite ?"],
         replies: [["Oui, je suis intéressée", "Non merci", "Montrez-moi une autre proposition", "Appelez-moi"], ["Réserver ce lot", "Organiser l’enlèvement", "Comparer avant de décider"]],
         confirmation: "Votre réponse est enregistrée.",
-        result: "Réponse reliée au même besoin d’achat.",
-        escalation: "Comparer les lots ou organiser l’enlèvement se fait dans l’espace professionnel existant."
+        result: "Votre réponse reste reliée à la même recherche."
       }
     ]
   },
@@ -135,7 +132,7 @@ const actors: Record<Actor, ActorConfig> = {
         intro: `Bonjour ${sharedTransformationDemo.processor}. Votre production de ${sharedTransformationDemo.product} est prévue ${sharedTransformationDemo.requiredBy.toLowerCase()}.`,
         questions: ["Combien vous manque-t-il ?", "Quelle qualité acceptez-vous ?", "Quand faut-il livrer ?"],
         replies: [["Moins de 100 kg", "100 à 300 kg", "Plus de 300 kg"], ["Frais uniquement", "Frais ou réfrigéré", "Appelez-moi"], ["Avant 08h", "Avant 10h", "Dans la journée"]],
-        confirmation: "Le besoin est relié à votre plan de production.",
+        confirmation: "Ce qu’il vous manque est relié à votre production.",
         result: "Volume manquant, qualité et heure limite enregistrés pour chercher des lots compatibles."
       },
       {
@@ -144,9 +141,8 @@ const actors: Record<Actor, ActorConfig> = {
         intro: `${sharedTransformationDemo.supplyOptions[0].quantityKg} kg de ${sharedTransformationDemo.supplyOptions[0].species} sont disponibles à ${sharedTransformationDemo.supplyOptions[0].source} à ${sharedTransformationDemo.supplyOptions[0].availableAt}.`,
         questions: ["Cette option convient-elle à votre production ?", "Que voulez-vous faire ?"],
         replies: [["Oui", "Non", "Je dois vérifier", "Appelez-moi"], ["Confirmer le volume", "Organiser le transport", "Comparer les options"]],
-        confirmation: "Votre réponse est enregistrée dans le même plan de production.",
-        result: "Option acceptée, refusée ou mise en attente pour la production.",
-        escalation: "Comparer les options, arbitrer la qualité, le froid ou le transport se fait dans l’espace professionnel existant."
+        confirmation: "Votre réponse est enregistrée dans la même production.",
+        result: "Option acceptée, refusée ou laissée en attente."
       },
       {
         id: "production",
@@ -155,8 +151,7 @@ const actors: Record<Actor, ActorConfig> = {
         questions: ["L’équipe est-elle prête ?", "Le froid et le matériel sont-ils disponibles ?"],
         replies: [["Oui", "Non", "À confirmer"], ["Oui, tout est prêt", "Il manque le froid", "Il manque du matériel", "Appelez-moi"]],
         confirmation: "L’état réel de préparation est mis à jour.",
-        result: "Préparation de la production reliée aux volumes, à l’équipe et aux infrastructures.",
-        escalation: "Un blocage de capacité ou d’infrastructure doit être traité dans l’espace professionnel."
+        result: "La préparation reste reliée aux volumes, à l’équipe et aux moyens disponibles."
       }
     ]
   },
@@ -173,8 +168,7 @@ const actors: Record<Actor, ActorConfig> = {
         questions: ["Quel service est disponible ?", "Jusqu’à quand ?"],
         replies: [["Glace", "Chambre froide", "Transport"], ["Aujourd’hui", "Demain", "Cette semaine"]],
         confirmation: "Votre capacité est visible pour les acteurs concernés.",
-        result: "Capacité reliée au prestataire, au lieu et à la période.",
-        escalation: "Le planning et les conflits de capacité passent par l’espace professionnel."
+        result: "Votre disponibilité est reliée au lieu et à la période."
       }
     ]
   }
@@ -192,11 +186,13 @@ export default function MessagingSimulationPage() {
   const [journeyId, setJourneyId] = useState(actors[initialActor].journeys[0].id);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
+  const [lastAnswer, setLastAnswer] = useState("");
   const [done, setDone] = useState(false);
 
   const config = actors[actor];
   const journey = config.journeys.find((item) => item.id === journeyId) ?? config.journeys[0];
   const Icon = config.icon;
+  const nextChannel = getNextChannel(lastAnswer);
 
   const messages = useMemo(() => {
     const history: Array<{ from: "mbambulaan" | "client"; text: string }> = [
@@ -217,13 +213,15 @@ export default function MessagingSimulationPage() {
     setJourneyId(nextJourney);
     setStep(0);
     setAnswers([]);
+    setLastAnswer("");
     setDone(false);
   }
 
   function answer(value: string) {
     setAnswers((current) => [...current, value]);
-    const escalates = value === "Appelez-moi" || value.includes("Comparer") || value === "Montrez-moi une autre proposition" || value === "Je dois vérifier";
-    if (escalates || step + 1 >= journey.questions.length) setDone(true);
+    setLastAnswer(value);
+    const channel = getNextChannel(value);
+    if (channel !== "termine" || step + 1 >= journey.questions.length) setDone(true);
     else setStep((current) => current + 1);
   }
 
@@ -232,7 +230,7 @@ export default function MessagingSimulationPage() {
       <section className="mx-auto max-w-6xl">
         <div className="mb-4 flex items-center justify-between gap-3">
           <Link href="/terrain" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--ocean-800)]"><ArrowLeft size={16} /> Retour au démonstrateur</Link>
-          <Link href="/terrain/telephone" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ocean-800)]"><PhoneCall size={16} /> Escalade téléphonique</Link>
+          <Link href="/terrain/telephone" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ocean-800)]"><PhoneCall size={16} /> Voir le canal téléphonique</Link>
         </div>
 
         <div className="grid overflow-hidden rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--white)] shadow-[var(--shadow-md)] lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -248,11 +246,11 @@ export default function MessagingSimulationPage() {
           </aside>
 
           <div className="min-w-0 bg-[var(--sand-100)]">
-            <header className="flex items-center gap-3 border-b border-[var(--line)] bg-[var(--white)] px-4 py-3 sm:px-5"><span className="grid size-10 place-items-center rounded-full bg-[var(--lagoon-100)] text-[var(--lagoon-600)]"><Icon size={19} /></span><div><p className="font-semibold text-[var(--ink)]">Mbàmbulaan · {config.label} reconnu</p><p className="text-xs text-[var(--muted)]">Même moteur, parcours adapté au rôle</p></div></header>
+            <header className="flex items-center gap-3 border-b border-[var(--line)] bg-[var(--white)] px-4 py-3 sm:px-5"><span className="grid size-10 place-items-center rounded-full bg-[var(--lagoon-100)] text-[var(--lagoon-600)]"><Icon size={19} /></span><div><p className="font-semibold text-[var(--ink)]">Mbàmbulaan · {config.label} reconnu</p><p className="text-xs text-[var(--muted)]">Une réponse rapide ici ; l’espace professionnel seulement quand c’est nécessaire</p></div></header>
             <div className="min-h-[520px] space-y-3 p-4 sm:p-6">
               {messages.map((message, index) => <div key={`${message.text}-${index}`} className={`flex ${message.from === "client" ? "justify-end" : "justify-start"}`}><div className={`max-w-[86%] rounded-[18px] px-4 py-3 text-sm leading-6 shadow-sm sm:max-w-[72%] ${message.from === "client" ? "rounded-br-md bg-[var(--lagoon-100)]" : "rounded-bl-md bg-[var(--white)]"}`}>{message.text}<p className="mt-1 text-right text-[10px] text-[var(--muted)]">Maintenant {message.from === "client" && <Check className="ml-1 inline" size={11} />}</p></div></div>)}
               {!done && <div className="pt-2"><div className="flex flex-wrap gap-2">{journey.replies[step].map((reply) => <button key={reply} onClick={() => answer(reply)} className="rounded-full border border-[var(--line-strong)] bg-[var(--white)] px-4 py-2 text-sm font-semibold text-[var(--ocean-800)] transition hover:border-[var(--lagoon-500)] hover:bg-[var(--lagoon-100)]">{reply}</button>)}</div><div className="mt-4 flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--white)] px-3 py-2"><span className="min-w-0 flex-1 text-sm text-[var(--muted)]">Écrire ou envoyer un vocal…</span><button className="grid size-9 place-items-center rounded-full text-[var(--muted)]" aria-label="Envoyer un vocal"><Mic size={18} /></button><button className="grid size-9 place-items-center rounded-full bg-[var(--lagoon-500)] text-[var(--ocean-1000)]" aria-label="Envoyer"><Send size={17} /></button></div></div>}
-              {done && <div className="mt-5 rounded-[var(--radius-md)] border border-[var(--lagoon-200)] bg-[var(--white)] p-5"><p className="text-sm font-semibold text-[var(--ink)]">Dans Mbàmbulaan</p><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{journey.result}</p>{journey.escalation && <p className="mt-3 rounded-[var(--radius-sm)] bg-[var(--sand-100)] p-3 text-sm font-semibold text-[var(--ink)]">{journey.escalation}</p>}<div className="mt-5 flex flex-wrap gap-3"><button onClick={() => reset(actor, journey.id)} className="btn-secondary">Rejouer</button><Link href="/app/travail" className="btn-primary">Continuer dans mon espace <ArrowRight size={16} /></Link></div></div>}
+              {done && <div className="mt-5 rounded-[var(--radius-md)] border border-[var(--lagoon-200)] bg-[var(--white)] p-5"><p className="text-sm font-semibold text-[var(--ink)]">Ce qui se passe ensuite</p><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{journey.result}</p><p className="mt-3 rounded-[var(--radius-sm)] bg-[var(--sand-100)] p-3 text-sm font-semibold text-[var(--ink)]">{getChannelMessage(nextChannel)}</p><div className="mt-5 flex flex-wrap gap-3"><button onClick={() => reset(actor, journey.id)} className="btn-secondary">Rejouer</button>{nextChannel === "espace" && <Link href="/app/travail" className="btn-primary">Ouvrir mon espace <ArrowRight size={16} /></Link>}{nextChannel === "telephone" && <Link href="/terrain/telephone" className="btn-primary"><PhoneCall size={16} /> Demander l’appel</Link>}</div></div>}
             </div>
           </div>
         </div>
