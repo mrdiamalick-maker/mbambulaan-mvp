@@ -17,6 +17,7 @@ import { Metric } from "@/components/ui/Metric";
 import { MbambulaanSignature } from "@/components/ui/MbambulaanSignature";
 import { SituationRow } from "@/components/situations/SituationRow";
 import { MareyeurWorkView } from "@/components/workspaces/MareyeurWorkView";
+import { TransformatriceWorkView } from "@/components/workspaces/TransformatriceWorkView";
 import { professionalSpaces } from "@/config/professional-spaces";
 import { getArrivalSummary, sharedArrivalDemo } from "@/lib/mbambulaan/arrival-demo";
 import type { ProductState, Role, Situation } from "@/domain/types";
@@ -47,6 +48,7 @@ export default function WorkPage() {
   const { state, role, actorId } = useProduct();
   if (!state) return null;
   if (role === "mareyeur") return <MareyeurWorkView />;
+  if (role === "transformateur") return <TransformatriceWorkView />;
 
   const space = professionalSpaces[role];
   const scopedSituations = visibleSituations(state, role, actorId);
@@ -71,9 +73,7 @@ export default function WorkPage() {
     ? open.filter((item) => item.initiativeId)
     : role === "capitaine" || role === "operateur"
       ? open.filter((item) => item.trust === "declaree" || item.trust === "observee")
-      : role === "transformateur"
-        ? open.filter((item) => item.status === "coordination" || item.status === "intervention" || item.status === "attente")
-        : [...critical, ...open.filter((item) => item.priority !== "critique")];
+      : [...critical, ...open.filter((item) => item.priority !== "critique")];
 
   const arrivalSummary = getArrivalSummary(sharedArrivalDemo);
   const isOperator = role === "operateur";
