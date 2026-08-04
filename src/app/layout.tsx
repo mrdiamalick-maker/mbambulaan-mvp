@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { CoordinationLoopProvider } from "@/components/providers/CoordinationLoopProvider";
 import { PwaRegistration } from "@/components/providers/PwaRegistration";
 import "./globals.css";
 import "./brand.css";
@@ -40,7 +41,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr">
-      <body><PwaRegistration />{children}</body>
+      <body>
+        <PwaRegistration />
+        <CoordinationLoopProvider>{children}</CoordinationLoopProvider>
+      </body>
     </html>
   );
 }
