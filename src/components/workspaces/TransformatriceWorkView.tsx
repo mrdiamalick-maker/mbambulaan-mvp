@@ -3,7 +3,9 @@ import { ArrowRight, CheckCircle2, Clock3, Factory, PackageCheck, Snowflake, Use
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Metric } from "@/components/ui/Metric";
 import { MbambulaanSignature } from "@/components/ui/MbambulaanSignature";
+import { WorkFocus } from "@/components/work/WorkFocus";
 import { getTransformationSummary, sharedTransformationDemo } from "@/lib/mbambulaan/transformation-demo";
+import { landingWorkDemo } from "@/lib/mbambulaan/work-demo";
 
 const plan = sharedTransformationDemo;
 const summary = getTransformationSummary(plan);
@@ -19,6 +21,8 @@ export function TransformatriceWorkView() {
       />
 
       <div className="space-y-7 p-5 lg:p-8">
+        <WorkFocus work={landingWorkDemo} role="transformateur" />
+
         <MbambulaanSignature
           title={`${plan.planId} · ${summary.nextAction}`}
           detail={`${plan.product} · objectif ${plan.targetKg} kg · ${plan.unit}. Le canal messaging et l’espace professionnel utilisent le même plan de production.`}
