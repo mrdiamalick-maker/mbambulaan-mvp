@@ -3,7 +3,9 @@ import { ArrowRight, CheckCircle2, Clock3, MapPinned, PackageCheck, ShoppingBask
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Metric } from "@/components/ui/Metric";
 import { MbambulaanSignature } from "@/components/ui/MbambulaanSignature";
+import { WorkFocus } from "@/components/work/WorkFocus";
 import { getPurchaseSummary, sharedPurchaseDemo } from "@/lib/mbambulaan/purchase-demo";
+import { landingWorkDemo } from "@/lib/mbambulaan/work-demo";
 
 const need = sharedPurchaseDemo;
 const summary = getPurchaseSummary(need);
@@ -19,6 +21,8 @@ export function MareyeurWorkView() {
       />
 
       <div className="space-y-7 p-5 lg:p-8">
+        <WorkFocus work={landingWorkDemo} role="mareyeur" />
+
         <MbambulaanSignature
           title={`${need.needId} · ${summary.nextAction}`}
           detail={`${need.species} · ${need.quantityRange} · retrait à ${need.pickupSite}. Le canal messaging et l’espace professionnel utilisent le même besoin.`}
