@@ -158,17 +158,35 @@ const actors: Record<Actor, ActorConfig> = {
   prestataire: {
     label: "Prestataire",
     identity: "Ibrahima Fall · Froid et glace",
-    context: "Équipement, zone et conditions déjà enregistrés.",
+    context: "Capacité, zone et horaires déjà connus. Les réponses simples restent ici.",
     icon: Snowflake,
     journeys: [
       {
         id: "capacite",
-        title: "J’ai une capacité disponible",
+        title: "J’ai une disponibilité",
         intro: "Bonjour Ibrahima. Que pouvez-vous proposer aujourd’hui ?",
         questions: ["Quel service est disponible ?", "Jusqu’à quand ?"],
         replies: [["Glace", "Chambre froide", "Transport"], ["Aujourd’hui", "Demain", "Cette semaine"]],
-        confirmation: "Votre capacité est visible pour les acteurs concernés.",
-        result: "Votre disponibilité est reliée au lieu et à la période."
+        confirmation: "Votre disponibilité est visible pour les acteurs concernés.",
+        result: "La disponibilité est reliée au lieu et à la période. Aucun espace professionnel n’est nécessaire."
+      },
+      {
+        id: "repondre-demande",
+        title: "Répondre à une demande",
+        intro: "Le quai de Hann demande 600 kg de glace aujourd’hui à 16h.",
+        questions: ["Pouvez-vous assurer cette demande ?"],
+        replies: [["Oui, je confirme", "Non", "Je serai en retard", "Appelez-moi"]],
+        confirmation: "Votre réponse est transmise au quai.",
+        result: "La demande et votre réponse restent liées à la même capacité. L’espace professionnel ne s’ouvre que si plusieurs demandes se chevauchent."
+      },
+      {
+        id: "execution",
+        title: "Donner une nouvelle rapide",
+        intro: "La livraison de glace prévue à 16h est en cours.",
+        questions: ["Où en êtes-vous ?"],
+        replies: [["J’arrive", "C’est livré", "Je serai en retard", "Appelez-moi"]],
+        confirmation: "Le quai reçoit la mise à jour.",
+        result: "Le suivi simple reste dans le canal. Un conflit de planning ou plusieurs demandes basculent vers l’espace professionnel."
       }
     ]
   }
