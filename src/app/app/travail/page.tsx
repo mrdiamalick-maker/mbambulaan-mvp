@@ -6,11 +6,8 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { MbambulaanSignature } from "@/components/ui/MbambulaanSignature";
 import { SituationRow } from "@/components/situations/SituationRow";
-import { CapitaineWorkView } from "@/components/workspaces/CapitaineWorkView";
-import { MareyeurWorkView } from "@/components/workspaces/MareyeurWorkView";
-import { OperateurWorkView } from "@/components/workspaces/OperateurWorkView";
+import { UnifiedWorkView } from "@/components/work/UnifiedWorkView";
 import { PrestataireWorkView } from "@/components/workspaces/PrestataireWorkView";
-import { TransformatriceWorkView } from "@/components/workspaces/TransformatriceWorkView";
 import { professionalSpaces } from "@/config/professional-spaces";
 import type { ProductState, Role, Situation } from "@/domain/types";
 
@@ -30,10 +27,9 @@ export default function WorkPage() {
   const { state, role, actorId } = useProduct();
   if (!state) return null;
 
-  if (role === "capitaine") return <CapitaineWorkView />;
-  if (role === "operateur") return <OperateurWorkView />;
-  if (role === "mareyeur") return <MareyeurWorkView />;
-  if (role === "transformateur") return <TransformatriceWorkView />;
+  if (role === "capitaine" || role === "operateur" || role === "mareyeur" || role === "transformateur") {
+    return <UnifiedWorkView role={role} />;
+  }
   if (role === "prestataire") return <PrestataireWorkView />;
 
   const space = professionalSpaces[role];
@@ -57,7 +53,7 @@ export default function WorkPage() {
       <div className="space-y-7 p-5 lg:p-8">
         <MbambulaanSignature
           title={critical.length > 0 ? `${critical.length} sujet${critical.length > 1 ? "s" : ""} prioritaire${critical.length > 1 ? "s" : ""}` : "Votre périmètre est stable"}
-          detail="Cet espace montre uniquement ce qui demande une vue d’ensemble, une décision ou un suivi dans votre rôle."
+          detail="Cette vue montre uniquement ce qui demande une vue d’ensemble, une décision ou un suivi dans votre rôle."
           points={[
             { label: `${open.length} sujets en cours`, position: 18 },
             { label: `${next.length} à regarder`, position: 52 },
@@ -77,7 +73,7 @@ export default function WorkPage() {
           </div>
 
           <aside className="surface p-6 lg:p-7">
-            <p className="label">Ce que cet espace vous apporte</p>
+            <p className="label">Ce que cette vue vous apporte</p>
             <div className="mt-5 space-y-4">
               {space.outcomes.map((outcome, index) => (
                 <div key={outcome} className="flex items-start gap-4 border-t border-[var(--line)] pt-4 first:border-t-0 first:pt-0">
