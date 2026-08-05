@@ -2,16 +2,22 @@ import "server-only";
 
 import postgres from "postgres";
 import { createDemoState } from "@/data/demo-state";
+import type { MbambulaanEvent } from "@/domain/events";
 import type { Command, ProductState } from "@/domain/types";
 import { applyCommand } from "@/domain/rules";
+import { applyEvent } from "@/runtime/event-engine";
 
 declare global {
   var mbambulaanState: ProductState | undefined;
   var mbambulaanCommands: Set<string> | undefined;
+  var mbambulaanEvents: Set<string> | undefined;
 }
 
 const memoryCommands = globalThis.mbambulaanCommands ?? new Set<string>();
 globalThis.mbambulaanCommands = memoryCommands;
+
+const memoryEvents = globalThis.mbambulaanEvents ?? new Set<string>();
+globalThis.mbambulaanEvents = memoryEvents;
 
 let sql: ReturnType<typeof postgres> | undefined;
 
@@ -92,6 +98,17 @@ async function saveState(state: ProductState) {
   `;
 }
 
+async function writeOutbox(eventId: string, eventType: string, payload: unknown) {
+  const db = database();
+  if (!db) return;
+  const eventPayload = JSON.parse(JSON.stringify(payload)) as never;
+  await db`
+    insert into mbambulaan_outbox (event_id, tenant_id, event_type, payload)
+    values (${eventId}, 'tenant-demo', ${eventType}, ${db.json(eventPayload)})
+    on conflict do nothing
+  `;
+}
+
 export async function dispatch(command: Command, idempotencyKey: string) {
   const db = database();
   if (db) {
@@ -103,11 +120,7 @@ export async function dispatch(command: Command, idempotencyKey: string) {
       returning idempotency_key
     `;
     if (!inserted.length) return getState();
-    const eventPayload = JSON.parse(JSON.stringify(command)) as never;
-    await db`
-      insert into mbambulaan_outbox (event_id, tenant_id, event_type, payload)
-      values (${crypto.randomUUID()}, 'tenant-demo', ${`command.${command.type}`}, ${db.json(eventPayload)})
-    `;
+    await writeOutbox(crypto.randomUUID(), `command.${command.type}`, command);
   } else {
     if (memoryCommands.has(idempotencyKey)) return getState();
     memoryCommands.add(idempotencyKey);
@@ -119,6 +132,30 @@ export async function dispatch(command: Command, idempotencyKey: string) {
     return initial;
   }
   const next = applyCommand(await getState(), command);
+  await saveState(next);
+  return next;
+}
+
+export async function dispatchEvent(event: MbambulaanEvent) {
+  const db = database();
+  const idempotencyKey = `event:${event.id}`;
+
+  if (db) {
+    await ensureSchema();
+    const inserted = await db`
+      insert into mbambulaan_command_log (idempotency_key, tenant_id, command_type)
+      values (${idempotencyKey}, 'tenant-demo', ${`event.${event.type}`})
+      on conflict do nothing
+      returning idempotency_key
+    `;
+    if (!inserted.length) return getState();
+    await writeOutbox(event.id, `event.${event.type}`, event);
+  } else {
+    if (memoryEvents.has(idempotencyKey)) return getState();
+    memoryEvents.add(idempotencyKey);
+  }
+
+  const next = applyEvent(await getState(), event);
   await saveState(next);
   return next;
 }
