@@ -8,9 +8,13 @@ function eventId(prefix: string, eventId: string) {
 export function assessEvent(event: MbambulaanEvent): EventAssessment {
   switch (event.type) {
     case "infrastructure_status_changed": {
-      const unavailable = event.status === "indisponible" || event.availableCapacity <= 0;
+      const unavailable =
+        event.status === "indisponible" || event.availableCapacity <= 0;
+
       return {
-        title: unavailable ? "Moyen indisponible sur le territoire" : "Moyen fragilisé sur le territoire",
+        title: unavailable
+          ? "Moyen indisponible sur le territoire"
+          : "Moyen fragilisé sur le territoire",
         description: unavailable
           ? "Un moyen essentiel n'est plus disponible et peut bloquer une opération en cours."
           : "Un moyen essentiel fonctionne avec une capacité réduite et nécessite une vérification.",
@@ -22,15 +26,19 @@ export function assessEvent(event: MbambulaanEvent): EventAssessment {
           : "Vérifier la capacité restante et informer les acteurs concernés"
       };
     }
+
     case "fishing_trip_return_announced":
       return {
         title: "Retour de pêche annoncé",
-        description: "Une pirogue a annoncé son retour. Le quai doit préparer l'accueil, la pesée et les moyens nécessaires.",
+        description:
+          "Une pirogue a annoncé son retour. Le quai doit préparer l'accueil, la pesée et les moyens nécessaires.",
         category: "production",
         priority: "haute",
         trust: "declaree",
-        nextStep: "Confirmer l'heure d'arrivée et vérifier la disponibilité du quai, de la glace et de la pesée"
+        nextStep:
+          "Confirmer l'heure d'arrivée et vérifier la disponibilité du quai, de la glace et de la pesée"
       };
+
     case "communication_requested":
       return {
         title: `Contact demandé par ${event.requestedChannel}`,
@@ -43,12 +51,17 @@ export function assessEvent(event: MbambulaanEvent): EventAssessment {
   }
 }
 
-export function applyEvent(state: ProductState, event: MbambulaanEvent): ProductState {
+export function applyEvent(
+  state: ProductState,
+  event: MbambulaanEvent
+): ProductState {
   const assessment = assessEvent(event);
   const observationId = eventId("obs", event.id);
   const situationId = eventId("sit", event.id);
 
-  if (state.observations.some((item) => item.id === observationId)) return state;
+  if (state.observations.some((item) => item.id === observationId)) {
+    return state;
+  }
 
   const observation: Observation = {
     id: observationId,
