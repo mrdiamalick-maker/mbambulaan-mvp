@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, Check, Circle, MessageCircleMore, UsersRound } from "lucide-react";
 import { useCoordinationLoop, type LoopUpdate } from "@/components/providers/CoordinationLoopProvider";
-import type { MbambulaanWork } from "@/lib/mbambulaan/work-demo";
-
-type SupportedRole = "capitaine" | "operateur" | "mareyeur" | "transformateur";
+import type { MbambulaanWork, WorkRole } from "@/lib/mbambulaan/work-demo";
 
 const healthLabels = {
   normal: "Normal",
@@ -13,18 +11,19 @@ const healthLabels = {
   bloque: "Bloqué"
 } as const;
 
-const usefulActorsByRole: Record<SupportedRole, LoopUpdate["actor"][]> = {
+const usefulActorsByRole: Record<WorkRole, LoopUpdate["actor"][]> = {
   capitaine: ["capitaine", "operateur"],
   operateur: ["capitaine", "operateur", "prestataire"],
   mareyeur: ["operateur", "mareyeur"],
-  transformateur: ["operateur", "mareyeur", "transformateur", "prestataire"]
+  transformateur: ["operateur", "mareyeur", "transformateur", "prestataire"],
+  prestataire: ["operateur", "transformateur", "prestataire"]
 };
 
-function isUsefulForRole(update: LoopUpdate, role: SupportedRole) {
+function isUsefulForRole(update: LoopUpdate, role: WorkRole) {
   return usefulActorsByRole[role].includes(update.actor);
 }
 
-function nextActionFromUpdate(update: LoopUpdate | undefined, fallback: string, role: SupportedRole) {
+function nextActionFromUpdate(update: LoopUpdate | undefined, fallback: string, role: WorkRole) {
   if (!update) return fallback;
   const answer = update.action.toLowerCase();
 
@@ -41,30 +40,25 @@ function nextActionFromUpdate(update: LoopUpdate | undefined, fallback: string, 
 
   if (role === "mareyeur" && update.actor === "operateur") return "Vérifier si le lot annoncé correspond à votre recherche avant de réserver.";
   if (role === "transformateur" && update.actor !== "transformateur") return "Vérifier l’effet de cette nouvelle sur la matière, le froid, le transport et l’heure de démarrage.";
+  if (role === "prestataire") return "Vérifier que cette demande n’entre pas en conflit avec une autre capacité déjà promise.";
 
   return fallback;
 }
 
-export function WorkFocus({ work, role }: { work: MbambulaanWork; role: SupportedRole }) {
+export function WorkFocus({ work, role }: { work: MbambulaanWork; role: WorkRole }) {
   const view = work.roleViews[role];
   const { updates } = useCoordinationLoop();
   const usefulUpdates = updates.filter((update) => update.workId === work.id && isUsefulForRole(update, role));
   const latestUpdate = usefulUpdates[usefulUpdates.length - 1];
   const nextAction = nextActionFromUpdate(latestUpdate, view.nextAction, role);
   const recentEvents = [
-    ...work.events.slice(-3).map((event) => ({
-      id: event.id,
-      label: event.label,
-      meta: `${event.at} · ${event.actor}`,
-      done: event.done,
-      fromMessaging: false
-    })),
+    ...work.events.slice(-3).map((event) => ({ id: event.id, label: event.label, meta: `${event.at} · ${event.actor}`, done: event.done, fromCommunication: false })),
     ...usefulUpdates.slice(-2).map((update) => ({
       id: update.id,
       label: update.action,
-      meta: `${new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(update.at))} · canal messaging`,
+      meta: `${new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(update.at))} · canal rapide`,
       done: true,
-      fromMessaging: true
+      fromCommunication: true
     }))
   ].slice(-4);
 
@@ -73,9 +67,9 @@ export function WorkFocus({ work, role }: { work: MbambulaanWork; role: Supporte
       <div className="border-b border-[var(--line)] bg-[var(--ocean-1000)] px-5 py-5 text-white lg:px-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[.14em] text-white/55">Travail en cours</p>
+            <p className="text-xs font-bold uppercase tracking-[.14em] text-white/55">En cours</p>
             <h2 className="mt-2 text-2xl font-black">{work.title}</h2>
-            <p className="mt-1 text-sm text-white/60">{work.id} · {latestUpdate ? latestUpdate.action : work.currentStep}</p>
+            <p className="mt-1 text-sm text-white/60">{latestUpdate ? latestUpdate.action : work.currentStep}</p>
           </div>
           <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold">{healthLabels[work.health]}</span>
         </div>
@@ -91,7 +85,7 @@ export function WorkFocus({ work, role }: { work: MbambulaanWork; role: Supporte
             <div className="mt-5 flex items-start gap-3 rounded-[var(--radius-md)] bg-[var(--lagoon-100)] p-4">
               <MessageCircleMore className="mt-0.5 shrink-0 text-[var(--lagoon-600)]" size={18} />
               <div>
-                <p className="text-xs font-semibold text-[var(--muted)]">Nouvelle utile pour votre travail</p>
+                <p className="text-xs font-semibold text-[var(--muted)]">Nouvelle utile</p>
                 <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{latestUpdate.action}</p>
               </div>
             </div>
@@ -116,7 +110,7 @@ export function WorkFocus({ work, role }: { work: MbambulaanWork; role: Supporte
           <div className="mt-4 space-y-3">
             {recentEvents.map((event) => (
               <div key={event.id} className="flex gap-3 rounded-[var(--radius-md)] bg-[var(--white)] p-4">
-                {event.fromMessaging ? <MessageCircleMore className="mt-0.5 shrink-0 text-[var(--lagoon-600)]" size={17} /> : event.done ? <Check className="mt-0.5 shrink-0 text-[var(--lagoon-600)]" size={17} /> : <Circle className="mt-0.5 shrink-0 text-[var(--sand-500)]" size={17} />}
+                {event.fromCommunication ? <MessageCircleMore className="mt-0.5 shrink-0 text-[var(--lagoon-600)]" size={17} /> : event.done ? <Check className="mt-0.5 shrink-0 text-[var(--lagoon-600)]" size={17} /> : <Circle className="mt-0.5 shrink-0 text-[var(--sand-500)]" size={17} />}
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-[var(--ink)]">{event.label}</p>
                   <p className="mt-1 text-xs text-[var(--muted)]">{event.meta}</p>
