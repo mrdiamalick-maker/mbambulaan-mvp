@@ -17,6 +17,8 @@ export type WorkRoleView = {
   actionHref: string;
 };
 
+export type WorkRole = "capitaine" | "operateur" | "mareyeur" | "transformateur" | "prestataire";
+
 export type MbambulaanWork = {
   id: string;
   title: string;
@@ -24,7 +26,7 @@ export type MbambulaanWork = {
   currentStep: string;
   participants: string[];
   events: WorkEvent[];
-  roleViews: Record<"capitaine" | "operateur" | "mareyeur" | "transformateur", WorkRoleView>;
+  roleViews: Record<WorkRole, WorkRoleView>;
 };
 
 export const landingWorkDemo: MbambulaanWork = {
@@ -32,7 +34,7 @@ export const landingWorkDemo: MbambulaanWork = {
   title: "Débarquer le retour de pêche",
   health: "attention",
   currentStep: "Pesée terminée, lot à affecter",
-  participants: ["Capitaine", "Agent de quai", "Mareyeur", "Transformatrice"],
+  participants: ["Capitaine", "Agent de quai", "Mareyeur", "Transformatrice", "Prestataire"],
   events: [
     { id: "evt-1", label: "Retour annoncé", at: "15:42", actor: "Capitaine", done: true },
     { id: "evt-2", label: "Quai et glace confirmés", at: "15:47", actor: "Agent de quai", done: true },
@@ -73,6 +75,14 @@ export const landingWorkDemo: MbambulaanWork = {
       nextAction: "Affecter une quantité disponible au plan de production.",
       actionLabel: "Voir les options",
       actionHref: "/app/marches"
+    },
+    prestataire: {
+      question: "Puis-je répondre sans bloquer une autre demande ?",
+      currentOwner: "Prestataire",
+      nextOwner: "Agent de quai",
+      nextAction: "Comparer les demandes seulement si elles utilisent la même capacité au même moment.",
+      actionLabel: "Comparer les demandes",
+      actionHref: "/app/services"
     }
   }
 };
