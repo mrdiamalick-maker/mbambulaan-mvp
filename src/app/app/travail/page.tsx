@@ -7,7 +7,6 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { MbambulaanSignature } from "@/components/ui/MbambulaanSignature";
 import { SituationRow } from "@/components/situations/SituationRow";
 import { UnifiedWorkView } from "@/components/work/UnifiedWorkView";
-import { PrestataireWorkView } from "@/components/workspaces/PrestataireWorkView";
 import { professionalSpaces } from "@/config/professional-spaces";
 import type { ProductState, Role, Situation } from "@/domain/types";
 
@@ -27,10 +26,9 @@ export default function WorkPage() {
   const { state, role, actorId } = useProduct();
   if (!state) return null;
 
-  if (role === "capitaine" || role === "operateur" || role === "mareyeur" || role === "transformateur") {
+  if (role === "capitaine" || role === "operateur" || role === "mareyeur" || role === "transformateur" || role === "prestataire") {
     return <UnifiedWorkView role={role} />;
   }
-  if (role === "prestataire") return <PrestataireWorkView />;
 
   const space = professionalSpaces[role];
   const scopedSituations = visibleSituations(state, role, actorId);
@@ -44,16 +42,16 @@ export default function WorkPage() {
   return (
     <>
       <PageHeader
-        eyebrow={space.eyebrow}
+        eyebrow="Aujourd’hui"
         title={space.title}
-        description={space.valuePromise}
+        description="Cette vue rassemble uniquement les décisions, les changements et les blocages utiles à votre périmètre."
         actions={<Link href={space.primaryAction.href} className="btn-primary">{space.primaryAction.label} <ArrowRight size={16} /></Link>}
       />
 
       <div className="space-y-7 p-5 lg:p-8">
         <MbambulaanSignature
           title={critical.length > 0 ? `${critical.length} sujet${critical.length > 1 ? "s" : ""} prioritaire${critical.length > 1 ? "s" : ""}` : "Votre périmètre est stable"}
-          detail="Cette vue montre uniquement ce qui demande une vue d’ensemble, une décision ou un suivi dans votre rôle."
+          detail="Le rôle change les informations visibles et les décisions possibles, jamais la structure de Mbàmbulaan."
           points={[
             { label: `${open.length} sujets en cours`, position: 18 },
             { label: `${next.length} à regarder`, position: 52 },
@@ -67,13 +65,13 @@ export default function WorkPage() {
             <h2 className="mt-3 max-w-2xl text-3xl font-black leading-tight text-[var(--ink)]">{mainDecision}</h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--muted)]">Vous ne voyez que les informations nécessaires à votre rôle, votre organisation et votre territoire.</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href={next[0] ? `/app/situations/${next[0].id}` : space.primaryAction.href} className="btn-accent">Ouvrir <ArrowRight size={16} /></Link>
+              <Link href={next[0] ? `/app/situations/${next[0].id}` : space.primaryAction.href} className="btn-accent">Continuer <ArrowRight size={16} /></Link>
               <Link href="/app/atlas" className="btn-secondary"><MapPinned size={16} /> Voir mon territoire</Link>
             </div>
           </div>
 
           <aside className="surface p-6 lg:p-7">
-            <p className="label">Ce que cette vue vous apporte</p>
+            <p className="label">Ce qui compte maintenant</p>
             <div className="mt-5 space-y-4">
               {space.outcomes.map((outcome, index) => (
                 <div key={outcome} className="flex items-start gap-4 border-t border-[var(--line)] pt-4 first:border-t-0 first:pt-0">
@@ -87,7 +85,7 @@ export default function WorkPage() {
 
         <section className="surface overflow-hidden">
           <div className="border-b border-[var(--line)] px-6 py-5">
-            <p className="label">À regarder</p>
+            <p className="label">Ce qui vous attend</p>
             <h2 className="mt-1 text-2xl font-black text-[var(--ink)]">Les sujets de votre périmètre</h2>
           </div>
           {next.length > 0
