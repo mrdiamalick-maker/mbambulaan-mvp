@@ -1,17 +1,13 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, BookOpen, MapPinned, ShieldCheck, Users } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { ProductProvider } from "@/components/providers/ProductProvider";
-import { AtlasWorkspace } from "@/components/ecosystem/AtlasWorkspace";
+import { PublicAtlasWorkspace } from "@/components/ecosystem/PublicAtlasWorkspace";
 
 export default function PublicAtlasPage() {
-  return (
-    <main className="min-h-screen bg-[#f4f7f6]">
-      <PublicHeader />
-      <section className="border-b border-[#d8e1e2] bg-white px-5 py-12 md:px-10">
-        <div className="mx-auto max-w-7xl"><p className="label">Atlas public</p><h1 className="mt-2 max-w-4xl text-4xl font-bold text-[#062d36] md:text-5xl">Explorer la filière sans exposer les données professionnelles.</h1><p className="mt-4 max-w-3xl text-base leading-7 text-[#60737a]">Cette vue limitée présente des territoires et capacités de démonstration. L’Atlas Premium ajoute historique, comparaison, fiabilité, prix, rareté et exports.</p></div>
-      </section>
-      <ProductProvider><div className="mx-auto max-w-7xl p-5 md:p-10"><AtlasWorkspace publicMode /><div className="mt-6 flex flex-wrap items-center justify-between gap-4 border border-[#b9dfe4] bg-[#eaf8fa] p-5"><div><p className="font-bold text-[#062d36]">Besoin d’une lecture professionnelle ?</p><p className="mt-1 text-sm text-[#60737a]">Connectez-vous ou explorez les offres Atlas Premium.</p></div><div className="flex gap-2"><Link href="/offres" className="border border-[#075466] px-4 py-2.5 text-sm font-bold text-[#075466]">Voir les offres</Link><Link href="/connexion" className="inline-flex items-center gap-2 bg-[#075466] px-4 py-2.5 text-sm font-bold text-white">Accès professionnel <ArrowRight size={15} /></Link></div></div></div></ProductProvider>
-    </main>
-  );
+  return <main className="min-h-screen bg-[#f6f1e7]">
+    <PublicHeader />
+    <section className="public-atlas-hero px-5 py-14 text-white md:px-10 md:py-20"><div className="mx-auto max-w-7xl"><div className="flex items-center gap-2 text-xs font-black uppercase tracking-[.18em] text-[#e9bf6c]"><MapPinned size={16}/> Atlas public du littoral</div><h1 className="mt-5 max-w-5xl font-serif text-5xl leading-[.98] tracking-[-.045em] md:text-7xl">Découvrir les quais.<br/><em>Comprendre la filière.</em></h1><p className="mt-6 max-w-3xl text-lg leading-8 text-[#d6e6e5]">Une fenêtre ouverte sur les territoires, les produits et les capacités de la pêche artisanale. Ici, les informations sont publiques, agrégées et pédagogiques.</p><div className="mt-7 flex flex-wrap gap-3 text-xs font-bold"><span className="public-trust-pill"><ShieldCheck size={14}/> Données agrégées</span><span className="public-trust-pill"><Users size={14}/> Lecture accessible à tous</span></div></div></section>
+    <ProductProvider><div className="mx-auto max-w-7xl px-5 py-10 md:px-10 md:py-14"><PublicAtlasWorkspace /><section className="mt-10 grid gap-px overflow-hidden rounded-[24px] border border-[#d8cdb8] bg-[#d8cdb8] md:grid-cols-2"><Link href="/community" className="group bg-[#fffaf0] p-6 transition hover:bg-white md:p-8"><Users className="text-[#0a6d68]"/><p className="public-kicker mt-5">Communautés</p><h2 className="mt-2 font-serif text-3xl text-[#10373a]">Rencontrer les métiers et les initiatives.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-[#60716f]">Portraits, savoir-faire, programmes collectifs et actualités des communautés du littoral.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#0a6d68]">Explorer la communauté <ArrowRight size={15}/></span></Link><Link href="/durabilite" className="group bg-[#f5efe2] p-6 transition hover:bg-[#fffaf0] md:p-8"><BookOpen className="text-[#a66f20]"/><p className="public-kicker mt-5">Pêche durable</p><h2 className="mt-2 font-serif text-3xl text-[#10373a]">Comprendre les pratiques qui préservent la valeur.</h2><p className="mt-3 max-w-xl text-sm leading-6 text-[#60716f]">Provenance, saisonnalité, qualité et démarches de progrès expliquées simplement.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#8b601e]">Découvrir les engagements <ArrowRight size={15}/></span></Link></section></div></ProductProvider>
+  </main>;
 }

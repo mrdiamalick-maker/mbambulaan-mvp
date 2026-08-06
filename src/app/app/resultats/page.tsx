@@ -19,6 +19,9 @@ export default function ResultsPage() {
         actions={<button onClick={() => window.print()} className="inline-flex items-center gap-2 bg-[#075466] px-4 py-2.5 text-sm font-bold text-white"><Printer size={16} /> Imprimer la synthèse</button>}
       />
       <div className="space-y-8 p-5 lg:p-8">
+        <section className="mission-strip p-6 lg:p-7">
+          <div className="grid gap-7 lg:grid-cols-[1fr_auto] lg:items-end"><div><p className="text-[10px] font-black uppercase tracking-[.15em] text-[#70e3d5]">Centre de rapports</p><h2 className="mt-4 max-w-3xl text-2xl font-black tracking-[-.04em] lg:text-3xl">Prouver ce qui a changé, sans détacher le chiffre du terrain.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/55">Résultats, sources, limites et apprentissages restent reliés. Le rapport devient une sortie vivante du système, pas un document reconstruit après coup.</p></div><button onClick={() => window.print()} className="btn-accent"><Printer size={16} /> Générer la synthèse</button></div>
+        </section>
         <section className="grid gap-3 sm:grid-cols-3">
           <Metric label="Situations avec résultat" value={String(resolved.length)} detail="Résultat enregistré ou situation réglée" icon={CheckCircle2} tone="lagoon" />
           <Metric label="Informations consolidées" value={String(consolidated.length)} detail="Éléments recoupés et prêts à être partagés" icon={Gauge} />
@@ -28,7 +31,7 @@ export default function ResultsPage() {
           <div className="surface p-5 lg:p-6"><p className="label">Résultats documentés</p><div className="mt-5 space-y-4">{resolved.map((item) => <article key={item.id} className="border-l-4 border-[#18a394] bg-[#f1faf7] p-4"><p className="text-xs font-bold text-[#126b58]">{item.reference}</p><h3 className="mt-1 font-bold">{item.title}</h3><p className="mt-3 text-sm">{item.result}</p><p className="mt-2 text-xs text-[#60737a]">Élément de confirmation : {item.confirmation}</p></article>)}</div></div>
           <div className="surface p-5 lg:p-6"><p className="label">Connaissances partagées</p><div className="mt-5 space-y-5">{state.learnings.map((item) => <article key={item.id}><BookOpenCheck className="text-[#087287]" size={20} /><h3 className="mt-3 font-bold">{item.title}</h3><p className="mt-2 text-sm leading-6 text-[#60737a]">{item.summary}</p><p className="mt-3 text-xs font-semibold text-[#075466]">Réutilisable à : {item.reusableIn.map((id) => state.territories.find((territory) => territory.id === id)?.name).join(", ")}</p></article>)}</div></div>
         </section>
-        <section className="border border-[#b9dfe4] bg-[#f4fbfc] p-5">
+        <section className="rounded-[18px] border border-[#b9dfe4] bg-[#f4fbfc] p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="label">Rapport de démonstration</p><h2 className="mt-2 text-lg font-bold">Continuité de la chaîne du froid · Petite-Côte</h2><p className="mt-2 text-sm text-[#60737a]">Synthèse imprimable construite à partir des objets visibles dans ce tenant.</p></div><button onClick={() => window.print()} className="inline-flex items-center justify-center gap-2 border border-[#9ecbd2] bg-white px-4 py-2.5 text-sm font-bold text-[#075466]"><Download size={16} /> Préparer le document</button></div>
         </section>
       </div>

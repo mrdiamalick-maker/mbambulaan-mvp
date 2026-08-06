@@ -1,22 +1,24 @@
 import type { LucideIcon } from "lucide-react";
 
 export function Metric({ label, value, detail, icon: Icon, tone = "ocean" }: { label: string; value: string; detail: string; icon: LucideIcon; tone?: "ocean" | "lagoon" | "sand" | "coral" }) {
-  const tones = {
-    ocean: "border-t-[#087287] bg-[#f4fbfc] text-[#075466]",
-    lagoon: "border-t-[#18a394] bg-[#f1faf7] text-[#126b58]",
-    sand: "border-t-[#d6b66d] bg-[#fcfaf4] text-[#725b25]",
-    coral: "border-t-[#c94f3d] bg-[#fff7f5] text-[#9c392b]"
-  };
+  const accent = {
+    ocean: "#0f3440",
+    lagoon: "#2f9d91",
+    sand: "#a87a2e",
+    coral: "#bd5f43"
+  }[tone];
+
   return (
-    <div className={`min-w-0 border border-[#d8e1e2] border-t-4 p-4 ${tones[tone]}`}>
-      <div className="flex items-start justify-between gap-3">
+    <div className="metric-premium p-5">
+      <div className="flex items-start justify-between gap-5">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[.06em] text-[#60737a]">{label}</p>
-          <p className="mt-2 text-3xl font-bold tracking-normal text-[#17313a]">{value}</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-[.14em] text-[#66767a]">{label}</p>
+          <p className="mt-3 text-4xl font-[760] tracking-[-.05em] text-[#122b33]">{value}</p>
         </div>
-        <Icon size={20} aria-hidden="true" />
+        <span className="grid size-10 place-items-center rounded-full border border-black/10 bg-[#fffaf2]" style={{ color: accent }}><Icon size={18} aria-hidden="true" /></span>
       </div>
-      <p className="mt-3 text-sm leading-5 text-[#60737a]">{detail}</p>
+      <div className="mt-5 h-px bg-[linear-gradient(90deg,var(--mb-line),transparent)]" />
+      <p className="relative z-10 mt-3 text-xs leading-5 text-[#66767a]">{detail}</p>
     </div>
   );
 }

@@ -1,72 +1,96 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardList, Handshake, MapPinned, ShipWheel } from "lucide-react";
+import { ArrowRight, MapPinned, Target } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Metric } from "@/components/ui/Metric";
+import { MbambulaanSignature } from "@/components/ui/MbambulaanSignature";
 import { SituationRow } from "@/components/situations/SituationRow";
+import { UnifiedWorkView } from "@/components/work/UnifiedWorkView";
+import { professionalSpaces } from "@/config/professional-spaces";
+import type { ProductState, Role, Situation } from "@/domain/types";
 
-const framing = {
-  administrateur: ["À superviser", "Qualité des données, droits, parcours critiques et continuité du service"],
-  operateur: ["À confirmer au quai", "Retours, débarquements, pesées et signaux terrain"],
-  capitaine: ["Votre activité aujourd’hui", "Retour attendu, déclaration et besoins opérationnels"],
-  mareyeur: ["À anticiper", "Lots disponibles, besoins ouverts, prix et engagements"],
-  transformateur: ["À sécuriser", "Approvisionnements, surplus et retraits coordonnés"],
-  prestataire: ["À servir", "Demandes qualifiées, capacités et interventions attendues"],
-  gestionnaire_organisation: ["À coordonner collectivement", "Membres, actifs, besoins et résultats de l’organisation"],
-  coordinateur: ["À coordonner aujourd’hui", "Situations, engagements et blocages entre acteurs"],
-  institution: ["À décider", "Tensions territoriales, résultats et besoins d’investissement"],
-  partenaire: ["À instruire", "Besoins qualifiés, engagements et résultats documentés"]
-} as const;
+function visibleSituations(state: ProductState, role: Role, actorId: string) {
+  const actor = state.actors.find((item) => item.id === actorId);
+  const territoryIds = new Set(actor?.territoryIds ?? []);
+  const inTerritory = (item: Situation) => territoryIds.size === 0 || territoryIds.has(item.territoryId);
+
+  if (role === "administrateur" || role === "institution") return state.situations;
+  if (role === "partenaire") {
+    return state.situations.filter((item) => (item.visibility === "partenaires" || item.visibility === "publique") && Boolean(item.initiativeId));
+  }
+  return state.situations.filter(inTerritory);
+}
 
 export default function WorkPage() {
-  const { state, role } = useProduct();
+  const { state, role, actorId } = useProduct();
   if (!state) return null;
-  const open = state.situations.filter((item) => item.status !== "reglee");
+
+  if (role === "capitaine" || role === "operateur" || role === "mareyeur" || role === "transformateur" || role === "prestataire") {
+    return <UnifiedWorkView role={role} />;
+  }
+
+  const space = professionalSpaces[role];
+  const scopedSituations = visibleSituations(state, role, actorId);
+  const open = scopedSituations.filter((item) => item.status !== "reglee");
   const critical = open.filter((item) => item.priority === "critique");
-  const completed = state.situations.filter((item) => item.status === "reglee");
-  const [title, detail] = framing[role];
   const next = role === "partenaire"
     ? open.filter((item) => item.initiativeId)
-    : role === "operateur" || role === "capitaine"
-      ? open.filter((item) => item.trust === "declaree")
-      : [...critical, ...open.filter((item) => item.priority !== "critique")];
+    : [...critical, ...open.filter((item) => item.priority !== "critique")];
+  const mainDecision = next[0]?.title ?? "Rien ne demande votre attention maintenant.";
 
   return (
     <>
       <PageHeader
-        eyebrow="Briefing du jour"
-        title={title}
-        description={`${detail}. Chaque entrée indique ce qui est connu, le niveau de confiance et la prochaine action utile.`}
-        actions={<Link href="/demo" className="inline-flex items-center gap-2 border border-[#9ecbd2] px-4 py-2.5 text-sm font-bold text-[#075466]">Parcours guidé <ArrowRight size={16} /></Link>}
+        eyebrow="Aujourd’hui"
+        title={space.title}
+        description="Cette vue rassemble uniquement les décisions, les changements et les blocages utiles à votre périmètre."
+        actions={<Link href={space.primaryAction.href} className="btn-primary">{space.primaryAction.label} <ArrowRight size={16} /></Link>}
       />
-      <div className="space-y-8 p-5 lg:p-8">
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric label="Situations ouvertes" value={String(open.length)} detail="Tous territoires et niveaux de confiance" icon={ClipboardList} />
-          <Metric label="À traiter en priorité" value={String(critical.length)} detail="Action ou arbitrage attendu aujourd’hui" icon={AlertTriangle} tone="coral" />
-          <Metric label="Coordinations actives" value={String(state.coordinationSpaces.length)} detail="Engagements répartis entre acteurs" icon={Handshake} tone="lagoon" />
-          <Metric label="Sorties suivies" value={String(state.trips.length)} detail="Retours annoncés, arrivées et débarquements reliés" icon={ShipWheel} tone="sand" />
-        </section>
 
-        <section>
-          <div className="mb-4 flex items-end justify-between gap-4">
-            <div><p className="label">Prochaine action</p><h2 className="mt-1 text-xl font-bold text-[#062d36]">À traiter maintenant</h2></div>
-            <Link href="/app/situations" className="text-sm font-bold text-[#075466]">Voir toutes les situations</Link>
+      <div className="space-y-7 p-5 lg:p-8">
+        <MbambulaanSignature
+          title={critical.length > 0 ? `${critical.length} sujet${critical.length > 1 ? "s" : ""} prioritaire${critical.length > 1 ? "s" : ""}` : "Votre périmètre est stable"}
+          detail="Le rôle change les informations visibles et les décisions possibles, jamais la structure de Mbàmbulaan."
+          points={[
+            { label: `${open.length} sujets en cours`, position: 18 },
+            { label: `${next.length} à regarder`, position: 52 },
+            { label: `${critical.length} prioritaire${critical.length > 1 ? "s" : ""}`, position: 82, hot: critical.length > 0 }
+          ]}
+        />
+
+        <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
+          <div className="surface p-6 lg:p-7">
+            <div className="flex items-center gap-2 text-[var(--lagoon-600)]"><Target size={18} /><p className="label">À faire maintenant</p></div>
+            <h2 className="mt-3 max-w-2xl text-3xl font-black leading-tight text-[var(--ink)]">{mainDecision}</h2>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--muted)]">Vous ne voyez que les informations nécessaires à votre rôle, votre organisation et votre territoire.</p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href={next[0] ? `/app/situations/${next[0].id}` : space.primaryAction.href} className="btn-accent">Continuer <ArrowRight size={16} /></Link>
+              <Link href="/app/atlas" className="btn-secondary"><MapPinned size={16} /> Voir mon territoire</Link>
+            </div>
           </div>
-          <div className="surface overflow-hidden">{next.slice(0, 3).map((item) => <SituationRow key={item.id} situation={item} state={state} />)}</div>
+
+          <aside className="surface p-6 lg:p-7">
+            <p className="label">Ce qui compte maintenant</p>
+            <div className="mt-5 space-y-4">
+              {space.outcomes.map((outcome, index) => (
+                <div key={outcome} className="flex items-start gap-4 border-t border-[var(--line)] pt-4 first:border-t-0 first:pt-0">
+                  <span className="text-2xl text-[var(--coral-600)]" style={{ fontFamily: "var(--mb-font-display)" }}>0{index + 1}</span>
+                  <p className="pt-1 text-sm font-bold text-[var(--ink)]">{outcome}</p>
+                </div>
+              ))}
+            </div>
+          </aside>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          <Link href="/app/atlas" className="surface group p-5 hover:border-[#8dcbd1]">
-            <MapPinned className="text-[#087287]" /><h3 className="mt-4 font-bold">Lire le territoire</h3><p className="mt-2 text-sm leading-6 text-[#60737a]">Situer les quais, les infrastructures et les tensions avant d’agir.</p>
-          </Link>
-          <Link href="/app/coordination" className="surface group p-5 hover:border-[#8dcbd1]">
-            <Handshake className="text-[#18a394]" /><h3 className="mt-4 font-bold">Suivre les engagements</h3><p className="mt-2 text-sm leading-6 text-[#60737a]">Voir qui fait quoi, pour quand, et quels blocages doivent être levés.</p>
-          </Link>
-          <Link href="/app/pilotage" className="surface group p-5 hover:border-[#8dcbd1]">
-            <CheckCircle2 className="text-[#d89614]" /><h3 className="mt-4 font-bold">Mesurer et apprendre</h3><p className="mt-2 text-sm leading-6 text-[#60737a]">{completed.length} situation réglée alimente déjà la connaissance partagée.</p>
-          </Link>
+        <section className="surface overflow-hidden">
+          <div className="border-b border-[var(--line)] px-6 py-5">
+            <p className="label">Ce qui vous attend</p>
+            <h2 className="mt-1 text-2xl font-black text-[var(--ink)]">Les sujets de votre périmètre</h2>
+          </div>
+          {next.length > 0
+            ? next.slice(0, 5).map((item) => <SituationRow key={item.id} situation={item} state={state} />)
+            : <p className="p-6 text-sm text-[var(--muted)]">Rien à faire maintenant.</p>}
         </section>
       </div>
     </>

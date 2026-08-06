@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 export default function CommunityPage() {
   return (
     <>
-      <PageHeader eyebrow="Intelligence collective" title="Community" description="Partagez besoins, capacités, alertes et apprentissages. Un contenu utile peut être transformé en situation puis suivi dans la coordination." />
+      <PageHeader eyebrow="Communautés · programmes · impact" title="Intelligence collective" description="Faire remonter les réalités du terrain, capitaliser les savoirs et structurer les besoins récurrents en programmes crédibles." />
       <div className="p-5 lg:p-8"><CommunityWorkspace /></div>
     </>
   );
