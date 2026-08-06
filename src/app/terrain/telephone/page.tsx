@@ -19,7 +19,7 @@ export default function TelephonePage() {
             <span className="grid size-12 place-items-center rounded-full bg-[var(--lagoon-500)] text-[var(--ocean-1000)]"><PhoneCall size={22} /></span>
             <p className="label-inverse mt-5">Canal téléphonique</p>
             <h1 className="mt-3 font-serif text-3xl font-semibold leading-tight sm:text-4xl">Demandez à être rappelé.</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">Une personne vous rappelle, écoute votre besoin et l'enregistre dans Mbàmbulaan. Vous n'avez pas besoin de compte.</p>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">Une personne vous rappelle, écoute votre besoin et l&apos;enregistre dans Mbàmbulaan. Vous n&apos;avez pas besoin de compte.</p>
           </div>
 
           {!sent ? (
@@ -44,13 +44,13 @@ export default function TelephonePage() {
 
               <label className="block">
                 <span className="text-sm font-semibold text-[var(--ink)]">Pourquoi faut-il vous rappeler ?</span>
-                <textarea rows={4} placeholder="Ex. Je rentre à Hann dans une heure et j'ai besoin de glace." className="mt-2 w-full resize-none rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--white)] px-4 py-3 text-sm outline-none transition focus:border-[var(--lagoon-500)]" />
+                <textarea rows={4} placeholder="Ex. Je rentre à Hann dans une heure et j&apos;ai besoin de glace." className="mt-2 w-full resize-none rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--white)] px-4 py-3 text-sm outline-none transition focus:border-[var(--lagoon-500)]" />
               </label>
 
               <fieldset>
                 <legend className="text-sm font-semibold text-[var(--ink)]">Quand pouvons-nous appeler ?</legend>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                  {["Dès que possible", "Dans 1 heure", "Plus tard aujourd'hui"].map((item, index) => (
+                  {["Dès que possible", "Dans 1 heure", "Plus tard aujourd&apos;hui"].map((item, index) => (
                     <label key={item} className="flex cursor-pointer items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--canvas)] p-3 text-sm text-[var(--ink)]">
                       <input type="radio" name="time" defaultChecked={index === 0} /> {item}
                     </label>
@@ -69,9 +69,9 @@ export default function TelephonePage() {
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <div className="surface-quiet p-4"><Clock3 size={18} className="text-[var(--ocean-800)]" /><p className="mt-2 text-sm font-semibold text-[var(--ink)]">Étape suivante</p><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Un opérateur reprend votre besoin avec des questions simples.</p></div>
-                <div className="surface-quiet p-4"><UserRound size={18} className="text-[var(--ocean-800)]" /><p className="mt-2 text-sm font-semibold text-[var(--ink)]">Validation humaine</p><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Les informations importantes sont vérifiées avant d'être utilisées.</p></div>
+                <div className="surface-quiet p-4"><UserRound size={18} className="text-[var(--ocean-800)]" /><p className="mt-2 text-sm font-semibold text-[var(--ink)]">Validation humaine</p><p className="mt-1 text-xs leading-5 text-[var(--muted)]">Les informations importantes sont vérifiées avant d&apos;être utilisées.</p></div>
               </div>
-              <Link href="/terrain" className="btn-primary mt-6">Retour à l'accueil terrain</Link>
+              <Link href="/terrain" className="btn-primary mt-6">Retour à l&apos;accueil terrain</Link>
             </div>
           )}
         </div>
