@@ -7,6 +7,7 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { CommandButton } from "@/components/ui/CommandButton";
 import { TrustBadge } from "@/components/ui/Badges";
 import { Metric } from "@/components/ui/Metric";
+import { ExportActions } from "@/components/reporting/ExportActions";
 
 const tripAction = {
   en_mer: { label: "Annoncer le retour", command: (id: string) => ({ type: "announce_return" as const, tripId: id }), role: "Capitaine" },
@@ -24,6 +25,19 @@ export function OperationsWorkspace() {
   const vessel = state.vessels.find((item) => item.id === primaryTrip.vesselId);
   const action = tripAction[primaryTrip.status];
   const totalKg = state.landings.filter((item) => item.status === "lots_crees").reduce((sum, item) => sum + item.totalWeightKg, 0);
+  const registryRows = state.vessels.map((item) => {
+    const site = state.sites.find((candidate) => candidate.id === item.homeSiteId);
+    const trip = state.trips.find((candidate) => candidate.vesselId === item.id);
+    const captain = state.actors.find((candidate) => candidate.id === item.captainId);
+    return {
+      Pirogue: item.name,
+      Immatriculation: item.registration,
+      Quai: site?.name ?? item.homeSiteId,
+      Capitaine: captain?.name ?? item.captainId,
+      "Statut sortie": trip?.status.replaceAll("_", " ") ?? "aucune sortie",
+      "Niveau de confiance": item.trust
+    };
+  });
 
   return (
     <div className="space-y-8">
@@ -35,6 +49,11 @@ export function OperationsWorkspace() {
         <Metric label="Sorties en cours" value={String(state.trips.filter((item) => item.status !== "debarquee").length)} detail="Retours attendus ou annoncés aujourd’hui" icon={TimerReset} tone="sand" />
         <Metric label="Volume pesé" value={`${(totalKg / 1000).toFixed(2)} t`} detail="Pesées vérifiées dans le jeu de démonstration" icon={Scale} tone="lagoon" />
         <Metric label="Lots disponibles" value={String(state.lots.filter((item) => item.status === "disponible").length)} detail="Reliés à une sortie et un débarquement" icon={Fish} />
+      </section>
+
+      <section className="surface flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div><p className="label">Registre opérationnel</p><p className="mt-1 text-sm text-[#667b81]">Immatriculations fictives, quais de rattachement, capitaines et statut des sorties.</p></div>
+        <ExportActions filename="mbambulaan-registre-pirogues" rows={registryRows} compact />
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]">

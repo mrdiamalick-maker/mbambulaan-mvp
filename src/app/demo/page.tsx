@@ -11,6 +11,7 @@ import {
   Store
 } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicFooter } from "@/components/public/PublicFooter";
 
 const scenarios = [
   {
@@ -72,16 +73,16 @@ const scenarios = [
 export default function DemoPage() {
   return (
     <main className="min-h-screen bg-[#f4f7f6]">
-      <PublicHeader />
-      <section className="bg-[#062d36] px-5 py-14 text-white md:px-10 md:py-20">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-xs font-bold uppercase tracking-[.08em] text-[#36c6b1]">Démonstration guidée · données déterministes</p>
-          <h1 className="title-balance mt-3 max-w-5xl text-4xl font-bold leading-tight md:text-6xl">Explorez le même écosystème par six ruptures de coordination.</h1>
-          <p className="mt-5 max-w-3xl text-lg leading-8 text-[#c7dde1]">La démo n’est pas un second produit. Chaque scénario ouvre les vraies vues, les mêmes objets et les mêmes règles que l’application professionnelle.</p>
+      <PublicHeader dark />
+      <section className="bg-[#031a22] px-5 py-14 text-white md:px-10 md:py-20">
+        <div className="mx-auto max-w-[1500px]">
+          <p className="label-inverse">Démonstration guidée · données déterministes</p>
+          <h1 className="title-balance mt-4 max-w-5xl text-4xl font-[760] leading-[1.02] tracking-[-.05em] md:text-6xl">Explorez le même écosystème par six ruptures de coordination.</h1>
+          <p className="mt-5 max-w-3xl text-lg leading-8 text-white/66">La démo n’est pas un second produit. Chaque scénario ouvre les vraies vues, les mêmes objets et les mêmes règles que l’application professionnelle.</p>
           <div className="mt-8 flex flex-wrap gap-3"><Link href="/app/travail" className="inline-flex items-center gap-2 bg-[#36c6b1] px-6 py-3.5 font-bold text-[#062d36]">Commencer par le briefing <ArrowRight size={18} /></Link><Link href="/connexion" className="border border-white/45 px-6 py-3.5 font-bold">Tester la connexion</Link></div>
         </div>
       </section>
-      <section className="mx-auto max-w-7xl px-5 py-12 md:px-10 md:py-16">
+      <section className="mx-auto max-w-[1500px] px-5 py-12 md:px-10 md:py-16">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {scenarios.map(({ id, title, promise, steps, href, role, icon: Icon }, index) => (
             <article key={id} className="surface flex flex-col p-5">
@@ -99,6 +100,7 @@ export default function DemoPage() {
           <Link href="/offres" className="inline-flex items-center gap-2 border border-[#075466] px-4 py-2.5 text-sm font-bold text-[#075466]"><Store size={16} /> Voir les offres</Link>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

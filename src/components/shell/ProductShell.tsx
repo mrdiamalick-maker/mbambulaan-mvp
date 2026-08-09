@@ -7,9 +7,9 @@ import {
   Bell,
   BookOpenText,
   Building2,
+  CircleDollarSign,
   CircleUserRound,
   ClipboardList,
-  FileBarChart,
   Gauge,
   Globe2,
   Handshake,
@@ -26,41 +26,180 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { Role } from "@/domain/types";
+import type { PlatformModule } from "@/domain/platform/modules";
 import { useProduct } from "@/components/providers/ProductProvider";
+import { resolveCapabilities } from "@/domain/platform/access-resolver";
 
-type NavItem = { href: string; label: string; shortLabel: string; icon: typeof Home; roles: Role[] };
+type NavItem = {
+  href: string;
+  label: string;
+  shortLabel: string;
+  icon: typeof Home;
+  roles: Role[];
+  module?: PlatformModule;
+};
 type NavGroup = { label: string; items: NavItem[] };
 
 const navGroups: NavGroup[] = [
   {
-    label: "Mon espace",
+    label: "Agir",
     items: [
-      { href: "/app/travail", label: "Aujourd’hui", shortLabel: "Aujourd’hui", icon: Home, roles: [] },
-      { href: "/app/atlas", label: "Mon territoire", shortLabel: "Territoire", icon: Globe2, roles: [] }
+      {
+        href: "/app/travail",
+        label: "Aujourd’hui",
+        shortLabel: "Accueil",
+        icon: Home,
+        roles: []
+      },
+      {
+        href: "/app/operations",
+        module: "operations",
+        label: "Opérations",
+        shortLabel: "Opérations",
+        icon: Anchor,
+        roles: [
+          "administrateur",
+          "operateur",
+          "capitaine",
+          "mareyeur",
+          "transformateur",
+          "gestionnaire_organisation",
+          "coordinateur",
+          "institution"
+        ]
+      },
+      {
+        href: "/app/situations",
+        module: "operations",
+        label: "Situations",
+        shortLabel: "Situations",
+        icon: ClipboardList,
+        roles: [
+          "administrateur",
+          "operateur",
+          "capitaine",
+          "mareyeur",
+          "transformateur",
+          "prestataire",
+          "gestionnaire_organisation",
+          "coordinateur",
+          "institution"
+        ]
+      },
+      {
+        href: "/app/coordination",
+        module: "coordination",
+        label: "Coordinations",
+        shortLabel: "Coordination",
+        icon: Handshake,
+        roles: [
+          "administrateur",
+          "operateur",
+          "mareyeur",
+          "transformateur",
+          "prestataire",
+          "gestionnaire_organisation",
+          "coordinateur",
+          "institution",
+          "partenaire"
+        ]
+      }
     ]
   },
   {
-    label: "Mes actions",
+    label: "Comprendre",
     items: [
-      { href: "/app/operations", label: "Mes opérations", shortLabel: "Opérations", icon: Anchor, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur", "institution"] },
-      { href: "/app/situations", label: "Mes situations", shortLabel: "Situations", icon: ClipboardList, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur", "institution"] },
-      { href: "/app/coordination", label: "Mes engagements", shortLabel: "Engagements", icon: Handshake, roles: ["administrateur", "operateur", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] }
+      {
+        href: "/app/atlas",
+        module: "territory_intelligence",
+        label: "Territoires & capacités",
+        shortLabel: "Territoires",
+        icon: Globe2,
+        roles: []
+      },
+      {
+        href: "/app/marches",
+        module: "market_intelligence",
+        label: "Flux & débouchés",
+        shortLabel: "Débouchés",
+        icon: Store,
+        roles: [
+          "administrateur",
+          "operateur",
+          "capitaine",
+          "mareyeur",
+          "transformateur",
+          "gestionnaire_organisation",
+          "coordinateur",
+          "institution"
+        ]
+      },
+      {
+        href: "/app/durabilite",
+        label: "Provenance & durabilité",
+        shortLabel: "Durabilité",
+        icon: Leaf,
+        roles: [
+          "administrateur",
+          "operateur",
+          "capitaine",
+          "transformateur",
+          "gestionnaire_organisation",
+          "coordinateur",
+          "institution",
+          "partenaire"
+        ]
+      }
     ]
   },
   {
-    label: "Ma valeur",
+    label: "Structurer",
     items: [
-      { href: "/app/marches", label: "Opportunités utiles", shortLabel: "Opportunités", icon: Store, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur", "institution"] },
-      { href: "/app/community", label: "Communauté & savoirs", shortLabel: "Communauté", icon: BookOpenText, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur"] },
-      { href: "/app/durabilite", label: "Durabilité & confiance", shortLabel: "Durabilité", icon: Leaf, roles: ["administrateur", "operateur", "capitaine", "transformateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] }
+      {
+        href: "/app/organisation",
+        label: "Organisation",
+        shortLabel: "Organisation",
+        icon: Building2,
+        roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"]
+      },
+      {
+        href: "/app/community",
+        label: "Réseau & savoirs",
+        shortLabel: "Réseau",
+        icon: BookOpenText,
+        roles: [
+          "administrateur",
+          "operateur",
+          "capitaine",
+          "mareyeur",
+          "transformateur",
+          "prestataire",
+          "gestionnaire_organisation",
+          "coordinateur",
+          "institution",
+          "partenaire"
+        ]
+      }
     ]
   },
   {
-    label: "Mon pilotage",
+    label: "Décider",
     items: [
-      { href: "/app/pilotage", label: "Pilotage & impact", shortLabel: "Pilotage", icon: Gauge, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] },
-      { href: "/app/resultats", label: "Mes résultats", shortLabel: "Résultats", icon: FileBarChart, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] },
-      { href: "/app/organisation", label: "Mon organisation", shortLabel: "Organisation", icon: Building2, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"] }
+      {
+        href: "/app/initiatives",
+        label: "Programmes & financements",
+        shortLabel: "Programmes",
+        icon: CircleDollarSign,
+        roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"]
+      },
+      {
+        href: "/app/pilotage",
+        module: "reporting",
+        label: "Pilotage & rapports",
+        shortLabel: "Pilotage",
+        icon: Gauge,
+        roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "institution", "partenaire"]
+      }
     ]
   }
 ];
@@ -78,21 +217,83 @@ const roleLabels: Record<Role, string> = {
   partenaire: "Partenaire"
 };
 
-function canSee(item: NavItem, role: Role) {
-  return item.roles.length === 0 || item.roles.includes(role);
+function canSee(
+  item: NavItem,
+  role: Role,
+  modules: PlatformModule[]
+) {
+
+  const roleAllowed =
+    item.roles.length === 0 ||
+    item.roles.includes(role);
+
+
+  const moduleAllowed =
+    !item.module ||
+    modules.includes(item.module);
+
+
+  return roleAllowed && moduleAllowed;
+
 }
 
 export function ProductShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { state, role, persistence, loading, error, reset } = useProduct();
+  const {
+    state,
+    role,
+    actorId,
+    persistence,
+    loading,
+    error,
+    reset
+} = useProduct();
+  const actor = state?.actors.find(
+    (item) => item.id === actorId
+  );
+
+  const capabilities =
+    state && actor
+      ? resolveCapabilities(
+          state,
+          actor.organizationId
+        )
+      : {
+          modules: [],
+          levels: {}
+        };
+
+  const organization =
+    state?.organizations.find(
+      (item) => item.id === actor?.organizationId
+    );
+
+  const subscription =
+    state?.subscriptions.find(
+      (item) => item.organizationId === organization?.id
+    );
+
+  const plan =
+    state?.plans.find(
+      (item) => item.id === subscription?.planId
+    );
+
   const [open, setOpen] = useState(false);
   const unread = state?.notifications.filter((item) => item.role === role && !item.read).length ?? 0;
   const visibleGroups = navGroups
-    .map((group) => ({ ...group, items: group.items.filter((item) => canSee(item, role)) }))
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) =>
+          canSee(
+            item,
+            role,
+            capabilities.modules
+          )
+      )
+    }))
     .filter((group) => group.items.length > 0);
   const mobileItems = visibleGroups.flatMap((group) => group.items).slice(0, 4);
-  const activeTerritory = state?.territories.find((item) => item.activity !== "stable") ?? state?.territories[0];
-
   return (
     <div className="min-h-screen bg-[#f3f7f6]">
       <header className="no-print sticky top-0 z-40 flex h-[72px] items-center border-b border-[#d9e3e3] bg-white/94 px-4 backdrop-blur-xl md:px-6 lg:pl-[284px]">
@@ -104,7 +305,7 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
             Mbàmbulaan Ops · {roleLabels[role]}
           </p>
           <p className="mt-1 truncate text-sm font-bold text-[#102e37]">
-            {activeTerritory?.name ?? "Littoral sénégalais"} · {new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}
+            {organization?.name ?? "Organisation active"} · {plan?.name ?? "Plan démonstration"} · {capabilities.modules.length} module(s) actif(s)
           </p>
         </div>
 

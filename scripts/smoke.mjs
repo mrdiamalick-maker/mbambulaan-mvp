@@ -49,7 +49,11 @@ try {
   await waitForServer();
   for (const path of [
     "/",
+    "/a-propos",
+    "/actualites",
+    "/actualites/actu-froid-petite-cote",
     "/atlas",
+    "/filiere",
     "/offres",
     "/community",
     "/durabilite",
@@ -62,15 +66,17 @@ try {
     "/app/situations",
     "/app/situations/sit-glace",
     "/app/coordination",
+    "/app/coordination/coord-froid",
     "/app/marches",
     "/app/community",
     "/app/durabilite",
     "/app/pilotage",
     "/app/organisation",
     "/app/initiatives",
-    "/app/resultats",
-    "/app/territoires",
     "/app/administration",
+    "/terrain",
+    "/terrain/telephone",
+    "/terrain/whatsapp",
     "/manifest.webmanifest",
     "/sw.js"
   ]) {
@@ -146,7 +152,7 @@ try {
     throw new Error("Le signalement de rareté n'alimente pas l'audit.");
   }
   demoState = (await (await expectOk("/api/demo/reset", { method: "POST" })).json()).state;
-  console.log(`Smoke E2E: routes, infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
+  console.log(`Smoke E2E: contenus publics, routes, infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
 } finally {
   server?.kill("SIGTERM");
 }

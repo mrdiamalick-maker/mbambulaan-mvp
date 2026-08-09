@@ -1,25 +1,32 @@
 "use client";
 
-import Link from "next/link";
 import {
   Anchor,
-  ArrowRight,
-  Factory,
-  Fish,
-  MapPin,
   Radio,
-  ShipWheel,
   Waves
 } from "lucide-react";
 import type { ProductState } from "@/domain/types";
+import { TerritoryDecisionPanel } from "@/components/territories/TerritoryDecisionPanel";
 
 const positions: Record<string, [number, number]> = {
-  "saint-louis": [43, 13],
-  kayar: [37, 31],
-  hann: [47, 43],
-  mbour: [41, 57],
-  joal: [48, 68],
-  kafountine: [33, 87]
+  "saint-louis": [43, 9],
+  lompoul: [34, 15],
+  "fass-boye": [49, 21],
+  kayar: [36, 27],
+  yoff: [47, 33],
+  ouakam: [34, 38],
+  soumbedioune: [48, 41],
+  hann: [59, 43],
+  rufisque: [49, 48],
+  popenguine: [35, 52],
+  mbour: [49, 57],
+  joal: [37, 63],
+  foundiougne: [51, 68],
+  djiffer: [37, 73],
+  missirah: [50, 78],
+  kafountine: [34, 84],
+  elinkine: [48, 89],
+  "cap-skirring": [36, 95]
 };
 
 const activityTone = {
@@ -40,15 +47,6 @@ export function TerritoryMap({
   compact?: boolean;
 }) {
   const selected = state.territories.find((item) => item.id === selectedId) ?? state.territories[0];
-  const relatedSituations = state.situations.filter((item) => item.territoryId === selected?.id);
-  const infrastructures = state.infrastructures.filter((item) => item.territoryId === selected?.id);
-  const vessels = state.vessels.filter((item) => item.homeSiteId === `quai-${selected?.id}`);
-  const landings = state.landings.filter((item) => item.siteId === `quai-${selected?.id}`);
-  const speciesIds = new Set(landings.flatMap((item) => item.catches.map((catchLine) => catchLine.speciesId)));
-  const species = state.species.filter((item) => speciesIds.has(item.id));
-  const landedKg = landings.reduce((sum, item) => sum + item.totalWeightKg, 0);
-  const selectedTone = activityTone[selected.activity];
-
   return (
     <section className={`overflow-hidden rounded-[22px] border border-[#bfd0d2] bg-white shadow-[0_24px_70px_rgba(3,26,34,.12)] ${compact ? "" : "xl:grid xl:grid-cols-[minmax(0,1.55fr)_minmax(330px,.7fr)]"}`}>
       <div className={`ocean-grid relative overflow-hidden ${compact ? "min-h-[440px]" : "min-h-[620px]"}`}>
@@ -122,66 +120,10 @@ export function TerritoryMap({
       </div>
 
       {!compact && (
-        <aside className="min-w-0 bg-white p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="label">Nœud opérationnel</p>
-              <h2 className="mt-2 text-2xl font-[740] tracking-[-.04em] text-[#102e37]">{selected.name}</h2>
-              <p className="mt-1 text-sm text-[#667b81]">Quai · région de {selected.region}</p>
-            </div>
-            <span className="data-chip" style={{ borderColor: `${selectedTone.dot}55`, color: selectedTone.dot }}>
-              <span className="size-2 rounded-full" style={{ backgroundColor: selectedTone.dot }} /> {selectedTone.label}
-            </span>
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[#d9e3e3] bg-[#d9e3e3]">
-            {[
-              ["Volume documenté", landedKg ? `${(landedKg / 1000).toFixed(2)} t` : "—"],
-              ["Pirogues rattachées", String(vessels.length)],
-              ["Espèces observées", String(species.length)],
-              ["Capacités", `${infrastructures.filter((item) => item.status === "operationnelle").length}/${infrastructures.length}`]
-            ].map(([label, value]) => (
-              <div key={label} className="bg-[#f8fbfa] p-3.5">
-                <p className="text-[10px] font-bold uppercase tracking-[.06em] text-[#7a8e94]">{label}</p>
-                <p className="mt-1.5 text-xl font-[740] tracking-[-.03em] text-[#102e37]">{value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6">
-            <div className="flex items-center justify-between"><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#7a8e94]">Activité liée</p><span className="text-[10px] font-bold text-[#08758a]">Aujourd’hui</span></div>
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center gap-3 rounded-xl bg-[#f3f8f7] p-3">
-                <span className="grid size-9 place-items-center rounded-lg bg-white text-[#08758a] shadow-sm"><ShipWheel size={17} /></span>
-                <div className="min-w-0"><p className="truncate text-sm font-bold">{vessels.length ? vessels.map((item) => item.name).join(", ") : "Aucune pirogue rattachée"}</p><p className="mt-0.5 text-[11px] text-[#667b81]">{landings.length} débarquement{landings.length > 1 ? "s" : ""} documenté{landings.length > 1 ? "s" : ""}</p></div>
-              </div>
-              <div className="flex items-center gap-3 rounded-xl bg-[#f3f8f7] p-3">
-                <span className="grid size-9 place-items-center rounded-lg bg-white text-[#118f83] shadow-sm"><Fish size={17} /></span>
-                <div className="min-w-0"><p className="truncate text-sm font-bold">{species.length ? species.map((item) => item.name).join(", ") : "Espèces à renseigner"}</p><p className="mt-0.5 text-[11px] text-[#667b81]">Reliées aux débarquements, pas à un point cartographique</p></div>
-              </div>
-              <div className="flex items-center gap-3 rounded-xl bg-[#f3f8f7] p-3">
-                <span className="grid size-9 place-items-center rounded-lg bg-white text-[#d8951a] shadow-sm"><Factory size={17} /></span>
-                <div className="min-w-0"><p className="truncate text-sm font-bold">{infrastructures.find((item) => item.status !== "operationnelle")?.name ?? "Capacités disponibles"}</p><p className="mt-0.5 text-[11px] text-[#667b81]">{infrastructures.filter((item) => item.status !== "operationnelle").length ? "Une réponse opérationnelle peut être requise" : "Aucune rupture active"}</p></div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 border-t border-[#d9e3e3] pt-5">
-            <p className="text-[10px] font-black uppercase tracking-[.1em] text-[#7a8e94]">Situation prioritaire</p>
-            <p className="mt-2 text-sm font-bold leading-5 text-[#102e37]">{relatedSituations[0]?.title ?? "Maintenir la veille territoriale"}</p>
-            <p className="mt-2 text-xs leading-5 text-[#667b81]">{relatedSituations[0]?.nextStep ?? "Les sources disponibles ne signalent aucune action immédiate."}</p>
-            {relatedSituations[0] && (
-              <Link href={`/app/situations/${relatedSituations[0].id}`} className="btn-primary mt-4 w-full">
-                Ouvrir la situation <ArrowRight size={15} />
-              </Link>
-            )}
-            {!relatedSituations[0] && (
-              <Link href="/app/operations" className="btn-secondary mt-4 w-full">
-                Consulter les opérations <MapPin size={15} />
-              </Link>
-            )}
-          </div>
-        </aside>
+        <TerritoryDecisionPanel
+          state={state}
+          territory={selected}
+        />
       )}
     </section>
   );

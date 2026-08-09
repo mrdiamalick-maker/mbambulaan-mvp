@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TrustBadge } from "@/components/ui/Badges";
+import { AccessSummary } from "@/components/subscription/AccessSummary";
 
 const roleNames: Record<string, string> = {
   administrateur: "Administration de la plateforme",
@@ -118,6 +119,12 @@ export function OrganizationWorkspace() {
           <div className="mt-5 rounded-xl border border-[#cce2e1] bg-[#f0f8f6] p-4"><p className="text-xs font-black text-[#153d44]">La confiance est une capacité produit</p><p className="mt-2 text-xs leading-5 text-[#667b81]">Membres, sources, actifs et rapports utilisent le même référentiel : l’organisation ne reconstruit plus manuellement son récit d’impact.</p></div>
         </div>
       </section>
+
+      <AccessSummary
+        state={state}
+        organizationId={organization?.id ?? ""}
+      />
+
     </div>
   );
 }

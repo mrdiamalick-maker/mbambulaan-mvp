@@ -1,6 +1,6 @@
 # Mbàmbulaan
 
-Mbàmbulaan est l’écosystème numérique de connaissance, de coordination, de pilotage, de valorisation et de durabilité de la filière halieutique, en commençant par la pêche artisanale sénégalaise.
+Mbàmbulaan est une infrastructure numérique de coordination, de confiance, de pilotage, de valorisation et de durabilité de la filière halieutique, en commençant par la pêche artisanale sénégalaise. Ce n’est ni une marketplace, ni un ERP, ni une collection de tableaux de bord par métier.
 
 Le parcours de référence est :
 
@@ -8,14 +8,14 @@ Le parcours de référence est :
 
 Les données incluses sont déterministes, simulées et non officielles.
 
-## Démonstration publique
+## Démonstration premium
 
-- URL de recette : [https://mbambulaan-ecosysteme-v1.vercel.app](https://mbambulaan-ecosysteme-v1.vercel.app) ;
-- déploiement de référence : Vercel, 29 juillet 2026 ;
-- commit fonctionnel du portage : `5baa6bd` ;
-- accès sans compte Vercel, mot de passe ou authentification ChatGPT ;
-- données simulées, réinitialisables depuis l’application ;
-- ancienne cible Sites conservée comme historique de build, mais non utilisée pour la recette.
+- URL canonique Vercel : [https://mbambulaan-product.vercel.app](https://mbambulaan-product.vercel.app) ;
+- miroir de recette Sites : [https://mbambulaan-ecosysteme-v1.malick-dia-1822.chatgpt.site](https://mbambulaan-ecosysteme-v1.malick-dia-1822.chatgpt.site) ;
+- accès privé par défaut ;
+- données déterministes, simulées et réinitialisables depuis l’application ;
+- 18 territoires côtiers, 54 sites, 64 pirogues et sorties, 64 débarquements, 80 lots, 28 situations, 24 coordinations, 8 programmes et 8 rapports ;
+- tous les contenus, montants, immatriculations, annonces et scénarios sont illustratifs et non officiels.
 
 ## Stack
 
@@ -37,6 +37,9 @@ npm run dev
 Entrées principales :
 
 - `/` : site public ;
+- `/filiere` : compréhension de la chaîne de valeur et des ruptures de coordination ;
+- `/actualites` : actualités, annonces et opportunités de démonstration ;
+- `/a-propos` : mission, méthode, modèle et charte de confiance ;
 - `/atlas` : Atlas public limité ;
 - `/offres` : plans et valeur par segment ;
 - `/demo` : six scénarios guidés ;
@@ -49,25 +52,23 @@ Entrées principales :
 - `/app/community` : échanges professionnels transformables en action ;
 - `/app/durabilite` : provenance et continuité de traçabilité ;
 - `/app/pilotage` : situation, résultats et rapport ;
+- `/app/initiatives` : programmes, besoins de financement, conditions et indicateurs ;
 - `/app/organisation` : membres, plan et entitlements ;
 - `/app/administration` : audit et santé du tenant.
 
-Le code OTP local est `246810`. Aucun SMS, paiement ou message WhatsApp réel n’est simulé.
+Le code OTP local est `246810`. Aucun SMS, paiement ou message WhatsApp réel n’est déclenché. Les exports Excel utilisent un fichier CSV compatible et le bouton PDF ouvre la mise en page d’impression du navigateur.
 
-## Comptes de démonstration
+## Missions de démonstration
 
-La page `/connexion` permet d’ouvrir directement les vues suivantes :
+La page `/connexion` donne cinq portes d’entrée qui utilisent la même plateforme :
 
-- administrateur Mbàmbulaan ;
-- opérateur de quai ;
-- capitaine ;
-- mareyeur ;
-- transformateur ;
-- prestataire d’infrastructure ;
-- gestionnaire d’organisation ;
-- coordinateur territorial ;
-- institution ;
-- partenaire.
+- opérations terrain ;
+- organisation professionnelle ;
+- coordination territoriale ;
+- institution nationale ;
+- partenaire & programme.
+
+L’administration technique reste accessible séparément. Les métiers spécialisés — capitaine, opérateur, mareyeur, transformation et prestataire — apparaissent dans les opérations et responsabilités auxquelles ils contribuent, sans créer dix mini-produits.
 
 Tous utilisent les mêmes objets métier. Seuls le mandat, la navigation et les actions autorisées changent.
 
@@ -99,7 +100,7 @@ npm run typecheck
 npm test
 npm run build
 npm run test:e2e
-SMOKE_BASE_URL=https://mbambulaan-ecosysteme-v1.vercel.app npm run test:e2e
+SMOKE_BASE_URL=https://mbambulaan-product.vercel.app npm run test:e2e
 git diff --check
 ```
 

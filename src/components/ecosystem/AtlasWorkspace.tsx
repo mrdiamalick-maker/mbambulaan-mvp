@@ -17,6 +17,9 @@ import {
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TerritoryMap } from "@/components/territories/TerritoryMap";
+import { TerritoryPulse } from "@/components/territories/TerritoryPulse";
+import { TerritoryInsightPanel } from "@/components/territories/TerritoryInsightPanel";
+import { TerritoryFlow } from "@/components/territories/TerritoryFlow";
 import { TrustBadge } from "@/components/ui/Badges";
 import type { TrustLevel } from "@/domain/types";
 
@@ -207,7 +210,26 @@ export function AtlasWorkspace({ publicMode = false }: { publicMode?: boolean })
         )}
       </section>
 
-      <TerritoryMap state={state} selectedId={selected} onSelect={setSelected} />
+      <TerritoryPulse
+        state={state}
+        territory={territory}
+      />
+
+      <TerritoryInsightPanel
+        state={state}
+        territory={territory}
+      />
+
+      <TerritoryFlow
+        state={state}
+        territory={territory}
+      />
+
+      <TerritoryMap
+        state={state}
+        selectedId={selected}
+        onSelect={setSelected}
+      />
 
       <section className="surface overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-[#d9e3e3] bg-[#f8fbfa] p-5 sm:flex-row sm:items-end sm:justify-between">

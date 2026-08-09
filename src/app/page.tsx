@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   BarChart3,
   BookOpenText,
+  CalendarDays,
   CheckCircle2,
   CircleDollarSign,
   DatabaseZap,
@@ -12,13 +13,16 @@ import {
   Handshake,
   Leaf,
   MapPinned,
+  Newspaper,
   Radio,
-  ShipWheel,
   Sparkles,
   UsersRound
 } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicFooter } from "@/components/public/PublicFooter";
+import { PublicTrustSections } from "@/components/public/PublicTrustSections";
 import { createDemoState } from "@/data/demo-state";
+import { publicAnnouncements, publicNews } from "@/data/public-content";
 
 const coast = [
   { name: "Saint-Louis", y: "13%", x: "44%", tone: "lagoon" },
@@ -86,7 +90,7 @@ export default function HomePage() {
                 La filière devient <span className="text-[#74e1d6]">visible.</span>
               </h1>
               <p className="mt-7 max-w-2xl text-lg leading-8 text-white/76 md:text-xl">
-                Mbàmbulaan relie le littoral, les acteurs, les opérations, les capacités et les décisions dans un jumeau numérique vivant de la filière halieutique.
+                Mbàmbulaan relie le littoral, les acteurs, les opérations, les capacités et les décisions dans une infrastructure commune de coordination halieutique.
               </p>
               <div className="mt-9 flex flex-wrap gap-3">
                 <Link href="/demo" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#5fe0d3] px-5 py-3 font-bold text-[#031a22] shadow-[0_14px_34px_rgba(31,182,164,.24)] transition hover:-translate-y-0.5 hover:bg-[#76e8dd]">
@@ -133,7 +137,7 @@ export default function HomePage() {
               </p>
             </div>
             <Link href="/atlas" className="mt-8 inline-flex items-center gap-2 text-sm font-bold text-[#075568]">
-              Explorer le jumeau territorial <ArrowUpRight size={16} />
+              Explorer l’Atlas territorial <ArrowUpRight size={16} />
             </Link>
           </div>
 
@@ -141,7 +145,7 @@ export default function HomePage() {
             <div className="surface-dark relative min-h-[570px] overflow-hidden p-4 sm:p-6">
               <div className="relative z-20 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="label-inverse">Jumeau territorial · aperçu</p>
+                  <p className="label-inverse">Atlas territorial · aperçu</p>
                   <h3 className="mt-2 text-xl font-bold">Situation littorale</h3>
                 </div>
                 <div className="data-chip border-white/15 bg-white/8 text-white/72">
@@ -190,6 +194,37 @@ export default function HomePage() {
               <p className="mt-3 text-sm leading-6 text-[#667b81]">{text}</p>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="border-y border-[#d9e3e3] bg-white px-5 py-20 md:px-10 md:py-24">
+        <div className="mx-auto max-w-[1500px]">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-3xl">
+              <p className="label">La filière en mouvement</p>
+              <h2 className="section-title mt-4">Des contenus publics qui mènent à l’action.</h2>
+              <p className="mt-5 max-w-2xl text-sm leading-6 text-[#667b81]">Actualités, apprentissages et annonces de démonstration rendent visibles les sujets importants sans exposer les données opérationnelles privées.</p>
+            </div>
+            <Link href="/actualites" className="btn-secondary shrink-0">Toutes les actualités <ArrowRight size={16}/></Link>
+          </div>
+          <div className="mt-10 grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
+            <div className="grid gap-4 md:grid-cols-2">
+              {publicNews.slice(0, 4).map((item, index) => (
+                <Link href={`/actualites/${item.id}`} key={item.id} className={`surface group flex min-h-64 flex-col p-5 transition hover:-translate-y-0.5 hover:border-[#8fc3bd] ${index === 0 ? "md:col-span-2 md:min-h-56" : ""}`}>
+                  <div className="flex items-center justify-between gap-3"><span className="data-chip"><Newspaper size={13}/>{item.category}</span><span className="text-[10px] font-bold text-[#8a9a9e]">{item.readingTime}</span></div>
+                  <h3 className="mt-6 text-xl font-bold tracking-[-.03em] text-[#102e37]">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-[#667b81]">{item.excerpt}</p>
+                  <p className="mt-auto pt-5 text-xs font-semibold text-[#718489]">{item.territory} · {item.publishedAt}<span className="ml-2 inline-flex items-center gap-1 font-black text-[#075568]">Lire <ArrowRight size={12} className="transition group-hover:translate-x-1"/></span></p>
+                </Link>
+              ))}
+            </div>
+            <aside className="surface overflow-hidden">
+              <div className="border-b border-[#d9e3e3] bg-[#f1faf7] p-5"><p className="label">À contribuer</p><h3 className="mt-2 text-xl font-bold">Annonces et besoins qualifiés</h3></div>
+              <div className="divide-y divide-[#e1e8e8]">
+                {publicAnnouncements.slice(0, 4).map((item) => <article key={item.id} className="p-5"><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.08em] text-[#08758a]"><CalendarDays size={13}/>{item.type}</div><h4 className="mt-2 font-bold">{item.title}</h4><p className="mt-2 text-xs leading-5 text-[#667b81]">{item.territory} · {item.deadline}</p></article>)}
+              </div>
+            </aside>
+          </div>
         </div>
       </section>
 
@@ -251,6 +286,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      <PublicTrustSections />
+
       <section className="border-y border-[#d9e3e3] bg-[#f3f7f6] px-5 py-16 md:px-10">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-3xl">
@@ -267,22 +304,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="bg-[#031a22] px-5 py-10 text-sm text-white/60 md:px-10">
-        <div className="mx-auto flex max-w-[1500px] flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-xl bg-white text-[#075568]"><ShipWheel size={18} /></span>
-            <div><p className="font-bold text-white">Mbàmbulaan</p><p className="text-xs">La filière reliée.</p></div>
-          </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold">
-            <Link href="/atlas">Atlas</Link>
-            <Link href="/community">Communauté</Link>
-            <Link href="/durabilite">Durabilité</Link>
-            <Link href="/offres">Solutions</Link>
-            <Link href="/contact">Contact</Link>
-          </div>
-          <p className="text-xs">© 2026 · Données de démonstration non officielles</p>
-        </div>
-      </footer>
+      <PublicFooter />
     </main>
   );
 }

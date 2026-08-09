@@ -18,12 +18,24 @@ import { useProduct } from "@/components/providers/ProductProvider";
 type PublicView = "portrait" | "activite" | "capacites" | "produits";
 
 const positions: Record<string, [number, number]> = {
-  "saint-louis": [41, 15],
-  kayar: [36, 31],
-  hann: [45, 43],
-  mbour: [39, 57],
-  joal: [46, 69],
-  kafountine: [31, 87]
+  "saint-louis": [43, 8],
+  lompoul: [30, 14],
+  "fass-boye": [49, 20],
+  kayar: [33, 26],
+  yoff: [48, 32],
+  ouakam: [30, 37],
+  soumbedioune: [48, 40],
+  hann: [61, 43],
+  rufisque: [48, 47],
+  popenguine: [31, 52],
+  mbour: [49, 57],
+  joal: [33, 62],
+  foundiougne: [51, 67],
+  djiffer: [33, 72],
+  missirah: [51, 77],
+  kafountine: [31, 83],
+  elinkine: [49, 88],
+  "cap-skirring": [33, 94]
 };
 
 const views = [
