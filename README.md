@@ -11,7 +11,6 @@ Les données incluses sont déterministes, simulées et non officielles.
 ## Démonstration premium
 
 - URL canonique Vercel : [https://mbambulaan-product.vercel.app](https://mbambulaan-product.vercel.app) ;
-- miroir de recette Sites : [https://mbambulaan-ecosysteme-v1.malick-dia-1822.chatgpt.site](https://mbambulaan-ecosysteme-v1.malick-dia-1822.chatgpt.site) ;
 - accès privé par défaut ;
 - données déterministes, simulées et réinitialisables depuis l’application ;
 - 18 territoires côtiers, 54 sites, 64 pirogues et sorties, 64 débarquements, 80 lots, 28 situations, 24 coordinations, 8 programmes et 8 rapports ;
