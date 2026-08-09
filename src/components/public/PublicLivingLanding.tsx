@@ -16,11 +16,12 @@ export function PublicLivingLanding() {
         <div className="mx-auto grid max-w-[84rem] lg:grid-cols-[minmax(0,.9fr)_minmax(25rem,1.1fr)]">
           <div className="flex flex-col justify-center px-5 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-16">
             <p className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--mb-ocean-600)]">La communauté de la pêche artisanale</p>
-            <h1 className="mt-4 max-w-3xl text-[clamp(2.25rem,4.6vw,4rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-[var(--mb-navy-900)]">Comprendre, partager et contribuer</h1>
-            <p className="mt-5 max-w-xl text-[14px] leading-7 text-[var(--mb-neutral-600)]">Découvrez les métiers et les territoires, suivez les informations utiles et rejoignez des initiatives concrètes.</p>
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <h1 className="mt-4 max-w-3xl text-[clamp(2.25rem,4.6vw,4rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-[var(--mb-navy-900)]">Comprendre, partager et coordonner</h1>
+            <p className="mt-5 max-w-xl text-[14px] leading-7 text-[var(--mb-neutral-600)]">Mbàmbulaan relie l'information publique à une infrastructure opérationnelle qui aide les acteurs à anticiper, coordonner les services, fiabiliser les flux et documenter la valeur créée.</p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link href="/publications" className="inline-flex h-11 items-center justify-center rounded-[3px] bg-[var(--mb-navy-700)] px-5 text-[11px] font-bold text-white hover:bg-[var(--mb-navy-900)]">Voir les publications</Link>
               <Link href="/projets" className="inline-flex h-11 items-center justify-center rounded-[3px] border border-[var(--mb-neutral-300)] bg-white px-5 text-[11px] font-bold text-[var(--mb-navy-900)] hover:bg-[var(--mb-foam)]">Voir les projets</Link>
+              <Link href="/operations" className="inline-flex h-11 items-center justify-center rounded-[3px] border border-[var(--mb-ocean-500)] bg-[var(--mb-foam)] px-5 text-[11px] font-bold text-[var(--mb-ocean-700)]">Accéder à l'espace opérationnel</Link>
             </div>
           </div>
 
@@ -44,6 +45,22 @@ export function PublicLivingLanding() {
         </div>
       </section>
 
+      <section className="border-b border-[var(--mb-neutral-200)] bg-[var(--mb-offwhite)]">
+        <div className="mx-auto max-w-[84rem] px-5 py-10 sm:px-8 lg:px-10 lg:py-14">
+          <div className="max-w-3xl">
+            <p className="font-mono text-[9px] font-bold uppercase tracking-[0.13em] text-[var(--mb-ocean-600)]">Infrastructure de coordination</p>
+            <h2 className="mt-2 text-[clamp(1.45rem,3vw,2rem)] font-semibold leading-tight text-[var(--mb-navy-900)]">Un même socle pour le terrain, les institutions et les partenaires</h2>
+            <p className="mt-3 text-[12px] leading-6 text-[var(--mb-neutral-600)]">Chaque espace utilise les mêmes données métier : retours attendus, besoins de services, capacités, débarquements, lots, tensions, engagements et résultats.</p>
+          </div>
+          <div className="mt-7 grid gap-px border border-[var(--mb-neutral-200)] bg-[var(--mb-neutral-200)] sm:grid-cols-2 lg:grid-cols-4">
+            <Capability href="/operations" title="Opérations" text="Anticiper les retours, enregistrer les débarquements, pesées et lots." />
+            <Capability href="/coordination-services" title="Coordination" text="Mettre en relation les besoins, capacités, réservations et exécutions." />
+            <Capability href="/government" title="Government" text="Piloter les territoires, tensions, investissements et engagements publics." />
+            <Capability href="/atlas" title="Atlas" text="Analyser les risques, comparer les scénarios et préparer les décisions." />
+          </div>
+        </div>
+      </section>
+
       <section className="border-b border-[var(--mb-neutral-200)] bg-white">
         <div className="mx-auto max-w-[84rem] px-5 py-10 sm:px-8 lg:px-10 lg:py-14">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="font-mono text-[9px] font-bold uppercase tracking-[0.13em] text-[var(--mb-ocean-600)]">Dernières publications</p><h2 className="mt-2 text-[clamp(1.45rem,3vw,2rem)] font-semibold leading-tight text-[var(--mb-navy-900)]">La filière en mouvement</h2></div><Link href="/publications" className="text-[10px] font-bold text-[var(--mb-ocean-600)]">Toutes les publications →</Link></div>
@@ -61,4 +78,8 @@ export function PublicLivingLanding() {
       </section>
     </main>
   );
+}
+
+function Capability({ href, title, text }: { href: string; title: string; text: string }) {
+  return <Link href={href} className="group bg-white p-5 hover:bg-[var(--mb-foam)]"><h3 className="text-[17px] font-semibold text-[var(--mb-navy-900)] group-hover:text-[var(--mb-ocean-600)]">{title}</h3><p className="mt-2 text-[11px] leading-5 text-[var(--mb-neutral-600)]">{text}</p><span className="mt-4 inline-flex text-[10px] font-bold text-[var(--mb-ocean-600)]">Ouvrir →</span></Link>;
 }

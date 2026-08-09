@@ -1,0 +1,140 @@
+name: Promote Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environnement cible
+        required: true
+        type: choice
+        options:
+          - integration
+          - staging
+          - production
+      image_digest:
+        description: Digest SHA-256 de l'image déjà publiée
+        required: true
+        type: string
+      run_migrations:
+        description: Exécuter les migrations avant le rollout
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  packages: read
+  attestations: read
+
+concurrency:
+  group: mbambulaan-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate immutable digest
+        run: |
+          echo '${{ inputs.image_digest }}' | grep -Eq '^sha256:[a-f0-9]{64}$'
+
+      - name: Verify image provenance attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ghcr.io/${{ github.repository }}@${{ inputs.image_digest }}
+        run: |
+          gh attestation verify "oci://${IMAGE}" --repo "${{ github.repository }}"
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.31.0
+
+      - name: Configure cluster access
+        env:
+          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG_B64 }}
+        run: |
+          test -n "$KUBE_CONFIG_B64"
+          mkdir -p "$HOME/.kube"
+          echo "$KUBE_CONFIG_B64" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Render target release
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        run: |
+          overlay="infra/kubernetes/overlays/${ENVIRONMENT}"
+          cp "${overlay}/kustomization.yaml" "${overlay}/kustomization.yaml.bak"
+          sed -i -E "s/^([[:space:]]*)newTag: .*/\1digest: ${IMAGE_DIGEST}/" "${overlay}/kustomization.yaml"
+          grep -q "digest: ${IMAGE_DIGEST}" "${overlay}/kustomization.yaml"
+          kubectl kustomize "$overlay" > rendered-release.yaml
+          mv "${overlay}/kustomization.yaml.bak" "${overlay}/kustomization.yaml"
+          grep -q "ghcr.io/mrdiamalick-maker/mbambulaan-mvp@${IMAGE_DIGEST}" rendered-release.yaml
+
+      - name: Capture current revision
+        id: current
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          namespace="mbambulaan-${ENVIRONMENT}"
+          deployment="mbambulaan-platform-${ENVIRONMENT}"
+          revision=$(kubectl -n "$namespace" rollout history deployment/"$deployment" 2>/dev/null | tail -n 1 | awk '{print $1}' || true)
+          echo "revision=${revision}" >> "$GITHUB_OUTPUT"
+
+      - name: Apply release resources
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          namespace="mbambulaan-${ENVIRONMENT}"
+          job="mbambulaan-migrate-${ENVIRONMENT}"
+          if [ '${{ inputs.run_migrations }}' = 'true' ]; then
+            kubectl -n "$namespace" delete job "$job" --ignore-not-found
+          fi
+          kubectl apply -f rendered-release.yaml
+          if [ '${{ inputs.run_migrations }}' = 'true' ]; then
+            kubectl -n "$namespace" wait --for=condition=complete job/"$job" --timeout=10m
+          fi
+
+      - name: Verify rollout
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          namespace="mbambulaan-${ENVIRONMENT}"
+          deployment="mbambulaan-platform-${ENVIRONMENT}"
+          kubectl -n "$namespace" rollout status deployment/"$deployment" --timeout=10m
+
+      - name: Verify health endpoints
+        env:
+          HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
+        run: |
+          test -n "$HEALTHCHECK_URL"
+          curl --fail --retry 10 --retry-delay 5 "${HEALTHCHECK_URL%/}/api/health/live"
+          curl --fail --retry 10 --retry-delay 5 "${HEALTHCHECK_URL%/}/api/health/ready"
+
+      - name: Roll back failed rollout
+        if: failure()
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          PREVIOUS_REVISION: ${{ steps.current.outputs.revision }}
+        run: |
+          namespace="mbambulaan-${ENVIRONMENT}"
+          deployment="mbambulaan-platform-${ENVIRONMENT}"
+          if [ -n "$PREVIOUS_REVISION" ]; then
+            kubectl -n "$namespace" rollout undo deployment/"$deployment" --to-revision="$PREVIOUS_REVISION"
+          else
+            kubectl -n "$namespace" rollout undo deployment/"$deployment"
+          fi
+          kubectl -n "$namespace" rollout status deployment/"$deployment" --timeout=10m
+
+      - name: Promotion summary
+        if: success()
+        run: |
+          echo "### Promotion réussie" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Environnement : ${{ inputs.environment }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image : \`ghcr.io/${{ github.repository }}@${{ inputs.image_digest }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Provenance : attestation vérifiée" >> "$GITHUB_STEP_SUMMARY"
