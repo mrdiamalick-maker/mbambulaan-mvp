@@ -19,7 +19,9 @@ interface BentoCardProps extends ComponentPropsWithoutRef<"div"> {
   className: string;
   background: ReactNode;
   Icon: React.ElementType;
-  description: string;
+  // ReactNode plutôt que string (original Magic UI) : nos tuiles portent
+  // parfois un NumberTicker, pas seulement un texte de description.
+  description: ReactNode;
   href: string;
   cta: string;
 }

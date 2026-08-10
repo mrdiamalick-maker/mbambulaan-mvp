@@ -6,6 +6,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   FileDown,
+  Globe2,
   Radio,
   Send,
   ShieldCheck,
@@ -26,6 +27,11 @@ import {
   SheetHeader,
   SheetTitle
 } from "@/components/ui/sheet";
+import { BentoCard, BentoGrid } from "@/components/magicui/bento-grid";
+import { BlurFade } from "@/components/magicui/blur-fade";
+import { DottedMap } from "@/components/magicui/dotted-map";
+import { Marquee } from "@/components/magicui/marquee";
+import { NumberTicker } from "@/components/magicui/number-ticker";
 import type { Situation, Territory } from "@/domain/types";
 import {
   fieldVisitObjectiveLabels,
@@ -193,7 +199,26 @@ export default function EtatPage() {
         </CardContent>
       </Card>
 
+      {/* Bande ambiante — territoires suivis par le réseau. Décorative
+          uniquement : le statut réel de chaque territoire se lit plus bas,
+          dans la grille interactive (Défi 2), jamais ici. */}
+      <div className="-mx-5 border-y bg-muted/30 lg:-mx-8">
+        <Marquee pauseOnHover className="[--duration:32s]">
+          {state.territories.map((territory) => (
+            <span key={territory.id} className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <span
+                className="size-1.5 rounded-full"
+                style={{ backgroundColor: glyphBorderColor[territory.activity] }}
+                aria-hidden="true"
+              />
+              {territory.name}
+            </span>
+          ))}
+        </Marquee>
+      </div>
+
       {/* Défi 1 — valeur générée */}
+      <BlurFade inView>
       <section>
         <p className="text-xs font-bold uppercase tracking-widest text-primary">Diversifier les revenus des pêcheurs</p>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">Une valeur additionnelle réelle, générée par la coordination.</h2>
@@ -224,38 +249,70 @@ export default function EtatPage() {
           </Card>
         </div>
       </section>
+      </BlurFade>
 
       <Separator />
 
       {/* Défi 2 — présence terrain */}
-      <section>
+      <BlurFade inView>
+      <section id="terrain">
         <p className="text-xs font-bold uppercase tracking-widest text-primary">Rencontrer les pêcheurs sans déplacement systématique</p>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">La réalité terrain, territoire par territoire.</h2>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{territoiresAttention.length} territoire(s) demandent une attention particulière sur {territoiresActifs} suivis par le réseau.</p>
-        <div className="mt-5 flex flex-wrap gap-2.5">
-          {territoiresAttention.map((territory) => (
-            <button key={territory.id} onClick={() => setTerritoryDrawer(territory)} className="flex items-center gap-2.5 rounded-lg border bg-card px-3.5 py-2.5 text-left shadow-sm transition hover:border-primary/40" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[territory.activity] }}>
-              <TensionGlyph status={territory.activity} size={26} />
-              <span>
-                <span className="block text-sm font-semibold">{territory.name}</span>
-                <span className="mt-1 block"><StatusBadge status={territory.activity} /></span>
-              </span>
-            </button>
-          ))}
-        </div>
-        <details className="mt-4">
-          <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">+ {territoiresStables.length} territoire(s) stables</summary>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {territoiresStables.map((territory) => (
-              <Button key={territory.id} variant="secondary" size="sm" onClick={() => setTerritoryDrawer(territory)}>{territory.name}</Button>
-            ))}
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.5fr]">
+          {/* Illustration, pas un fond de carte réel (D6, PRODUCT_DECISION_LOG.md)
+              — aucune donnée géographique de précision, juste une silhouette
+              du littoral pour situer les territoires les uns par rapport aux
+              autres. */}
+          <Card className="overflow-hidden">
+            <CardContent className="p-3">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Littoral suivi par le réseau · illustratif</p>
+              <div className="aspect-[4/3] w-full">
+                <DottedMap
+                  countries={["SEN"]}
+                  region={{ lat: { min: 12, max: 17 }, lng: { min: -17.5, max: -11 } }}
+                  className="text-muted-foreground/20"
+                  markerColor="#b6522f"
+                  dotRadius={0.35}
+                  markers={state.territories.map((territory) => ({
+                    lat: territory.latitude,
+                    lng: territory.longitude,
+                    size: territory.activity === "critique" ? 3.2 : territory.activity === "vigilance" ? 2.2 : 1.4,
+                    pulse: territory.activity === "critique"
+                  }))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          <div>
+            <div className="flex flex-wrap gap-2.5">
+              {territoiresAttention.map((territory) => (
+                <button key={territory.id} onClick={() => setTerritoryDrawer(territory)} className="flex items-center gap-2.5 rounded-lg border bg-card px-3.5 py-2.5 text-left shadow-sm transition hover:border-primary/40" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[territory.activity] }}>
+                  <TensionGlyph status={territory.activity} size={26} />
+                  <span>
+                    <span className="block text-sm font-semibold">{territory.name}</span>
+                    <span className="mt-1 block"><StatusBadge status={territory.activity} /></span>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <details className="mt-4">
+              <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">+ {territoiresStables.length} territoire(s) stables</summary>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {territoiresStables.map((territory) => (
+                  <Button key={territory.id} variant="secondary" size="sm" onClick={() => setTerritoryDrawer(territory)}>{territory.name}</Button>
+                ))}
+              </div>
+            </details>
           </div>
-        </details>
+        </div>
       </section>
+      </BlurFade>
 
       <Separator />
 
       {/* Défi 3 — vigilance */}
+      <BlurFade inView>
       <section id="signaux">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -284,10 +341,12 @@ export default function EtatPage() {
           </div>
         )}
       </section>
+      </BlurFade>
 
       <Separator />
 
       {/* Défi 6 — missions terrain recommandées */}
+      <BlurFade inView>
       <section>
         <p className="text-xs font-bold uppercase tracking-widest text-primary">Donner au ministère une activité terrain concrète</p>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">Missions recommandées.</h2>
@@ -315,41 +374,67 @@ export default function EtatPage() {
           <p className="mt-4 text-xs text-muted-foreground">{visits.filter((item) => item.status === "planifiee").length} mission(s) déjà planifiée(s) par le ministère.</p>
         )}
       </section>
+      </BlurFade>
 
       <Separator />
 
       {/* Défi 4 — statistiques */}
+      <BlurFade inView>
       <section>
         <p className="text-xs font-bold uppercase tracking-widest text-primary">Outil statistique de supervision</p>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">La coordination en chiffres.</h2>
-        <div className="mt-5 grid gap-4 lg:grid-cols-[1.3fr_1fr_1fr]">
-          <Card>
-            <CardContent>
-              <div className="flex items-center gap-2"><Users size={16} className="text-primary" /><Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">Démonstration</Badge></div>
-              <p className="mt-3 text-4xl font-bold tracking-tight">{acteursCoordonnes}</p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acteurs coordonnés</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">Démonstration</Badge>
-              <p className="mt-3 text-2xl font-bold tracking-tight">{signauxTraites}</p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signaux traités</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">Démonstration</Badge>
-              <p className="mt-3 text-2xl font-bold tracking-tight">{territoiresActifs}</p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Territoires actifs</p>
-            </CardContent>
-          </Card>
-        </div>
+        <BentoGrid className="mt-5 grid-cols-1 gap-4 sm:grid-cols-3 auto-rows-[13rem]">
+          <BentoCard
+            name="Acteurs coordonnés"
+            className="sm:col-span-2"
+            Icon={Users}
+            href="#terrain"
+            cta="Voir le réseau territorial"
+            description={
+              <>
+                <Badge variant="outline" className="mb-2 border-amber-300 bg-amber-50 text-amber-800">Démonstration</Badge>
+                <span className="block text-4xl font-bold tracking-tight text-foreground"><NumberTicker value={acteursCoordonnes} /></span>
+                <span className="mt-1 block text-sm">acteurs vérifiés et mobilisables sur les territoires suivis.</span>
+              </>
+            }
+            background={<div />}
+          />
+          <BentoCard
+            name="Signaux traités"
+            className="sm:col-span-1"
+            Icon={Radio}
+            href="#signaux"
+            cta="Voir la vigilance"
+            description={
+              <>
+                <Badge variant="outline" className="mb-2 border-amber-300 bg-amber-50 text-amber-800">Démonstration</Badge>
+                <span className="block text-2xl font-bold tracking-tight text-foreground"><NumberTicker value={signauxTraites} /></span>
+              </>
+            }
+            background={<div />}
+          />
+          <BentoCard
+            name="Territoires actifs"
+            className="sm:col-span-1"
+            Icon={Globe2}
+            href="#terrain"
+            cta="Explorer la carte"
+            description={
+              <>
+                <Badge variant="outline" className="mb-2 border-amber-300 bg-amber-50 text-amber-800">Démonstration</Badge>
+                <span className="block text-2xl font-bold tracking-tight text-foreground"><NumberTicker value={territoiresActifs} /></span>
+              </>
+            }
+            background={<div />}
+          />
+        </BentoGrid>
       </section>
+      </BlurFade>
 
       <Separator />
 
       {/* Défi 5 — bailleurs */}
+      <BlurFade inView>
       <Card className="flex-row flex-wrap items-center justify-between gap-5 border-none bg-sidebar p-7 text-sidebar-foreground shadow-lg">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-primary">Capter l’attention des bailleurs</p>
@@ -358,6 +443,7 @@ export default function EtatPage() {
         </div>
         <Button asChild><Link href="/app/etat/rapport"><FileDown /> Ouvrir le rapport bailleurs</Link></Button>
       </Card>
+      </BlurFade>
 
       {/* Panneau territoire */}
       <Sheet open={!!territoryDrawer} onOpenChange={(open) => !open && setTerritoryDrawer(null)}>

@@ -17,10 +17,26 @@ export interface Marker {
 
 type MapMarker<M extends Marker> = Omit<M, "lat" | "lng"> & { x: number; y: number };
 
+export interface DottedMapRegion {
+  lat: { min: number; max: number };
+  lng: { min: number; max: number };
+}
+
 export interface DottedMapProps<M extends Marker = Marker> extends React.SVGProps<SVGSVGElement> {
   width?: number;
   height?: number;
   mapSamples?: number;
+  /** Codes pays ISO3 (ex. ["SEN"]) : recadre la carte sur leur emprise
+      plutôt que le monde entier — c'est ce qui permet une illustration du
+      littoral sénégalais plutôt qu'un point minuscule sur un planisphère. */
+  countries?: string[];
+  /** À fournir dès que `countries` est utilisé : svg-dotted-map@2.1.0 a un
+      bug connu (`createMap` appelle sa fonction de bounding-box récursive
+      sur chaque Feature individuelle, pas seulement la FeatureCollection,
+      ce qui lève systématiquement "Unknown or unsupported geojson
+      structure") si aucune `region` explicite n'est passée en même temps
+      que `countries`. Fournir `region` contourne ce chemin de code cassé. */
+  region?: DottedMapRegion;
   markers?: M[];
   dotColor?: string;
   markerColor?: string;
@@ -34,6 +50,8 @@ export function DottedMap<M extends Marker = Marker>({
   width = 150,
   height = 75,
   mapSamples = 5000,
+  countries,
+  region,
   markers = [],
   dotColor = "currentColor",
   markerColor = "#FF6900",
@@ -45,7 +63,7 @@ export function DottedMap<M extends Marker = Marker>({
   style,
   ...svgProps
 }: DottedMapProps<M>) {
-  const { points, addMarkers } = createMap({ width, height, mapSamples });
+  const { points, addMarkers } = createMap({ width, height, mapSamples, countries, region });
   const processedMarkers = addMarkers(markers);
 
   const { xStep, yToRowIndex } = React.useMemo(() => {
