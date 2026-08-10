@@ -81,12 +81,14 @@
 
 :root {
   --radius: 0.625rem;
-  /* Refonte palette (retour CEO) : fond blanc — plus la teinte pastel
-     crème (#f7f4ee) qui, trop proche du blanc des cartes, aplatissait
-     tout en un rendu "juste des tracés". Les blocs (Card, badges,
-     sections) doivent maintenant se détacher par un contour et un fond
-     réellement visibles, pas par un fond de page teinté. */
-  --background: #ffffff;
+  /* Fond : blanc cassé #f7f3e9, verrouillé par le référentiel visuel D9
+     (docs/design-reference/README.md) — arbitrage CEO explicite,
+     distinct du blanc pur utilisé temporairement avant le référentiel.
+     Les cartes restent blanches (--card), donc le contraste fond/bloc
+     qui a motivé le passage au blanc reste garanti : ce n'est plus le
+     fond qui portait le problème, c'était l'absence de remplissage
+     propre aux blocs (résolu séparément par les dégradés de thème). */
+  --background: #f7f3e9;
   --foreground: #14202b;
   --card: #ffffff;
   --card-foreground: #14202b;
