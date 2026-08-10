@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -21,6 +21,7 @@ import {
   Wrench
 } from "lucide-react";
 import type { PublicRequestActorType, PublicRequestChannel, PublicRequestIntent } from "@/domain/public/request";
+import { trackPublicEvent } from "@/lib/public-analytics";
 
 interface IntentOption {
   id: PublicRequestIntent;
@@ -97,19 +98,26 @@ export function SolutionWizard({ initialIntent, initialCategory, initialTerritor
   const stepIndex = stepOrder.indexOf(step);
   const progressSteps: Step[] = stepOrder.filter((item) => item !== "done");
 
-  function goTo(next: Step) {
+  useEffect(() => {
+    if (initialIntent) trackPublicEvent("solution_started", { intent: initialIntent });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function goTo(next: Step, track = true) {
     setError("");
     setStep(next);
+    if (track) trackPublicEvent("solution_step_completed", { step: next });
   }
 
   function back() {
     const currentIndex = progressSteps.indexOf(step);
-    if (currentIndex > 0) goTo(progressSteps[currentIndex - 1]);
+    if (currentIndex > 0) goTo(progressSteps[currentIndex - 1], false);
   }
 
   function selectIntent(option: IntentOption) {
     setIntentId(option.id);
     setQuickTag(undefined);
+    trackPublicEvent("solution_started", { intent: option.id });
     goTo(option.quickOptions?.length ? "territory" : "territory");
   }
 
@@ -154,6 +162,7 @@ export function SolutionWizard({ initialIntent, initialCategory, initialTerritor
       }
       setReference(payload.reference);
       setStep("done");
+      trackPublicEvent("solution_submitted", { intent: intentId, territory });
     } catch {
       setError("Connexion impossible. Vérifiez votre réseau puis réessayez.");
     } finally {

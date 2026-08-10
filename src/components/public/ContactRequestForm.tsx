@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import type { PublicRequestActorType, PublicRequestChannel, PublicRequestIntent } from "@/domain/public/request";
+import type { PublicAnalyticsEvent } from "@/domain/public/analytics";
+import { trackPublicEvent } from "@/lib/public-analytics";
 
 const actorTypes: { id: PublicRequestActorType; label: string }[] = [
   { id: "particulier", label: "Particulier / acteur de terrain" },
@@ -25,6 +27,8 @@ export interface ContactRequestFormProps {
   descriptionRequired?: boolean;
   source?: string;
   context?: Record<string, string | undefined>;
+  /** Événement analytics facultatif déclenché à l'envoi réussi (section 21 du MASTER_SPEC). */
+  analyticsEvent?: PublicAnalyticsEvent;
 }
 
 export function ContactRequestForm({
@@ -34,7 +38,8 @@ export function ContactRequestForm({
   descriptionPlaceholder = "Expliquez votre situation, votre projet ou votre question.",
   descriptionRequired = true,
   source = "web",
-  context
+  context,
+  analyticsEvent
 }: ContactRequestFormProps) {
   const [description, setDescription] = useState("");
   const [territory, setTerritory] = useState("");
@@ -89,6 +94,7 @@ export function ContactRequestForm({
         return;
       }
       setReference(payload.reference);
+      if (analyticsEvent) trackPublicEvent(analyticsEvent, { intent, category });
     } catch {
       setError("Connexion impossible. Vérifiez votre réseau puis réessayez.");
     } finally {

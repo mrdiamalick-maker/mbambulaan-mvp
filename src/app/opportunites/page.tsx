@@ -1,9 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowRight, CalendarDays, CircleDollarSign, GraduationCap, Handshake, MapPinned, Megaphone, UsersRound } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicSectionHero } from "@/components/public/PublicSectionHero";
 import { publicAnnouncements, type PublicOpportunityType } from "@/data/public-content";
+
+export const metadata: Metadata = {
+  title: "Opportunités | Mbàmbulaan",
+  description: "Formations, programmes, financements, rencontres et appels utiles à l’économie maritime, sélectionnés et contextualisés par Mbàmbulaan.",
+  alternates: { canonical: "/opportunites" }
+};
 
 const typeIcon: Record<PublicOpportunityType, typeof GraduationCap> = {
   Formation: GraduationCap,

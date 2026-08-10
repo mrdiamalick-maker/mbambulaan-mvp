@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { PwaRegistration } from "@/components/providers/PwaRegistration";
+import { PublicAnalyticsTracker } from "@/components/public/PublicAnalyticsTracker";
 import "./globals.css";
 import "./brand.css";
 import "./public-design-system.css";
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="fr" data-scroll-behavior="smooth">
       <body>
         <PwaRegistration />
+        <PublicAnalyticsTracker />
         {children}
       </body>
     </html>

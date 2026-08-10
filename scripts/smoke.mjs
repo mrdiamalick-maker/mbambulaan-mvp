@@ -49,17 +49,20 @@ try {
   await waitForServer();
   for (const path of [
     "/",
-    "/a-propos",
-    "/actualites",
-    "/actualites/actu-froid-petite-cote",
+    "/decouvrir",
+    "/decouvrir/terrain-joal",
     "/atlas",
-    "/filiere",
-    "/offres",
-    "/community",
-    "/durabilite",
+    "/atlas/joal-fadiouth",
+    "/opportunites",
+    "/opportunites/formation-qualite-conservation",
+    "/solutions",
+    "/mbambulaan",
     "/contact",
-    "/demo",
+    "/mentions-legales",
+    "/confidentialite",
     "/connexion",
+    "/robots.txt",
+    "/sitemap.xml",
     "/app/travail",
     "/app/atlas",
     "/app/operations",
@@ -74,13 +77,14 @@ try {
     "/app/organisation",
     "/app/initiatives",
     "/app/administration",
-    "/terrain",
-    "/terrain/telephone",
-    "/terrain/whatsapp",
     "/manifest.webmanifest",
     "/sw.js"
   ]) {
     await expectOk(path);
+  }
+  for (const path of ["/a-propos", "/actualites", "/filiere", "/offres", "/community", "/durabilite", "/demo", "/terrain"]) {
+    const response = await fetch(`${base}${path}`);
+    if (response.status !== 404) throw new Error(`${path} devrait être supprimé (404) mais a répondu ${response.status}`);
   }
   for (const role of [
     "administrateur",
@@ -152,7 +156,44 @@ try {
     throw new Error("Le signalement de rareté n'alimente pas l'audit.");
   }
   demoState = (await (await expectOk("/api/demo/reset", { method: "POST" })).json()).state;
-  console.log(`Smoke E2E: contenus publics, routes, infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
+
+  const publicRequest = await expectOk("/api/public/requests", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      source: "web",
+      intent: "conservation",
+      territory: "Joal",
+      description: "Smoke test : besoin de glace pour 2 tonnes par semaine.",
+      actorType: "entreprise",
+      contactName: "Smoke Test",
+      phone: "+221770000000",
+      preferredChannel: "whatsapp",
+      consent: true
+    })
+  });
+  if (!(await publicRequest.json()).reference) throw new Error("La demande publique ne renvoie pas de référence.");
+
+  const publicContribution = await expectOk("/api/public/contributions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      actorType: "transporteur",
+      services: "Transport réfrigéré",
+      territories: "Dakar, Petite-Côte",
+      contactName: "Smoke Test",
+      phone: "+221770000001"
+    })
+  });
+  if (!(await publicContribution.json()).reference) throw new Error("La contribution publique ne renvoie pas de référence.");
+
+  await expectOk("/api/public/analytics", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ event: "atlas_open", path: "/atlas" })
+  });
+
+  console.log(`Smoke E2E: Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
 } finally {
   server?.kill("SIGTERM");
 }

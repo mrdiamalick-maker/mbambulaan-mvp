@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { ArrowLeft, ArrowRight, BadgeCheck, BookOpenText, MapPinned } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
+import { EventOnMount } from "@/components/public/EventOnMount";
 import { findContentById, publicNews } from "@/data/public-content";
 import { publicTerritories } from "@/data/public-atlas";
 
@@ -18,6 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${item.title} | Mbàmbulaan Découvrir`,
     description: item.excerpt,
+    alternates: { canonical: `/decouvrir/${item.id}` },
     openGraph: { title: item.title, description: item.excerpt }
   };
 }
@@ -32,6 +34,7 @@ export default async function ContentDetailPage({ params }: { params: Promise<{ 
 
   return (
     <main className="pub-scope min-h-screen">
+      <EventOnMount event="content_view" properties={{ content: item.id, domain: item.domain }} />
       <PublicHeader dark />
 
       <section className="pub-hero px-5 pb-14 pt-10 md:px-10 md:pb-20 md:pt-14">

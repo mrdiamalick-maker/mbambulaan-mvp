@@ -1,9 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowRight, BookOpenText, Compass, Snowflake, ShipWheel, Truck, Wrench, GraduationCap, Handshake, Factory, Waves, Leaf, X } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicSectionHero } from "@/components/public/PublicSectionHero";
 import { publicNews, type PublicContentDomain } from "@/data/public-content";
+
+export const metadata: Metadata = {
+  title: "Découvrir | Mbàmbulaan",
+  description: "Comprendre l’économie maritime sénégalaise par ses métiers, ses chaînes de valeur et ses territoires : pêche, débarquement, froid, transformation, logistique, formation, financement et durabilité.",
+  alternates: { canonical: "/decouvrir" }
+};
 
 const domains: { title: PublicContentDomain; text: string; icon: typeof Waves }[] = [
   { title: "Pêche & ressources", text: "Comprendre les pratiques, les espèces, la saisonnalité et les dynamiques de la ressource.", icon: Waves },

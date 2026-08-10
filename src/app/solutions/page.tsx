@@ -1,10 +1,17 @@
 import { PhoneCall } from "lucide-react";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicSectionHero } from "@/components/public/PublicSectionHero";
 import { SolutionWizard } from "@/components/public/SolutionWizard";
 import type { PublicRequestIntent } from "@/domain/public/request";
+
+export const metadata: Metadata = {
+  title: "Trouver une solution | Mbàmbulaan",
+  description: "Décrivez votre besoin — transport, froid, transformation, équipement, maintenance, formation, débouchés, financement. Mbàmbulaan qualifie et organise la suite, sans prix public ni annuaire de prestataires.",
+  alternates: { canonical: "/solutions" }
+};
 
 type SearchParams = Record<string, string | string[] | undefined>;
 

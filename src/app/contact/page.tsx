@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import {
   Building2,
   Handshake,
@@ -15,7 +16,15 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicSectionHero } from "@/components/public/PublicSectionHero";
 import { ContactRequestForm } from "@/components/public/ContactRequestForm";
 import { ContributionForm } from "@/components/public/ContributionForm";
+import { EventOnMount } from "@/components/public/EventOnMount";
 import type { PublicRequestIntent } from "@/domain/public/request";
+import type { PublicAnalyticsEvent } from "@/domain/public/analytics";
+
+export const metadata: Metadata = {
+  title: "Contact | Mbàmbulaan",
+  description: "Besoin, capacité à proposer, organisation, partenariat ou demande presse : Mbàmbulaan oriente votre demande vers le bon parcours.",
+  alternates: { canonical: "/contact" }
+};
 
 const entryCards = [
   { title: "J’ai un besoin", text: "Transport, froid, équipement, formation, sourcing, financement ou autre besoin à qualifier.", icon: Search, href: "/solutions" },
@@ -26,15 +35,15 @@ const entryCards = [
   { title: "Autre demande", text: "Vous ne savez pas quelle entrée choisir ? Décrivez simplement votre besoin à Mbàmbulaan.", icon: MessageCircle, href: "/contact?intent=autre" }
 ] as const;
 
-const formConfigs: Partial<Record<string, { intent: PublicRequestIntent; title: string; description: string; category?: string; descriptionLabel?: string; descriptionPlaceholder?: string; descriptionRequired?: boolean }>> = {
+const formConfigs: Partial<Record<string, { intent: PublicRequestIntent; title: string; description: string; category?: string; descriptionLabel?: string; descriptionPlaceholder?: string; descriptionRequired?: boolean; analyticsEvent?: PublicAnalyticsEvent }>> = {
   organisation: { intent: "organisation", title: "Je représente une organisation", description: "Entreprise, ONG, programme ou institution : décrivez votre contexte pour étudier une intervention, un partenariat ou un déploiement." },
-  partenariat: { intent: "partenariat", title: "Devenir partenaire", description: "Proposez une collaboration structurée avec Mbàmbulaan, sur un territoire, un programme ou une capacité." },
+  partenariat: { intent: "partenariat", title: "Devenir partenaire", description: "Proposez une collaboration structurée avec Mbàmbulaan, sur un territoire, un programme ou une capacité.", analyticsEvent: "partnership_submission" },
   presse: { intent: "presse", title: "Presse, recherche ou information", description: "Demande d’information, échange éditorial, recherche ou prise de contact institutionnelle.", descriptionLabel: "Votre demande" },
   information: { intent: "presse", title: "Presse, recherche ou information", description: "Demande d’information, échange éditorial, recherche ou prise de contact institutionnelle.", descriptionLabel: "Votre demande" },
   autre: { intent: "autre", title: "Autre demande", description: "Décrivez simplement votre besoin ou votre question. Mbàmbulaan vous oriente ensuite." },
   programme: { intent: "programme", title: "Étudier une intervention", description: "Territoire, bénéficiaires, partenaires, déploiement terrain : Mbàmbulaan peut organiser le cadrage d’un projet ou d’un programme." },
-  callback: { intent: "callback", title: "Être rappelé", description: "Laissez vos coordonnées, un membre de l’équipe Mbàmbulaan vous rappelle.", descriptionLabel: "Précisez si besoin (optionnel)", descriptionRequired: false },
-  correction: { intent: "autre", category: "Correction Atlas", title: "Signaler une information ou proposer une correction", description: "Vos contributions sont examinées par Mbàmbulaan avant toute mise à jour publique de l’Atlas.", descriptionLabel: "Votre signalement" }
+  callback: { intent: "callback", title: "Être rappelé", description: "Laissez vos coordonnées, un membre de l’équipe Mbàmbulaan vous rappelle.", descriptionLabel: "Précisez si besoin (optionnel)", descriptionRequired: false, analyticsEvent: "callback_requested" },
+  correction: { intent: "autre", category: "Correction Atlas", title: "Signaler une information ou proposer une correction", description: "Vos contributions sont examinées par Mbàmbulaan avant toute mise à jour publique de l’Atlas.", descriptionLabel: "Votre signalement", analyticsEvent: "atlas_correction" }
 };
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -68,6 +77,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
       <section className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-20">
         {intentParam === "contribution" ? (
           <div className="mx-auto max-w-3xl">
+            <EventOnMount event="contact_started" properties={{ intent: "contribution" }} />
             <p className="pub-eyebrow">Proposer mes services</p>
             <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Faites connaître votre capacité à Mbàmbulaan.</h2>
             <p className="mt-4 text-sm leading-6 text-[var(--pub-stone-700)]">Entreprise, transporteur, transformateur, ONG, expert ou organisation : cette entrée alimente le réseau Mbàmbulaan, jamais un annuaire public.</p>
@@ -75,6 +85,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           </div>
         ) : config ? (
           <div className="mx-auto max-w-3xl">
+            <EventOnMount event="contact_started" properties={{ intent: config.intent, category: config.category }} />
             <p className="pub-eyebrow">Contact</p>
             <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">{config.title}</h2>
             <p className="mt-4 text-sm leading-6 text-[var(--pub-stone-700)]">{config.description}</p>
@@ -87,6 +98,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
                 descriptionRequired={config.descriptionRequired}
                 source={source}
                 context={{ page: "contact", territory, opportunity }}
+                analyticsEvent={config.analyticsEvent}
               />
             </div>
           </div>

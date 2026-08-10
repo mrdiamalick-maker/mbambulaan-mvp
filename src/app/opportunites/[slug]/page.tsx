@@ -5,6 +5,7 @@ import { ArrowLeft, BadgeCheck, CalendarDays, Landmark, MapPinned, UsersRound } 
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { ContactRequestForm } from "@/components/public/ContactRequestForm";
+import { EventOnMount } from "@/components/public/EventOnMount";
 import { findAnnouncementById, publicAnnouncements, type PublicOpportunityType } from "@/data/public-content";
 import type { PublicRequestIntent } from "@/domain/public/request";
 
@@ -27,6 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${item.title} | Opportunités Mbàmbulaan`,
     description: item.description,
+    alternates: { canonical: `/opportunites/${item.id}` },
     openGraph: { title: item.title, description: item.description }
   };
 }
@@ -41,6 +43,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
   return (
     <main className="pub-scope min-h-screen">
+      <EventOnMount event="opportunity_view" properties={{ opportunity: item.id, type: item.type }} />
       <PublicHeader dark />
 
       <section className="pub-hero px-5 pb-14 pt-10 md:px-10 md:pb-20 md:pt-14">
@@ -84,6 +87,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
                 descriptionRequired={false}
                 source="opportunites"
                 context={{ page: "opportunites", opportunity: item.id, opportunityTitle: item.title, territory: item.territory }}
+                analyticsEvent="opportunity_interest"
               />
             </div>
           </aside>

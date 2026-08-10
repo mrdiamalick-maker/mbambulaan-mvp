@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Anchor, ArrowLeft, ArrowRight, BadgeCheck, BookOpenText, Compass, Factory, Fish, MessageSquareWarning } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
+import { EventOnMount } from "@/components/public/EventOnMount";
 import { findTerritoryBySlug, publicTerritories } from "@/data/public-atlas";
 import { publicNews } from "@/data/public-content";
 
@@ -18,6 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${territory.name} | Atlas Mbàmbulaan`,
     description: territory.description,
+    alternates: { canonical: `/atlas/${territory.slug}` },
     openGraph: { title: `${territory.name} — Atlas Mbàmbulaan`, description: territory.description }
   };
 }
@@ -33,6 +35,7 @@ export default async function TerritoryDetailPage({ params }: { params: Promise<
 
   return (
     <main className="pub-scope min-h-screen">
+      <EventOnMount event="atlas_location_view" properties={{ territory: territory.id }} />
       <PublicHeader dark />
 
       <section className="pub-hero px-5 pb-14 pt-10 md:px-10 md:pb-20 md:pt-14">

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import type { PublicContributionActorType } from "@/domain/public/contribution";
+import { trackPublicEvent } from "@/lib/public-analytics";
 
 const actorTypes: { id: PublicContributionActorType; label: string }[] = [
   { id: "entreprise", label: "Entreprise / prestataire" },
@@ -63,6 +64,7 @@ export function ContributionForm() {
         return;
       }
       setReference(payload.reference);
+      trackPublicEvent("network_submission", { actorType });
     } catch {
       setError("Connexion impossible. Vérifiez votre réseau puis réessayez.");
     } finally {

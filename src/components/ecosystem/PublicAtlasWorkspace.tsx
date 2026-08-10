@@ -14,6 +14,7 @@ import {
   Waves
 } from "lucide-react";
 import { publicTerritories } from "@/data/public-atlas";
+import { trackPublicEvent } from "@/lib/public-analytics";
 
 type PublicView = "portrait" | "activites" | "capacites" | "produits";
 
@@ -35,8 +36,14 @@ export function PublicAtlasWorkspace() {
 
   const selectRegion = (value: string) => {
     setRegion(value);
+    trackPublicEvent("atlas_search", { region: value });
     const first = value === "all" ? publicTerritories[0] : publicTerritories.find((item) => item.region === value);
     if (first) setSelectedId(first.id);
+  };
+
+  const selectTerritory = (id: string) => {
+    setSelectedId(id);
+    trackPublicEvent("atlas_location_view", { territory: id });
   };
 
   return (
@@ -54,7 +61,7 @@ export function PublicAtlasWorkspace() {
           </label>
           <label>
             <span>Territoire / quai</span>
-            <span className="public-select-wrap"><Anchor size={16} /><select aria-label="Choisir un territoire" value={territory.id} onChange={(event) => setSelectedId(event.target.value)}>{territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><ChevronDown size={15} /></span>
+            <span className="public-select-wrap"><Anchor size={16} /><select aria-label="Choisir un territoire" value={territory.id} onChange={(event) => selectTerritory(event.target.value)}>{territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><ChevronDown size={15} /></span>
           </label>
         </div>
       </div>
@@ -76,7 +83,7 @@ export function PublicAtlasWorkspace() {
             const [left, top] = item.mapPosition;
             const active = item.id === territory.id;
             return (
-              <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} style={{ left: `${left}%`, top: `${top}%` }} className={active ? "public-quay-marker public-quay-marker-active" : "public-quay-marker"} aria-label={`Découvrir ${item.name}`}>
+              <button key={item.id} type="button" onClick={() => selectTerritory(item.id)} style={{ left: `${left}%`, top: `${top}%` }} className={active ? "public-quay-marker public-quay-marker-active" : "public-quay-marker"} aria-label={`Découvrir ${item.name}`}>
                 <span className="public-marker-dot"><Anchor size={13} /></span>
                 <span className="public-marker-label">{item.name}<small>{item.region}</small></span>
               </button>

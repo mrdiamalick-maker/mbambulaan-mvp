@@ -1,8 +1,15 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowRight, Compass, MapPinned, Network, Radar, Route } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicSectionHero } from "@/components/public/PublicSectionHero";
+
+export const metadata: Metadata = {
+  title: "Mbàmbulaan | Terrain, réseau, technologie",
+  description: "Mbàmbulaan construit une infrastructure de coordination pour l’économie maritime, en commençant par la filière halieutique sénégalaise : terrain, réseau et technologie au service de l’action.",
+  alternates: { canonical: "/mbambulaan" }
+};
 
 const pillars = [
   { title: "Terrain", text: "Comprendre les réalités, identifier les besoins et maintenir une relation directe avec les territoires.", icon: Route },

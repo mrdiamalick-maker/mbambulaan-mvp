@@ -1,13 +1,22 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowRight, Compass, MapPinned, ShieldCheck } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicAtlasWorkspace } from "@/components/ecosystem/PublicAtlasWorkspace";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicSectionHero } from "@/components/public/PublicSectionHero";
+import { EventOnMount } from "@/components/public/EventOnMount";
+
+export const metadata: Metadata = {
+  title: "Atlas | Mbàmbulaan",
+  description: "Explorer l’économie maritime sénégalaise par les territoires : quais, activités, services documentés et opportunités, sans données opérationnelles privées.",
+  alternates: { canonical: "/atlas" }
+};
 
 export default function PublicAtlasPage() {
   return (
     <main className="pub-scope min-h-screen">
+      <EventOnMount event="atlas_open" />
       <PublicHeader dark />
       <PublicSectionHero
         eyebrow="Atlas Mbàmbulaan"
