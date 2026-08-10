@@ -1,0 +1,132 @@
+@import "tw-animate-css";
+
+/* Fondation shadcn/ui (registry new-york-v4, tag shadcn@3.4.0) — composants
+   copiés directement depuis github.com/shadcn-ui/ui (ui.shadcn.com est
+   injoignable depuis cet environnement, voir composants dans
+   src/components/ui/). Thème Mbàmbulaan : mêmes noms de variables que le
+   standard shadcn (--background, --primary…), valeurs de couleur propres
+   à la marque plutôt que le gris neutre par défaut. Sert de base à
+   /app/* (shell partagé, Espace État, Admin).
+
+   Ces noms sont globaux (:root), comme dans tout projet shadcn — Tailwind
+   v4 résout `@theme inline` au niveau racine, une portée par classe
+   casse la résolution des variables. La seule collision identifiée avec
+   l'ancien système (globals.css définissait aussi un --muted brut) a été
+   levée en renommant ce dernier en --legacy-muted. */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #f7f4ee;
+  --foreground: #14202b;
+  --card: #ffffff;
+  --card-foreground: #14202b;
+  --popover: #ffffff;
+  --popover-foreground: #14202b;
+  --primary: #b6522f;
+  --primary-foreground: #fff8f2;
+  --secondary: #eef1f3;
+  --secondary-foreground: #14202b;
+  --muted: #eef1f3;
+  --muted-foreground: #64717a;
+  --accent: #f1ded3;
+  --accent-foreground: #7a3b21;
+  --destructive: #c23a2c;
+  --destructive-foreground: #fff8f2;
+  --border: #e3e6e8;
+  --input: #e3e6e8;
+  --ring: #b6522f;
+  --chart-1: #b6522f;
+  --chart-2: #c68a2c;
+  --chart-3: #1d4468;
+  --chart-4: #0b1a2a;
+  --chart-5: #8c9aa2;
+  --sidebar: #0b1a2a;
+  --sidebar-foreground: #eef2f4;
+  --sidebar-primary: #b6522f;
+  --sidebar-primary-foreground: #fff8f2;
+  --sidebar-accent: rgba(255, 255, 255, 0.06);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #b6522f;
+}
+
+.dark {
+  --background: #0b1119;
+  --foreground: #eef2f4;
+  --card: #121a24;
+  --card-foreground: #eef2f4;
+  --popover: #121a24;
+  --popover-foreground: #eef2f4;
+  --primary: #d97350;
+  --primary-foreground: #1a0e08;
+  --secondary: #1a232e;
+  --secondary-foreground: #eef2f4;
+  --muted: #1a232e;
+  --muted-foreground: #94a3af;
+  --accent: #2a1c14;
+  --accent-foreground: #eab08e;
+  --destructive: #e5493a;
+  --destructive-foreground: #fff8f2;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #d97350;
+  --chart-1: #d97350;
+  --chart-2: #e0b25c;
+  --chart-3: #5c8cba;
+  --chart-4: #94a3af;
+  --chart-5: #3a4652;
+  --sidebar: #070d15;
+  --sidebar-foreground: #eef2f4;
+  --sidebar-primary: #d97350;
+  --sidebar-primary-foreground: #1a0e08;
+  --sidebar-accent: rgba(255, 255, 255, 0.06);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #d97350;
+}
+
+@layer base {
+  .shadcn-scope {
+    background: var(--background);
+    color: var(--foreground);
+  }
+}

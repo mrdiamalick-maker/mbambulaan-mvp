@@ -79,13 +79,13 @@ export function WorkFocus({ work, role }: { work: MbambulaanWork; role: WorkRole
         <div className="p-5 lg:p-7">
           <p className="label">À faire maintenant</p>
           <h3 className="mt-2 text-2xl font-black text-[var(--ink)]">{view.question}</h3>
-          <p className="mt-4 text-sm leading-6 text-[var(--muted)]">{nextAction}</p>
+          <p className="mt-4 text-sm leading-6 text-[var(--legacy-muted)]">{nextAction}</p>
 
           {latestUpdate && (
             <div className="mt-5 flex items-start gap-3 rounded-[var(--radius-md)] bg-[var(--lagoon-100)] p-4">
               <MessageCircleMore className="mt-0.5 shrink-0 text-[var(--lagoon-600)]" size={18} />
               <div>
-                <p className="text-xs font-semibold text-[var(--muted)]">Nouvelle utile</p>
+                <p className="text-xs font-semibold text-[var(--legacy-muted)]">Nouvelle utile</p>
                 <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{latestUpdate.action}</p>
               </div>
             </div>
@@ -93,11 +93,11 @@ export function WorkFocus({ work, role }: { work: MbambulaanWork; role: WorkRole
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <div className="rounded-[var(--radius-md)] bg-[var(--sand-100)] p-4">
-              <p className="text-xs font-semibold text-[var(--muted)]">Qui agit maintenant</p>
+              <p className="text-xs font-semibold text-[var(--legacy-muted)]">Qui agit maintenant</p>
               <p className="mt-1 font-semibold text-[var(--ink)]">{view.currentOwner}</p>
             </div>
             <div className="rounded-[var(--radius-md)] bg-[var(--sand-100)] p-4">
-              <p className="text-xs font-semibold text-[var(--muted)]">Qui intervient ensuite</p>
+              <p className="text-xs font-semibold text-[var(--legacy-muted)]">Qui intervient ensuite</p>
               <p className="mt-1 font-semibold text-[var(--ink)]">{view.nextOwner}</p>
             </div>
           </div>
@@ -113,7 +113,7 @@ export function WorkFocus({ work, role }: { work: MbambulaanWork; role: WorkRole
                 {event.fromCommunication ? <MessageCircleMore className="mt-0.5 shrink-0 text-[var(--lagoon-600)]" size={17} /> : event.done ? <Check className="mt-0.5 shrink-0 text-[var(--lagoon-600)]" size={17} /> : <Circle className="mt-0.5 shrink-0 text-[var(--sand-500)]" size={17} />}
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-[var(--ink)]">{event.label}</p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">{event.meta}</p>
+                  <p className="mt-1 text-xs text-[var(--legacy-muted)]">{event.meta}</p>
                 </div>
               </div>
             ))}

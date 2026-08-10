@@ -75,7 +75,7 @@ export function AccessSummary({
       </h2>
 
 
-      <p className="mt-2 text-sm text-[var(--muted)]">
+      <p className="mt-2 text-sm text-[var(--legacy-muted)]">
         {organization?.name}
       </p>
 

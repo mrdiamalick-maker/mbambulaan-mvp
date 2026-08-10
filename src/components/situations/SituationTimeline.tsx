@@ -98,7 +98,7 @@ export function SituationTimeline({
               className={
                 index === currentIndex
                   ? "font-black"
-                  : "text-sm text-[var(--muted)]"
+                  : "text-sm text-[var(--legacy-muted)]"
               }
             >
               {step.label}

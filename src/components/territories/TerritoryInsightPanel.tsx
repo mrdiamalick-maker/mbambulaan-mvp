@@ -54,7 +54,7 @@ export function TerritoryInsightPanel({
           Ce que le territoire nous dit
         </h2>
 
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="mt-2 text-sm text-[var(--legacy-muted)]">
           Lecture croisée des tensions, capacités et opportunités.
         </p>
 
@@ -141,14 +141,14 @@ function InsightCard({
         {items.slice(0,3).map((item)=>(
           <p
             key={item}
-            className="text-sm font-semibold text-[var(--muted)]"
+            className="text-sm font-semibold text-[var(--legacy-muted)]"
           >
             {item}
           </p>
         ))}
 
         {items.length === 0 && (
-          <p className="text-sm text-[var(--muted)]">
+          <p className="text-sm text-[var(--legacy-muted)]">
             Aucun signal détecté.
           </p>
         )}

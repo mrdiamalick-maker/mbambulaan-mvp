@@ -29,7 +29,7 @@ export function CoordinationProposal({
           Préparer une réponse coordonnée
         </h2>
 
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+        <p className="mt-2 text-sm leading-6 text-[var(--legacy-muted)]">
           Les acteurs concernés pourront être mobilisés lorsque la situation nécessitera une action collective.
         </p>
       </section>
@@ -89,7 +89,7 @@ export function CoordinationProposal({
                     {actor.name}
                   </p>
 
-                  <p className="text-xs text-[var(--muted)]">
+                  <p className="text-xs text-[var(--legacy-muted)]">
                     {actor.role.replaceAll("_", " ")}
                     {actor.verified && " · Vérifié"}
                   </p>
@@ -129,7 +129,7 @@ export function CoordinationProposal({
                       {commitment.label}
                     </p>
 
-                    <p className="mt-1 text-xs text-[var(--muted)]">
+                    <p className="mt-1 text-xs text-[var(--legacy-muted)]">
                       Statut : {commitment.status.replaceAll("_", " ")}
                     </p>
                   </div>

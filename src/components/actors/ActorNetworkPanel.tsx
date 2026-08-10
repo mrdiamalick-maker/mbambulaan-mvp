@@ -49,7 +49,7 @@ export function ActorNetworkPanel({
           Les acteurs capables d&apos;agir
         </h2>
 
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="mt-2 text-sm text-[var(--legacy-muted)]">
           Acteurs présents sur le territoire et engagements associés.
         </p>
 
@@ -75,7 +75,7 @@ export function ActorNetworkPanel({
                     {actor.name}
                   </p>
 
-                  <p className="mt-1 text-xs text-[var(--muted)]">
+                  <p className="mt-1 text-xs text-[var(--legacy-muted)]">
                     {actor.role.replaceAll("_", " ")}
                   </p>
 
@@ -92,7 +92,7 @@ export function ActorNetworkPanel({
               </div>
 
 
-              <p className="mt-3 text-xs text-[var(--muted)]">
+              <p className="mt-3 text-xs text-[var(--legacy-muted)]">
                 {actor.phone}
               </p>
 
@@ -140,7 +140,7 @@ export function ActorNetworkPanel({
 
 
       {actors.length === 0 && (
-        <div className="p-6 text-sm text-[var(--muted)]">
+        <div className="p-6 text-sm text-[var(--legacy-muted)]">
           Aucun acteur identifié sur ce territoire.
         </div>
       )}

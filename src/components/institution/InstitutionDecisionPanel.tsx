@@ -85,7 +85,7 @@ export function InstitutionDecisionPanel({
             </div>
 
 
-            <p className="mt-3 text-sm text-[var(--muted)]">
+            <p className="mt-3 text-sm text-[var(--legacy-muted)]">
               {item.explanation}
             </p>
 

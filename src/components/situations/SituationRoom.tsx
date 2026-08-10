@@ -108,7 +108,7 @@ export function SituationRoom({
             {observation?.source ?? "Source inconnue"}
           </h2>
 
-          <p className="mt-3 text-sm text-[var(--muted)]">
+          <p className="mt-3 text-sm text-[var(--legacy-muted)]">
             {observation?.description}
           </p>
 
@@ -159,7 +159,7 @@ export function SituationRoom({
                 {item.label}
               </p>
 
-              <p className="mt-1 text-sm text-[var(--muted)]">
+              <p className="mt-1 text-sm text-[var(--legacy-muted)]">
                 {item.detail}
               </p>
 

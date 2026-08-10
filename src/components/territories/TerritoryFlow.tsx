@@ -101,7 +101,7 @@ export function TerritoryFlow({
           Comment la valeur circule dans le territoire
         </h2>
 
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="mt-2 text-sm text-[var(--legacy-muted)]">
           De la sortie en mer jusqu&apos;à la valorisation économique.
         </p>
 
@@ -130,7 +130,7 @@ export function TerritoryFlow({
                 {step.value}
               </p>
 
-              <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+              <p className="mt-2 text-xs leading-5 text-[var(--legacy-muted)]">
                 {step.detail}
               </p>
 

@@ -46,7 +46,7 @@ export function ValueImpactPanel({
         </h2>
 
 
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="mt-2 text-sm text-[var(--legacy-muted)]">
           Résultats observés grâce à la coordination des acteurs.
         </p>
 

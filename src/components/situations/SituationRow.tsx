@@ -15,11 +15,11 @@ export function SituationRow({ situation, state }: { situation: Situation; state
           <TrustBadge trust={situation.trust} />
         </div>
         <h3 className="mt-2 font-semibold text-[var(--ink)]">{situation.title}</h3>
-        <p className="mt-1 flex items-center gap-1.5 text-sm text-[var(--muted)]"><MapPin size={14} /> {territory?.name}</p>
+        <p className="mt-1 flex items-center gap-1.5 text-sm text-[var(--legacy-muted)]"><MapPin size={14} /> {territory?.name}</p>
       </div>
       <div>
         <StatusBadge status={situation.status} />
-        <p className="mt-2 max-w-64 text-xs leading-5 text-[var(--muted)]">{situation.nextStep}</p>
+        <p className="mt-2 max-w-64 text-xs leading-5 text-[var(--legacy-muted)]">{situation.nextStep}</p>
       </div>
       <Link href={`/app/situations/${situation.id}`} className="inline-flex items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-[var(--line-strong)] bg-[var(--white)] px-3 py-2 text-sm font-semibold text-[var(--ocean-800)] transition-colors duration-200 hover:bg-[var(--lagoon-100)]">
         Ouvrir <ArrowRight size={15} />

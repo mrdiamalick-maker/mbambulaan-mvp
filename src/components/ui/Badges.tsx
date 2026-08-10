@@ -7,7 +7,7 @@ const badgeVariants: Record<BadgeVariant, string> = {
   default: "border-transparent bg-[var(--ocean-800)] text-[var(--white)]",
   secondary: "border-transparent bg-[var(--lagoon-100)] text-[var(--lagoon-600)]",
   destructive: "border-transparent bg-[var(--coral-100)] text-[var(--coral-600)]",
-  outline: "border-[var(--line-strong)] bg-transparent text-[var(--muted)]"
+  outline: "border-[var(--line-strong)] bg-transparent text-[var(--legacy-muted)]"
 };
 
 function Badge({ children, variant = "secondary", title }: { children: React.ReactNode; variant?: BadgeVariant; title?: string }) {

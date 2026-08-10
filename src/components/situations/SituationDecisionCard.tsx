@@ -71,7 +71,7 @@ export function SituationDecisionCard({
               {situation.title}
             </h3>
 
-            <p className="mt-2 text-sm text-[var(--muted)]">
+            <p className="mt-2 text-sm text-[var(--legacy-muted)]">
               {territory?.name}
             </p>
           </div>
@@ -118,7 +118,7 @@ export function SituationDecisionCard({
           </p>
 
           {situation.dueAt && (
-            <p className="mt-2 flex items-center gap-1 text-xs text-[var(--muted)]">
+            <p className="mt-2 flex items-center gap-1 text-xs text-[var(--legacy-muted)]">
               <Clock3 size={13}/>
               Échéance définie
             </p>

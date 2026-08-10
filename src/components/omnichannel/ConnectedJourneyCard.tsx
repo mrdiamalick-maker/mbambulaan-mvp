@@ -14,7 +14,7 @@ export function ConnectedJourneyCard() {
       <div className="border-b border-[var(--line)] p-5">
         <p className="label">Un seul parcours Mbàmbulaan</p>
         <h2 className="mt-2 text-xl font-semibold text-[var(--ink)]">Capitaine et agent de quai travaillent sur la même arrivée</h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+        <p className="mt-2 text-sm leading-6 text-[var(--legacy-muted)]">
           Référence {sharedArrivalDemo.arrivalId} · {sharedArrivalDemo.vessel} · quai de {sharedArrivalDemo.quay}
         </p>
       </div>
@@ -28,7 +28,7 @@ export function ConnectedJourneyCard() {
                   <Icon size={17} aria-hidden="true" />
                 </span>
                 <div>
-                  <p className="text-xs font-semibold text-[var(--muted)]">{step.actor}</p>
+                  <p className="text-xs font-semibold text-[var(--legacy-muted)]">{step.actor}</p>
                   <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{step.label}</p>
                 </div>
               </div>

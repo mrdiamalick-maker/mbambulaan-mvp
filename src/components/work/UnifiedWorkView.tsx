@@ -64,18 +64,18 @@ export function UnifiedWorkView({ role }: { role: WorkRole }) {
         <section className="grid gap-5 md:grid-cols-2">
           <div className="surface p-6">
             <p className="label">Reste simple</p>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{copy.quickChannel}</p>
+            <p className="mt-3 text-sm leading-6 text-[var(--legacy-muted)]">{copy.quickChannel}</p>
           </div>
           <div className="surface p-6">
             <p className="label">Nécessite cette vue</p>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{copy.detailedView}</p>
+            <p className="mt-3 text-sm leading-6 text-[var(--legacy-muted)]">{copy.detailedView}</p>
           </div>
         </section>
 
         <section className="surface flex flex-wrap items-center justify-between gap-4 p-6">
           <div>
             <p className="font-semibold text-[var(--ink)]">La même activité, quel que soit le moyen de communication</p>
-            <p className="mt-1 text-sm text-[var(--muted)]">Le rôle change uniquement les informations visibles, la décision attendue et l’action autorisée.</p>
+            <p className="mt-1 text-sm text-[var(--legacy-muted)]">Le rôle change uniquement les informations visibles, la décision attendue et l’action autorisée.</p>
           </div>
           <Link href="/terrain/telephone" className="btn-secondary">
             <PhoneCall size={16} /> Demander un appel <ArrowRight size={15} />

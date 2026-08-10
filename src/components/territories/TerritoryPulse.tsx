@@ -58,7 +58,7 @@ export function TerritoryPulse({
           {territory.name}
         </h2>
 
-        <p className="mt-1 text-sm text-[var(--muted)]">
+        <p className="mt-1 text-sm text-[var(--legacy-muted)]">
           État opérationnel du territoire.
         </p>
 

@@ -38,7 +38,7 @@ export function CoordinationUpdateStrip() {
               À faire : {nextAction} <ArrowRight size={12} />
             </p>
           )}
-          <p className="mt-1 text-xs text-[var(--muted)]">{time} · {latest.workId}</p>
+          <p className="mt-1 text-xs text-[var(--legacy-muted)]">{time} · {latest.workId}</p>
         </div>
       </div>
     </section>
