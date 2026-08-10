@@ -25,19 +25,19 @@ const intents = [
     title: "Je propose mes services",
     text: "Faites connaître vos capacités, vos territoires d’intervention et vos conditions à Mbàmbulaan.",
     icon: UsersRound,
-    href: "/contact?intent=capacity"
+    href: "/contact?intent=contribution"
   },
   {
     title: "Je représente une organisation",
     text: "Entreprise, ONG, programme ou institution : étudions une intervention, un partenariat ou un déploiement.",
     icon: Building2,
-    href: "/contact?intent=organization"
+    href: "/contact?intent=organisation"
   },
   {
     title: "Je souhaite devenir partenaire",
-    text: "Proposer une collaboration structurée avec Mbàmbulaan, sur un territoire, un programme ou une capability.",
+    text: "Proposer une collaboration structurée avec Mbàmbulaan, sur un territoire, un programme ou une capacité.",
     icon: Handshake,
-    href: "/contact?intent=partnership"
+    href: "/contact?intent=partenariat"
   },
   {
     title: "Presse, recherche ou information",
@@ -49,7 +49,7 @@ const intents = [
     title: "Autre demande",
     text: "Vous ne savez pas quelle entrée choisir ? Décrivez simplement votre besoin à Mbàmbulaan.",
     icon: MessageCircle,
-    href: "/contact?intent=other"
+    href: "/contact?intent=autre"
   }
 ] as const;
 
@@ -83,8 +83,8 @@ export default function ContactPage() {
               <p className="mt-4 max-w-2xl text-sm leading-7 text-white/64">WhatsApp, téléphone et email sont des canaux d’entrée vers Mbàmbulaan. Ils ne remplacent pas la qualification : ils facilitent la relation lorsque le web n’est pas le canal le plus naturel.</p>
             </div>
             <div className="grid border-t border-white/10 sm:grid-cols-3 lg:border-l lg:border-t-0 lg:grid-cols-1">
-              <a href="#" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><MessageCircle size={18} className="text-[#74e1d6]" /> WhatsApp</a>
-              <a href="#" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><PhoneCall size={18} className="text-[#74e1d6]" /> Être rappelé</a>
+              <Link href="/contact?intent=whatsapp" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><MessageCircle size={18} className="text-[#74e1d6]" /> WhatsApp</Link>
+              <Link href="/contact?intent=callback" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><PhoneCall size={18} className="text-[#74e1d6]" /> Être rappelé</Link>
               <a href="mailto:contact@mbambulaan.sn" className="flex items-center gap-3 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><Mail size={18} className="text-[#74e1d6]" /> Email</a>
             </div>
           </div>
