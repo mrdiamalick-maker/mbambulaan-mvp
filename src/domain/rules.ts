@@ -301,12 +301,12 @@ function applyCommunityCommand(state: ProductState, command: Extract<Command, { 
   if (!post) throw new Error("Publication introuvable.");
   if (post.status === "transforme") throw new Error("Cette publication a déjà été transformée.");
   const situationId = id("sit-community");
-  const observationId = id("obs-community");
+  const signalId = id("obs-community");
   const next: ProductState = {
     ...state,
-    observations: [
+    signals: [
       {
-        id: observationId,
+        id: signalId,
         territoryId: post.territoryId,
         actorId: post.authorId,
         createdAt: timestamp(),
@@ -317,13 +317,13 @@ function applyCommunityCommand(state: ProductState, command: Extract<Command, { 
         trust: "declaree",
         source: `Community · ${post.community}`
       },
-      ...state.observations
+      ...state.signals
     ],
     situations: [
       {
         id: situationId,
         reference: `MBA-COM-${crypto.randomUUID().slice(0, 6).toUpperCase()}`,
-        observationIds: [observationId],
+        signalIds: [signalId],
         territoryId: post.territoryId,
         title: post.title,
         description: post.body,
@@ -374,13 +374,13 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
     if (!command.title.trim() || !command.description.trim()) throw new Error("Le titre et la description sont obligatoires.");
     if (!state.territories.some((item) => item.id === command.territoryId)) throw new Error("Territoire inconnu.");
     const suffix = crypto.randomUUID().slice(0, 8);
-    const observationId = `obs-${suffix}`;
+    const signalId = `obs-${suffix}`;
     const situationId = `sit-${suffix}`;
     const createdAt = timestamp();
     const newSituation: Situation = {
       id: situationId,
       reference: `MBA-SIT-${suffix.toUpperCase()}`,
-      observationIds: [observationId],
+      signalIds: [signalId],
       territoryId: command.territoryId,
       title: command.title.trim(),
       description: command.description.trim(),
@@ -394,9 +394,9 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
     validateSituation(newSituation);
     const next: ProductState = {
       ...state,
-      observations: [
+      signals: [
         {
-          id: observationId,
+          id: signalId,
           territoryId: command.territoryId,
           actorId: command.actorId,
           createdAt,
@@ -407,7 +407,7 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
           trust: "declaree",
           source: command.channel === "poste_quai" ? "Poste de quai" : "Déclaration terrain"
         },
-        ...state.observations
+        ...state.signals
       ],
       situations: [newSituation, ...state.situations]
     };

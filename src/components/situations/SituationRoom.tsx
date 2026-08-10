@@ -21,8 +21,8 @@ export function SituationRoom({
     (item) => item.id === situation.territoryId
   );
 
-  const observation = state.observations.find(
-    (item) => situation.observationIds.includes(item.id)
+  const signal = state.signals.find(
+    (item) => situation.signalIds.includes(item.id)
   );
 
   const coordination = state.coordinationSpaces.find(
@@ -105,17 +105,17 @@ export function SituationRoom({
           </p>
 
           <h2 className="mt-3 text-xl font-black">
-            {observation?.source ?? "Source inconnue"}
+            {signal?.source ?? "Source inconnue"}
           </h2>
 
           <p className="mt-3 text-sm text-[var(--legacy-muted)]">
-            {observation?.description}
+            {signal?.description}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3 text-xs font-bold">
 
             <span className="rounded-full bg-[var(--canvas)] px-3 py-2">
-              Canal : {observation?.channel.replaceAll("_", " ")}
+              Canal : {signal?.channel.replaceAll("_", " ")}
             </span>
 
             <span className="rounded-full bg-[var(--canvas)] px-3 py-2">

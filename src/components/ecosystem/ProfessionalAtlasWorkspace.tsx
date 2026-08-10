@@ -82,7 +82,7 @@ function buildWorkbench(state: ProductState, territoryId: string, lens: Lens, sp
       title: item.title,
       metric: item.priority === "critique" ? "Aujourd’hui" : item.priority === "haute" ? "À coordonner" : "Suivi",
       detail: item.nextStep,
-      source: state.observations.find((observation) => item.observationIds.includes(observation.id))?.source ?? "Signal territorial",
+      source: state.signals.find((signal) => item.signalIds.includes(signal.id))?.source ?? "Signal territorial",
       trust: item.trust,
       href: `/app/situations/${item.id}`,
       urgency: item.priority === "critique" ? "critique" : item.priority === "haute" ? "attention" : "normal"

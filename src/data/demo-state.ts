@@ -47,7 +47,7 @@ function situation(
   return {
     id,
     reference: `MBA-SIT-${id.slice(-4).toUpperCase()}`,
-    observationIds: [`obs-${id}`],
+    signalIds: [`obs-${id}`],
     territoryId,
     title,
     description: title,
@@ -617,7 +617,7 @@ export function createDemoState(): ProductState {
         status: item.status === "indisponible" ? "indisponible" : "disponible"
       })),
     opportunities,
-    observations: situations.map((item) => ({
+    signals: situations.map((item) => ({
       id: `obs-${item.id}`,
       territoryId: item.territoryId,
       actorId: "act-operateur",

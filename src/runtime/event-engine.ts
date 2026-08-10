@@ -1,5 +1,5 @@
 import type { MbambulaanEvent, EventAssessment } from "@/domain/events";
-import type { Observation, ProductState, Situation } from "@/domain/types";
+import type { ProductState, Signal, Situation } from "@/domain/types";
 
 function eventId(prefix: string, eventId: string) {
   return `${prefix}-${eventId}`;
@@ -56,15 +56,15 @@ export function applyEvent(
   event: MbambulaanEvent
 ): ProductState {
   const assessment = assessEvent(event);
-  const observationId = eventId("obs", event.id);
+  const signalId = eventId("obs", event.id);
   const situationId = eventId("sit", event.id);
 
-  if (state.observations.some((item) => item.id === observationId)) {
+  if (state.signals.some((item) => item.id === signalId)) {
     return state;
   }
 
-  const observation: Observation = {
-    id: observationId,
+  const signal: Signal = {
+    id: signalId,
     territoryId: event.territoryId,
     actorId: event.actorId,
     createdAt: event.occurredAt,
@@ -79,7 +79,7 @@ export function applyEvent(
   const situation: Situation = {
     id: situationId,
     reference: `MBA-EVT-${event.id.slice(-6).toUpperCase()}`,
-    observationIds: [observationId],
+    signalIds: [signalId],
     territoryId: event.territoryId,
     title: assessment.title,
     description: assessment.description,
@@ -102,7 +102,7 @@ export function applyEvent(
   return {
     ...state,
     revision: state.revision + 1,
-    observations: [observation, ...state.observations],
+    signals: [signal, ...state.signals],
     situations: [situation, ...state.situations],
     audit: [
       {
@@ -112,7 +112,7 @@ export function applyEvent(
         objectType: "evenement",
         objectId: event.id,
         action: "event_received",
-        detail: `${event.type} transformé en observation et situation`
+        detail: `${event.type} transformé en signal et situation`
       },
       ...state.audit
     ]

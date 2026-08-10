@@ -69,7 +69,7 @@ export function AtlasWorkspace({ publicMode = false }: { publicMode?: boolean })
           subtitle: "Situation territoriale",
           value: item.priority === "critique" ? "Action requise" : item.priority === "haute" ? "À coordonner" : "À surveiller",
           detail: item.nextStep,
-          source: state.observations.find((observation) => item.observationIds.includes(observation.id))?.source ?? "Signal territorial",
+          source: state.signals.find((signal) => item.signalIds.includes(signal.id))?.source ?? "Signal territorial",
           updatedAt: item.history.at(-1)?.at,
           trust: item.trust,
           href: `/app/situations/${item.id}`

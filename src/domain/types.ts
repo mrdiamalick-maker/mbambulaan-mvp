@@ -218,7 +218,12 @@ export interface HistoryEntry {
   detail: string;
 }
 
-export interface Observation {
+// Renommé Observation → Signal (Lot 1) pour aligner le vocabulaire du code
+// sur celui du cahier des charges maître (§4.1 étape 1, §6) : un signal est
+// le fait brut qui déclenche la boucle de coordination, avant qualification.
+// Même forme qu'avant le renommage — pas de migration de données requise
+// (le tenant de démonstration est régénéré, jamais persisté durablement).
+export interface Signal {
   id: string;
   territoryId: string;
   actorId: string;
@@ -234,7 +239,7 @@ export interface Observation {
 export interface Situation {
   id: string;
   reference: string;
-  observationIds: string[];
+  signalIds: string[];
   territoryId: string;
   title: string;
   description: string;
@@ -424,7 +429,7 @@ export interface ProductState {
   needs: Need[];
   capacities: Capacity[];
   opportunities: Opportunity[];
-  observations: Observation[];
+  signals: Signal[];
   situations: Situation[];
   coordinationSpaces: CoordinationSpace[];
   priceObservations: PriceObservation[];
@@ -442,7 +447,7 @@ export interface ProductState {
 }
 
 export type Command =
-  | { type: "create_signal"; actorId: string; territoryId: string; title: string; description: string; channel: Observation["channel"] }
+  | { type: "create_signal"; actorId: string; territoryId: string; title: string; description: string; channel: Signal["channel"] }
   | { type: "qualify"; situationId: string; actorId: string }
   | { type: "prioritize"; situationId: string; actorId: string }
   | { type: "coordinate"; situationId: string; actorId: string }

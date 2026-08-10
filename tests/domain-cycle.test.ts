@@ -73,7 +73,7 @@ test("un nouveau signal reçoit des identifiants uniques et reste déclaratif", 
   const first = applyCommand(state, command);
   const second = applyCommand(first, command);
   assert.notEqual(first.situations[0].id, second.situations[0].id);
-  assert.notEqual(first.observations[0].id, second.observations[0].id);
+  assert.notEqual(first.signals[0].id, second.signals[0].id);
   assert.equal(second.situations[0].trust, "declaree");
   assert.equal(second.situations[0].status, "recue");
 });

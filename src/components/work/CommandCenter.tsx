@@ -83,7 +83,7 @@ export function CommandCenter({
     .filter((commitment) => commitment.status !== "terminee")
     .slice(0, 6);
 
-  const latestSignals = state.observations
+  const latestSignals = state.signals
     .filter((item) => territoryIds.size === 0 || territoryIds.has(item.territoryId))
     .slice(0, 6);
 

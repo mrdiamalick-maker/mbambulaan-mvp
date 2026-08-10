@@ -3,7 +3,7 @@ import test from "node:test";
 import { createDemoState } from "../src/data/demo-state";
 import { applyEvent } from "../src/runtime/event-engine";
 
-test("un événement terrain devient une observation et une situation", () => {
+test("un événement terrain devient un signal et une situation", () => {
   const state = createDemoState();
 
   const next = applyEvent(state, {
@@ -30,11 +30,11 @@ test("un événement terrain devient une observation et une situation", () => {
   );
   assert.equal(situation?.priority, "critique");
 
-  const observation = next.observations.find(
+  const signal = next.signals.find(
     (item) => item.id === "obs-evt-glace-joal-001"
   );
 
-  assert.ok(observation);
-  assert.equal(observation?.channel, "poste_quai");
-  assert.equal(observation?.source, "Poste de quai de Joal");
+  assert.ok(signal);
+  assert.equal(signal?.channel, "poste_quai");
+  assert.equal(signal?.source, "Poste de quai de Joal");
 });

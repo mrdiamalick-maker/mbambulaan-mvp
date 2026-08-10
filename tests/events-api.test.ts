@@ -4,7 +4,7 @@ import { createDemoState } from "../src/data/demo-state";
 import type { MbambulaanEvent } from "../src/domain/events";
 import { applyEvent } from "../src/runtime/event-engine";
 
-test("un événement de retour annoncé crée une observation et une situation opérationnelle", () => {
+test("un événement de retour annoncé crée un signal et une situation opérationnelle", () => {
   const state = createDemoState();
   const event: MbambulaanEvent = {
     id: "evt-retour-jambar",
@@ -21,8 +21,8 @@ test("un événement de retour annoncé crée une observation et une situation o
   const next = applyEvent(state, event);
 
   assert.equal(next.revision, state.revision + 1);
-  assert.equal(next.observations[0].id, "obs-evt-retour-jambar");
-  assert.equal(next.observations[0].channel, "telephone");
+  assert.equal(next.signals[0].id, "obs-evt-retour-jambar");
+  assert.equal(next.signals[0].channel, "telephone");
   assert.equal(next.situations[0].id, "sit-evt-retour-jambar");
   assert.equal(next.situations[0].title, "Retour de pêche annoncé");
   assert.equal(next.situations[0].priority, "haute");

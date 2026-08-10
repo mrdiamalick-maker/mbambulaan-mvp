@@ -1,4 +1,4 @@
-import type { Observation, Priority, TrustLevel } from "./types";
+import type { Priority, Signal, TrustLevel } from "./types";
 
 export type MbambulaanEvent =
   | {
@@ -11,7 +11,7 @@ export type MbambulaanEvent =
       status: "operationnelle" | "fragile" | "indisponible";
       availableCapacity: number;
       source: string;
-      channel: Observation["channel"];
+      channel: Signal["channel"];
     }
   | {
       id: string;
@@ -22,7 +22,7 @@ export type MbambulaanEvent =
       tripId: string;
       expectedReturnAt: string;
       source: string;
-      channel: Observation["channel"];
+      channel: Signal["channel"];
     }
   | {
       id: string;
@@ -33,13 +33,13 @@ export type MbambulaanEvent =
       subject: string;
       requestedChannel: "appel" | "sms" | "whatsapp" | "poste_quai";
       source: string;
-      channel: Observation["channel"];
+      channel: Signal["channel"];
     };
 
 export interface EventAssessment {
   title: string;
   description: string;
-  category: Observation["category"];
+  category: Signal["category"];
   priority: Priority;
   trust: TrustLevel;
   nextStep: string;
