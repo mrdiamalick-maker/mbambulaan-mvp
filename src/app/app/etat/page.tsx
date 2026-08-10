@@ -47,8 +47,11 @@ import {
   type VigilanceSeverity
 } from "@/domain/ministry/vigilance";
 
-const activityLabels: Record<Territory["activity"], string> = { stable: "Stable", vigilance: "Vigilance", critique: "Critique" };
 const severityToTag: Record<VigilanceSeverity, "stable" | "vigilance" | "critique"> = { faible: "stable", moyenne: "vigilance", haute: "vigilance", critique: "critique" };
+// Niveaux de risque des situations à arbitrer — mêmes libellés que la
+// légende carte du référentiel D9 (Élevé / Moyen / Faible).
+const priorityLabels: Record<Situation["priority"], string> = { critique: "Critique", haute: "Élevé", moyenne: "Moyen", faible: "Faible" };
+const priorityToTag: Record<Situation["priority"], "stable" | "vigilance" | "critique"> = { critique: "critique", haute: "vigilance", moyenne: "stable", faible: "stable" };
 const glyphBorderColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "#1d4468", vigilance: "#c68a2c", critique: "#b6522f" };
 const glyphFillColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "rgba(29,68,104,.05)", vigilance: "rgba(198,138,44,.07)", critique: "rgba(182,82,47,.07)" };
 
@@ -125,35 +128,6 @@ export default function EtatPage() {
     return { kind: "calme" as const, glyphStatus: "stable" as const };
   }, [openCases, state]);
 
-  const missions: Mission[] = useMemo(() => {
-    if (!state) return [];
-    const fromCases: Mission[] = openCases.map((item) => ({
-      key: `case-${item.id}`,
-      territoryId: item.territoryId,
-      territoryLabel: item.territoryLabel,
-      raison: `Signal ${vigilanceCategoryLabels[item.category].toLowerCase()} — gravité ${vigilanceSeverityLabels[item.severity].toLowerCase()}`,
-      action: "Vérifier la situation sur place et transmettre aux autorités compétentes si confirmée.",
-      glyphStatus: severityToTag[item.severity],
-      suggestedObjective: "verification_vigilance"
-    }));
-    const coveredTerritoryIds = new Set(openCases.map((item) => item.territoryId));
-    const fromTerritories: Mission[] = state.territories
-      .filter((item) => item.activity !== "stable" && !coveredTerritoryIds.has(item.id))
-      .map((item) => {
-        const fragile = state.infrastructures.filter((infra) => infra.territoryId === item.id && infra.status !== "operationnelle").length;
-        return {
-          key: `territoire-${item.id}`,
-          territoryId: item.id,
-          territoryLabel: item.name,
-          raison: fragile > 0 ? `Territoire en ${activityLabels[item.activity].toLowerCase()} — ${fragile} infrastructure(s) fragile(s) ou indisponible(s)` : `Territoire en ${activityLabels[item.activity].toLowerCase()}`,
-          action: "Rencontrer les acteurs locaux et évaluer les besoins prioritaires.",
-          glyphStatus: item.activity,
-          suggestedObjective: "rencontre_pecheurs" as const
-        };
-      });
-    return [...fromCases, ...fromTerritories].sort((a, b) => rankGlyph(b.glyphStatus) - rankGlyph(a.glyphStatus)).slice(0, 5);
-  }, [state, openCases]);
-
   const leadIndicators = useMemo(() => {
     if (!state) return [];
     return state.initiatives.slice(0, 2).map((initiative) => ({ title: initiative.title, indicator: initiative.indicators[0] })).filter((item) => item.indicator);
@@ -200,6 +174,16 @@ export default function EtatPage() {
     count: state.situations.filter((item) => item.status === stage.status).length
   }));
 
+  // Situations nécessitant un arbitrage institutionnel — priorité élevée
+  // ou critique, dossier non réglé. Remplace les anciennes listes
+  // parallèles « vigilance » et « missions » (référentiel D9) par une
+  // seule liste orientée décision, cohérente avec un espace État
+  // décision-first plutôt qu'une file de travail.
+  const situationsAArbitrer = state.situations
+    .filter((item) => item.status !== "reglee" && (item.priority === "critique" || item.priority === "haute"))
+    .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])
+    .slice(0, 5);
+
   return (
     <div className="shadcn-scope space-y-10 bg-background p-5 pb-16 lg:p-8">
       <div className="flex items-start gap-3 rounded-lg border bg-card px-4 py-3 text-sm">
@@ -235,7 +219,7 @@ export default function EtatPage() {
                 {dominant.kind === "territoire" && (
                   <Button variant="secondary" onClick={() => setTerritoryDrawer(dominant.territory)}>Voir le territoire <ArrowRight /></Button>
                 )}
-                <Button variant="secondary" asChild><a href="#signaux">Voir la vigilance <ArrowRight /></a></Button>
+                <Button variant="secondary" asChild><a href="#arbitrage">Voir les situations à arbitrer <ArrowRight /></a></Button>
               </div>
             </div>
           </div>
@@ -460,67 +444,67 @@ export default function EtatPage() {
 
       <Separator />
 
-      {/* Défi 3 — vigilance */}
+      {/* Situations critiques à arbitrer — remplace les anciennes listes
+          « vigilance » et « missions » (référentiel D9, plan Lot 2 étape
+          3) : une seule liste orientée décision institutionnelle, avec
+          deux issues possibles par situation — arbitrer (Situation Room)
+          ou envoyer une visite terrain pour vérifier avant de trancher. */}
       <BlurFade inView>
-      <section id="signaux">
+      <section id="arbitrage">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-primary">Lutter contre les fléaux</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight">Vigilance — signaux à qualifier.</h2>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary">Lutter contre les fléaux, arbitrer les priorités</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight">Situations critiques à arbitrer.</h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{situationsAArbitrer.length} situation(s) de risque élevé ou critique attendent une décision, sur {state.situations.filter((item) => item.status !== "reglee").length} dossier(s) ouverts.</p>
           </div>
-          <Button variant="outline" onClick={() => setSignalDrawerOpen(true)}><Radio /> Signaler une situation</Button>
+          <div className="flex shrink-0 gap-2">
+            <Button variant="outline" onClick={() => setSignalDrawerOpen(true)}><Radio /> Signaler une situation</Button>
+            <Button variant="ghost" asChild><Link href="/app/situations">Voir toutes les situations <ArrowRight /></Link></Button>
+          </div>
         </div>
-        {openCases.length === 0 ? (
-          <p className="mt-5 text-sm text-muted-foreground">Aucun signal ouvert pour le moment.</p>
+        {situationsAArbitrer.length === 0 ? (
+          <p className="mt-5 text-sm text-muted-foreground">Aucune situation de risque élevé ou critique en attente d’arbitrage pour le moment.</p>
         ) : (
           <div className="mt-5 space-y-2.5">
-            {openCases.map((item) => (
-              <Card key={item.id} className="flex-row flex-wrap items-center justify-between gap-3 p-4" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[severityToTag[item.severity]], backgroundColor: glyphFillColor[severityToTag[item.severity]] }}>
-                <div className="flex items-center gap-3">
-                  <TensionGlyph status={severityToTag[item.severity]} size={30} />
-                  <div>
-                    <p className="text-sm font-semibold">{vigilanceCategoryLabels[item.category]} · {item.territoryLabel}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{item.description}</p>
-                    <p className="mt-1 text-[11px] text-muted-foreground/70">Signalé le {new Date(item.createdAt).toLocaleDateString("fr-FR")} · gravité {vigilanceSeverityLabels[item.severity].toLowerCase()}</p>
+            {situationsAArbitrer.map((situation) => {
+              const territory = state.territories.find((item) => item.id === situation.territoryId);
+              const tag = priorityToTag[situation.priority];
+              const stageLabel = pipelineStages.find((stage) => stage.status === situation.status)?.label ?? situation.status;
+              return (
+                <Card key={situation.id} className="flex-row flex-wrap items-center justify-between gap-3 p-4" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[tag], backgroundColor: glyphFillColor[tag] }}>
+                  <div className="flex items-center gap-3">
+                    <TensionGlyph status={tag} size={30} />
+                    <div>
+                      <p className="text-sm font-semibold">{territory?.name ?? situation.territoryId} · {situation.title}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{situation.nextStep}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground/70">Risque {priorityLabels[situation.priority].toLowerCase()} · étape {stageLabel.toLowerCase()}</p>
+                    </div>
                   </div>
-                </div>
-                <Badge variant="outline" className="capitalize">{item.status.replace(/_/g, " ")}</Badge>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
-      </BlurFade>
-
-      <Separator />
-
-      {/* Défi 6 — missions terrain recommandées */}
-      <BlurFade inView>
-      <section>
-        <p className="text-xs font-bold uppercase tracking-widest text-primary">Donner au ministère une activité terrain concrète</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Missions recommandées.</h2>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Générées à partir des tensions et signaux actifs — une liste priorisée, pas un système de gestion.</p>
-        {missions.length === 0 ? (
-          <p className="mt-5 text-sm text-muted-foreground">Aucune mission suggérée : aucune tension active à traiter en priorité.</p>
-        ) : (
-          <div className="mt-5 space-y-2.5">
-            {missions.map((mission) => (
-              <Card key={mission.key} className="flex-row flex-wrap items-center justify-between gap-3 p-4" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[mission.glyphStatus], backgroundColor: glyphFillColor[mission.glyphStatus] }}>
-                <div className="flex items-center gap-3">
-                  <TensionGlyph status={mission.glyphStatus} size={30} />
-                  <div>
-                    <p className="text-sm font-semibold">{mission.territoryLabel}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{mission.raison}</p>
-                    <p className="mt-1 text-xs font-medium text-primary">→ {mission.action}</p>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setMissionDrawer({
+                        key: `situation-${situation.id}`,
+                        territoryId: situation.territoryId,
+                        territoryLabel: territory?.name ?? situation.territoryId,
+                        raison: situation.title,
+                        action: situation.nextStep,
+                        glyphStatus: tag,
+                        suggestedObjective: "verification_vigilance"
+                      })}
+                    >
+                      Planifier une visite
+                    </Button>
+                    <Button size="sm" asChild><Link href={`/app/situations/${situation.id}`}>Arbitrer <ArrowRight /></Link></Button>
                   </div>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => setMissionDrawer(mission)}>Planifier <ArrowRight /></Button>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
         {visits.filter((item) => item.status === "planifiee").length > 0 && (
-          <p className="mt-4 text-xs text-muted-foreground">{visits.filter((item) => item.status === "planifiee").length} mission(s) déjà planifiée(s) par le ministère.</p>
+          <p className="mt-4 text-xs text-muted-foreground">{visits.filter((item) => item.status === "planifiee").length} visite(s) terrain déjà planifiée(s) par le ministère.</p>
         )}
       </section>
       </BlurFade>
@@ -577,9 +561,6 @@ export default function EtatPage() {
 
 function severityRank(severity: VigilanceSeverity) {
   return { faible: 0, moyenne: 1, haute: 2, critique: 3 }[severity];
-}
-function rankGlyph(status: "stable" | "vigilance" | "critique") {
-  return { stable: 0, vigilance: 1, critique: 2 }[status];
 }
 
 const situationPriorityRank: Record<Situation["priority"], number> = { critique: 3, haute: 2, moyenne: 1, faible: 0 };
