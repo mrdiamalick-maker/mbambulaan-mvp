@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Cell, Pie, PieChart } from "recharts";
 import {
   ArrowRight,
   ArrowUpRight,
-  ChevronRight,
   FileDown,
   Radio,
   Send,
@@ -18,7 +16,6 @@ import { DecisionIcon, ResultatIcon, SignalIcon, SituationIcon } from "@/compone
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -54,13 +51,6 @@ const priorityLabels: Record<Situation["priority"], string> = { critique: "Criti
 const priorityToTag: Record<Situation["priority"], "stable" | "vigilance" | "critique"> = { critique: "critique", haute: "vigilance", moyenne: "stable", faible: "stable" };
 const glyphBorderColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "#1d4468", vigilance: "#c68a2c", critique: "#b6522f" };
 const glyphFillColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "rgba(29,68,104,.05)", vigilance: "rgba(198,138,44,.07)", critique: "rgba(182,82,47,.07)" };
-
-const territoryHealthConfig: ChartConfig = {
-  value: { label: "Territoires" },
-  Stable: { label: "Stable", color: "#1d4468" },
-  Vigilance: { label: "Vigilance", color: "#c68a2c" },
-  Critique: { label: "Critique", color: "#b6522f" }
-};
 
 function StatusBadge({ status }: { status: "stable" | "vigilance" | "critique" }) {
   if (status === "critique") return <Badge variant="destructive">Critique</Badge>;
@@ -156,9 +146,10 @@ export default function EtatPage() {
   const executedRatio = totalValue > 0 ? Math.round((executedValue / totalValue) * 100) : 0;
   const tauxTraitement = cases.length > 0 ? Math.round((signauxTraites / cases.length) * 100) : 0;
 
-  // Boucle de coordination — combien de dossiers à chaque étape, tous
-  // territoires confondus. Répond à « où en est le système », pas
-  // « qu'est-ce que je dois faire » (ça, c'est l'écran Coordinateur).
+  // Libellés des étapes de la boucle de coordination — utilisés pour
+  // afficher l'étape courante de chaque situation à arbitrer, pas pour
+  // une vue agrégée du pipeline (retirée : redondante avec Impact clé
+  // et Situations à arbitrer, référentiel D9 étape 5).
   const pipelineStages: Array<{ status: Situation["status"]; label: string }> = [
     { status: "recue", label: "Reçue" },
     { status: "qualification", label: "Qualification" },
@@ -169,11 +160,6 @@ export default function EtatPage() {
     { status: "resultat", label: "Résultat" },
     { status: "reglee", label: "Réglée" }
   ];
-  const pipelineCounts = pipelineStages.map((stage) => ({
-    ...stage,
-    count: state.situations.filter((item) => item.status === stage.status).length
-  }));
-
   // Situations nécessitant un arbitrage institutionnel — priorité élevée
   // ou critique, dossier non réglé. Remplace les anciennes listes
   // parallèles « vigilance » et « missions » (référentiel D9) par une
@@ -195,7 +181,7 @@ export default function EtatPage() {
   return (
     <div className="shadcn-scope space-y-10 bg-background p-5 pb-16 lg:p-8">
       <div className="flex items-start gap-3 rounded-lg border bg-card px-4 py-3 text-sm">
-        <ShieldCheck size={16} className="mt-0.5 shrink-0 text-primary" />
+        <ShieldCheck size={16} className="mt-0.5 shrink-0 text-[#1d4468]" />
         <p>Mbàmbulaan <strong>qualifie et signale</strong> les situations remontées du terrain. La décision et l’action relèvent des autorités compétentes.</p>
       </div>
 
@@ -251,63 +237,6 @@ export default function EtatPage() {
           ))}
         </Marquee>
       </div>
-
-      {/* Vue d'ensemble — supervision du système, pas une file de travail.
-          C'est ce qui distingue structurellement l'Espace État du
-          Coordinateur : lui agit dossier par dossier, le ministère lit
-          l'état agrégé du réseau et l'avancement de la boucle. */}
-      <BlurFade inView>
-      <section>
-        <p className="text-xs font-bold uppercase tracking-widest text-primary">Vue d’ensemble du système</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Ce que le ministère supervise, pas ce qu’il exécute.</h2>
-        <div className="mt-5 grid gap-4 lg:grid-cols-[.85fr_1.65fr]">
-          <Card className="border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.06] via-transparent to-transparent">
-            <CardHeader>
-              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Santé des territoires</Label>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={territoryHealthConfig} className="mx-auto aspect-square max-h-[170px]">
-                <PieChart>
-                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                  <Pie data={territoryHealthData} dataKey="value" nameKey="name" innerRadius={44} strokeWidth={3}>
-                    {territoryHealthData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.fill} stroke="var(--card)" />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
-              <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
-                {territoryHealthData.map((entry) => (
-                  <span key={entry.name} className="flex items-center gap-1.5">
-                    <span className="size-2 rounded-full" style={{ backgroundColor: entry.fill }} aria-hidden="true" />
-                    {entry.name} · {entry.value}
-                  </span>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-primary/20 bg-gradient-to-br from-primary/[0.05] via-transparent to-transparent">
-            <CardHeader>
-              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Boucle de coordination — tous territoires confondus</Label>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap items-center gap-1">
-                {pipelineCounts.map((stage, index) => (
-                  <div key={stage.status} className="flex items-center gap-1">
-                    <div className={`min-w-[5.5rem] rounded-lg border px-3 py-2.5 text-center ${stage.count > 0 ? "border-primary/25 bg-primary/[0.05]" : "border-border bg-muted/50"}`}>
-                      <p className={`text-lg font-bold tracking-tight ${stage.count > 0 ? "text-primary" : "text-muted-foreground"}`}>{stage.count}</p>
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{stage.label}</p>
-                    </div>
-                    {index < pipelineCounts.length - 1 && <ChevronRight size={14} className="shrink-0 text-muted-foreground/40" aria-hidden="true" />}
-                  </div>
-                ))}
-              </div>
-              <p className="mt-4 text-xs text-muted-foreground">{state.situations.length} dossier(s) suivis au total, du signal reçu jusqu’à la clôture.</p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-      </BlurFade>
 
       {/* Impact clé — les trois chiffres qui font autorité pour le
           ministère. Trois proportions réellement calculées sur l'état
@@ -383,10 +312,14 @@ export default function EtatPage() {
           pointent vers la même fiche détaillée : cliquer un point sur la
           carte OU une ligne de la liste ouvre le même panneau. Illustratif
           (D6, PRODUCT_DECISION_LOG.md) — pas un fond de carte réel, aucune
-          précision géographique impliquée. */}
+          précision géographique impliquée. Kicker en marine plutôt qu'en
+          terre-cuite : cette section est descriptive (explorer le
+          territoire), pas un moment de décision — le référentiel D9
+          réserve la terre-cuite aux décisions/tensions/points-clés, pas
+          à un usage décoratif systématique. */}
       <BlurFade inView>
       <section id="terrain">
-        <p className="text-xs font-bold uppercase tracking-widest text-primary">Rencontrer les pêcheurs sans déplacement systématique</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">Rencontrer les pêcheurs sans déplacement systématique</p>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">Atlas territorial — le littoral, territoire par territoire.</h2>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{territoiresAttention.length} territoire(s) demandent une attention particulière sur {territoiresActifs} suivis par le réseau. Cliquez un point sur la carte ou une fiche pour ouvrir le détail.</p>
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_1fr]">
