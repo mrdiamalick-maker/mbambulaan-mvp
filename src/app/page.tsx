@@ -147,7 +147,7 @@ export default function HomePage() {
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
             <Link href="/mbambulaan" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Comprendre l’approche Mbàmbulaan <ArrowRight size={16}/></Link>
-            <Link href="/mbambulaan#valeur-immediate" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-turquoise-500)]">Ce que le Public change dès aujourd’hui <ArrowRight size={16}/></Link>
+            <Link href="/mbambulaan#valeur-immediate" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-turquoise-500)]">Ce que nous apportons dès aujourd’hui <ArrowRight size={16}/></Link>
           </div>
         </div>
       </section>

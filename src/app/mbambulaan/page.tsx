@@ -6,6 +6,7 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicSectionHero } from "@/components/public/PublicSectionHero";
 import { LoopDiagram } from "@/components/public/LoopDiagram";
 import { StatBand } from "@/components/public/StatBand";
+import { EditorialPhoto } from "@/components/public/EditorialPhoto";
 import { filiereStats, statsNote } from "@/data/public-stats";
 
 export const metadata: Metadata = {
@@ -26,7 +27,7 @@ const today = [
   "Ouvrir un canal d’entrée direct pour entreprises, ONG, bailleurs et institutions cherchant acteurs, territoires ou opportunités.",
   "Donner une audience qualifiée aux formations, programmes et appels déjà existants dans la filière.",
   "Commencer à documenter un réseau de capacités mobilisables — sans marketplace ni annuaire public.",
-  "Générer un revenu réel (intermédiation, sourcing, diagnostics) avant même l’existence du Produit professionnel."
+  "Générer un revenu réel — intermédiation, sourcing, diagnostics — avant même le lancement de nos outils professionnels."
 ];
 
 const later = [
@@ -49,6 +50,8 @@ export default function MbambulaanPage() {
             <Link href="/solutions" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#5fe0d3] px-4 py-2.5 text-sm font-bold text-[#031a22]">Trouver une solution <ArrowRight size={16}/></Link>
           </>
         }
+        backgroundImage="/images/mbambulaan-terrain-hero.jpg"
+        backgroundAlt="Équipe Mbàmbulaan sur le terrain, échange avec des acteurs de la filière sur un quai."
       />
 
       <section className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-20">
@@ -60,6 +63,14 @@ export default function MbambulaanPage() {
               <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{text}</p>
             </article>
           ))}
+        </div>
+
+        <div className="mt-10">
+          <EditorialPhoto
+            src="/images/mbambulaan-terrain.jpg"
+            alt="Équipe Mbàmbulaan en échange avec des acteurs de la filière sur un site de débarquement."
+            caption="Présence terrain : comprendre un territoire suppose d’abord de s’y rendre."
+          />
         </div>
 
         <div className="mt-14">
@@ -77,13 +88,13 @@ export default function MbambulaanPage() {
         </section>
 
         <section id="valeur-immediate" className="mt-14 scroll-mt-24">
-          <p className="pub-eyebrow">Public ≠ Produit</p>
-          <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Ce que le Public change dès aujourd’hui.</h2>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--pub-stone-700)]">Mbàmbulaan.sn n’attend pas le Produit professionnel pour créer de la valeur. Il fait déjà un travail concret d’aujourd’hui, distinct de ce qui sera construit demain pour l’usage opérationnel interne des équipes et des organisations partenaires.</p>
+          <p className="pub-eyebrow">Une valeur immédiate</p>
+          <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Ce que nous apportons dès aujourd’hui à la filière.</h2>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--pub-stone-700)]">Mbàmbulaan n’attend pas le lancement de ses outils professionnels pour créer de la valeur. Notre présence terrain, notre connaissance des territoires et notre réseau produisent déjà des résultats concrets, distincts de ce que nous construirons ensuite pour l’usage quotidien de nos équipes et de nos partenaires.</p>
 
           <div className="mt-8 grid gap-5 lg:grid-cols-2 lg:items-start">
             <div className="pub-card border-[var(--pub-turquoise-500)]/40 p-6 md:p-8">
-              <div className="flex items-center gap-2 text-[var(--pub-turquoise-500)]"><Check size={18} /><p className="text-xs font-black uppercase tracking-[.12em]">Dès aujourd’hui, avec le Public</p></div>
+              <div className="flex items-center gap-2 text-[var(--pub-turquoise-500)]"><Check size={18} /><p className="text-xs font-black uppercase tracking-[.12em]">Dès aujourd’hui</p></div>
               <ul className="mt-5 space-y-4">
                 {today.map((item) => (
                   <li key={item} className="flex gap-3 text-sm leading-6 text-[var(--pub-stone-700)]">
@@ -94,7 +105,7 @@ export default function MbambulaanPage() {
               </ul>
             </div>
             <div className="pub-card--quiet p-6 md:p-8">
-              <div className="flex items-center gap-2 text-[var(--pub-stone-500)]"><Lock size={16} /><p className="text-xs font-black uppercase tracking-[.12em]">Plus tard, avec le Produit professionnel</p></div>
+              <div className="flex items-center gap-2 text-[var(--pub-stone-500)]"><Lock size={16} /><p className="text-xs font-black uppercase tracking-[.12em]">Dans une prochaine étape</p></div>
               <ul className="mt-5 space-y-4">
                 {later.map((item) => (
                   <li key={item} className="flex gap-3 text-sm leading-6 text-[var(--pub-stone-500)]">
@@ -103,7 +114,7 @@ export default function MbambulaanPage() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-6 text-xs leading-5 text-[var(--pub-stone-500)]">Le Produit professionnel sera recadré et commercialisé séparément. Il n’est ni construit ni promis par ce site.</p>
+              <p className="mt-6 text-xs leading-5 text-[var(--pub-stone-500)]">Nos outils professionnels seront développés et commercialisés séparément, à mesure que la filière et nos partenaires en auront besoin.</p>
             </div>
           </div>
         </section>

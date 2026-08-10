@@ -46,6 +46,8 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
         title={<>Comprendre l’économie maritime, <span className="text-[var(--pub-turquoise-300)]">par les usages et les territoires.</span></>}
         description="Mbàmbulaan rend lisibles les métiers, les chaînes de valeur, les besoins et les capacités qui structurent la filière halieutique et, progressivement, l’économie maritime sénégalaise."
         actions={<><Link href="/atlas" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/18 bg-white/8 px-4 py-2.5 text-sm font-bold text-white hover:bg-white/12"><Compass size={16}/> Ouvrir l’Atlas</Link><Link href="/solutions" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#5fe0d3] px-4 py-2.5 text-sm font-bold text-[#031a22] hover:bg-[#76e8dd]">Trouver une solution <ArrowRight size={16}/></Link></>}
+        backgroundImage="/images/decouvrir-cover.jpg"
+        backgroundAlt="Débarquement et transformation artisanale sur un quai sénégalais."
       />
 
       <section className="mx-auto max-w-[1500px] px-5 pt-14 md:px-10 md:pt-20">

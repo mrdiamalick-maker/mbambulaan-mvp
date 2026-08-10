@@ -26,10 +26,11 @@
   --pub-turquoise-300: #86e6d9;
 
   /* Sable / ivoire — fond clair, chaleur, contraste avec le bleu-vert */
-  --pub-ivory-100: #fbf7ee;
-  --pub-ivory-200: #f4ecd9;
-  --pub-sand-300: #e7d9b8;
-  --pub-sand-500: #c8a565;
+  --pub-ivory-100: #f8f3e6;
+  --pub-ivory-200: #f0e6cd;
+  --pub-sand-300: #e2cf9e;
+  --pub-sand-500: #b8863a;
+  --pub-gold-300: #e6c583;
 
   /* Gris minéraux — texte, bordures, neutralité */
   --pub-stone-900: #1c2b29;
@@ -50,9 +51,32 @@
 
 @layer components {
   .pub-scope {
-    background: var(--pub-ivory-100);
+    position: relative;
+    isolation: isolate;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(184, 134, 58, .05), transparent 46rem),
+      var(--pub-ivory-100);
     color: var(--pub-stone-900);
     font-feature-settings: "cv02", "cv03", "cv11";
+  }
+
+  /* Trame discrète évoquant une carte marine — matérialité plutôt que fond plat. */
+  .pub-scope::before {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(28, 43, 41, .035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(28, 43, 41, .035) 1px, transparent 1px);
+    background-size: 46px 46px;
+    background-position: center;
+    content: "";
+    pointer-events: none;
+  }
+
+  .pub-scope > * {
+    position: relative;
+    z-index: 1;
   }
 
   /* ---------- Typographie éditoriale ---------- */
@@ -75,7 +99,7 @@
     display: inline-flex;
     align-items: center;
     gap: .5rem;
-    color: var(--pub-turquoise-500);
+    color: var(--pub-sand-500);
     font-size: .72rem;
     font-weight: 800;
     letter-spacing: .16em;
@@ -83,7 +107,7 @@
   }
 
   .pub-eyebrow--dark {
-    color: var(--pub-turquoise-300);
+    color: var(--pub-gold-300);
   }
 
   .pub-eyebrow::before {
@@ -98,17 +122,28 @@
   /* ---------- Surfaces & cartes ---------- */
 
   .pub-card {
+    position: relative;
+    overflow: hidden;
     border: 1px solid var(--pub-stone-150);
     border-radius: var(--pub-radius-md);
-    background: #fff;
+    background: linear-gradient(175deg, #fffefb, #fbf8f1);
     box-shadow: var(--pub-shadow-card);
     transition: transform .28s var(--pub-ease), border-color .28s var(--pub-ease), box-shadow .28s var(--pub-ease);
+  }
+
+  .pub-card::before {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--pub-sand-500), transparent 65%);
+    content: "";
+    opacity: .55;
   }
 
   .pub-card:hover {
     transform: translateY(-3px);
     border-color: var(--pub-turquoise-500);
-    box-shadow: 0 1px 2px rgba(5, 27, 33, .05), 0 26px 54px rgba(5, 27, 33, .1);
+    box-shadow: 0 1px 2px rgba(5, 27, 33, .06), 0 30px 60px rgba(5, 27, 33, .13);
   }
 
   .pub-card--quiet {
@@ -192,8 +227,8 @@
   .pub-tideline {
     position: relative;
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--pub-turquoise-500) 18%, var(--pub-turquoise-500) 82%, transparent);
-    opacity: .35;
+    background: linear-gradient(90deg, transparent, var(--pub-sand-500) 18%, var(--pub-sand-500) 82%, transparent);
+    opacity: .45;
   }
 
   /* ---------- Composants divers ---------- */
@@ -362,10 +397,10 @@
     font-weight: 700;
     letter-spacing: .04em;
     text-transform: uppercase;
-    color: var(--pub-turquoise-500);
+    color: var(--pub-sand-500);
   }
 
-  .pub-stat-tile--dark .pub-stat-source { color: var(--pub-turquoise-300); }
+  .pub-stat-tile--dark .pub-stat-source { color: var(--pub-gold-300); }
 
   /* ---------- Comparaison horizontale simple (dataviz) ---------- */
 
