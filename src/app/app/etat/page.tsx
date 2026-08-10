@@ -348,21 +348,21 @@ export default function EtatPage() {
 
       <Separator />
 
-      {/* Défi 2 — présence terrain */}
+      {/* Atlas territorial — digital twin de l'Espace État. Carte et liste
+          pointent vers la même fiche détaillée : cliquer un point sur la
+          carte OU une ligne de la liste ouvre le même panneau. Illustratif
+          (D6, PRODUCT_DECISION_LOG.md) — pas un fond de carte réel, aucune
+          précision géographique impliquée. */}
       <BlurFade inView>
       <section id="terrain">
         <p className="text-xs font-bold uppercase tracking-widest text-primary">Rencontrer les pêcheurs sans déplacement systématique</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight">La réalité terrain, territoire par territoire.</h2>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{territoiresAttention.length} territoire(s) demandent une attention particulière sur {territoiresActifs} suivis par le réseau.</p>
-        <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.5fr]">
-          {/* Illustration, pas un fond de carte réel (D6, PRODUCT_DECISION_LOG.md)
-              — aucune donnée géographique de précision, juste une silhouette
-              du littoral pour situer les territoires les uns par rapport aux
-              autres. */}
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Atlas territorial — le littoral, territoire par territoire.</h2>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{territoiresAttention.length} territoire(s) demandent une attention particulière sur {territoiresActifs} suivis par le réseau. Cliquez un point sur la carte ou une fiche pour ouvrir le détail.</p>
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_1fr]">
           <Card className="overflow-hidden border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.06] via-transparent to-primary/[0.03]">
             <CardContent className="p-3">
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Littoral suivi par le réseau · illustratif</p>
-              <div className="aspect-[4/3] w-full">
+              <div className="aspect-[16/11] w-full">
                 <DottedMap
                   countries={["SEN"]}
                   region={{ lat: { min: 12, max: 17 }, lng: { min: -17.5, max: -11 } }}
@@ -373,32 +373,47 @@ export default function EtatPage() {
                     lat: territory.latitude,
                     lng: territory.longitude,
                     size: territory.activity === "critique" ? 3.2 : territory.activity === "vigilance" ? 2.2 : 1.4,
-                    pulse: territory.activity === "critique"
+                    pulse: territory.activity === "critique",
+                    color: glyphBorderColor[territory.activity],
+                    territoryId: territory.id,
+                    name: territory.name,
+                    activity: territory.activity
                   }))}
+                  onMarkerClick={(marker) => {
+                    const territory = state.territories.find((item) => item.id === marker.territoryId);
+                    if (territory) setTerritoryDrawer(territory);
+                  }}
+                  renderMarkerOverlay={({ marker, x, y, r }) =>
+                    marker.activity === "stable" ? null : (
+                      <text x={x + r + 1} y={y + 0.9} fontSize={2.5} fontWeight={700} fill={glyphBorderColor[marker.activity]} style={{ pointerEvents: "none" }}>
+                        {marker.name}
+                      </text>
+                    )
+                  }
                 />
               </div>
             </CardContent>
           </Card>
-          <div>
-            <div className="flex flex-wrap gap-2.5">
-              {territoiresAttention.map((territory) => (
-                <button key={territory.id} onClick={() => setTerritoryDrawer(territory)} className="flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-left shadow-sm transition hover:border-primary/40" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[territory.activity], backgroundColor: glyphFillColor[territory.activity] }}>
-                  <TensionGlyph status={territory.activity} size={26} />
-                  <span>
+          <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+            {[...territoiresAttention, ...territoiresStables].map((territory) => {
+              const infraCount = state.infrastructures.filter((item) => item.territoryId === territory.id).length;
+              const situationsOuvertes = state.situations.filter((item) => item.territoryId === territory.id && item.status !== "reglee").length;
+              return (
+                <button
+                  key={territory.id}
+                  onClick={() => setTerritoryDrawer(territory)}
+                  className="flex w-full items-center gap-3 rounded-lg border px-3.5 py-2.5 text-left shadow-sm transition hover:border-primary/40"
+                  style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[territory.activity], backgroundColor: glyphFillColor[territory.activity] }}
+                >
+                  <TensionGlyph status={territory.activity} size={24} />
+                  <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">{territory.name}</span>
-                    <span className="mt-1 block"><StatusBadge status={territory.activity} /></span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">{infraCount} infrastructure(s) · {situationsOuvertes} situation(s) ouverte(s)</span>
                   </span>
+                  <StatusBadge status={territory.activity} />
                 </button>
-              ))}
-            </div>
-            <details className="mt-4">
-              <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">+ {territoiresStables.length} territoire(s) stables</summary>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {territoiresStables.map((territory) => (
-                  <Button key={territory.id} variant="secondary" size="sm" onClick={() => setTerritoryDrawer(territory)}>{territory.name}</Button>
-                ))}
-              </div>
-            </details>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -585,13 +600,19 @@ function rankGlyph(status: "stable" | "vigilance" | "critique") {
 
 const situationPriorityRank: Record<Situation["priority"], number> = { critique: 3, haute: 2, moyenne: 1, faible: 0 };
 
+const infraStatusColor: Record<"operationnelle" | "fragile" | "indisponible", string> = { operationnelle: "#1d8a5f", fragile: "#c68a2c", indisponible: "#b6522f" };
+const infraStatusLabel: Record<"operationnelle" | "fragile" | "indisponible", string> = { operationnelle: "Opérationnelle", fragile: "Fragile", indisponible: "Indisponible" };
+
 function TerritoryDetail({ territory, cases }: { territory: Territory; cases: VigilanceCase[] }) {
   const { state } = useProduct();
   if (!state) return null;
   const sites = state.sites.filter((item) => item.territoryId === territory.id);
   const infrastructures = state.infrastructures.filter((item) => item.territoryId === territory.id);
-  const fragile = infrastructures.filter((item) => item.status !== "operationnelle");
   const acteurs = state.actors.filter((item) => item.territoryIds.includes(territory.id));
+  const acteursParRole = acteurs.reduce<Record<string, number>>((acc, item) => {
+    acc[item.role] = (acc[item.role] ?? 0) + 1;
+    return acc;
+  }, {});
   const prioritySituation = state.situations
     .filter((item) => item.territoryId === territory.id && item.status !== "reglee")
     .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])[0];
@@ -603,20 +624,54 @@ function TerritoryDetail({ territory, cases }: { territory: Territory; cases: Vi
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Localisation</p>
         <p className="mt-1 text-sm">{territory.region}</p>
       </div>
+
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acteurs actifs</p>
-        <p className="mt-1 text-sm">{acteurs.length} acteur(s) rattaché(s) à ce territoire.</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acteurs actifs · {acteurs.length}</p>
+        {acteurs.length === 0 ? (
+          <p className="mt-1.5 text-xs text-muted-foreground">Aucun acteur rattaché pour le moment.</p>
+        ) : (
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {Object.entries(acteursParRole).map(([role, count]) => (
+              <Badge key={role} variant="outline" className="capitalize">{role.replaceAll("_", " ")} · {count}</Badge>
+            ))}
+          </div>
+        )}
       </div>
+
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Infrastructures</p>
-        <p className="mt-1 text-sm">{sites.length} site(s) · {infrastructures.length} infrastructure(s), dont {fragile.length} fragile(s) ou indisponible(s).</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Infrastructures · {sites.length} site(s), {infrastructures.length} infrastructure(s)</p>
+        {infrastructures.length === 0 ? (
+          <p className="mt-1.5 text-xs text-muted-foreground">Aucune infrastructure recensée.</p>
+        ) : (
+          <div className="mt-1.5 space-y-1.5">
+            {infrastructures.map((infra) => (
+              <div key={infra.id} className="flex items-center justify-between gap-2 rounded-lg border bg-card px-3 py-2">
+                <span className="text-xs font-medium capitalize">{infra.type.replaceAll("_", " ")}</span>
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: infraStatusColor[infra.status] }}>
+                  <span className="size-1.5 rounded-full" style={{ backgroundColor: infraStatusColor[infra.status] }} aria-hidden="true" />
+                  {infraStatusLabel[infra.status]}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
       {prioritySituation && (
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Situation prioritaire</p>
           <div className="mt-2 rounded-lg border bg-card p-3">
             <p className="text-sm font-semibold">{prioritySituation.title}</p>
             <p className="mt-1 text-xs text-muted-foreground">{prioritySituation.nextStep}</p>
+            {prioritySituation.history.length > 0 && (
+              <div className="mt-3 space-y-1.5 border-t pt-3">
+                {prioritySituation.history.slice(0, 2).map((entry) => (
+                  <div key={entry.id} className="border-l-2 border-muted pl-2 text-[11px] leading-4 text-muted-foreground">
+                    <span className="font-semibold text-foreground">{entry.label}</span> · {new Date(entry.at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                  </div>
+                ))}
+              </div>
+            )}
             {/* Accès direct à la Situation Room (livrable Lot 2) — cette route
                 vit dans le groupe (coordination) et rend donc le shell partagé,
                 pas InstitutionShell : état intermédiaire assumé, la Situation

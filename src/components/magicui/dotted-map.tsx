@@ -13,6 +13,10 @@ export interface Marker {
   lng: number;
   size?: number;
   pulse?: boolean;
+  /** Couleur propre à ce marqueur — sinon `markerColor` (global) s'applique.
+      Ajouté pour distinguer visuellement plusieurs statuts (ex. territoires
+      stable/vigilance/critique) sur une même carte sans rendu custom complet. */
+  color?: string;
 }
 
 type MapMarker<M extends Marker> = Omit<M, "lat" | "lng"> & { x: number; y: number };
@@ -44,6 +48,9 @@ export interface DottedMapProps<M extends Marker = Marker> extends React.SVGProp
   stagger?: boolean;
   pulse?: boolean;
   renderMarkerOverlay?: (args: { marker: MapMarker<M>; index: number; x: number; y: number; r: number }) => React.ReactNode;
+  /** Rend chaque marqueur cliquable (zone de clic élargie, invisible, pour
+      rester utilisable malgré le petit rayon des points). */
+  onMarkerClick?: (marker: MapMarker<M>) => void;
 }
 
 export function DottedMap<M extends Marker = Marker>({
@@ -59,6 +66,7 @@ export function DottedMap<M extends Marker = Marker>({
   stagger = true,
   pulse = false,
   renderMarkerOverlay,
+  onMarkerClick,
   className,
   style,
   ...svgProps
@@ -111,16 +119,24 @@ export function DottedMap<M extends Marker = Marker>({
         const shouldPulse = pulse ? marker.pulse !== false : marker.pulse === true;
         const pulseTo = r * 2.8;
 
+        const fill = marker.color ?? markerColor;
+        const clickable = Boolean(onMarkerClick);
+
         return (
-          <g key={`${marker.x}-${marker.y}-${index}`}>
-            <circle cx={x} cy={y} r={r} fill={markerColor} />
+          <g
+            key={`${marker.x}-${marker.y}-${index}`}
+            onClick={clickable ? () => onMarkerClick?.({ ...marker, x, y }) : undefined}
+            style={clickable ? { cursor: "pointer" } : undefined}
+          >
+            {clickable && <circle cx={x} cy={y} r={Math.max(r * 2.2, 2.4)} fill="transparent" />}
+            <circle cx={x} cy={y} r={r} fill={fill} />
             {shouldPulse ? (
               <g pointerEvents="none">
-                <circle cx={x} cy={y} r={r} fill="none" stroke={markerColor} strokeOpacity={1} strokeWidth={0.35}>
+                <circle cx={x} cy={y} r={r} fill="none" stroke={fill} strokeOpacity={1} strokeWidth={0.35}>
                   <animate attributeName="r" values={`${r};${pulseTo}`} dur="1.4s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="1;0" dur="1.4s" repeatCount="indefinite" />
                 </circle>
-                <circle cx={x} cy={y} r={r} fill="none" stroke={markerColor} strokeOpacity={0.9} strokeWidth={0.3}>
+                <circle cx={x} cy={y} r={r} fill="none" stroke={fill} strokeOpacity={0.9} strokeWidth={0.3}>
                   <animate attributeName="r" values={`${r};${pulseTo}`} dur="1.4s" begin="0.7s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.9;0" dur="1.4s" begin="0.7s" repeatCount="indefinite" />
                 </circle>
