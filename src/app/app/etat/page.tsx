@@ -8,14 +8,13 @@ import {
   ArrowUpRight,
   ChevronRight,
   FileDown,
-  Globe2,
   Radio,
   Send,
-  ShieldCheck,
-  Users
+  ShieldCheck
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
+import { ResultatIcon, SignalIcon, SituationIcon } from "@/components/etat/MotifIcons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -30,7 +29,6 @@ import {
   SheetHeader,
   SheetTitle
 } from "@/components/ui/sheet";
-import { BentoCard, BentoGrid } from "@/components/magicui/bento-grid";
 import { BlurFade } from "@/components/magicui/blur-fade";
 import { DottedMap } from "@/components/magicui/dotted-map";
 import { Marquee } from "@/components/magicui/marquee";
@@ -162,7 +160,6 @@ export default function EtatPage() {
   }, [state]);
 
   if (!state) return null;
-  const acteursCoordonnes = state.actors.length;
   const signauxTraites = cases.filter((item) => item.status === "transmis_autorites" || item.status === "clos").length;
   const territoiresActifs = state.territories.length;
   const territoiresAttention = state.territories.filter((item) => item.activity !== "stable");
@@ -176,6 +173,14 @@ export default function EtatPage() {
     { name: "Vigilance", value: state.territories.filter((item) => item.activity === "vigilance").length, fill: "#c68a2c" },
     { name: "Critique", value: state.territories.filter((item) => item.activity === "critique").length, fill: "#b6522f" }
   ].filter((item) => item.value > 0);
+
+  // Ratios réels utilisés par le bloc Impact clé — aucun n'est une
+  // série temporelle inventée : ce sont des proportions calculées à
+  // partir de l'état courant du système (§2.6 du spec maître, pas de
+  // fausse précision).
+  const totalValue = executedValue + engagedValue;
+  const executedRatio = totalValue > 0 ? Math.round((executedValue / totalValue) * 100) : 0;
+  const tauxTraitement = cases.length > 0 ? Math.round((signauxTraites / cases.length) * 100) : 0;
 
   // Boucle de coordination — combien de dossiers à chaque étape, tous
   // territoires confondus. Répond à « où en est le système », pas
@@ -312,37 +317,71 @@ export default function EtatPage() {
       </section>
       </BlurFade>
 
-      {/* Défi 1 — valeur générée */}
+      {/* Impact clé — les trois chiffres qui font autorité pour le
+          ministère. Trois proportions réellement calculées sur l'état
+          courant (exécuté/engagé, composition des territoires, taux de
+          traitement des signaux) — aucune série temporelle n'est
+          inventée : le domaine n'a pas d'historique réel à ce jour
+          (§2.6 du spec maître, pas de fausse précision). */}
       <BlurFade inView>
       <section>
-        <p className="text-xs font-bold uppercase tracking-widest text-primary">Diversifier les revenus des pêcheurs</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Une valeur additionnelle réelle, générée par la coordination.</h2>
-        <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.2fr]">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">Impact clé</p>
+          <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">Environnement de démonstration</Badge>
+        </div>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Ce que la coordination a produit, en un coup d’œil.</h2>
+        <div className="mt-5 grid gap-4 lg:grid-cols-3">
           <Card className="border-primary/25 bg-gradient-to-br from-primary/[0.09] via-primary/[0.03] to-transparent">
             <CardContent>
-              <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">Environnement de démonstration</Badge>
-              <p className="mt-4 text-4xl font-bold tracking-tight text-primary">{formatFcfa(executedValue)}</p>
+              <ResultatIcon size={22} color="#b6522f" />
+              <p className="mt-3 text-3xl font-bold tracking-tight text-primary"><NumberTicker value={executedValue} /> <span className="text-base font-semibold">FCFA</span></p>
               <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Valeur exécutée à date</p>
-              <p className="mt-4 text-sm leading-6 text-muted-foreground">{formatFcfa(engagedValue)} supplémentaires sont engagés — mise en relation confirmée entre un lot disponible et un besoin qualifié, en cours de réalisation.</p>
-              <p className="mt-4 text-xs leading-5 text-muted-foreground/80">Origine : mise en relation directe entre lots disponibles et besoins qualifiés par le réseau Mbàmbulaan — un calcul sur les opportunités réellement traitées, pas une promesse théorique.</p>
+              <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${executedRatio}%` }} />
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{executedRatio}% exécuté · {formatFcfa(engagedValue)} encore engagés, en cours de réalisation.</p>
             </CardContent>
           </Card>
-          <Card className="border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.07] via-[#1d4468]/[0.02] to-transparent">
-            <CardHeader>
-              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Évolution des programmes en cours</Label>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {leadIndicators.map(({ title, indicator }) => indicator && (
-                <div key={title}>
-                  <p className="text-sm font-semibold">{title}</p>
-                  <p className="text-xs text-muted-foreground">{indicator.label}</p>
-                  <Progress className="mt-2" value={Math.min(100, (indicator.current / indicator.target) * 100)} />
-                  <p className="mt-1.5 text-xs text-muted-foreground">{indicator.current} / {indicator.target} {indicator.unit} <span className="text-muted-foreground/70">(départ : {indicator.baseline})</span></p>
-                </div>
-              ))}
+          <Card className="border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.08] via-[#1d4468]/[0.02] to-transparent">
+            <CardContent>
+              <SituationIcon size={22} color="#1d4468" />
+              <p className="mt-3 text-3xl font-bold tracking-tight text-[#1d4468]"><NumberTicker value={territoiresActifs} /></p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Territoires suivis par le réseau</p>
+              <div className="mt-4 flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                {territoryHealthData.map((entry) => (
+                  <div key={entry.name} className="h-full" style={{ width: `${territoiresActifs > 0 ? (entry.value / territoiresActifs) * 100 : 0}%`, backgroundColor: entry.fill }} />
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{territoryHealthData.map((entry) => `${entry.name} ${entry.value}`).join(" · ")}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/[0.09] via-amber-500/[0.02] to-transparent">
+            <CardContent>
+              <SignalIcon size={22} color="#c68a2c" />
+              <p className="mt-3 text-3xl font-bold tracking-tight text-amber-700"><NumberTicker value={signauxTraites} /></p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signaux traités sur {cases.length} reçu(s)</p>
+              <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-amber-500/10">
+                <div className="h-full rounded-full bg-amber-500" style={{ width: `${tauxTraitement}%` }} />
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{tauxTraitement}% de taux de traitement.</p>
             </CardContent>
           </Card>
         </div>
+        <Card className="mt-4 border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.06] via-transparent to-transparent">
+          <CardHeader>
+            <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Évolution des programmes en cours</Label>
+          </CardHeader>
+          <CardContent className="grid gap-5 sm:grid-cols-2">
+            {leadIndicators.map(({ title, indicator }) => indicator && (
+              <div key={title}>
+                <p className="text-sm font-semibold">{title}</p>
+                <p className="text-xs text-muted-foreground">{indicator.label}</p>
+                <Progress className="mt-2" value={Math.min(100, (indicator.current / indicator.target) * 100)} />
+                <p className="mt-1.5 text-xs text-muted-foreground">{indicator.current} / {indicator.target} {indicator.unit} <span className="text-muted-foreground/70">(départ : {indicator.baseline})</span></p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </section>
       </BlurFade>
 
@@ -483,61 +522,6 @@ export default function EtatPage() {
         {visits.filter((item) => item.status === "planifiee").length > 0 && (
           <p className="mt-4 text-xs text-muted-foreground">{visits.filter((item) => item.status === "planifiee").length} mission(s) déjà planifiée(s) par le ministère.</p>
         )}
-      </section>
-      </BlurFade>
-
-      <Separator />
-
-      {/* Défi 4 — statistiques */}
-      <BlurFade inView>
-      <section>
-        <p className="text-xs font-bold uppercase tracking-widest text-primary">Outil statistique de supervision</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight">La coordination en chiffres.</h2>
-        <BentoGrid className="mt-5 grid-cols-1 gap-4 sm:grid-cols-3 auto-rows-[13rem]">
-          <BentoCard
-            name="Acteurs coordonnés"
-            className="border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.08] via-[#1d4468]/[0.02] to-transparent sm:col-span-2"
-            Icon={Users}
-            href="#terrain"
-            cta="Voir le réseau territorial"
-            description={
-              <>
-                <Badge variant="outline" className="mb-2 border-amber-300 bg-amber-50 text-amber-800">Démonstration</Badge>
-                <span className="block text-4xl font-bold tracking-tight text-foreground"><NumberTicker value={acteursCoordonnes} /></span>
-                <span className="mt-1 block text-sm">acteurs vérifiés et mobilisables sur les territoires suivis.</span>
-              </>
-            }
-            background={<div />}
-          />
-          <BentoCard
-            name="Signaux traités"
-            className="border-amber-500/20 bg-gradient-to-br from-amber-500/[0.09] via-amber-500/[0.02] to-transparent sm:col-span-1"
-            Icon={Radio}
-            href="#signaux"
-            cta="Voir la vigilance"
-            description={
-              <>
-                <Badge variant="outline" className="mb-2 border-amber-300 bg-amber-50 text-amber-800">Démonstration</Badge>
-                <span className="block text-2xl font-bold tracking-tight text-foreground"><NumberTicker value={signauxTraites} /></span>
-              </>
-            }
-            background={<div />}
-          />
-          <BentoCard
-            name="Territoires actifs"
-            className="border-primary/20 bg-gradient-to-br from-primary/[0.09] via-primary/[0.02] to-transparent sm:col-span-1"
-            Icon={Globe2}
-            href="#terrain"
-            cta="Explorer la carte"
-            description={
-              <>
-                <Badge variant="outline" className="mb-2 border-amber-300 bg-amber-50 text-amber-800">Démonstration</Badge>
-                <span className="block text-2xl font-bold tracking-tight text-foreground"><NumberTicker value={territoiresActifs} /></span>
-              </>
-            }
-            background={<div />}
-          />
-        </BentoGrid>
       </section>
       </BlurFade>
 
