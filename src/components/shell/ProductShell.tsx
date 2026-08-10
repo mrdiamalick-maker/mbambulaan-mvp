@@ -13,15 +13,12 @@ import {
   ClipboardList,
   Gauge,
   Globe2,
-  HandCoins,
   Handshake,
   Home,
   Leaf,
   LogOut,
-  MapPinned,
   Menu,
   RotateCcw,
-  ShieldAlert,
   ShipWheel,
   Settings,
   Sparkles,
@@ -208,18 +205,15 @@ const navGroups: NavGroup[] = [
   }
 ];
 
-// L'espace Ministère répond à un mandat volontairement resserré : cinq
-// écrans qui couvrent les priorités exprimées (revenus alternatifs,
-// terrain, vigilance, statistiques, bailleurs), pas le menu opérationnel
-// complet de la filière — trop dense pour cet usage.
+// L'Espace État est un parcours, pas un enchaînement de pages : le mandat
+// institution n'a que deux destinations dans le menu (le parcours vivant
+// et le rapport à exporter), tout le reste se découvre depuis l'intérieur
+// du parcours lui-même (panneaux latéraux), pas via une nouvelle page.
 const ministryNavItems: NavItem[] = [
-  { href: "/app/ministere", label: "Vue d’ensemble", shortLabel: "Ministère", icon: Home, roles: ["institution"] },
-  { href: "/app/ministere/revenus", label: "Revenus alternatifs", shortLabel: "Revenus", icon: HandCoins, roles: ["institution"] },
-  { href: "/app/ministere/terrain", label: "Terrain & rencontres", shortLabel: "Terrain", icon: MapPinned, roles: ["institution"] },
-  { href: "/app/ministere/vigilance", label: "Vigilance & fléaux", shortLabel: "Vigilance", icon: ShieldAlert, roles: ["institution"] },
-  { href: "/app/ministere/programmes", label: "Programmes & bailleurs", shortLabel: "Programmes", icon: Banknote, roles: ["institution"] }
+  { href: "/app/etat", label: "Espace État", shortLabel: "État", icon: Home, roles: ["institution"] },
+  { href: "/app/etat/rapport", label: "Rapport bailleurs", shortLabel: "Rapport", icon: Banknote, roles: ["institution"] }
 ];
-const ministryNavGroups: NavGroup[] = [{ label: "Espace Ministère", items: ministryNavItems }];
+const ministryNavGroups: NavGroup[] = [{ label: "Espace État", items: ministryNavItems }];
 
 const roleLabels: Record<Role, string> = {
   administrateur: "Administrateur Mbàmbulaan",

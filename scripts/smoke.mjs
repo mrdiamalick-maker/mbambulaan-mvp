@@ -204,15 +204,15 @@ try {
     body: JSON.stringify({ event: "atlas_open", path: "/atlas" })
   });
 
-  // Garde de rôle : un mandat coordinateur ne doit voir ni l'espace
-  // Ministère ni l'espace Administration, page comme API. redirect() côté
-  // Server Component ne renvoie pas un statut 3xx à une requête document
-  // classique (à la différence du middleware) : Next sert directement le
-  // contenu de la destination avec un 200 — on vérifie donc l'absence du
-  // contenu protégé plutôt que le code de statut.
-  const ministrySpaceAsCoordinateur = await expectOk("/app/ministere");
-  if ((await ministrySpaceAsCoordinateur.text()).includes("Bienvenue,")) {
-    throw new Error("/app/ministere reste visible pour un mandat coordinateur.");
+  // Garde de rôle : un mandat coordinateur ne doit voir ni l'Espace État
+  // ni l'espace Administration, page comme API. redirect() côté Server
+  // Component ne renvoie pas un statut 3xx à une requête document classique
+  // (à la différence du middleware) : Next sert directement le contenu de
+  // la destination avec un 200 — on vérifie donc l'absence du contenu
+  // protégé plutôt que le code de statut.
+  const etatText = await (await expectOk("/app/etat")).text();
+  if (etatText.includes("qualifie et signale")) {
+    throw new Error("/app/etat reste visible pour un mandat coordinateur.");
   }
   await expectStatus("/api/ministry/field-visits", 403);
 
@@ -220,9 +220,9 @@ try {
   sessionCookie = "";
   await expectStatus("/api/state", 401);
 
-  // Parcours ministère : connexion réelle, accès aux cinq écrans dédiés,
-  // planification d'une rencontre terrain, signalement et transmission
-  // d'un cas de vigilance.
+  // Parcours Espace État : connexion réelle, accès au parcours et au
+  // rapport bailleurs, planification d'une mission, signalement et
+  // transmission d'un cas de vigilance.
   const ministryLogin = await expectOk("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -232,7 +232,7 @@ try {
   if (!ministryCookie) throw new Error("La connexion ministère n'établit pas de session.");
   sessionCookie = ministryCookie.split(";")[0];
 
-  for (const path of ["/app/ministere", "/app/ministere/revenus", "/app/ministere/terrain", "/app/ministere/vigilance", "/app/ministere/programmes"]) {
+  for (const path of ["/app/etat", "/app/etat/rapport"]) {
     await expectOk(path);
   }
 
@@ -278,7 +278,7 @@ try {
   sessionCookie = "";
   await expectStatus("/api/state", 401);
 
-  console.log(`Smoke E2E: authentification réelle, espace Ministère (rencontres, vigilance, programmes), Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
+  console.log(`Smoke E2E: authentification réelle, Espace État (parcours, missions, vigilance, rapport bailleurs), Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
 } finally {
   server?.kill("SIGTERM");
 }
