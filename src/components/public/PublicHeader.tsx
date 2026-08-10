@@ -3,7 +3,7 @@ import { ArrowUpRight, Compass, MapPinned, Menu, ShipWheel } from "lucide-react"
 
 const links = [
   { href: "/decouvrir", label: "Découvrir" },
-  { href: "/territoires", label: "Territoires" },
+  { href: "/atlas", label: "Territoires" },
   { href: "/opportunites", label: "Opportunités" },
   { href: "/mbambulaan", label: "Mbàmbulaan" }
 ];
