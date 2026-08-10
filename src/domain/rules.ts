@@ -1,7 +1,9 @@
 import type {
   AuditEntry,
   Command,
+  Commitment,
   Communication,
+  CoordinationSpace,
   Decision,
   Evidence,
   HistoryEntry,
@@ -35,6 +37,7 @@ const transitions: Record<
     | "record_evidence"
     | "log_communication"
     | "create_service_request"
+    | "plan_field_commitment"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -520,6 +523,48 @@ function applyServiceRequestCommand(state: ProductState, command: Extract<Comman
   return withAudit(next, command.actorId, "demande", serviceRequest.id, command.type, `${serviceRequest.quantityKg} kg — ${serviceRequest.intent}`);
 }
 
+// Mission terrain → Commitment (D2, refonte de l'Espace État dans le modèle
+// unifié). Une mission planifiée par le ministère n'est plus un enregistrement
+// isolé : elle devient un engagement réel dans une coordination, visible dans
+// la même salle de coordination que les engagements de la filière. Le
+// workspace ministère (src/server/ministry-repository.ts) continue de tenir
+// son propre FieldVisit (vocabulaire et cycle de vie propres au ministère,
+// non forcés dans la machine à états de Situation) mais le rattache
+// désormais à ce Commitment via commitmentId/coordinationId.
+function applyFieldCommitmentCommand(state: ProductState, command: Extract<Command, { type: "plan_field_commitment" }>) {
+  if (!state.territories.some((item) => item.id === command.territoryId)) throw new Error("Territoire inconnu.");
+  if (!command.title.trim()) throw new Error("Le titre de la mission est obligatoire.");
+  if (command.situationId && !state.situations.some((item) => item.id === command.situationId)) {
+    throw new Error("Situation introuvable.");
+  }
+
+  const commitment: Commitment = {
+    id: id("eng-ministere"),
+    actorId: command.actorId,
+    label: command.title.trim(),
+    dueAt: command.dueAt,
+    status: "a_faire"
+  };
+
+  const coordination: CoordinationSpace = {
+    id: id("coord-ministere"),
+    situationId: command.situationId,
+    title: command.title.trim(),
+    participantIds: [command.actorId],
+    objective: command.objective,
+    decision: "Mission planifiée par le ministère",
+    commitments: [commitment],
+    risks: [],
+    nextReviewAt: command.dueAt
+  };
+
+  const next: ProductState = {
+    ...state,
+    coordinationSpaces: [coordination, ...state.coordinationSpaces]
+  };
+  return withAudit(next, command.actorId, "commitment", commitment.id, command.type, `${command.title.trim()} — ${command.territoryId}`);
+}
+
 export function applyCommand(state: ProductState, command: Command): ProductState {
   if (command.type === "reset_demo") return state;
 
@@ -534,6 +579,9 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   }
   if (command.type === "create_service_request") {
     return applyServiceRequestCommand(state, command);
+  }
+  if (command.type === "plan_field_commitment") {
+    return applyFieldCommitmentCommand(state, command);
   }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
@@ -688,6 +736,7 @@ export type WorkflowAction = Exclude<
   | "record_evidence"
   | "log_communication"
   | "create_service_request"
+  | "plan_field_commitment"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {

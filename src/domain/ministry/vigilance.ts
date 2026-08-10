@@ -53,4 +53,13 @@ export interface VigilanceCase extends VigilanceCaseInput {
   status: VigilanceStatus;
   createdAt: string;
   updatedAt: string;
+  // Refonte Lot 1 (D2) : un cas de vigilance devient un Signal/Situation
+  // (catégorie sécurité) dans le modèle unifié dès sa création — il n'est
+  // plus un enregistrement isolé, il apparaît dans la même Situation Room
+  // que les autres signaux de la filière. Le cycle de vie ministère
+  // (signalé/en vérification/transmis aux autorités/clos) reste propre à
+  // ce domaine : il ne se force pas dans la machine à états de Situation,
+  // qui suit son propre vocabulaire filière.
+  signalId?: string;
+  situationId?: string;
 }

@@ -14,6 +14,7 @@ const all: Command["type"][] = [
   "record_evidence",
   "log_communication",
   "create_service_request",
+  "plan_field_commitment",
   "announce_return",
   "confirm_arrival",
   "record_landing",
@@ -49,7 +50,7 @@ const allowed: Record<Role, Command["type"][]> = {
   prestataire: ["start_intervention", "wait", "resume", "record_result", "record_evidence", "create_community_post"],
   gestionnaire_organisation: ["prioritize", "coordinate", "create_decision", "accept_opportunity", "create_community_post", "convert_post"],
   coordinateur: all,
-  institution: ["prioritize", "coordinate", "create_decision", "log_communication", "close", "flag_price", "reset_demo"],
+  institution: ["create_signal", "prioritize", "coordinate", "create_decision", "log_communication", "plan_field_commitment", "close", "flag_price", "reset_demo"],
   partenaire: ["create_community_post"]
 };
 

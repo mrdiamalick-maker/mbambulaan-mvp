@@ -628,6 +628,16 @@ export type Command =
       email?: string;
       organization?: string;
     }
+  | {
+      type: "plan_field_commitment";
+      actorId: string;
+      territoryId: string;
+      title: string;
+      objective: string;
+      dueAt: string;
+      notes?: string;
+      situationId?: string;
+    }
   | { type: "announce_return"; tripId: string; actorId: string }
   | { type: "confirm_arrival"; tripId: string; actorId: string }
   | { type: "record_landing"; tripId: string; actorId: string }

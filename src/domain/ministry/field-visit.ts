@@ -1,8 +1,11 @@
 // Rencontres et missions terrain planifiées par le ministère — répond au
 // besoin exprimé : "rencontrer des pêcheurs" et "aller sur le terrain,
-// avoir du travail". Volontairement isolé du moteur de commandes/événements
-// opérationnel (situations, pirogues, lots) : il ne s'agit pas d'un
-// processus métier de la filière mais d'une activité propre au ministère.
+// avoir du travail". Le vocabulaire et le statut (planifiée/réalisée/
+// annulée) restent propres au ministère — ce n'est pas un processus
+// métier de la filière au même titre qu'un débarquement ou un lot.
+// Depuis le Lot 1 (D2), une mission planifiée devient aussi un Commitment
+// réel dans une coordination du modèle unifié (voir commitmentId /
+// coordinationId ci-dessous) : elle n'est plus un enregistrement isolé.
 
 export type FieldVisitStatus = "planifiee" | "realisee" | "annulee";
 export const fieldVisitStatusLabels: Record<FieldVisitStatus, string> = {
@@ -46,4 +49,6 @@ export interface FieldVisit extends FieldVisitInput {
   id: string;
   status: FieldVisitStatus;
   createdAt: string;
+  commitmentId?: string;
+  coordinationId?: string;
 }
