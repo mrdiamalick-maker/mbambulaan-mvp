@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
-import { ResultatIcon, SignalIcon, SituationIcon } from "@/components/etat/MotifIcons";
+import { DecisionIcon, ResultatIcon, SignalIcon, SituationIcon } from "@/components/etat/MotifIcons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -33,7 +33,7 @@ import { BlurFade } from "@/components/magicui/blur-fade";
 import { DottedMap } from "@/components/magicui/dotted-map";
 import { Marquee } from "@/components/magicui/marquee";
 import { NumberTicker } from "@/components/magicui/number-ticker";
-import type { Situation, Territory } from "@/domain/types";
+import { decisionTypeLabels, type Situation, type Territory } from "@/domain/types";
 import {
   fieldVisitObjectiveLabels,
   type FieldVisit,
@@ -182,6 +182,14 @@ export default function EtatPage() {
   const situationsAArbitrer = state.situations
     .filter((item) => item.status !== "reglee" && (item.priority === "critique" || item.priority === "haute"))
     .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])
+    .slice(0, 5);
+
+  // Décisions récentes — première consommation réelle de Decision (Lot 1,
+  // D3) dans l'Espace État : le pendant naturel de « Situations à
+  // arbitrer » — ce qui a déjà été tranché, pas seulement ce qui reste
+  // à trancher.
+  const recentDecisions = [...state.decisions]
+    .sort((a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime())
     .slice(0, 5);
 
   return (
@@ -505,6 +513,50 @@ export default function EtatPage() {
         )}
         {visits.filter((item) => item.status === "planifiee").length > 0 && (
           <p className="mt-4 text-xs text-muted-foreground">{visits.filter((item) => item.status === "planifiee").length} visite(s) terrain déjà planifiée(s) par le ministère.</p>
+        )}
+      </section>
+      </BlurFade>
+
+      <Separator />
+
+      {/* Décisions récentes — pendant de « Situations à arbitrer » :
+          ce qui a déjà été tranché par le ministère. Première
+          consommation réelle de Decision (Lot 1, D3) dans l'Espace
+          État — jusqu'ici l'objet existait dans le domaine sans être
+          jamais affiché nulle part. */}
+      <BlurFade inView>
+      <section>
+        <p className="text-xs font-bold uppercase tracking-widest text-primary">Rendre compte des arbitrages</p>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Décisions récentes.</h2>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{state.decisions.length} décision(s) enregistrée(s) au total — chaque arbitrage institutionnel reste tracé et consultable.</p>
+        {recentDecisions.length === 0 ? (
+          <p className="mt-5 text-sm text-muted-foreground">Aucune décision enregistrée pour le moment.</p>
+        ) : (
+          <div className="mt-5 space-y-2.5">
+            {recentDecisions.map((decision) => {
+              const situation = state.situations.find((item) => item.id === decision.situationId);
+              const territory = situation ? state.territories.find((item) => item.id === situation.territoryId) : undefined;
+              const decider = state.actors.find((item) => item.id === decision.decidedByActorId);
+              return (
+                <Card key={decision.id} className="flex-row flex-wrap items-center justify-between gap-3 border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.05] via-transparent to-transparent p-4">
+                  <div className="flex items-center gap-3">
+                    <DecisionIcon size={26} color="#1d4468" />
+                    <div>
+                      <p className="text-sm font-semibold">{decisionTypeLabels[decision.type]}{situation ? ` · ${territory?.name ?? situation.territoryId}` : ""}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{decision.rationale}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground/70">
+                        {new Date(decision.decidedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
+                        {decider ? ` · ${decider.name}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  {situation && (
+                    <Button variant="ghost" size="sm" asChild><Link href={`/app/situations/${situation.id}`}>Voir la situation <ArrowRight /></Link></Button>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
         )}
       </section>
       </BlurFade>
