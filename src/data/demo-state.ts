@@ -376,46 +376,49 @@ export function createDemoState(): ProductState {
 
   lots.push(...generatedLots);
 
-  const needs: ProductState["needs"] = [
-    { id: "need-sardinelle", actorId: "act-transform", territoryId: "mbour", speciesId: "sp-sardinelle", quantityKg: 900, quality: "B", purpose: "transformation", status: "ouvert", priority: "haute", createdAt: now, source: "Déclaration de l’unité de transformation" },
-    { id: "need-thiof", actorId: "act-mareyeur", territoryId: "kayar", speciesId: "sp-thiof", quantityKg: 600, quality: "A", purpose: "achat", status: "ouvert", priority: "critique", createdAt: now, source: "Besoin professionnel déclaré" },
-    { id: "need-maquereau-hann", actorId: "act-transform", territoryId: "hann", speciesId: "sp-maquereau", quantityKg: 700, quality: "A", purpose: "transformation", status: "couvert", priority: "haute", createdAt: now, source: "Plan de production de l’unité" },
-    { id: "need-sole-dakar", actorId: "act-mareyeur", territoryId: "soumbedioune", speciesId: "sp-sole", quantityKg: 350, quality: "A", purpose: "achat", status: "ouvert", priority: "haute", createdAt: now, source: "Demande mareyeur qualifiée" },
-    { id: "need-mulet-saint", actorId: "act-mareyeur-nord", territoryId: "saint-louis", speciesId: "sp-mulet", quantityKg: 500, quality: "A", purpose: "achat", status: "ouvert", priority: "moyenne", createdAt: now, source: "Besoin groupé de deux acheteurs" },
-    { id: "need-sardinelle-kaf", actorId: "act-transform-sud", territoryId: "kafountine", speciesId: "sp-sardinelle", quantityKg: 500, quality: "B", purpose: "transformation", status: "couvert", priority: "haute", createdAt: now, source: "Programme de transformation locale" },
-    { id: "need-sole-cap", actorId: "act-mareyeur-sud", territoryId: "cap-skirring", speciesId: "sp-sole", quantityKg: 260, quality: "A", purpose: "transport", status: "ouvert", priority: "moyenne", createdAt: now, source: "Besoin logistique déclaré" }
+  // ServiceRequest — anciennement Need (D1) : identifiants "need-*" conservés
+  // pour ne pas perturber les autres références de démonstration, mais la
+  // forme est désormais celle de PublicRequest (reference, channel, intent).
+  const serviceRequests: ProductState["serviceRequests"] = [
+    { id: "need-sardinelle", reference: "MBA-SR-SARDINELLE", channel: "web", actorId: "act-transform", territoryId: "mbour", speciesId: "sp-sardinelle", quantityKg: 900, quality: "B", intent: "transformation", status: "ouvert", priority: "haute", createdAt: now, source: "Déclaration de l’unité de transformation" },
+    { id: "need-thiof", reference: "MBA-SR-THIOF", channel: "web", actorId: "act-mareyeur", territoryId: "kayar", speciesId: "sp-thiof", quantityKg: 600, quality: "A", intent: "achat", status: "ouvert", priority: "critique", createdAt: now, source: "Besoin professionnel déclaré" },
+    { id: "need-maquereau-hann", reference: "MBA-SR-MAQUEREAU-HANN", channel: "web", actorId: "act-transform", territoryId: "hann", speciesId: "sp-maquereau", quantityKg: 700, quality: "A", intent: "transformation", status: "couvert", priority: "haute", createdAt: now, source: "Plan de production de l’unité" },
+    { id: "need-sole-dakar", reference: "MBA-SR-SOLE-DAKAR", channel: "web", actorId: "act-mareyeur", territoryId: "soumbedioune", speciesId: "sp-sole", quantityKg: 350, quality: "A", intent: "achat", status: "ouvert", priority: "haute", createdAt: now, source: "Demande mareyeur qualifiée" },
+    { id: "need-mulet-saint", reference: "MBA-SR-MULET-SAINT", channel: "telephone", actorId: "act-mareyeur-nord", territoryId: "saint-louis", speciesId: "sp-mulet", quantityKg: 500, quality: "A", intent: "achat", status: "ouvert", priority: "moyenne", createdAt: now, source: "Besoin groupé de deux acheteurs" },
+    { id: "need-sardinelle-kaf", reference: "MBA-SR-SARDINELLE-KAF", channel: "terrain", actorId: "act-transform-sud", territoryId: "kafountine", speciesId: "sp-sardinelle", quantityKg: 500, quality: "B", intent: "transformation", status: "couvert", priority: "haute", createdAt: now, source: "Programme de transformation locale" },
+    { id: "need-sole-cap", reference: "MBA-SR-SOLE-CAP", channel: "web", actorId: "act-mareyeur-sud", territoryId: "cap-skirring", speciesId: "sp-sole", quantityKg: 260, quality: "A", intent: "transport", status: "ouvert", priority: "moyenne", createdAt: now, source: "Besoin logistique déclaré" }
   ];
 
-  const generatedNeeds: ProductState["needs"] = territoryRows.flatMap(([territoryId], index) => {
+  const generatedServiceRequests: ProductState["serviceRequests"] = territoryRows.flatMap(([territoryId], index) => {
     const territoryLots = generatedLots.filter((lot) => lot.siteId === `quai-${territoryId}`);
     const primarySpeciesId = territoryLots[0]?.speciesId ?? species[index % species.length].id;
     const secondarySpeciesId = territoryLots[1]?.speciesId ?? species[(index + 2) % species.length].id;
     const actorId = index < 6 ? "act-mareyeur-nord" : index < 13 ? "act-mareyeur" : "act-mareyeur-sud";
     return [
-      { id: `need-${territoryId}-achat`, actorId, territoryId, speciesId: primarySpeciesId, quantityKg: 320 + ((index * 73) % 540), quality: "A" as const, purpose: "achat" as const, status: "ouvert" as const, priority: index % 4 === 0 ? ("haute" as const) : ("moyenne" as const), createdAt: now, source: "Besoin consolidé par le relais territorial" },
-      { id: `need-${territoryId}-valorisation`, actorId: `act-relais-${territoryId}`, territoryId, speciesId: secondarySpeciesId, quantityKg: 180 + ((index * 41) % 360), quality: index % 3 === 0 ? ("B" as const) : ("A" as const), purpose: index % 2 === 0 ? ("transformation" as const) : ("transport" as const), status: index % 5 === 0 ? ("couvert" as const) : ("ouvert" as const), priority: "moyenne" as const, createdAt: now, source: index % 2 === 0 ? "Formulaire terrain qualifié" : "Appel téléphonique qualifié" }
+      { id: `need-${territoryId}-achat`, reference: `MBA-SR-${territoryId.toUpperCase()}-ACHAT`, channel: "web" as const, actorId, territoryId, speciesId: primarySpeciesId, quantityKg: 320 + ((index * 73) % 540), quality: "A" as const, intent: "achat" as const, status: "ouvert" as const, priority: index % 4 === 0 ? ("haute" as const) : ("moyenne" as const), createdAt: now, source: "Besoin consolidé par le relais territorial" },
+      { id: `need-${territoryId}-valorisation`, reference: `MBA-SR-${territoryId.toUpperCase()}-VALORISATION`, channel: index % 2 === 0 ? ("terrain" as const) : ("telephone" as const), actorId: `act-relais-${territoryId}`, territoryId, speciesId: secondarySpeciesId, quantityKg: 180 + ((index * 41) % 360), quality: index % 3 === 0 ? ("B" as const) : ("A" as const), intent: index % 2 === 0 ? ("transformation" as const) : ("transport" as const), status: index % 5 === 0 ? ("couvert" as const) : ("ouvert" as const), priority: "moyenne" as const, createdAt: now, source: index % 2 === 0 ? "Formulaire terrain qualifié" : "Appel téléphonique qualifié" }
     ];
   });
 
-  needs.push(...generatedNeeds);
+  serviceRequests.push(...generatedServiceRequests);
 
   const opportunities: ProductState["opportunities"] = [
-    { id: "opp-mbour", lotId: "lot-mbour-sardinelle", needId: "need-sardinelle", territoryId: "mbour", score: 91, reasons: ["Espèce identique", "Quantité suffisante", "Même territoire", "Qualité compatible"], status: "proposee", humanValidationRequired: true },
-    { id: "opp-hann", lotId: "lot-hann-maquereau", needId: "need-maquereau-hann", territoryId: "hann", score: 96, reasons: ["Lot vérifié", "Besoin couvert", "Enlèvement planifié", "Chaîne froide documentée"], status: "engagee", humanValidationRequired: true },
-    { id: "opp-saint", lotId: "lot-saint-mulet", needId: "need-mulet-saint", territoryId: "saint-louis", score: 88, reasons: ["Espèce et qualité compatibles", "Volume disponible", "Acheteurs identifiés"], status: "proposee", humanValidationRequired: true },
-    { id: "opp-kaf", lotId: "lot-kaf-sardinelle", needId: "need-sardinelle-kaf", territoryId: "kafountine", score: 94, reasons: ["Transformation locale", "Quantité exacte", "Engagement confirmé"], status: "executee", humanValidationRequired: true },
-    { id: "opp-cap", lotId: "lot-cap-sole", needId: "need-sole-cap", territoryId: "cap-skirring", score: 84, reasons: ["Produit compatible", "Transport à confirmer", "Délai de conservation court"], status: "detectee", humanValidationRequired: true }
+    { id: "opp-mbour", lotId: "lot-mbour-sardinelle", serviceRequestId: "need-sardinelle", territoryId: "mbour", score: 91, reasons: ["Espèce identique", "Quantité suffisante", "Même territoire", "Qualité compatible"], status: "proposee", humanValidationRequired: true },
+    { id: "opp-hann", lotId: "lot-hann-maquereau", serviceRequestId: "need-maquereau-hann", territoryId: "hann", score: 96, reasons: ["Lot vérifié", "Besoin couvert", "Enlèvement planifié", "Chaîne froide documentée"], status: "engagee", humanValidationRequired: true },
+    { id: "opp-saint", lotId: "lot-saint-mulet", serviceRequestId: "need-mulet-saint", territoryId: "saint-louis", score: 88, reasons: ["Espèce et qualité compatibles", "Volume disponible", "Acheteurs identifiés"], status: "proposee", humanValidationRequired: true },
+    { id: "opp-kaf", lotId: "lot-kaf-sardinelle", serviceRequestId: "need-sardinelle-kaf", territoryId: "kafountine", score: 94, reasons: ["Transformation locale", "Quantité exacte", "Engagement confirmé"], status: "executee", humanValidationRequired: true },
+    { id: "opp-cap", lotId: "lot-cap-sole", serviceRequestId: "need-sole-cap", territoryId: "cap-skirring", score: 84, reasons: ["Produit compatible", "Transport à confirmer", "Délai de conservation court"], status: "detectee", humanValidationRequired: true }
   ];
 
   const generatedOpportunities: ProductState["opportunities"] = territoryRows.flatMap(([territoryId], index) => {
     const lot = generatedLots.find((item) => item.siteId === `quai-${territoryId}`);
-    const need = generatedNeeds.find((item) => item.territoryId === territoryId && item.speciesId === lot?.speciesId);
-    if (!lot || !need) return [];
+    const request = generatedServiceRequests.find((item) => item.territoryId === territoryId && item.speciesId === lot?.speciesId);
+    if (!lot || !request) return [];
     const opportunityStatuses: ProductState["opportunities"][number]["status"][] = ["detectee", "proposee", "engagee"];
     return [{
       id: `opp-${territoryId}-demo`,
       lotId: lot.id,
-      needId: need.id,
+      serviceRequestId: request.id,
       territoryId,
       score: 79 + (index % 18),
       reasons: ["Espèce et qualité compatibles", "Volume disponible", "Proximité territoriale", "Validation humaine requise"],
@@ -552,7 +555,7 @@ export function createDemoState(): ProductState {
 
   const generatedScarcity: ProductState["scarcity"] = territoryRows.map(([territoryId], index) => {
     const territoryLots = lots.filter((item) => item.siteId === `quai-${territoryId}`);
-    const territoryNeeds = needs.filter((item) => item.territoryId === territoryId);
+    const territoryNeeds = serviceRequests.filter((item) => item.territoryId === territoryId);
     const speciesId = territoryNeeds[0]?.speciesId ?? species[index % species.length].id;
     const availableKg = territoryLots.filter((item) => item.speciesId === speciesId).reduce((sum, item) => sum + item.availableKg, 0);
     const requestedKg = territoryNeeds.filter((item) => item.speciesId === speciesId).reduce((sum, item) => sum + item.quantityKg, 0);
@@ -604,7 +607,7 @@ export function createDemoState(): ProductState {
     species,
     landings,
     lots,
-    needs,
+    serviceRequests,
     capacities: infrastructures
       .filter((item) => ["fabrique_glace", "chambre_froide", "transport", "transformation"].includes(item.type))
       .map((item) => ({

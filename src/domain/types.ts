@@ -166,18 +166,50 @@ export interface Lot {
   traceabilityCompleteness: number;
 }
 
-export interface Need {
+// ServiceRequest — anciennement Need (Lot 1, D1 : « Need converge vers la
+// forme de PublicRequest »). Reste strictement côté Produit — ne partage
+// aucun code avec src/domain/public/request.ts, qui persiste dans son
+// propre contexte (A17, Public non touché) ; seule la *forme* converge :
+// vocabulaire canal (`channel`), intention (`intent`), référence et
+// coordonnées de contact optionnelles, comme PublicRequest les porte déjà.
+// speciesId/quantityKg/quality restent propres au Produit : ils alimentent
+// le moteur de rapprochement Lot ↔ ServiceRequest (§5.11), qui n'existe pas
+// côté Public. Portée volontairement limitée à l'intention « sourcing »
+// pour cette étape — les intentions plus larges (formation, financement…)
+// suivront quand un parcours de création dédié existera (cf. Lot 5,
+// besoin collectif → programme).
+export type ServiceRequestChannel = "web" | "whatsapp" | "telephone" | "terrain" | "partenaire" | "evenement";
+
+export type ServiceRequestIntent =
+  | "achat"
+  | "transformation"
+  | "conservation"
+  | "transport"
+  | "equipement"
+  | "maintenance"
+  | "formation"
+  | "financement"
+  | "sourcing"
+  | "autre";
+
+export interface ServiceRequest {
   id: string;
+  reference: string;
+  channel: ServiceRequestChannel;
   actorId: string;
   territoryId: string;
   speciesId: string;
   quantityKg: number;
   quality: CatchLine["quality"];
-  purpose: "achat" | "transformation" | "conservation" | "transport";
+  intent: ServiceRequestIntent;
   status: "ouvert" | "couvert" | "clos";
   priority: Priority;
   createdAt: string;
   source: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  organization?: string;
 }
 
 export interface Capacity {
@@ -193,7 +225,7 @@ export interface Capacity {
 export interface Opportunity {
   id: string;
   lotId: string;
-  needId: string;
+  serviceRequestId: string;
   territoryId: string;
   score: number;
   reasons: string[];
@@ -546,7 +578,7 @@ export interface ProductState {
   species: Species[];
   landings: Landing[];
   lots: Lot[];
-  needs: Need[];
+  serviceRequests: ServiceRequest[];
   capacities: Capacity[];
   opportunities: Opportunity[];
   signals: Signal[];
@@ -582,6 +614,20 @@ export type Command =
   | { type: "create_decision"; situationId: string; actorId: string; decisionType: DecisionType; rationale: string; coordinationId?: string }
   | { type: "record_evidence"; situationId: string; actorId: string; evidenceType: EvidenceType; label: string; detail: string; commitmentId?: string }
   | { type: "log_communication"; actorId: string; channel: CommunicationChannel; subject: string; body: string; situationId?: string; commitmentId?: string }
+  | {
+      type: "create_service_request";
+      actorId: string;
+      territoryId: string;
+      speciesId: string;
+      quantityKg: number;
+      quality: CatchLine["quality"];
+      intent: ServiceRequestIntent;
+      channel: ServiceRequestChannel;
+      contactName?: string;
+      phone?: string;
+      email?: string;
+      organization?: string;
+    }
   | { type: "announce_return"; tripId: string; actorId: string }
   | { type: "confirm_arrival"; tripId: string; actorId: string }
   | { type: "record_landing"; tripId: string; actorId: string }

@@ -8,6 +8,7 @@ import type {
   Lot,
   Opportunity,
   ProductState,
+  ServiceRequest,
   Situation,
   SituationStatus
 } from "./types";
@@ -33,6 +34,7 @@ const transitions: Record<
     | "create_decision"
     | "record_evidence"
     | "log_communication"
+    | "create_service_request"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -181,18 +183,18 @@ function applyLandingCommand(state: ProductState, command: Extract<Command, { ty
   }));
 
   const newOpportunities: Opportunity[] = lots.flatMap((lot) =>
-    state.needs
-      .filter((need) => need.status === "ouvert" && need.speciesId === lot.speciesId && lot.availableKg >= need.quantityKg)
-      .map((need) => ({
-        id: `opp-${lot.id}-${need.id}`,
+    state.serviceRequests
+      .filter((request) => request.status === "ouvert" && request.speciesId === lot.speciesId && lot.availableKg >= request.quantityKg)
+      .map((request) => ({
+        id: `opp-${lot.id}-${request.id}`,
         lotId: lot.id,
-        needId: need.id,
-        territoryId: need.territoryId,
-        score: lot.siteId.includes(need.territoryId) ? 94 : 86,
+        serviceRequestId: request.id,
+        territoryId: request.territoryId,
+        score: lot.siteId.includes(request.territoryId) ? 94 : 86,
         reasons: [
           "Espèce identique",
           "Quantité suffisante",
-          lot.siteId.includes(need.territoryId) ? "Même territoire" : "Territoire voisin",
+          lot.siteId.includes(request.territoryId) ? "Même territoire" : "Territoire voisin",
           "Qualité compatible"
         ],
         status: "detectee" as const,
@@ -215,8 +217,8 @@ function applyOpportunityCommand(state: ProductState, command: Extract<Command, 
   const opportunity = state.opportunities.find((item) => item.id === command.opportunityId);
   if (!opportunity) throw new Error("Opportunité introuvable.");
   const lot = state.lots.find((item) => item.id === opportunity.lotId);
-  const need = state.needs.find((item) => item.id === opportunity.needId);
-  if (!lot || !need) throw new Error("Les objets liés à l’opportunité sont incomplets.");
+  const serviceRequest = state.serviceRequests.find((item) => item.id === opportunity.serviceRequestId);
+  if (!lot || !serviceRequest) throw new Error("Les objets liés à l’opportunité sont incomplets.");
 
   if (command.type === "accept_opportunity") {
     if (!["detectee", "proposee"].includes(opportunity.status)) throw new Error("Cette opportunité est déjà engagée.");
@@ -228,19 +230,19 @@ function applyOpportunityCommand(state: ProductState, command: Extract<Command, 
       ),
       lots: state.lots.map((item) =>
         item.id === lot.id
-          ? { ...item, status: "engage" as const, availableKg: Math.max(0, item.availableKg - need.quantityKg) }
+          ? { ...item, status: "engage" as const, availableKg: Math.max(0, item.availableKg - serviceRequest.quantityKg) }
           : item
       ),
-      needs: state.needs.map((item) =>
-        item.id === need.id ? { ...item, status: "couvert" as const } : item
+      serviceRequests: state.serviceRequests.map((item) =>
+        item.id === serviceRequest.id ? { ...item, status: "couvert" as const } : item
       ),
       coordinationSpaces: [
         {
           id: coordinationId,
           opportunityId: opportunity.id,
           title: "Mise en relation qualifiée",
-          participantIds: [need.actorId, command.actorId, "act-coordinateur"],
-          objective: `Orienter ${need.quantityKg} kg vers ${need.purpose}`,
+          participantIds: [serviceRequest.actorId, command.actorId, "act-coordinateur"],
+          objective: `Orienter ${serviceRequest.quantityKg} kg vers ${serviceRequest.intent}`,
           decision: "Conditions acceptées sous réserve du contrôle final de qualité",
           commitments: [
             { id: id("eng"), actorId: command.actorId, label: "Organiser la collecte", dueAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), status: "a_faire" as const }
@@ -263,8 +265,8 @@ function applyOpportunityCommand(state: ProductState, command: Extract<Command, 
     lots: state.lots.map((item) =>
       item.id === lot.id ? { ...item, status: "valorise" as const } : item
     ),
-    needs: state.needs.map((item) =>
-      item.id === need.id ? { ...item, status: "clos" as const } : item
+    serviceRequests: state.serviceRequests.map((item) =>
+      item.id === serviceRequest.id ? { ...item, status: "clos" as const } : item
     ),
     coordinationSpaces: state.coordinationSpaces.map((space) =>
       space.opportunityId === opportunity.id
@@ -276,7 +278,7 @@ function applyOpportunityCommand(state: ProductState, command: Extract<Command, 
         : space
     )
   };
-  return withAudit(next, command.actorId, "opportunite", opportunity.id, command.type, `${need.quantityKg} kg orientés et résultat enregistré`);
+  return withAudit(next, command.actorId, "opportunite", opportunity.id, command.type, `${serviceRequest.quantityKg} kg orientés et résultat enregistré`);
 }
 
 function applyCommunityCommand(state: ProductState, command: Extract<Command, { type: "create_community_post" | "convert_post" }>) {
@@ -480,6 +482,44 @@ function applyCommunicationCommand(state: ProductState, command: Extract<Command
   return withAudit(next, command.actorId, "communication", communication.id, command.type, `${communicationChannelLabels[command.channel]} (simulée) — ${communication.subject}`);
 }
 
+// ServiceRequest — anciennement Need (D1). Aucune commande de création
+// n'existait avant cette étape (Need n'était alimenté que par les données
+// de démonstration) : create_service_request rend l'objet réellement
+// actionnable, alimenté par un canal explicite comme l'exige §5.6 du
+// cahier des charges maître.
+function applyServiceRequestCommand(state: ProductState, command: Extract<Command, { type: "create_service_request" }>) {
+  if (!state.territories.some((item) => item.id === command.territoryId)) throw new Error("Territoire inconnu.");
+  if (!state.species.some((item) => item.id === command.speciesId)) throw new Error("Espèce inconnue.");
+  if (command.quantityKg <= 0) throw new Error("La quantité doit être positive.");
+
+  const suffix = crypto.randomUUID().slice(0, 8);
+  const serviceRequest: ServiceRequest = {
+    id: `sr-${suffix}`,
+    reference: `MBA-SR-${suffix.toUpperCase()}`,
+    channel: command.channel,
+    actorId: command.actorId,
+    territoryId: command.territoryId,
+    speciesId: command.speciesId,
+    quantityKg: command.quantityKg,
+    quality: command.quality,
+    intent: command.intent,
+    status: "ouvert",
+    priority: "moyenne",
+    createdAt: timestamp(),
+    source: command.channel === "terrain" ? "Déclaration terrain" : "Formulaire Produit",
+    contactName: command.contactName,
+    phone: command.phone,
+    email: command.email,
+    organization: command.organization
+  };
+
+  const next: ProductState = {
+    ...state,
+    serviceRequests: [serviceRequest, ...state.serviceRequests]
+  };
+  return withAudit(next, command.actorId, "demande", serviceRequest.id, command.type, `${serviceRequest.quantityKg} kg — ${serviceRequest.intent}`);
+}
+
 export function applyCommand(state: ProductState, command: Command): ProductState {
   if (command.type === "reset_demo") return state;
 
@@ -491,6 +531,9 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   }
   if (command.type === "log_communication") {
     return applyCommunicationCommand(state, command);
+  }
+  if (command.type === "create_service_request") {
+    return applyServiceRequestCommand(state, command);
   }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
@@ -644,6 +687,7 @@ export type WorkflowAction = Exclude<
   | "create_decision"
   | "record_evidence"
   | "log_communication"
+  | "create_service_request"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {

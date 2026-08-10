@@ -45,6 +45,11 @@ test("le tenant de démonstration relie les objets sans référence orpheline", 
       );
     }
   }
+  for (const request of state.serviceRequests) {
+    assert.ok(territoryIds.has(request.territoryId));
+    assert.ok(speciesIds.has(request.speciesId));
+    assert.ok(actorIds.has(request.actorId));
+  }
   for (const initiative of state.initiatives) {
     initiative.territoryIds.forEach((id) => assert.ok(territoryIds.has(id)));
     initiative.funding.forEach((fund) => assert.ok(actorIds.has(fund.partnerId)));
@@ -66,7 +71,7 @@ test("le tenant de démonstration relie les objets sans référence orpheline", 
   });
   state.opportunities.forEach((item) => {
     assert.ok(state.lots.some((lot) => lot.id === item.lotId));
-    assert.ok(state.needs.some((need) => need.id === item.needId));
+    assert.ok(state.serviceRequests.some((request) => request.id === item.serviceRequestId));
     assert.ok(item.reasons.length > 0);
   });
   state.plans.forEach((plan) => {
@@ -84,7 +89,7 @@ test("le jeu national couvre les territoires et les moteurs métier de la démon
   assert.ok(state.lots.length >= 75);
   assert.ok(state.situations.length >= 28);
   assert.ok(state.coordinationSpaces.length >= 24);
-  assert.ok(state.needs.length >= 40);
+  assert.ok(state.serviceRequests.length >= 40);
   assert.ok(state.opportunities.length >= 20);
   assert.ok(state.communityPosts.length >= 24);
   assert.ok(state.initiatives.length >= 8);

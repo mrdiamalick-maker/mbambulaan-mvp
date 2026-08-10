@@ -37,7 +37,7 @@ export function CoordinationWorkspace() {
   const [query, setQuery] = useState("");
   if (!state) return null;
 
-  const openNeeds = state.needs.filter((item) => item.status === "ouvert");
+  const openNeeds = state.serviceRequests.filter((item) => item.status === "ouvert");
   const availableCapacities = state.capacities.filter((item) => item.status === "disponible");
   const activeMissions = state.coordinationSpaces.filter((item) => item.commitments.some((commitment) => commitment.status !== "terminee") || item.commitments.length === 0);
   const urgentNeed = openNeeds.find((item) => item.priority === "critique") ?? openNeeds[0];
@@ -48,7 +48,7 @@ export function CoordinationWorkspace() {
 
   const filteredNeeds = openNeeds.filter((need) => {
     const species = state.species.find((item) => item.id === need.speciesId)?.name ?? "";
-    return (territoryId === "all" || need.territoryId === territoryId) && `${species} ${need.purpose} ${need.source}`.toLowerCase().includes(query.toLowerCase());
+    return (territoryId === "all" || need.territoryId === territoryId) && `${species} ${need.intent} ${need.source}`.toLowerCase().includes(query.toLowerCase());
   });
 
   const filteredCapacities = availableCapacities.filter((capacity) => {
@@ -120,7 +120,7 @@ export function CoordinationWorkspace() {
           const territory = state.territories.find((item) => item.id === need.territoryId);
           const actor = state.actors.find((item) => item.id === need.actorId);
           return <article key={need.id} className="pro-table-row lg:grid-cols-[1fr_150px_170px_auto] lg:items-center">
-            <div><div className="flex items-center gap-2"><span className={`size-2 rounded-full ${need.priority === "critique" ? "bg-[#c65242]" : "bg-[#d8951a]"}`} /><p className="text-[10px] font-black uppercase tracking-[.08em] text-[#7a8e94]">{need.purpose} · {territory?.name}</p></div><h3 className="mt-1.5 font-black">{species?.name} · {need.quantityKg.toLocaleString("fr-FR")} kg</h3><p className="mt-1 text-xs text-[#667b81]">Demandé par {actor?.name} · {need.source}</p></div>
+            <div><div className="flex items-center gap-2"><span className={`size-2 rounded-full ${need.priority === "critique" ? "bg-[#c65242]" : "bg-[#d8951a]"}`} /><p className="text-[10px] font-black uppercase tracking-[.08em] text-[#7a8e94]">{need.intent} · {territory?.name}</p></div><h3 className="mt-1.5 font-black">{species?.name} · {need.quantityKg.toLocaleString("fr-FR")} kg</h3><p className="mt-1 text-xs text-[#667b81]">Demandé par {actor?.name} · {need.source}</p></div>
             <div><p className="text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Qualité</p><p className="mt-1 text-sm font-bold">Classe {need.quality}</p></div>
             <div><p className="text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">État métier</p><p className="mt-1 text-sm font-bold capitalize text-[#075568]">{need.status}</p></div>
             <button onClick={() => setView("rapprochements")} className="btn-secondary whitespace-nowrap">Chercher une réponse <ArrowRight size={14} /></button>
@@ -141,7 +141,7 @@ export function CoordinationWorkspace() {
 
         {view === "rapprochements" && <div className="grid gap-px bg-[#d9e3e3] md:grid-cols-2">{state.opportunities.length ? state.opportunities.map((opportunity) => {
           const lot = state.lots.find((item) => item.id === opportunity.lotId);
-          const need = state.needs.find((item) => item.id === opportunity.needId);
+          const need = state.serviceRequests.find((item) => item.id === opportunity.serviceRequestId);
           const species = state.species.find((item) => item.id === lot?.speciesId);
           const territory = state.territories.find((item) => item.id === opportunity.territoryId);
           return <article key={opportunity.id} className="bg-white p-5 lg:p-6">
