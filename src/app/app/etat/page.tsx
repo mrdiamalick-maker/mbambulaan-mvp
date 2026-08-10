@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { Cell, Pie, PieChart } from "recharts";
 import {
   ArrowRight,
   ArrowUpRight,
+  ChevronRight,
   FileDown,
   Globe2,
   Radio,
@@ -17,6 +19,7 @@ import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -49,6 +52,14 @@ import {
 const activityLabels: Record<Territory["activity"], string> = { stable: "Stable", vigilance: "Vigilance", critique: "Critique" };
 const severityToTag: Record<VigilanceSeverity, "stable" | "vigilance" | "critique"> = { faible: "stable", moyenne: "vigilance", haute: "vigilance", critique: "critique" };
 const glyphBorderColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "#1d4468", vigilance: "#c68a2c", critique: "#b6522f" };
+const glyphFillColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "rgba(29,68,104,.05)", vigilance: "rgba(198,138,44,.07)", critique: "rgba(182,82,47,.07)" };
+
+const territoryHealthConfig: ChartConfig = {
+  value: { label: "Territoires" },
+  Stable: { label: "Stable", color: "#1d4468" },
+  Vigilance: { label: "Vigilance", color: "#c68a2c" },
+  Critique: { label: "Critique", color: "#b6522f" }
+};
 
 function StatusBadge({ status }: { status: "stable" | "vigilance" | "critique" }) {
   if (status === "critique") return <Badge variant="destructive">Critique</Badge>;
@@ -157,6 +168,33 @@ export default function EtatPage() {
   const territoiresAttention = state.territories.filter((item) => item.activity !== "stable");
   const territoiresStables = state.territories.filter((item) => item.activity === "stable");
 
+  // Répartition de l'état du réseau — vue de supervision, jamais présentée
+  // au Coordinateur de cette façon (lui travaille situation par situation,
+  // pas la santé agrégée du système).
+  const territoryHealthData = [
+    { name: "Stable", value: territoiresStables.length, fill: "#1d4468" },
+    { name: "Vigilance", value: state.territories.filter((item) => item.activity === "vigilance").length, fill: "#c68a2c" },
+    { name: "Critique", value: state.territories.filter((item) => item.activity === "critique").length, fill: "#b6522f" }
+  ].filter((item) => item.value > 0);
+
+  // Boucle de coordination — combien de dossiers à chaque étape, tous
+  // territoires confondus. Répond à « où en est le système », pas
+  // « qu'est-ce que je dois faire » (ça, c'est l'écran Coordinateur).
+  const pipelineStages: Array<{ status: Situation["status"]; label: string }> = [
+    { status: "recue", label: "Reçue" },
+    { status: "qualification", label: "Qualification" },
+    { status: "priorisee", label: "Priorisée" },
+    { status: "coordination", label: "Coordination" },
+    { status: "intervention", label: "Intervention" },
+    { status: "attente", label: "En attente" },
+    { status: "resultat", label: "Résultat" },
+    { status: "reglee", label: "Réglée" }
+  ];
+  const pipelineCounts = pipelineStages.map((stage) => ({
+    ...stage,
+    count: state.situations.filter((item) => item.status === stage.status).length
+  }));
+
   return (
     <div className="shadcn-scope space-y-10 bg-background p-5 pb-16 lg:p-8">
       <div className="flex items-start gap-3 rounded-lg border bg-card px-4 py-3 text-sm">
@@ -217,22 +255,79 @@ export default function EtatPage() {
         </Marquee>
       </div>
 
+      {/* Vue d'ensemble — supervision du système, pas une file de travail.
+          C'est ce qui distingue structurellement l'Espace État du
+          Coordinateur : lui agit dossier par dossier, le ministère lit
+          l'état agrégé du réseau et l'avancement de la boucle. */}
+      <BlurFade inView>
+      <section>
+        <p className="text-xs font-bold uppercase tracking-widest text-primary">Vue d’ensemble du système</p>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Ce que le ministère supervise, pas ce qu’il exécute.</h2>
+        <div className="mt-5 grid gap-4 lg:grid-cols-[.85fr_1.65fr]">
+          <Card className="border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.06] via-transparent to-transparent">
+            <CardHeader>
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Santé des territoires</Label>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={territoryHealthConfig} className="mx-auto aspect-square max-h-[170px]">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                  <Pie data={territoryHealthData} dataKey="value" nameKey="name" innerRadius={44} strokeWidth={3}>
+                    {territoryHealthData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.fill} stroke="var(--card)" />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+              <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
+                {territoryHealthData.map((entry) => (
+                  <span key={entry.name} className="flex items-center gap-1.5">
+                    <span className="size-2 rounded-full" style={{ backgroundColor: entry.fill }} aria-hidden="true" />
+                    {entry.name} · {entry.value}
+                  </span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/[0.05] via-transparent to-transparent">
+            <CardHeader>
+              <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Boucle de coordination — tous territoires confondus</Label>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap items-center gap-1">
+                {pipelineCounts.map((stage, index) => (
+                  <div key={stage.status} className="flex items-center gap-1">
+                    <div className={`min-w-[5.5rem] rounded-lg border px-3 py-2.5 text-center ${stage.count > 0 ? "border-primary/25 bg-primary/[0.05]" : "border-border bg-muted/50"}`}>
+                      <p className={`text-lg font-bold tracking-tight ${stage.count > 0 ? "text-primary" : "text-muted-foreground"}`}>{stage.count}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{stage.label}</p>
+                    </div>
+                    {index < pipelineCounts.length - 1 && <ChevronRight size={14} className="shrink-0 text-muted-foreground/40" aria-hidden="true" />}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-xs text-muted-foreground">{state.situations.length} dossier(s) suivis au total, du signal reçu jusqu’à la clôture.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+      </BlurFade>
+
       {/* Défi 1 — valeur générée */}
       <BlurFade inView>
       <section>
         <p className="text-xs font-bold uppercase tracking-widest text-primary">Diversifier les revenus des pêcheurs</p>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">Une valeur additionnelle réelle, générée par la coordination.</h2>
         <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.2fr]">
-          <Card>
+          <Card className="border-primary/25 bg-gradient-to-br from-primary/[0.09] via-primary/[0.03] to-transparent">
             <CardContent>
               <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">Environnement de démonstration</Badge>
-              <p className="mt-4 text-4xl font-bold tracking-tight">{formatFcfa(executedValue)}</p>
+              <p className="mt-4 text-4xl font-bold tracking-tight text-primary">{formatFcfa(executedValue)}</p>
               <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Valeur exécutée à date</p>
               <p className="mt-4 text-sm leading-6 text-muted-foreground">{formatFcfa(engagedValue)} supplémentaires sont engagés — mise en relation confirmée entre un lot disponible et un besoin qualifié, en cours de réalisation.</p>
               <p className="mt-4 text-xs leading-5 text-muted-foreground/80">Origine : mise en relation directe entre lots disponibles et besoins qualifiés par le réseau Mbàmbulaan — un calcul sur les opportunités réellement traitées, pas une promesse théorique.</p>
             </CardContent>
           </Card>
-          <Card className="bg-muted">
+          <Card className="border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.07] via-[#1d4468]/[0.02] to-transparent">
             <CardHeader>
               <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Évolution des programmes en cours</Label>
             </CardHeader>
@@ -264,7 +359,7 @@ export default function EtatPage() {
               — aucune donnée géographique de précision, juste une silhouette
               du littoral pour situer les territoires les uns par rapport aux
               autres. */}
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.06] via-transparent to-primary/[0.03]">
             <CardContent className="p-3">
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Littoral suivi par le réseau · illustratif</p>
               <div className="aspect-[4/3] w-full">
@@ -287,7 +382,7 @@ export default function EtatPage() {
           <div>
             <div className="flex flex-wrap gap-2.5">
               {territoiresAttention.map((territory) => (
-                <button key={territory.id} onClick={() => setTerritoryDrawer(territory)} className="flex items-center gap-2.5 rounded-lg border bg-card px-3.5 py-2.5 text-left shadow-sm transition hover:border-primary/40" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[territory.activity] }}>
+                <button key={territory.id} onClick={() => setTerritoryDrawer(territory)} className="flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-left shadow-sm transition hover:border-primary/40" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[territory.activity], backgroundColor: glyphFillColor[territory.activity] }}>
                   <TensionGlyph status={territory.activity} size={26} />
                   <span>
                     <span className="block text-sm font-semibold">{territory.name}</span>
@@ -326,7 +421,7 @@ export default function EtatPage() {
         ) : (
           <div className="mt-5 space-y-2.5">
             {openCases.map((item) => (
-              <Card key={item.id} className="flex-row flex-wrap items-center justify-between gap-3 p-4" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[severityToTag[item.severity]] }}>
+              <Card key={item.id} className="flex-row flex-wrap items-center justify-between gap-3 p-4" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[severityToTag[item.severity]], backgroundColor: glyphFillColor[severityToTag[item.severity]] }}>
                 <div className="flex items-center gap-3">
                   <TensionGlyph status={severityToTag[item.severity]} size={30} />
                   <div>
@@ -356,7 +451,7 @@ export default function EtatPage() {
         ) : (
           <div className="mt-5 space-y-2.5">
             {missions.map((mission) => (
-              <Card key={mission.key} className="flex-row flex-wrap items-center justify-between gap-3 p-4" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[mission.glyphStatus] }}>
+              <Card key={mission.key} className="flex-row flex-wrap items-center justify-between gap-3 p-4" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[mission.glyphStatus], backgroundColor: glyphFillColor[mission.glyphStatus] }}>
                 <div className="flex items-center gap-3">
                   <TensionGlyph status={mission.glyphStatus} size={30} />
                   <div>
@@ -386,7 +481,7 @@ export default function EtatPage() {
         <BentoGrid className="mt-5 grid-cols-1 gap-4 sm:grid-cols-3 auto-rows-[13rem]">
           <BentoCard
             name="Acteurs coordonnés"
-            className="sm:col-span-2"
+            className="border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.08] via-[#1d4468]/[0.02] to-transparent sm:col-span-2"
             Icon={Users}
             href="#terrain"
             cta="Voir le réseau territorial"
@@ -401,7 +496,7 @@ export default function EtatPage() {
           />
           <BentoCard
             name="Signaux traités"
-            className="sm:col-span-1"
+            className="border-amber-500/20 bg-gradient-to-br from-amber-500/[0.09] via-amber-500/[0.02] to-transparent sm:col-span-1"
             Icon={Radio}
             href="#signaux"
             cta="Voir la vigilance"
@@ -415,7 +510,7 @@ export default function EtatPage() {
           />
           <BentoCard
             name="Territoires actifs"
-            className="sm:col-span-1"
+            className="border-primary/20 bg-gradient-to-br from-primary/[0.09] via-primary/[0.02] to-transparent sm:col-span-1"
             Icon={Globe2}
             href="#terrain"
             cta="Explorer la carte"
