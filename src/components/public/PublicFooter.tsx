@@ -8,7 +8,7 @@ const columns = [
   },
   {
     title: "Agir",
-    links: [["Trouver une solution", "/solutions"], ["Proposer mes services", "/contact?intent=reseau"], ["Contact", "/contact"], ["Accès professionnel", "/connexion"]]
+    links: [["Trouver une solution", "/solutions"], ["Proposer mes services", "/contact?intent=contribution"], ["Contact", "/contact"], ["Accès professionnel", "/connexion"]]
   },
   {
     title: "Mbàmbulaan",

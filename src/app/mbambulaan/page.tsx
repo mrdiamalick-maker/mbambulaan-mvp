@@ -23,7 +23,7 @@ export default function MbambulaanPage() {
         actions={
           <>
             <Link href="/atlas" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/18 bg-white/8 px-4 py-2.5 text-sm font-bold text-white hover:bg-white/12"><MapPinned size={16}/> Ouvrir l’Atlas</Link>
-            <Link href="/contact?intent=solution" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#5fe0d3] px-4 py-2.5 text-sm font-bold text-[#031a22]">Trouver une solution <ArrowRight size={16}/></Link>
+            <Link href="/solutions" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#5fe0d3] px-4 py-2.5 text-sm font-bold text-[#031a22]">Trouver une solution <ArrowRight size={16}/></Link>
           </>
         }
       />
@@ -60,7 +60,7 @@ export default function MbambulaanPage() {
             <p className="text-xs font-black uppercase tracking-[.14em] text-[#0a6d68]">Vous avez un besoin ?</p>
             <h2 className="mt-3 text-2xl font-black">Décrivez ce que vous cherchez à accomplir.</h2>
             <p className="mt-3 text-sm leading-6 text-[#60716f]">Transport, froid, équipement, formation, sourcing, projet ou autre besoin : Mbàmbulaan organise la qualification.</p>
-            <Link href="/contact?intent=solution" className="mt-6 inline-flex items-center gap-2 font-black text-[#075568]">Trouver une solution <ArrowRight size={16} /></Link>
+            <Link href="/solutions" className="mt-6 inline-flex items-center gap-2 font-black text-[#075568]">Trouver une solution <ArrowRight size={16} /></Link>
           </div>
           <div className="rounded-[26px] bg-[#f2eadb] p-6 md:p-8">
             <p className="text-xs font-black uppercase tracking-[.14em] text-[#8b601e]">Vous pouvez apporter une capacité ?</p>

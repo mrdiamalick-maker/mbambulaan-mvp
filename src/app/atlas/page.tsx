@@ -13,7 +13,7 @@ export default function PublicAtlasPage() {
         eyebrow="Atlas Mbàmbulaan"
         title={<>Explorer l’économie maritime <span className="text-[#74e1d6]">par les territoires.</span></>}
         description="L’Atlas public permet de découvrir les quais, les activités et les informations territoriales utiles sans exposer les données opérationnelles privées. La couverture s’enrichit progressivement, en commençant par la filière halieutique sénégalaise."
-        actions={<><Link href="/solutions?source=atlas" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#5fe0d3] px-4 py-2.5 text-sm font-bold text-[#031a22]">Trouver une solution <ArrowRight size={16}/></Link><Link href="/contact?intent=intervention&source=atlas" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/18 bg-white/8 px-4 py-2.5 text-sm font-bold text-white"><Compass size={16}/> Étudier une intervention</Link></>}
+        actions={<><Link href="/solutions?source=atlas" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#5fe0d3] px-4 py-2.5 text-sm font-bold text-[#031a22]">Trouver une solution <ArrowRight size={16}/></Link><Link href="/contact?intent=programme&source=atlas" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/18 bg-white/8 px-4 py-2.5 text-sm font-bold text-white"><Compass size={16}/> Étudier une intervention</Link></>}
       />
 
       <div className="mx-auto max-w-[1500px] px-5 py-10 md:px-10 md:py-14">

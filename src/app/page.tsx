@@ -192,14 +192,14 @@ export default function HomePage() {
             <p className="label mt-5">Vous pouvez contribuer</p>
             <h2 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[#102e37]">Proposer une capacité</h2>
             <p className="mt-3 text-sm leading-6 text-[#667b81]">Entreprise, expert, ONG ou organisation : présentez ce que vous pouvez apporter au réseau Mbàmbulaan.</p>
-            <Link href="/contact?intent=capacity" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#075568]">Proposer mes services <ArrowRight size={15}/></Link>
+            <Link href="/contact?intent=contribution" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#075568]">Proposer mes services <ArrowRight size={15}/></Link>
           </div>
           <div className="surface p-6">
             <MapPinned className="text-[#075568]" />
             <p className="label mt-5">Vous portez un programme</p>
             <h2 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[#102e37]">Étudier une intervention</h2>
             <p className="mt-3 text-sm leading-6 text-[#667b81]">Territoire, bénéficiaires, partenaires, déploiement terrain, données et suivi : Mbàmbulaan peut organiser le cadrage.</p>
-            <Link href="/contact?intent=program" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#075568]">Parler à Mbàmbulaan <ArrowRight size={15}/></Link>
+            <Link href="/contact?intent=programme" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#075568]">Parler à Mbàmbulaan <ArrowRight size={15}/></Link>
           </div>
         </div>
       </section>
