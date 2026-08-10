@@ -248,6 +248,157 @@ export const publicNews: PublicNewsItem[] = [
     publishedAt: "30 juillet 2026",
     readingTime: "4 min",
     verification: "Démonstration éditoriale"
+  },
+  {
+    id: "comprendre-saisonnalite",
+    category: "Comprendre",
+    domain: "Pêche & ressources",
+    title: "La saisonnalité des espèces : pourquoi elle change tout au fil de l’année",
+    excerpt: "Sardinelle, thiof, thon, crevette : chaque espèce a sa saison, sa zone et sa technique. Comprendre ce calendrier évite de mal calibrer un besoin ou un projet.",
+    body: [
+      "La ressource halieutique sénégalaise n'est pas disponible de manière uniforme toute l'année. La sardinelle, espèce pélagique la plus débarquée, connaît des pics saisonniers liés aux courants et à la remontée d'eaux froides (upwelling), tandis que des espèces démersales comme le thiof ou le mérou suivent des cycles différents, plus étalés mais aussi plus sensibles à la pression de pêche.",
+      "Cette saisonnalité a des conséquences concrètes : un besoin de froid ou de transport dimensionné pour la haute saison sera surdimensionné le reste de l'année ; une formation ou un programme calé sur la mauvaise période manquera son public parce que les pêcheurs seront en mer ou, à l'inverse, à quai en attente.",
+      "Documenter cette saisonnalité par territoire et par espèce, même de façon indicative, est un préalable à toute intervention bien calibrée — c'est l'un des objectifs progressifs de l'Atlas Mbàmbulaan."
+    ],
+    cta: { label: "Voir les territoires par activité", href: "/atlas" },
+    territory: "Sénégal",
+    publishedAt: "12 août 2026",
+    readingTime: "6 min",
+    verification: "Démonstration éditoriale"
+  },
+  {
+    id: "analyse-site-debarquement",
+    category: "Analyse",
+    domain: "Débarquement",
+    title: "Ce qui distingue un site de débarquement bien organisé d’un site à risque",
+    excerpt: "Accès, pesée, ombrage, eau potable, évacuation des déchets : la qualité d’un quai se joue sur des détails concrets, pas seulement sur son volume d’activité.",
+    body: [
+      "Deux sites de débarquement peuvent traiter des volumes comparables et offrir des conditions radicalement différentes. La qualité d'un quai ne se mesure pas seulement à son activité, mais à des éléments souvent négligés : la protection du poisson contre le soleil entre l'arrivée et la vente, l'accès à l'eau potable pour le lavage, l'évacuation des déchets et des eaux usées, et la fiabilité des instruments de pesée.",
+      "Ces éléments déterminent directement la qualité du produit qui entre dans la chaîne — et donc sa valeur. Un site sans ombrage ni glace à proximité immédiate perd de la qualité en quelques heures, quelle que soit la compétence des acteurs en aval.",
+      "C'est pourquoi documenter les infrastructures réelles d'un site, au-delà de sa seule localisation, est une information à haute valeur pour orienter des interventions ciblées plutôt que des investissements génériques."
+    ],
+    cta: { label: "Voir les fiches quais dans l’Atlas", href: "/atlas" },
+    territory: "Littoral sénégalais",
+    publishedAt: "13 août 2026",
+    readingTime: "6 min",
+    verification: "Démonstration éditoriale"
+  },
+  {
+    id: "guide-chaine-froid",
+    category: "Guide",
+    domain: "Conservation & froid",
+    title: "Chaîne du froid : les trois maillons qui déterminent la qualité finale",
+    excerpt: "Produire de la glace ne suffit pas. La chaîne du froid se joue autant dans le transport et le stockage intermédiaire que dans la production initiale.",
+    body: [
+      "On réduit souvent la chaîne du froid à un seul maillon : la disponibilité de glace au débarquement. En réalité, trois maillons distincts déterminent la qualité finale du produit : la production (glace ou froid mécanique), le maintien de la température pendant le transport, et le stockage intermédiaire avant transformation ou vente.",
+      "Une rupture sur un seul de ces trois maillons — un camion sans isolation correcte, un lieu de stockage mal ventilé — annule les efforts faits sur les deux autres. C'est pourquoi une solution de froid efficace se pense comme un système complet, pas comme un équipement isolé.",
+      "Qualifier un besoin de froid suppose donc de préciser à quel maillon se situe la rupture actuelle : production insuffisante, transport non réfrigéré, ou absence de stockage intermédiaire. Chaque cas appelle une réponse différente."
+    ],
+    cta: { label: "Trouver une solution de froid", href: "/solutions?intent=conservation" },
+    territory: "Sénégal",
+    publishedAt: "14 août 2026",
+    readingTime: "5 min",
+    verification: "Démonstration éditoriale"
+  },
+  {
+    id: "portrait-transformatrices",
+    category: "Portrait",
+    domain: "Transformation & valorisation",
+    title: "Les transformatrices, pilier économique souvent invisible de la filière",
+    excerpt: "Séchage, fumage, salage : un travail majoritairement féminin, organisé en groupements, qui transforme une ressource périssable en revenu durable.",
+    body: [
+      "Dans la plupart des sites de transformation du littoral sénégalais, ce sont des femmes, souvent organisées en groupements ou en GIE, qui assurent le séchage, le fumage et le salage des produits halieutiques. Ce travail, exigeant et peu mécanisé, transforme un produit périssable en un produit stable, transportable et vendable sur des marchés plus larges.",
+      "Ces groupements font face à des contraintes récurrentes : accès limité aux infrastructures améliorées (fours de fumage à faible émission, aires de séchage protégées), difficultés de financement de trésorerie pour acheter la matière première en période d'abondance, et accès inégal aux débouchés au-delà du marché local.",
+      "Reconnaître ce maillon comme un acteur économique à part entière — et non comme une activité secondaire — est une condition pour que les interventions (équipement, formation, financement) soient réellement utiles et adaptées à leur organisation réelle."
+    ],
+    territory: "Sénégal",
+    publishedAt: "15 août 2026",
+    readingTime: "6 min",
+    verification: "Démonstration éditoriale"
+  },
+  {
+    id: "analyse-dernier-kilometre",
+    category: "Analyse",
+    domain: "Transport & logistique",
+    title: "Pourquoi le dernier kilomètre coûte souvent plus cher que le trajet principal",
+    excerpt: "L’acheminement entre le quai et l’axe routier principal concentre une grande partie des pertes et des surcoûts logistiques de la filière.",
+    body: [
+      "Le transport longue distance entre un grand quai et un marché régional est souvent mieux organisé que le tronçon initial entre le point de débarquement et l'axe routier praticable. Pistes non aménagées, absence de véhicules adaptés, ruptures de charge multiples : ce « dernier kilomètre » concentre une part disproportionnée des surcoûts et des pertes de qualité.",
+      "Ce constat, documenté dans plusieurs filières agricoles et halieutiques ouest-africaines, s'applique directement aux territoires les plus enclavés du littoral sénégalais, notamment en Casamance et dans certaines zones du delta du Saloum.",
+      "Qualifier un besoin de transport suppose donc de préciser non seulement l'origine et la destination finale, mais aussi les conditions réelles du premier tronçon — c'est souvent là que se joue la faisabilité économique d'une solution."
+    ],
+    cta: { label: "Organiser un transport", href: "/solutions?intent=transport" },
+    territory: "Sénégal",
+    publishedAt: "16 août 2026",
+    readingTime: "5 min",
+    verification: "Démonstration éditoriale"
+  },
+  {
+    id: "guide-marches-export",
+    category: "Guide",
+    domain: "Commerce & débouchés",
+    title: "Marchés locaux, régionaux, export : trois logiques de débouchés à ne pas confondre",
+    excerpt: "Chaque débouché a ses exigences propres — volume, régularité, qualité, traçabilité. Se tromper de marché cible est une des premières causes d’échec commercial.",
+    body: [
+      "Le marché local absorbe rapidement de petits volumes avec des exigences de qualité variables. Le marché régional (sous-régional ouest-africain) demande une régularité d'approvisionnement et une logistique fiable. Le marché export, notamment vers l'Union européenne, impose des standards sanitaires stricts, une traçabilité documentée et des volumes constants.",
+      "Beaucoup de projets échouent en visant l'export sans avoir consolidé une base de production et de qualité stable sur les marchés plus accessibles. À l'inverse, certains acteurs déjà en capacité d'exporter restent bloqués faute d'accompagnement sur la mise aux normes et la certification.",
+      "Comprendre à quel marché correspond réellement une capacité de production donnée est une étape de qualification essentielle avant toute recherche de débouché."
+    ],
+    cta: { label: "Trouver des débouchés", href: "/solutions?intent=debouches" },
+    territory: "Sénégal",
+    publishedAt: "17 août 2026",
+    readingTime: "6 min",
+    verification: "Démonstration éditoriale"
+  },
+  {
+    id: "guide-securite-mer",
+    category: "Guide",
+    domain: "Compétences & formation",
+    title: "Sécurité en mer : ce qu’une formation de base doit couvrir réellement",
+    excerpt: "Gilets, communication, météo, premiers secours : la sécurité en mer reste l’un des angles morts de la filière artisanale, avec un impact humain direct.",
+    body: [
+      "La pêche artisanale reste une activité à risque élevé : conditions météorologiques changeantes, embarcations parfois vétustes, absence fréquente d'équipements de sécurité de base. Une formation utile ne se limite pas à la théorie : elle couvre l'usage réel des gilets de sauvetage, les procédures de communication en cas de difficulté, la lecture des bulletins météo marine, et les gestes de premiers secours.",
+      "Ces formations gagnent à être conçues avec les organisations professionnelles de pêcheurs plutôt qu'imposées de l'extérieur, pour tenir compte des pratiques réelles et des contraintes économiques qui expliquent parfois le non-usage des équipements de sécurité existants.",
+      "C'est un sujet où la coordination entre autorités maritimes, organisations professionnelles et partenaires techniques est particulièrement déterminante pour la portée réelle d'une action."
+    ],
+    cta: { label: "Manifester un besoin de formation", href: "/solutions?intent=formation" },
+    territory: "Sénégal",
+    publishedAt: "18 août 2026",
+    readingTime: "5 min",
+    verification: "Démonstration éditoriale"
+  },
+  {
+    id: "comprendre-logiques-financement",
+    category: "Comprendre",
+    domain: "Financement & développement",
+    title: "Subvention, prêt ou programme : trois logiques de financement à ne pas confondre",
+    excerpt: "Chaque instrument de financement répond à une logique différente. Les confondre est une cause fréquente de dossiers mal orientés ou d’investissements mal assumés.",
+    body: [
+      "Une subvention (bailleur, État, collectivité) finance en général une action d'intérêt collectif sans attente de remboursement, mais impose souvent des critères d'éligibilité stricts et un reporting exigeant. Un prêt (banque, institution de microfinance) suppose une capacité de remboursement démontrée et un usage productif clairement identifié. Un programme de développement combine généralement plusieurs instruments — subvention pour l'équipement, accompagnement technique, parfois crédit pour le fonds de roulement.",
+      "Beaucoup de porteurs de projets s'orientent vers le mauvais instrument par manque d'information : chercher une subvention pour un besoin de trésorerie récurrent, ou un prêt pour un investissement collectif dont l'usage individuel n'est pas garanti.",
+      "Documenter précisément la nature du besoin — investissement, fonctionnement, ou étude préalable — avant de chercher un financement augmente considérablement les chances d'aboutir à une solution adaptée."
+    ],
+    cta: { label: "Être accompagné sur un besoin de financement", href: "/solutions?intent=financement" },
+    territory: "Sénégal",
+    publishedAt: "19 août 2026",
+    readingTime: "6 min",
+    verification: "Démonstration éditoriale"
+  },
+  {
+    id: "analyse-repos-biologique",
+    category: "Analyse",
+    domain: "Durabilité & environnement",
+    title: "Repos biologique et zones de reproduction : pourquoi les respecter change tout",
+    excerpt: "Les périodes de repos biologique et la protection des zones de reproduction ne sont pas des contraintes administratives abstraites : elles conditionnent la ressource de demain.",
+    body: [
+      "Le repos biologique — une période où la pêche d'une espèce donnée est suspendue pour lui permettre de se reproduire — et la protection des zones de nurserie sont des outils de gestion reconnus internationalement pour maintenir la ressource halieutique dans la durée. Leur non-respect, souvent lié à la pression économique immédiate, contribue directement à la baisse des captures observée sur certaines espèces phares.",
+      "Ces mesures ne peuvent fonctionner sans acceptabilité sociale : elles supposent une explication claire de leur logique, une application équitable entre acteurs artisanaux et industriels, et souvent des mesures d'accompagnement économique pendant la période de repos.",
+      "Documenter et expliquer ces enjeux, sans se substituer aux autorités compétentes, fait partie du rôle éditorial de Mbàmbulaan : rendre visibles des sujets structurants pour l'avenir de la filière, au-delà de l'urgence économique immédiate."
+    ],
+    territory: "Sénégal",
+    publishedAt: "20 août 2026",
+    readingTime: "7 min",
+    verification: "Démonstration éditoriale"
   }
 ];
 

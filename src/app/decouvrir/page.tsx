@@ -1,10 +1,14 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, BookOpenText, Compass, Snowflake, ShipWheel, Truck, Wrench, GraduationCap, Handshake, Factory, Waves, Leaf, X } from "lucide-react";
+import { ArrowRight, BookOpenText, Compass, Snowflake, ShipWheel, Truck, Wrench, GraduationCap, Handshake, Factory, Waves, Leaf, Store, MapPinned as TerritoryIcon, X } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicSectionHero } from "@/components/public/PublicSectionHero";
+import { ValueChainDiagram } from "@/components/public/ValueChainDiagram";
+import { StatBand } from "@/components/public/StatBand";
+import { SplitBar } from "@/components/public/SplitBar";
 import { publicNews, type PublicContentDomain } from "@/data/public-content";
+import { filiereStats, landingsSplit, statsNote } from "@/data/public-stats";
 
 export const metadata: Metadata = {
   title: "Découvrir | Mbàmbulaan",
@@ -18,9 +22,11 @@ const domains: { title: PublicContentDomain; text: string; icon: typeof Waves }[
   { title: "Conservation & froid", text: "Glace, stockage, chaîne du froid et préservation de la qualité après capture.", icon: Snowflake },
   { title: "Transformation & valorisation", text: "Transformation artisanale, conditionnement et création de valeur locale.", icon: Factory },
   { title: "Transport & logistique", text: "Collecte, acheminement, manutention et organisation des flux entre territoires.", icon: Truck },
+  { title: "Commerce & débouchés", text: "Mareyage, marchés, distribution et accès aux débouchés locaux, régionaux et export.", icon: Store },
   { title: "Équipements & maintenance", text: "Matériel, moteurs, froid, sécurité et services de maintenance utiles à l’activité.", icon: Wrench },
   { title: "Compétences & formation", text: "Savoirs métier, sécurité, qualité, gestion et montée en compétences des acteurs.", icon: GraduationCap },
   { title: "Financement & développement", text: "Programmes, appuis, partenariats et leviers d’investissement dans les territoires.", icon: Handshake },
+  { title: "Territoires & infrastructures", text: "Quais, sites, équipements collectifs et lecture territoriale de la filière.", icon: TerritoryIcon },
   { title: "Durabilité & environnement", text: "Préserver la ressource, réduire les pertes et mieux documenter les pratiques.", icon: Leaf }
 ];
 
@@ -42,10 +48,34 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
         actions={<><Link href="/atlas" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/18 bg-white/8 px-4 py-2.5 text-sm font-bold text-white hover:bg-white/12"><Compass size={16}/> Ouvrir l’Atlas</Link><Link href="/solutions" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#5fe0d3] px-4 py-2.5 text-sm font-bold text-[#031a22] hover:bg-[#76e8dd]">Trouver une solution <ArrowRight size={16}/></Link></>}
       />
 
+      <section className="mx-auto max-w-[1500px] px-5 pt-14 md:px-10 md:pt-20">
+        <p className="pub-eyebrow">La chaîne de valeur halieutique</p>
+        <h2 className="pub-display mt-3 max-w-3xl text-[2rem] not-italic leading-[1.08] text-[var(--pub-deep-900)] md:text-[2.6rem]">Six maillons qui se lisent ensemble, jamais isolément.</h2>
+        <div className="mt-8"><ValueChainDiagram /></div>
+      </section>
+
       <section className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-20">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-10 lg:grid-cols-[1.1fr_.9fr] lg:items-start">
+          <div>
+            <p className="pub-eyebrow">Pourquoi cette filière compte</p>
+            <h2 className="pub-display mt-3 text-2xl not-italic text-[var(--pub-deep-900)]">Une économie qui fait déjà vivre le pays.</h2>
+            <div className="mt-6"><StatBand stats={filiereStats.slice(3, 6)} /></div>
+            <p className="mt-4 text-xs leading-5 text-[var(--pub-stone-500)]">{statsNote}</p>
+          </div>
+          <aside className="pub-card p-6 md:p-7">
+            <p className="pub-eyebrow">Répartition des débarquements</p>
+            <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">La filière est d’abord artisanale : des milliers de pirogues réparties sur tout le littoral, plutôt qu’une flotte industrielle concentrée.</p>
+            <div className="mt-6"><SplitBar segments={landingsSplit} /></div>
+          </aside>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-[1500px] px-5 pb-14 md:px-10 md:pb-20">
+        <p className="pub-eyebrow">Explorer par domaine</p>
+        <h2 className="pub-display mt-3 text-2xl not-italic text-[var(--pub-deep-900)]">Neuf axes pour lire l’ensemble de la filière.</h2>
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {domains.map(({ title, text, icon: Icon }) => (
-            <Link key={title} href={`/decouvrir?domaine=${encodeURIComponent(title)}`} className={`surface group p-6 transition hover:-translate-y-0.5 hover:border-[#8fc3bd] ${activeDomain === title ? "border-[#0a6d68] ring-2 ring-[#0a6d68]/15" : ""}`}>
+            <Link key={title} href={`/decouvrir?domaine=${encodeURIComponent(title)}`} className={`pub-card group p-6 ${activeDomain === title ? "border-[var(--pub-turquoise-500)] ring-2 ring-[var(--pub-turquoise-500)]/15" : ""}`}>
               <span className="grid size-11 place-items-center rounded-xl bg-[var(--pub-ivory-200)] text-[var(--pub-deep-800)]"><Icon size={20}/></span>
               <h2 className="mt-5 text-xl font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{title}</h2>
               <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{text}</p>
@@ -55,7 +85,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
         </div>
       </section>
 
-      <section className="border-y border-[#d9e3e3] bg-white px-5 py-14 md:px-10 md:py-18">
+      <section className="border-y border-[var(--pub-stone-150)] bg-white px-5 py-14 md:px-10 md:py-18">
         <div className="mx-auto max-w-[1500px]">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
@@ -70,7 +100,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
           </div>
           <div className="mt-8 grid gap-4 lg:grid-cols-3">
             {filteredNews.length ? filteredNews.map((item) => (
-              <Link key={item.id} href={`/decouvrir/${item.id}`} className="pub-card group flex min-h-64 flex-col p-5 transition hover:-translate-y-0.5 hover:border-[#8fc3bd]">
+              <Link key={item.id} href={`/decouvrir/${item.id}`} className="pub-card group flex min-h-64 flex-col p-5">
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]"><BookOpenText size={14}/>{item.category}</div>
                 <h3 className="mt-4 text-xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">{item.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{item.excerpt}</p>

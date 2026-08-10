@@ -157,6 +157,23 @@ export const publicTerritories: PublicTerritory[] = [
     updatedAt: "2026-07-10"
   },
   {
+    id: "bargny",
+    slug: "bargny",
+    name: "Bargny",
+    type: "Quai",
+    region: "Dakar",
+    department: "Rufisque",
+    coordinates: { lat: 14.69, lon: -17.23 },
+    mapPosition: [45, 49],
+    description: "Localité côtière proche de Rufisque, activité de pêche artisanale et de transformation confrontée à la pression industrielle et urbaine croissante sur le littoral.",
+    activities: ["Pêche artisanale", "Débarquement", "Transformation artisanale"],
+    domains: ["Pêche & ressources", "Débarquement", "Transformation & valorisation", "Durabilité & environnement"],
+    documentedServices: ["Plage de débarquement", "Aire de transformation"],
+    verification: "Référencé",
+    source: "Sources publiques consolidées · démonstration éditoriale",
+    updatedAt: "2026-07-05"
+  },
+  {
     id: "popenguine",
     slug: "popenguine",
     name: "Popenguine",
@@ -172,6 +189,23 @@ export const publicTerritories: PublicTerritory[] = [
     verification: "Référencé",
     source: "Sources publiques consolidées · démonstration éditoriale",
     updatedAt: "2026-06-28"
+  },
+  {
+    id: "ngaparou",
+    slug: "ngaparou",
+    name: "Ngaparou",
+    type: "Quai",
+    region: "Thiès",
+    department: "Mbour",
+    coordinates: { lat: 14.47, lon: -17.05 },
+    mapPosition: [38, 55],
+    description: "Village de la Petite-Côte où pêche artisanale et tourisme balnéaire cohabitent, avec un site de débarquement actif en bord de plage.",
+    activities: ["Pêche artisanale côtière", "Débarquement", "Vente directe"],
+    domains: ["Pêche & ressources", "Débarquement", "Commerce & débouchés"],
+    documentedServices: ["Plage de débarquement", "Vente directe aux visiteurs"],
+    verification: "Référencé",
+    source: "Sources publiques consolidées · démonstration éditoriale",
+    updatedAt: "2026-06-25"
   },
   {
     id: "mbour",
@@ -262,6 +296,23 @@ export const publicTerritories: PublicTerritory[] = [
     updatedAt: "2026-06-15"
   },
   {
+    id: "toubacouta",
+    slug: "toubacouta",
+    name: "Toubacouta",
+    type: "Quai",
+    region: "Fatick",
+    department: "Foundiougne",
+    coordinates: { lat: 13.78, lon: -16.45 },
+    mapPosition: [56, 74],
+    description: "Porte d'entrée du delta du Saloum côté mangroves, activité de pêche et de cueillette structurée autour d'un tourisme de nature en développement.",
+    activities: ["Pêche estuarienne", "Cueillette de coquillages", "Débarquement"],
+    domains: ["Pêche & ressources", "Débarquement", "Durabilité & environnement", "Territoires & infrastructures"],
+    documentedServices: ["Site de débarquement communautaire"],
+    verification: "Référencé",
+    source: "Sources publiques consolidées · démonstration éditoriale",
+    updatedAt: "2026-06-12"
+  },
+  {
     id: "kafountine",
     slug: "kafountine",
     name: "Kafountine",
@@ -278,6 +329,23 @@ export const publicTerritories: PublicTerritory[] = [
     verification: "Documenté",
     source: "Sources publiques consolidées · démonstration éditoriale",
     updatedAt: "2026-08-02"
+  },
+  {
+    id: "ziguinchor",
+    slug: "ziguinchor",
+    name: "Ziguinchor",
+    type: "Port",
+    region: "Ziguinchor",
+    department: "Ziguinchor",
+    coordinates: { lat: 12.57, lon: -16.27 },
+    mapPosition: [52, 86],
+    description: "Chef-lieu de la Casamance sur le fleuve du même nom, port fluvial et pôle commercial reliant la pêche estuarienne aux marchés régionaux.",
+    activities: ["Pêche fluviale et estuarienne", "Débarquement", "Commerce régional", "Transport fluvial"],
+    domains: ["Pêche & ressources", "Débarquement", "Commerce & débouchés", "Transport & logistique"],
+    documentedServices: ["Port fluvial", "Marché régional"],
+    verification: "Référencé",
+    source: "Sources publiques consolidées · démonstration éditoriale",
+    updatedAt: "2026-06-08"
   },
   {
     id: "elinkine",

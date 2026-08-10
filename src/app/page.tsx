@@ -13,9 +13,14 @@ import {
 } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
+import { SectionWave } from "@/components/public/SectionWave";
+import { ValueChainDiagram } from "@/components/public/ValueChainDiagram";
+import { StatBand } from "@/components/public/StatBand";
 import { publicAnnouncements, publicNews } from "@/data/public-content";
+import { filiereStats, statsNote } from "@/data/public-stats";
+import { publicTerritories } from "@/data/public-atlas";
 
-const territories = ["Saint-Louis", "Kayar", "Hann", "Mbour", "Joal-Fadiouth", "Kafountine"];
+const territories = publicTerritories.slice(0, 6).map((item) => item.name);
 
 const pillars = [
   {
@@ -79,12 +84,37 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      <SectionWave />
+
+      <section className="px-5 pb-6 md:px-10">
+        <div className="mx-auto max-w-[1500px]">
+          <span className="pub-index">01</span>
+          <p className="pub-eyebrow mt-3">La chaîne de valeur</p>
+          <h2 className="pub-display mt-3 max-w-3xl text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[2.9rem]">De la mer au marché, six maillons interdépendants.</h2>
+          <p className="mt-5 max-w-2xl text-sm leading-6 text-[var(--pub-stone-700)]">Chaque contenu, chaque territoire et chaque demande se rattachent à l’un de ces maillons. Cliquez pour explorer.</p>
+        </div>
+        <div className="mx-auto mt-8 max-w-[1500px]">
+          <ValueChainDiagram />
+        </div>
+      </section>
+
+      <section className="px-5 py-16 md:px-10 md:py-20">
+        <div className="mx-auto max-w-[1500px]">
+          <span className="pub-index">02</span>
+          <p className="pub-eyebrow mt-3">Une filière stratégique</p>
+          <h2 className="pub-display mt-3 max-w-3xl text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[2.9rem]">L’économie maritime pèse déjà lourd pour le Sénégal.</h2>
+          <div className="mt-8"><StatBand stats={filiereStats.slice(0, 3)} /></div>
+          <p className="mt-4 text-xs leading-5 text-[var(--pub-stone-500)]">{statsNote}</p>
+        </div>
+      </section>
+
+      <div className="mx-auto max-w-[1500px] px-5 md:px-10"><div className="pub-tideline" /></div>
 
       <section className="px-5 py-16 md:px-10 md:py-24">
         <div className="mx-auto max-w-[1500px]">
           <div className="grid gap-8 lg:grid-cols-[.6fr_1.4fr] lg:items-end">
             <div>
-              <span className="pub-index">01</span>
+              <span className="pub-index">03</span>
               <p className="pub-eyebrow mt-3">Trouver une solution</p>
               <h2 className="pub-display mt-3 text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[2.9rem]">Vous avez un besoin dans l’économie maritime ?</h2>
             </div>
@@ -101,7 +131,7 @@ export default function HomePage() {
       <section className="px-5 py-16 md:px-10 md:py-24">
         <div className="mx-auto max-w-[1500px]">
           <div className="max-w-3xl">
-            <span className="pub-index">02</span>
+            <span className="pub-index">04</span>
             <p className="pub-eyebrow mt-3">Mbàmbulaan</p>
             <h2 className="pub-display mt-3 text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[2.9rem]">Le numérique ne suffit pas.</h2>
             <p className="mt-5 text-base leading-7 text-[var(--pub-stone-700)]">La valeur vient de la combinaison entre présence terrain, réseau mobilisable et technologie. Mbàmbulaan observe, qualifie, connecte, coordonne et suit l’action.</p>
@@ -115,17 +145,18 @@ export default function HomePage() {
               </article>
             ))}
           </div>
-          <Link href="/mbambulaan" className="mt-8 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Comprendre l’approche Mbàmbulaan <ArrowRight size={16}/></Link>
+          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+            <Link href="/mbambulaan" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Comprendre l’approche Mbàmbulaan <ArrowRight size={16}/></Link>
+            <Link href="/mbambulaan#valeur-immediate" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-turquoise-500)]">Ce que le Public change dès aujourd’hui <ArrowRight size={16}/></Link>
+          </div>
         </div>
       </section>
-
-      <div className="mx-auto max-w-[1500px] px-5 md:px-10"><div className="pub-tideline" /></div>
 
       <section className="px-5 py-16 md:px-10 md:py-24">
         <div className="mx-auto max-w-[1500px]">
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div className="max-w-3xl">
-              <span className="pub-index">03</span>
+              <span className="pub-index">05</span>
               <p className="pub-eyebrow mt-3">Découvrir</p>
               <h2 className="pub-display mt-3 text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[2.9rem]">Comprendre l’économie maritime par les usages et les chaînes de valeur.</h2>
               <p className="mt-5 text-sm leading-6 text-[var(--pub-stone-700)]">Pêche, débarquement, froid, transformation, logistique, équipements, formation, financement et durabilité : les contenus sont reliés aux territoires et aux besoins réels.</p>
@@ -148,10 +179,11 @@ export default function HomePage() {
         </div>
       </section>
 
+      <SectionWave flip />
       <section className="pub-hero px-5 py-16 md:px-10 md:py-24">
         <div className="mx-auto grid max-w-[1500px] gap-8 lg:grid-cols-[.78fr_1.22fr] lg:items-center">
           <div>
-            <span className="pub-index text-[var(--pub-turquoise-300)]">04</span>
+            <span className="pub-index text-[var(--pub-turquoise-300)]">06</span>
             <p className="pub-eyebrow pub-eyebrow--dark mt-3">Atlas Mbàmbulaan</p>
             <h2 className="pub-display mt-3 text-[2.4rem] not-italic leading-[1.05] md:text-[3rem]">Explorer l’économie maritime par les territoires.</h2>
             <p className="mt-5 max-w-2xl text-sm leading-7 text-white/62">L’Atlas relie quais, territoires, activités, informations publiques documentées, contenus et opportunités — sans exposer les données opérationnelles privées.</p>
@@ -166,12 +198,13 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      <SectionWave className="rotate-180" />
 
       <section className="px-5 py-16 md:px-10 md:py-24">
         <div className="mx-auto max-w-[1500px]">
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div className="max-w-3xl">
-              <span className="pub-index">05</span>
+              <span className="pub-index">07</span>
               <p className="pub-eyebrow mt-3">Opportunités</p>
               <h2 className="pub-display mt-3 text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[2.9rem]">Des programmes, formations, rencontres et financements reliés au terrain.</h2>
             </div>
