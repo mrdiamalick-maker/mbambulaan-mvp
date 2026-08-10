@@ -736,6 +736,41 @@ export function createDemoState(): ProductState {
         coordinationId: "coord-securite"
       }
     ],
+    evidences: [
+      {
+        id: "ev-glace-1",
+        situationId: "sit-glace",
+        commitmentId: "eng-1",
+        type: "photo",
+        label: "Constat terrain de la panne",
+        detail: "Photo horodatée du compresseur à l’arrêt, prise au poste de quai de Joal.",
+        recordedByActorId: "act-prestataire",
+        recordedAt: now,
+        trust: "observee"
+      },
+      {
+        id: "ev-glace-2",
+        situationId: "sit-glace",
+        commitmentId: "eng-2",
+        type: "confirmation",
+        label: "Délestage vers Mbour confirmé",
+        detail: "Confirmation du coordinateur territorial : volumes réorientés sans rupture de la chaîne du froid.",
+        recordedByActorId: "act-coordinateur",
+        recordedAt: now,
+        trust: "declaree"
+      },
+      {
+        id: "ev-securite-1",
+        situationId: "sit-saint-louis",
+        commitmentId: "eng-securite-1",
+        type: "appel_consigne",
+        label: "Contact radio avec l’équipage",
+        detail: "Appel consigné à 08:42 : équipage en vue de côte, retour estimé sous 40 minutes.",
+        recordedByActorId: "act-operateur",
+        recordedAt: now,
+        trust: "declaree"
+      }
+    ],
     priceObservations: [
       { id: "price-thiof-kayar", speciesId: "sp-thiof", territoryId: "kayar", marketName: "Marché de Kayar", priceFcfaKg: 3900, observedAt: now, source: "Relevé déclaratif mareyeur", trust: "declaree", trend: "hausse", flagged: false },
       { id: "price-thiof-joal", speciesId: "sp-thiof", territoryId: "joal", marketName: "Marché de Joal", priceFcfaKg: 3400, observedAt: now, source: "Relais marché", trust: "observee", trend: "hausse", flagged: false },

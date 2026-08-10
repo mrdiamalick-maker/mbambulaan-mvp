@@ -308,6 +308,41 @@ export interface Decision {
   coordinationId?: string;
 }
 
+// Evidence — objet de première classe (Lot 1, D3), pas un champ texte sur
+// Situation : le cahier des charges maître (§4.1 étape 7) exige qu'un
+// engagement produise une preuve typée et réutilisable (photo, document,
+// mesure, appel consigné…), pas une simple mention dans l'historique.
+export type EvidenceType =
+  | "confirmation"
+  | "photo"
+  | "document"
+  | "mesure"
+  | "appel_consigne"
+  | "validation"
+  | "bordereau";
+
+export const evidenceTypeLabels: Record<EvidenceType, string> = {
+  confirmation: "Confirmation",
+  photo: "Photo",
+  document: "Document",
+  mesure: "Mesure",
+  appel_consigne: "Appel consigné",
+  validation: "Validation",
+  bordereau: "Bordereau"
+};
+
+export interface Evidence {
+  id: string;
+  situationId: string;
+  commitmentId?: string;
+  type: EvidenceType;
+  label: string;
+  detail: string;
+  recordedByActorId: string;
+  recordedAt: string;
+  trust: TrustLevel;
+}
+
 export interface PriceObservation {
   id: string;
   speciesId: string;
@@ -470,6 +505,7 @@ export interface ProductState {
   situations: Situation[];
   coordinationSpaces: CoordinationSpace[];
   decisions: Decision[];
+  evidences: Evidence[];
   priceObservations: PriceObservation[];
   scarcity: ScarcityIndicator[];
   sustainability: SustainabilityAssessment[];
@@ -495,6 +531,7 @@ export type Command =
   | { type: "record_result"; situationId: string; actorId: string; result: string; confirmation: string }
   | { type: "close"; situationId: string; actorId: string }
   | { type: "create_decision"; situationId: string; actorId: string; decisionType: DecisionType; rationale: string; coordinationId?: string }
+  | { type: "record_evidence"; situationId: string; actorId: string; evidenceType: EvidenceType; label: string; detail: string; commitmentId?: string }
   | { type: "announce_return"; tripId: string; actorId: string }
   | { type: "confirm_arrival"; tripId: string; actorId: string }
   | { type: "record_landing"; tripId: string; actorId: string }

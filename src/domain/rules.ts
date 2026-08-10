@@ -2,6 +2,7 @@ import type {
   AuditEntry,
   Command,
   Decision,
+  Evidence,
   HistoryEntry,
   Lot,
   Opportunity,
@@ -9,7 +10,7 @@ import type {
   Situation,
   SituationStatus
 } from "./types";
-import { decisionTypeLabels } from "./types";
+import { decisionTypeLabels, evidenceTypeLabels } from "./types";
 
 const transitions: Record<
   Exclude<
@@ -29,6 +30,7 @@ const transitions: Record<
     | "convert_post"
     | "flag_price"
     | "create_decision"
+    | "record_evidence"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -385,11 +387,56 @@ function applyDecisionCommand(state: ProductState, command: Extract<Command, { t
   return withAudit(next, command.actorId, "decision", decision.id, command.type, decisionTypeLabels[command.decisionType]);
 }
 
+// Evidence — objet de première classe (D3) : un engagement doit produire
+// une preuve ou une justification (§6.1 règles de relation). Rattachée à
+// une situation, optionnellement à un engagement précis d'une coordination.
+function applyEvidenceCommand(state: ProductState, command: Extract<Command, { type: "record_evidence" }>) {
+  const situation = state.situations.find((item) => item.id === command.situationId);
+  if (!situation) throw new Error("Situation introuvable.");
+  if (!command.label.trim() || !command.detail.trim()) throw new Error("Le libellé et le détail de la preuve sont obligatoires.");
+  if (
+    command.commitmentId &&
+    !state.coordinationSpaces.some((space) => space.commitments.some((commitment) => commitment.id === command.commitmentId))
+  ) {
+    throw new Error("Engagement introuvable.");
+  }
+
+  const evidence: Evidence = {
+    id: id("ev"),
+    situationId: command.situationId,
+    commitmentId: command.commitmentId,
+    type: command.evidenceType,
+    label: command.label.trim(),
+    detail: command.detail.trim(),
+    recordedByActorId: command.actorId,
+    recordedAt: timestamp(),
+    trust: "declaree"
+  };
+
+  const updatedSituation: Situation = {
+    ...situation,
+    history: [
+      history(command.actorId, "Preuve enregistrée", `${evidenceTypeLabels[command.evidenceType]} — ${evidence.label}`),
+      ...situation.history
+    ]
+  };
+
+  const next: ProductState = {
+    ...state,
+    evidences: [evidence, ...state.evidences],
+    situations: state.situations.map((item) => (item.id === situation.id ? updatedSituation : item))
+  };
+  return withAudit(next, command.actorId, "preuve", evidence.id, command.type, evidence.label);
+}
+
 export function applyCommand(state: ProductState, command: Command): ProductState {
   if (command.type === "reset_demo") return state;
 
   if (command.type === "create_decision") {
     return applyDecisionCommand(state, command);
+  }
+  if (command.type === "record_evidence") {
+    return applyEvidenceCommand(state, command);
   }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
@@ -541,6 +588,7 @@ export type WorkflowAction = Exclude<
   | "convert_post"
   | "flag_price"
   | "create_decision"
+  | "record_evidence"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {

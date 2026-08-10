@@ -26,6 +26,15 @@ test("le tenant de démonstration relie les objets sans référence orpheline", 
     assert.ok(actorIds.has(decision.decidedByActorId));
     if (decision.coordinationId) assert.ok(state.coordinationSpaces.some((space) => space.id === decision.coordinationId));
   }
+  for (const evidence of state.evidences) {
+    assert.ok(situationIds.has(evidence.situationId));
+    assert.ok(actorIds.has(evidence.recordedByActorId));
+    if (evidence.commitmentId) {
+      assert.ok(
+        state.coordinationSpaces.some((space) => space.commitments.some((commitment) => commitment.id === evidence.commitmentId))
+      );
+    }
+  }
   for (const initiative of state.initiatives) {
     initiative.territoryIds.forEach((id) => assert.ok(territoryIds.has(id)));
     initiative.funding.forEach((fund) => assert.ok(actorIds.has(fund.partnerId)));
