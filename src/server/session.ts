@@ -62,6 +62,22 @@ export class UnauthorizedError extends Error {
   }
 }
 
+export class ForbiddenError extends Error {
+  constructor() {
+    super("Votre mandat ne donne pas accès à cet espace.");
+    this.name = "ForbiddenError";
+  }
+}
+
+// Garde de rôle réutilisable pour les espaces réservés (Ministère,
+// Administration…) : à appeler côté serveur (layout ou route API), jamais
+// seulement côté client — la visibilité dans le menu ne suffit pas.
+export async function requireRole(...roles: Role[]): Promise<Session> {
+  const session = await requireSession();
+  if (!roles.includes(session.role)) throw new ForbiddenError();
+  return session;
+}
+
 export async function setSession(session: Session) {
   const store = await cookies();
   store.set(COOKIE, encodeSession(session), {

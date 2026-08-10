@@ -204,11 +204,81 @@ try {
     body: JSON.stringify({ event: "atlas_open", path: "/atlas" })
   });
 
+  // Garde de rôle : un mandat coordinateur ne doit voir ni l'espace
+  // Ministère ni l'espace Administration, page comme API. redirect() côté
+  // Server Component ne renvoie pas un statut 3xx à une requête document
+  // classique (à la différence du middleware) : Next sert directement le
+  // contenu de la destination avec un 200 — on vérifie donc l'absence du
+  // contenu protégé plutôt que le code de statut.
+  const ministrySpaceAsCoordinateur = await expectOk("/app/ministere");
+  if ((await ministrySpaceAsCoordinateur.text()).includes("Bienvenue,")) {
+    throw new Error("/app/ministere reste visible pour un mandat coordinateur.");
+  }
+  await expectStatus("/api/ministry/field-visits", 403);
+
   await expectOk("/api/auth/logout", { method: "POST" });
   sessionCookie = "";
   await expectStatus("/api/state", 401);
 
-  console.log(`Smoke E2E: authentification réelle, Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
+  // Parcours ministère : connexion réelle, accès aux cinq écrans dédiés,
+  // planification d'une rencontre terrain, signalement et transmission
+  // d'un cas de vigilance.
+  const ministryLogin = await expectOk("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "ministere@mbambulaan.sn", password: process.env.DEMO_ACCOUNT_PASSWORD ?? "demo-mbambulaan-2026" })
+  });
+  const ministryCookie = ministryLogin.headers.get("set-cookie");
+  if (!ministryCookie) throw new Error("La connexion ministère n'établit pas de session.");
+  sessionCookie = ministryCookie.split(";")[0];
+
+  for (const path of ["/app/ministere", "/app/ministere/revenus", "/app/ministere/terrain", "/app/ministere/vigilance", "/app/ministere/programmes"]) {
+    await expectOk(path);
+  }
+
+  const administrationAsMinistry = await expectOk("/app/administration");
+  if ((await administrationAsMinistry.text()).includes("Mandats actifs")) {
+    throw new Error("/app/administration reste visible pour un mandat ministère.");
+  }
+
+  const territoriesResponse = await expectOk("/api/state");
+  const ministryState = (await territoriesResponse.json()).state;
+  const territoryId = ministryState.territories[0].id;
+
+  const visitCreated = await expectOk("/api/ministry/field-visits", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: "Smoke test : rencontre capitaines", territoryId, objective: "rencontre_pecheurs", plannedAt: new Date(Date.now() + 86400000).toISOString() })
+  });
+  if (!(await visitCreated.json()).visit?.id) throw new Error("La planification d'une rencontre terrain ne renvoie pas d'identifiant.");
+
+  const visitsList = await (await expectOk("/api/ministry/field-visits")).json();
+  if (!visitsList.visits?.some((item) => item.title === "Smoke test : rencontre capitaines")) {
+    throw new Error("La rencontre terrain planifiée n'apparaît pas dans la liste.");
+  }
+
+  const vigilanceCreated = await expectOk("/api/ministry/vigilance", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ category: "immigration_clandestine", territoryId, severity: "haute", description: "Smoke test : signalement de vigilance." })
+  });
+  const vigilanceCase = (await vigilanceCreated.json()).case;
+  if (!vigilanceCase?.id) throw new Error("Le signalement de vigilance ne renvoie pas d'identifiant.");
+
+  await expectOk("/api/ministry/vigilance", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: vigilanceCase.id, status: "transmis_autorites" })
+  });
+  const vigilanceList = await (await expectOk("/api/ministry/vigilance")).json();
+  const updatedCase = vigilanceList.cases?.find((item) => item.id === vigilanceCase.id);
+  if (updatedCase?.status !== "transmis_autorites") throw new Error("Le changement de statut du signalement de vigilance n'est pas pris en compte.");
+
+  await expectOk("/api/auth/logout", { method: "POST" });
+  sessionCookie = "";
+  await expectStatus("/api/state", 401);
+
+  console.log(`Smoke E2E: authentification réelle, espace Ministère (rencontres, vigilance, programmes), Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
 } finally {
   server?.kill("SIGTERM");
 }

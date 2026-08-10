@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Anchor,
+  Banknote,
   Bell,
   BookOpenText,
   Building2,
@@ -12,12 +13,15 @@ import {
   ClipboardList,
   Gauge,
   Globe2,
+  HandCoins,
   Handshake,
   Home,
   Leaf,
   LogOut,
+  MapPinned,
   Menu,
   RotateCcw,
+  ShieldAlert,
   ShipWheel,
   Settings,
   Sparkles,
@@ -204,6 +208,19 @@ const navGroups: NavGroup[] = [
   }
 ];
 
+// L'espace Ministère répond à un mandat volontairement resserré : cinq
+// écrans qui couvrent les priorités exprimées (revenus alternatifs,
+// terrain, vigilance, statistiques, bailleurs), pas le menu opérationnel
+// complet de la filière — trop dense pour cet usage.
+const ministryNavItems: NavItem[] = [
+  { href: "/app/ministere", label: "Vue d’ensemble", shortLabel: "Ministère", icon: Home, roles: ["institution"] },
+  { href: "/app/ministere/revenus", label: "Revenus alternatifs", shortLabel: "Revenus", icon: HandCoins, roles: ["institution"] },
+  { href: "/app/ministere/terrain", label: "Terrain & rencontres", shortLabel: "Terrain", icon: MapPinned, roles: ["institution"] },
+  { href: "/app/ministere/vigilance", label: "Vigilance & fléaux", shortLabel: "Vigilance", icon: ShieldAlert, roles: ["institution"] },
+  { href: "/app/ministere/programmes", label: "Programmes & bailleurs", shortLabel: "Programmes", icon: Banknote, roles: ["institution"] }
+];
+const ministryNavGroups: NavGroup[] = [{ label: "Espace Ministère", items: ministryNavItems }];
+
 const roleLabels: Record<Role, string> = {
   administrateur: "Administrateur Mbàmbulaan",
   operateur: "Opérateur de quai",
@@ -213,7 +230,7 @@ const roleLabels: Record<Role, string> = {
   prestataire: "Prestataire d’infrastructure",
   gestionnaire_organisation: "Gestionnaire d’organisation",
   coordinateur: "Coordinateur territorial",
-  institution: "Institution",
+  institution: "Ministère",
   partenaire: "Partenaire"
 };
 
@@ -280,7 +297,8 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
 
   const [open, setOpen] = useState(false);
   const unread = state?.notifications.filter((item) => item.role === role && !item.read).length ?? 0;
-  const visibleGroups = navGroups
+  const isMinistry = role === "institution";
+  const visibleGroups = (isMinistry ? ministryNavGroups : navGroups)
     .map((group) => ({
       ...group,
       items: group.items.filter(

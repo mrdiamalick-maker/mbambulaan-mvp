@@ -143,22 +143,40 @@ let demoSeeded = false;
 async function ensureDemoAccount() {
   if (database() || demoSeeded || !demoModeAllowed()) return;
   demoSeeded = true;
-  const passwordHash = await hashPassword(process.env.DEMO_ACCOUNT_PASSWORD ?? "demo-mbambulaan-2026");
-  memoryAccounts.push({
-    id: "acc-demo-coordinateur",
-    tenantId: "tenant-demo",
-    email: "demo@mbambulaan.sn",
-    role: "coordinateur",
-    actorId: "act-coordinateur",
-    organizationId: null,
-    fullName: "Compte de démonstration",
-    status: "active",
-    createdAt: new Date().toISOString(),
-    lastLoginAt: null,
-    passwordHash,
-    failedAttempts: 0,
-    lockedUntil: null
-  });
+  const password = process.env.DEMO_ACCOUNT_PASSWORD ?? "demo-mbambulaan-2026";
+  const passwordHash = await hashPassword(password);
+  memoryAccounts.push(
+    {
+      id: "acc-demo-coordinateur",
+      tenantId: "tenant-demo",
+      email: "demo@mbambulaan.sn",
+      role: "coordinateur",
+      actorId: "act-coordinateur",
+      organizationId: null,
+      fullName: "Compte de démonstration",
+      status: "active",
+      createdAt: new Date().toISOString(),
+      lastLoginAt: null,
+      passwordHash,
+      failedAttempts: 0,
+      lockedUntil: null
+    },
+    {
+      id: "acc-demo-ministere",
+      tenantId: "tenant-demo",
+      email: "ministere@mbambulaan.sn",
+      role: "institution",
+      actorId: "act-institution",
+      organizationId: null,
+      fullName: "Compte de démonstration — Ministère",
+      status: "active",
+      createdAt: new Date().toISOString(),
+      lastLoginAt: null,
+      passwordHash,
+      failedAttempts: 0,
+      lockedUntil: null
+    }
+  );
 }
 
 async function findStoredByEmail(email: string): Promise<StoredAccount | null> {
