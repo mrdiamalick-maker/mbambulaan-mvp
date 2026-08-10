@@ -11,7 +11,6 @@ interface ProductContextValue {
   loading: boolean;
   error: string;
   run: (command: CommandInput) => Promise<boolean>;
-  changeRole: (role: Role) => Promise<void>;
   reset: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -48,6 +47,10 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const response = await fetch("/api/state", { cache: "no-store" });
+      if (response.status === 401) {
+        window.location.href = `/connexion?next=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
       if (!response.ok) throw new Error("Impossible de charger l'espace de travail.");
       const payload = await response.json();
       const nextState =
@@ -94,15 +97,6 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     [actorId, persistence, state]
   );
 
-  const changeRole = useCallback(async (nextRole: Role) => {
-    await fetch("/api/demo/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: nextRole })
-    });
-    await refresh();
-  }, [refresh]);
-
   const reset = useCallback(async () => {
     const response = await fetch("/api/demo/reset", { method: "POST" });
     const payload = await response.json();
@@ -112,8 +106,8 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
   }, [persistence]);
 
   const value = useMemo(
-    () => ({ state, role, actorId, persistence, loading, error, run, changeRole, reset, refresh }),
-    [state, role, actorId, persistence, loading, error, run, changeRole, reset, refresh]
+    () => ({ state, role, actorId, persistence, loading, error, run, reset, refresh }),
+    [state, role, actorId, persistence, loading, error, run, reset, refresh]
   );
 
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>;

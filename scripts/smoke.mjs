@@ -12,6 +12,7 @@ const server = remoteBase
     });
 let serverError = "";
 let demoState;
+let sessionCookie = "";
 
 server?.stderr.on("data", (chunk) => {
   serverError += chunk.toString();
@@ -28,9 +29,20 @@ async function waitForServer() {
   throw new Error(`Le serveur de smoke test ne répond pas.${serverError ? `\n${serverError}` : ""}`);
 }
 
+function withSession(options = {}) {
+  if (!sessionCookie) return options;
+  return { ...options, headers: { ...(options.headers ?? {}), Cookie: sessionCookie } };
+}
+
 async function expectOk(path, options) {
-  const response = await fetch(`${base}${path}`, options);
+  const response = await fetch(`${base}${path}`, withSession(options));
   if (!response.ok) throw new Error(`${path} a répondu ${response.status}`);
+  return response;
+}
+
+async function expectStatus(path, status, options) {
+  const response = await fetch(`${base}${path}`, withSession(options));
+  if (response.status !== status) throw new Error(`${path} devait répondre ${status} mais a répondu ${response.status}`);
   return response;
 }
 
@@ -63,6 +75,39 @@ try {
     "/connexion",
     "/robots.txt",
     "/sitemap.xml",
+    "/manifest.webmanifest",
+    "/sw.js"
+  ]) {
+    await expectOk(path);
+  }
+  for (const path of ["/a-propos", "/actualites", "/filiere", "/offres", "/community", "/durabilite", "/demo", "/terrain"]) {
+    const response = await fetch(`${base}${path}`);
+    if (response.status !== 404) throw new Error(`${path} devrait être supprimé (404) mais a répondu ${response.status}`);
+  }
+
+  // Aucun accès Produit sans session : ni via la page (redirection vers
+  // /connexion), ni via l'API (401 explicite).
+  const unauthenticatedPage = await fetch(`${base}/app/travail`, { redirect: "manual" });
+  if (unauthenticatedPage.status !== 307 && unauthenticatedPage.status !== 302) {
+    throw new Error(`/app/travail sans session devrait rediriger, a répondu ${unauthenticatedPage.status}`);
+  }
+  await expectStatus("/api/state", 401);
+  await expectStatus("/api/auth/login", 401, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "demo@mbambulaan.sn", password: "mot-de-passe-invalide" })
+  });
+
+  const login = await expectOk("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "demo@mbambulaan.sn", password: process.env.DEMO_ACCOUNT_PASSWORD ?? "demo-mbambulaan-2026" })
+  });
+  const setCookie = login.headers.get("set-cookie");
+  if (!setCookie) throw new Error("La connexion n'établit pas de session.");
+  sessionCookie = setCookie.split(";")[0];
+
+  for (const path of [
     "/app/travail",
     "/app/atlas",
     "/app/operations",
@@ -76,45 +121,11 @@ try {
     "/app/pilotage",
     "/app/organisation",
     "/app/initiatives",
-    "/app/administration",
-    "/manifest.webmanifest",
-    "/sw.js"
+    "/app/administration"
   ]) {
     await expectOk(path);
   }
-  for (const path of ["/a-propos", "/actualites", "/filiere", "/offres", "/community", "/durabilite", "/demo", "/terrain"]) {
-    const response = await fetch(`${base}${path}`);
-    if (response.status !== 404) throw new Error(`${path} devrait être supprimé (404) mais a répondu ${response.status}`);
-  }
-  for (const role of [
-    "administrateur",
-    "operateur",
-    "capitaine",
-    "mareyeur",
-    "transformateur",
-    "prestataire",
-    "gestionnaire_organisation",
-    "coordinateur",
-    "institution",
-    "partenaire"
-  ]) {
-    await expectOk("/api/demo/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role })
-    });
-  }
-  const otpRequest = await expectOk("/api/auth/request-otp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contact: "demo@mbambulaan.sn" })
-  });
-  if ((await otpRequest.json()).demoCode !== "246810") throw new Error("Le code OTP de démonstration n'est pas disponible.");
-  await expectOk("/api/auth/verify-otp", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code: "246810" })
-  });
+
   demoState = (await (await expectOk("/api/demo/reset", { method: "POST" })).json()).state;
   await action("qualify");
   await action("prioritize");
@@ -193,7 +204,11 @@ try {
     body: JSON.stringify({ event: "atlas_open", path: "/atlas" })
   });
 
-  console.log(`Smoke E2E: Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
+  await expectOk("/api/auth/logout", { method: "POST" });
+  sessionCookie = "";
+  await expectStatus("/api/state", 401);
+
+  console.log(`Smoke E2E: authentification réelle, Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
 } finally {
   server?.kill("SIGTERM");
 }

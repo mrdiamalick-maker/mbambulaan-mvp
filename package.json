@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/**/*.test.ts",
-    "test:e2e": "node scripts/smoke.mjs"
+    "test:e2e": "node scripts/smoke.mjs",
+    "seed:account": "node scripts/seed-account.mjs"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.0.0",

@@ -3,7 +3,7 @@
 import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, KeyRound, LockKeyhole, ShieldCheck, ShipWheel } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, LockKeyhole, Mail, ShieldCheck, ShipWheel } from "lucide-react";
 
 export default function LoginPage() {
   return (
@@ -16,9 +16,8 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [contact, setContact] = useState("");
-  const [code, setCode] = useState("");
-  const [step, setStep] = useState<"contact" | "code">("contact");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -27,19 +26,14 @@ function LoginForm() {
     setPending(true);
     setError("");
     try {
-      const endpoint = step === "contact" ? "/api/auth/request-otp" : "/api/auth/verify-otp";
-      const response = await fetch(endpoint, {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(step === "contact" ? { contact } : { code })
+        body: JSON.stringify({ email, password })
       });
       const payload = await response.json();
       if (!response.ok) {
         setError(payload.error ?? "Une erreur est survenue.");
-        return;
-      }
-      if (step === "contact") {
-        setStep("code");
         return;
       }
       router.push(searchParams.get("next") ?? "/app");
@@ -70,22 +64,25 @@ function LoginForm() {
               <p className="mt-4 text-sm leading-6 text-white/62">Cet espace n’est pas destiné au grand public. Si vous avez un besoin ou une capacité à proposer, utilisez plutôt <Link href="/solutions" className="underline decoration-white/40 underline-offset-4 hover:text-[#74e1d6]">Trouver une solution</Link> ou <Link href="/contact" className="underline decoration-white/40 underline-offset-4 hover:text-[#74e1d6]">Contact</Link>.</p>
 
               <form onSubmit={submit} className="mt-8 rounded-2xl border border-white/12 bg-white/[.06] p-5 backdrop-blur">
-                <div className="flex items-center gap-2 text-[#74e1d6]"><KeyRound size={17} /><p className="text-xs font-black uppercase tracking-[.12em]">Connexion</p></div>
-                <p className="mt-3 text-sm leading-6 text-white/58">{step === "contact" ? "Utilisez le téléphone ou l’e-mail rattaché à votre mandat." : "Saisissez le code reçu par SMS ou e-mail."}</p>
-                {step === "contact" ? (
-                  <label className="mt-5 block">
-                    <span className="text-xs font-bold text-white/72">Téléphone ou e-mail</span>
-                    <input required value={contact} onChange={(event) => setContact(event.target.value)} className="mt-2 w-full rounded-xl border border-white/16 bg-[#052b35] px-4 py-3.5 text-white outline-none transition placeholder:text-white/28 focus:border-[#5fe0d3]" placeholder="+221 77 000 00 00" />
-                  </label>
-                ) : (
-                  <label className="mt-5 block">
-                    <span className="text-xs font-bold text-white/72">Code à 6 chiffres</span>
-                    <input required value={code} onChange={(event) => setCode(event.target.value)} className="mt-2 w-full rounded-xl border border-white/16 bg-[#052b35] px-4 py-3.5 text-white outline-none transition focus:border-[#5fe0d3]" inputMode="numeric" maxLength={6} />
-                  </label>
-                )}
+                <div className="flex items-center gap-2 text-[#74e1d6]"><LockKeyhole size={17} /><p className="text-xs font-black uppercase tracking-[.12em]">Connexion</p></div>
+                <p className="mt-3 text-sm leading-6 text-white/58">Utilisez l’e-mail et le mot de passe rattachés à votre mandat.</p>
+                <label className="mt-5 block">
+                  <span className="text-xs font-bold text-white/72">E-mail</span>
+                  <div className="mt-2 flex items-center gap-2 rounded-xl border border-white/16 bg-[#052b35] px-4 focus-within:border-[#5fe0d3]">
+                    <Mail size={15} className="text-white/40" />
+                    <input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full bg-transparent py-3.5 text-white outline-none placeholder:text-white/28" placeholder="prenom.nom@mbambulaan.sn" />
+                  </div>
+                </label>
+                <label className="mt-4 block">
+                  <span className="text-xs font-bold text-white/72">Mot de passe</span>
+                  <div className="mt-2 flex items-center gap-2 rounded-xl border border-white/16 bg-[#052b35] px-4 focus-within:border-[#5fe0d3]">
+                    <LockKeyhole size={15} className="text-white/40" />
+                    <input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full bg-transparent py-3.5 text-white outline-none placeholder:text-white/28" placeholder="••••••••••" />
+                  </div>
+                </label>
                 {error ? <p className="mt-3 text-sm font-semibold text-[#ff9c8d]">{error}</p> : null}
-                <button disabled={pending} className="pub-btn pub-btn-primary mt-4 w-full justify-center disabled:opacity-60">
-                  {step === "contact" ? "Recevoir un code" : "Ouvrir mon espace"} <ArrowRight size={16} />
+                <button disabled={pending} className="pub-btn pub-btn-primary mt-5 w-full justify-center disabled:opacity-60">
+                  Ouvrir mon espace <ArrowRight size={16} />
                 </button>
                 <div className="mt-5 grid gap-2 text-[11px] text-white/44 sm:grid-cols-2">
                   <span className="inline-flex items-center gap-2"><LockKeyhole size={13} /> Données cloisonnées</span>
@@ -95,7 +92,7 @@ function LoginForm() {
             </div>
           </div>
           <div className="flex items-center gap-2 border-t border-white/10 px-7 py-4 text-xs text-white/45 md:px-9">
-            <ShieldCheck size={14} className="text-[#149a88]" /> Accès par mandat uniquement. Aucune inscription publique.
+            <ShieldCheck size={14} className="text-[#149a88]" /> Accès par mandat uniquement. Compte créé par un administrateur — aucune inscription publique.
           </div>
         </div>
       </div>

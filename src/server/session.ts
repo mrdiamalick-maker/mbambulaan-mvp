@@ -40,16 +40,26 @@ export function decodeSession(value?: string): Session | null {
   return session.expiresAt > Date.now() ? session : null;
 }
 
-export async function currentSession(): Promise<Session> {
+export async function currentSession(): Promise<Session | null> {
   const store = await cookies();
-  return (
-    decodeSession(store.get(COOKIE)?.value) ?? {
-      actorId: "act-coordinateur",
-      role: "coordinateur",
-      expiresAt: Date.now() + 8 * 60 * 60 * 1000,
-      demo: true
-    }
-  );
+  return decodeSession(store.get(COOKIE)?.value);
+}
+
+// À utiliser dans toute route API qui agit sur des données : lève une
+// erreur claire (traduite en 401 par la route) plutôt que de retomber sur
+// une identité par défaut. Aucune route Produit ne doit rester accessible
+// sans session valide.
+export async function requireSession(): Promise<Session> {
+  const session = await currentSession();
+  if (!session) throw new UnauthorizedError();
+  return session;
+}
+
+export class UnauthorizedError extends Error {
+  constructor() {
+    super("Session absente ou expirée.");
+    this.name = "UnauthorizedError";
+  }
 }
 
 export async function setSession(session: Session) {

@@ -324,9 +324,11 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
             <Bell size={19} />
             {unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full border-2 border-white bg-[#c65242]" />}
           </button>
-          <button onClick={() => void reset()} className="hidden size-10 place-items-center rounded-lg border border-[#d0ddde] text-[#075568] hover:bg-[#edf5f4] sm:grid" title="Réinitialiser la démonstration" aria-label="Réinitialiser la démonstration">
-            <RotateCcw size={17} />
-          </button>
+          {persistence === "memoire_locale_demo" && (
+            <button onClick={() => void reset()} className="hidden size-10 place-items-center rounded-lg border border-[#d0ddde] text-[#075568] hover:bg-[#edf5f4] sm:grid" title="Réinitialiser la démonstration" aria-label="Réinitialiser la démonstration">
+              <RotateCcw size={17} />
+            </button>
+          )}
         </div>
       </header>
 
@@ -374,7 +376,17 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
         <div className="border-t border-white/10 px-5 py-4">
           <p className="text-[10px] uppercase tracking-wider text-white/30">Organisation active</p>
           <p className="mt-1 text-xs font-bold text-white/80">{state?.tenant.name ?? "Chargement…"}</p>
-          <Link href="/" className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-white/48 hover:text-white"><LogOut size={13} /> Quitter l’espace</Link>
+          <button
+            type="button"
+            onClick={() => {
+              void fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+                window.location.href = "/";
+              });
+            }}
+            className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-white/48 hover:text-white"
+          >
+            <LogOut size={13} /> Quitter l’espace
+          </button>
         </div>
       </aside>
 
