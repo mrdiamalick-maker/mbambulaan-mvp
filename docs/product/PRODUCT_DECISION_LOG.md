@@ -115,6 +115,8 @@ Chaque entrée : la question, les options considérées, la recommandation initi
 
 **Arbitrage CEO** : reporté au Lot 2, comme proposé. Décision prise à ce moment, sur preuve concrète, pas maintenant.
 
+**Tranché au Lot 2 (preuve concrète)** : aucune librairie cartographique n'est introduite. Vérifié à ce stade : (1) aucune dépendance Mapbox/Leaflet/MapLibre n'existe dans le code ou `package.json` — la base est neutre ; (2) les données `Territory.latitude/longitude` sont là mais n'ont jamais été validées contre un vrai fond de carte (précision, projection) ; (3) une lib cartographique réelle ajoute une dépendance externe non testée (compte/clé API pour Mapbox, poids de bundle, comportement offline) juste avant une démonstration ministérielle où la fiabilité prime sur le réalisme visuel de la carte. La vue nationale et la fiche territoire du Lot 2 restent donc illustratives (glyphes de tension, listes, cartes de territoire) — cohérent avec le principe « pas de faux temps réel / pas de fausse précision » du spec maître (§2.6). Revu quand une vraie donnée géographique de qualité (tracés de zones, routes logistiques) rendra une carte réelle utile, pas avant.
+
 ---
 
 ### D7 — Réorganisation physique de `src/domain/*`

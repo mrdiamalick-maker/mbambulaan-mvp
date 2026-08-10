@@ -1,12 +1,16 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import type { Role } from "@/domain/types";
 import type { PlatformModule } from "@/domain/platform/modules";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar, roleLabel } from "@/components/shell/AppSidebar";
 import { SiteHeader } from "@/components/shell/SiteHeader";
 
+// Shell partagé — Coordinateur et Opérateur uniquement (D9,
+// PRODUCT_DECISION_LOG.md) : outils de travail où une navigation latérale
+// persistante est légitime. L'Espace État a sa propre entrée technique
+// (src/components/institution/InstitutionShell.tsx) et ne rend plus jamais
+// ce composant — pas de branchement conditionnel par route ici.
 export function AppShell({
   children,
   role,
@@ -34,25 +38,17 @@ export function AppShell({
   error: string;
   showLoading: boolean;
 }) {
-  const pathname = usePathname();
-  const isMinistry = pathname.startsWith("/app/etat");
-
-  const title = isMinistry ? "Espace État" : roleLabel(role);
-  const subtitle = isMinistry
-    ? "Ministère de la Pêche et de l’Économie Maritime"
-    : `${orgName ?? "Organisation active"} · ${planName ?? "Plan démonstration"} · ${modules.length} module(s) actif(s)`;
-
   return (
     <SidebarProvider className="shadcn-scope">
       <AppSidebar role={role} modules={modules} orgName={orgName} />
       <SidebarInset>
         <SiteHeader
-          title={title}
-          subtitle={subtitle}
+          title={roleLabel(role)}
+          subtitle={`${orgName ?? "Organisation active"} · ${planName ?? "Plan démonstration"} · ${modules.length} module(s) actif(s)`}
           actorName={actorName}
           unread={unread}
           persistence={persistence}
-          onReset={!isMinistry ? onReset : undefined}
+          onReset={onReset}
           onLogout={onLogout}
         />
         {error && (
