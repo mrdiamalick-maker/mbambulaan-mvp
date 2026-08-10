@@ -4,11 +4,11 @@ import { ArrowUpRight, MapPinned, ShipWheel } from "lucide-react";
 const columns = [
   {
     title: "Explorer",
-    links: [["Découvrir", "/decouvrir"], ["Territoires", "/territoires"], ["Atlas", "/atlas"], ["Opportunités", "/opportunites"]]
+    links: [["Découvrir", "/decouvrir"], ["Territoires", "/atlas"], ["Opportunités", "/opportunites"]]
   },
   {
     title: "Agir",
-    links: [["Trouver une solution", "/solutions"], ["Rejoindre le réseau", "/reseau"], ["Contact", "/contact"], ["Accès professionnel", "/connexion"]]
+    links: [["Trouver une solution", "/solutions"], ["Proposer mes services", "/contact?intent=reseau"], ["Contact", "/contact"], ["Accès professionnel", "/connexion"]]
   },
   {
     title: "Mbàmbulaan",
@@ -29,7 +29,7 @@ export function PublicFooter() {
             </span>
           </Link>
           <p className="mt-5 text-sm leading-6 text-white/54">Mbàmbulaan construit une infrastructure de coordination pour l’économie maritime, en commençant par la filière halieutique sénégalaise.</p>
-          <Link href="/atlas" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#74e1d6]"><MapPinned size={15}/> Explorer l’Atlas</Link>
+          <Link href="/atlas" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#74e1d6]"><MapPinned size={15}/> Ouvrir l’Atlas</Link>
           <p className="mt-5 text-[11px] leading-5 text-white/35">Les données de démonstration ou d’illustration sont identifiées comme telles et ne sont jamais présentées comme des données officielles.</p>
         </div>
         {columns.map((column) => (
