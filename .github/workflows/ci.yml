@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, feature-etat-control-tower-refonte]
+    branches: [main, feature-etat-control-tower-refonte, codex/xxl-premium]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
