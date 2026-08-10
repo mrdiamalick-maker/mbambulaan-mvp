@@ -40,13 +40,13 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   const related = publicAnnouncements.filter((a) => a.type === item.type && a.id !== item.id).slice(0, 3);
 
   return (
-    <main className="min-h-screen bg-[#f3f7f6]">
+    <main className="pub-scope min-h-screen">
       <PublicHeader dark />
 
-      <section className="bg-[#031a22] px-5 pb-14 pt-10 text-white md:px-10 md:pb-20 md:pt-14">
+      <section className="pub-hero px-5 pb-14 pt-10 md:px-10 md:pb-20 md:pt-14">
         <div className="mx-auto max-w-[1500px]">
           <Link href="/opportunites" className="inline-flex items-center gap-2 text-sm font-bold text-white/64 hover:text-white"><ArrowLeft size={15} /> Opportunités</Link>
-          <div className="mt-6 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[.12em] text-[#74e1d6]">
+          <div className="mt-6 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-300)]">
             <span>{item.type}</span><span className="text-white/30">·</span><span>{item.status}</span><span className="text-white/30">·</span><span className="text-white/50">Démonstration</span>
           </div>
           <h1 className="mt-4 max-w-3xl text-3xl font-[760] leading-[1.08] tracking-[-.045em] md:text-5xl">{item.title}</h1>
@@ -60,21 +60,21 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
             {item.details?.map((paragraph, index) => <p key={index} className="mt-4 text-base leading-8 text-[#324b4f] first:mt-0">{paragraph}</p>)}
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              <div className="flex items-center gap-3 rounded-xl border border-[#d9e3e3] bg-white p-4"><MapPinned size={17} className="shrink-0 text-[#08758a]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#8a9a9e]">Territoire</p><p className="text-sm font-bold text-[#102e37]">{item.territory}</p></div></div>
-              <div className="flex items-center gap-3 rounded-xl border border-[#d9e3e3] bg-white p-4"><UsersRound size={17} className="shrink-0 text-[#08758a]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#8a9a9e]">Public concerné</p><p className="text-sm font-bold text-[#102e37]">{item.audience}</p></div></div>
-              <div className="flex items-center gap-3 rounded-xl border border-[#d9e3e3] bg-white p-4"><CalendarDays size={17} className="shrink-0 text-[#08758a]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#8a9a9e]">Échéance</p><p className="text-sm font-bold text-[#102e37]">{item.deadline}</p></div></div>
-              <div className="flex items-center gap-3 rounded-xl border border-[#d9e3e3] bg-white p-4"><Landmark size={17} className="shrink-0 text-[#08758a]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#8a9a9e]">Organisateur</p><p className="text-sm font-bold text-[#102e37]">{item.organizer}</p></div></div>
+              <div className="flex items-center gap-3 rounded-xl border border-[#d9e3e3] bg-white p-4"><MapPinned size={17} className="shrink-0 text-[#08758a]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#8a9a9e]">Territoire</p><p className="text-sm font-bold text-[var(--pub-deep-900)]">{item.territory}</p></div></div>
+              <div className="flex items-center gap-3 rounded-xl border border-[#d9e3e3] bg-white p-4"><UsersRound size={17} className="shrink-0 text-[#08758a]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#8a9a9e]">Public concerné</p><p className="text-sm font-bold text-[var(--pub-deep-900)]">{item.audience}</p></div></div>
+              <div className="flex items-center gap-3 rounded-xl border border-[#d9e3e3] bg-white p-4"><CalendarDays size={17} className="shrink-0 text-[#08758a]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#8a9a9e]">Échéance</p><p className="text-sm font-bold text-[var(--pub-deep-900)]">{item.deadline}</p></div></div>
+              <div className="flex items-center gap-3 rounded-xl border border-[#d9e3e3] bg-white p-4"><Landmark size={17} className="shrink-0 text-[#08758a]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#8a9a9e]">Organisateur</p><p className="text-sm font-bold text-[var(--pub-deep-900)]">{item.organizer}</p></div></div>
             </div>
 
-            <div className="mt-5 flex items-center gap-2 rounded-xl border border-[#d9e3e3] bg-white px-4 py-3 text-xs font-semibold text-[#60737a]">
-              <BadgeCheck size={15} className="shrink-0 text-[#118f83]" /> Niveau d’implication Mbàmbulaan : {item.involvement} · {item.verification}
+            <div className="mt-5 flex items-center gap-2 rounded-xl border border-[#d9e3e3] bg-white px-4 py-3 text-xs font-semibold text-[var(--pub-stone-500)]">
+              <BadgeCheck size={15} className="shrink-0 text-[var(--pub-turquoise-500)]" /> Niveau d’implication Mbàmbulaan : {item.involvement} · {item.verification}
             </div>
           </div>
 
           <aside>
-            <p className="label">Je suis intéressé</p>
-            <h2 className="mt-2 text-xl font-[740] tracking-[-.03em] text-[#102e37]">Manifester mon intérêt</h2>
-            <p className="mt-2 text-sm leading-6 text-[#667b81]">Mbàmbulaan reprend contact pour qualifier votre intérêt et vous orienter vers la suite utile.</p>
+            <p className="pub-eyebrow">Je suis intéressé</p>
+            <h2 className="mt-2 text-xl font-[740] tracking-[-.03em] text-[var(--pub-deep-900)]">Manifester mon intérêt</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--pub-stone-700)]">Mbàmbulaan reprend contact pour qualifier votre intérêt et vous orienter vers la suite utile.</p>
             <div className="mt-5">
               <ContactRequestForm
                 intent={mapping.intent}
@@ -91,12 +91,12 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
         {related.length > 0 && (
           <div className="mt-16">
-            <p className="label">Autres opportunités · {item.type}</p>
+            <p className="pub-eyebrow">Autres opportunités · {item.type}</p>
             <div className="mt-5 grid gap-4 lg:grid-cols-3">
               {related.map((a) => (
-                <Link key={a.id} href={`/opportunites/${a.id}`} className="surface group flex min-h-48 flex-col p-5 transition hover:-translate-y-0.5 hover:border-[#8fc3bd]">
-                  <h3 className="text-lg font-bold tracking-[-.025em] text-[#102e37]">{a.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#667b81]">{a.territory}</p>
+                <Link key={a.id} href={`/opportunites/${a.id}`} className="pub-card group flex min-h-48 flex-col p-5 transition hover:-translate-y-0.5 hover:border-[#8fc3bd]">
+                  <h3 className="text-lg font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{a.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--pub-stone-700)]">{a.territory}</p>
                 </Link>
               ))}
             </div>

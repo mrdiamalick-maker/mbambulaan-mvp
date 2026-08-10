@@ -84,7 +84,7 @@ function LoginForm() {
                   </label>
                 )}
                 {error ? <p className="mt-3 text-sm font-semibold text-[#ff9c8d]">{error}</p> : null}
-                <button disabled={pending} className="btn-accent mt-4 w-full justify-center disabled:opacity-60">
+                <button disabled={pending} className="pub-btn pub-btn-primary mt-4 w-full justify-center disabled:opacity-60">
                   {step === "contact" ? "Recevoir un code" : "Ouvrir mon espace"} <ArrowRight size={16} />
                 </button>
                 <div className="mt-5 grid gap-2 text-[11px] text-white/44 sm:grid-cols-2">

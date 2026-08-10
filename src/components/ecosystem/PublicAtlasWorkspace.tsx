@@ -136,8 +136,8 @@ export function PublicAtlasWorkspace() {
           )}
 
           <div className="public-story-actions">
-            <Link href={`/atlas/${territory.slug}`} className="btn-primary">Voir la fiche complète <ArrowRight size={15} /></Link>
-            <Link href={`/solutions?source=atlas&territory=${encodeURIComponent(territory.name)}`} className="btn-secondary">Trouver une solution ici</Link>
+            <Link href={`/atlas/${territory.slug}`} className="pub-btn pub-btn-primary">Voir la fiche complète <ArrowRight size={15} /></Link>
+            <Link href={`/solutions?source=atlas&territory=${encodeURIComponent(territory.name)}`} className="pub-btn pub-btn-outline">Trouver une solution ici</Link>
           </div>
         </article>
       </div>

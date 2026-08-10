@@ -57,27 +57,27 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
   const config = intentParam === "contribution" ? undefined : intentParam ? formConfigs[intentParam] : undefined;
 
   return (
-    <main className="min-h-screen bg-[#f3f7f6]">
+    <main className="pub-scope min-h-screen">
       <PublicHeader dark />
       <PublicSectionHero
         eyebrow="Contact"
-        title={<>Comment pouvons-nous <span className="text-[#74e1d6]">vous aider ?</span></>}
+        title={<>Comment pouvons-nous <span className="text-[var(--pub-turquoise-300)]">vous aider ?</span></>}
         description="Choisissez l’intention qui correspond le mieux à votre situation. Mbàmbulaan oriente ensuite la demande vers le bon parcours, sans vous imposer un formulaire générique."
       />
 
       <section className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-20">
         {intentParam === "contribution" ? (
           <div className="mx-auto max-w-3xl">
-            <p className="label">Proposer mes services</p>
-            <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[#102e37] md:text-4xl">Faites connaître votre capacité à Mbàmbulaan.</h2>
-            <p className="mt-4 text-sm leading-6 text-[#667b81]">Entreprise, transporteur, transformateur, ONG, expert ou organisation : cette entrée alimente le réseau Mbàmbulaan, jamais un annuaire public.</p>
+            <p className="pub-eyebrow">Proposer mes services</p>
+            <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Faites connaître votre capacité à Mbàmbulaan.</h2>
+            <p className="mt-4 text-sm leading-6 text-[var(--pub-stone-700)]">Entreprise, transporteur, transformateur, ONG, expert ou organisation : cette entrée alimente le réseau Mbàmbulaan, jamais un annuaire public.</p>
             <div className="mt-8"><ContributionForm /></div>
           </div>
         ) : config ? (
           <div className="mx-auto max-w-3xl">
-            <p className="label">Contact</p>
-            <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[#102e37] md:text-4xl">{config.title}</h2>
-            <p className="mt-4 text-sm leading-6 text-[#667b81]">{config.description}</p>
+            <p className="pub-eyebrow">Contact</p>
+            <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">{config.title}</h2>
+            <p className="mt-4 text-sm leading-6 text-[var(--pub-stone-700)]">{config.description}</p>
             <div className="mt-8">
               <ContactRequestForm
                 intent={config.intent}
@@ -94,10 +94,10 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           <>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {entryCards.map(({ title, text, icon: Icon, href }) => (
-                <Link key={title} href={href} className="surface group p-6 transition hover:-translate-y-0.5 hover:border-[#8fc3bd]">
-                  <span className="grid size-11 place-items-center rounded-xl bg-[#e5f7f3] text-[#075568]"><Icon size={20} /></span>
-                  <h2 className="mt-5 text-xl font-bold tracking-[-.025em] text-[#102e37]">{title}</h2>
-                  <p className="mt-3 text-sm leading-6 text-[#667b81]">{text}</p>
+                <Link key={title} href={href} className="pub-card group p-6 transition hover:-translate-y-0.5 hover:border-[#8fc3bd]">
+                  <span className="grid size-11 place-items-center rounded-xl bg-[var(--pub-ivory-200)] text-[var(--pub-deep-800)]"><Icon size={20} /></span>
+                  <h2 className="mt-5 text-xl font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{title}</h2>
+                  <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{text}</p>
                 </Link>
               ))}
             </div>
@@ -105,14 +105,14 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             <section className="mt-12 overflow-hidden rounded-[28px] bg-[#031a22] text-white shadow-2xl">
               <div className="grid gap-0 lg:grid-cols-[1.1fr_.9fr]">
                 <div className="p-6 md:p-10">
-                  <p className="text-xs font-black uppercase tracking-[.14em] text-[#74e1d6]">Parler à Mbàmbulaan</p>
+                  <p className="text-xs font-black uppercase tracking-[.14em] text-[var(--pub-turquoise-300)]">Parler à Mbàmbulaan</p>
                   <h2 className="mt-4 text-3xl font-[740] tracking-[-.04em] md:text-4xl">Le bon canal dépend du contexte.</h2>
                   <p className="mt-4 max-w-2xl text-sm leading-7 text-white/64">WhatsApp, téléphone et email sont des canaux d’entrée vers Mbàmbulaan. Ils ne remplacent pas la qualification : ils facilitent la relation lorsque le web n’est pas le canal le plus naturel.</p>
                 </div>
                 <div className="grid border-t border-white/10 sm:grid-cols-3 lg:border-l lg:border-t-0 lg:grid-cols-1">
-                  <a href="https://wa.me/221770000000" target="_blank" rel="noopener noreferrer" data-analytics="whatsapp_clicked" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><MessageCircle size={18} className="text-[#74e1d6]" /> WhatsApp</a>
-                  <Link href="/contact?intent=callback" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><PhoneCall size={18} className="text-[#74e1d6]" /> Être rappelé</Link>
-                  <a href="mailto:contact@mbambulaan.sn" className="flex items-center gap-3 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><Mail size={18} className="text-[#74e1d6]" /> Email</a>
+                  <a href="https://wa.me/221770000000" target="_blank" rel="noopener noreferrer" data-analytics="whatsapp_clicked" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><MessageCircle size={18} className="text-[var(--pub-turquoise-300)]" /> WhatsApp</a>
+                  <Link href="/contact?intent=callback" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><PhoneCall size={18} className="text-[var(--pub-turquoise-300)]" /> Être rappelé</Link>
+                  <a href="mailto:contact@mbambulaan.sn" className="flex items-center gap-3 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><Mail size={18} className="text-[var(--pub-turquoise-300)]" /> Email</a>
                 </div>
               </div>
             </section>

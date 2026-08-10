@@ -163,20 +163,20 @@ export function SolutionWizard({ initialIntent, initialCategory, initialTerritor
 
   if (step === "done") {
     return (
-      <div className="surface p-7 md:p-9">
+      <div className="pub-card p-7 md:p-9">
         <span className="grid size-12 place-items-center rounded-full bg-[#e9f7f1] text-[#126b58]"><CheckCircle2 /></span>
-        <h2 className="mt-5 text-2xl font-[740] tracking-[-.035em] text-[#102e37]">Votre demande {reference} est enregistrée.</h2>
+        <h2 className="mt-5 text-2xl font-[740] tracking-[-.035em] text-[var(--pub-deep-900)]">Votre demande {reference} est enregistrée.</h2>
         <p className="mt-3 text-sm leading-6 text-[#536f67]">Mbàmbulaan qualifie votre besoin et reprend contact par {channel === "whatsapp" ? "WhatsApp" : channel === "telephone" ? "téléphone" : "e-mail"}. Conservez cette référence pour tout échange avec l’équipe.</p>
         <div className="mt-6 flex flex-wrap gap-2">
-          <Link href="/atlas" className="btn-primary">Explorer l’Atlas <ArrowRight size={15} /></Link>
-          <Link href="/decouvrir" className="btn-secondary">Continuer à découvrir</Link>
+          <Link href="/atlas" className="pub-btn pub-btn-primary">Explorer l’Atlas <ArrowRight size={15} /></Link>
+          <Link href="/decouvrir" className="pub-btn pub-btn-outline">Continuer à découvrir</Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="surface overflow-hidden">
+    <div className="pub-card overflow-hidden">
       <div className="flex items-center gap-1.5 border-b border-[#d9e3e3] bg-[#f7faf9] px-6 py-4">
         {progressSteps.map((item, index) => (
           <span key={item} className={`h-1.5 flex-1 rounded-full transition ${index <= stepIndex ? "bg-[#0a6d68]" : "bg-[#dbe6e4]"}`} />
@@ -186,14 +186,14 @@ export function SolutionWizard({ initialIntent, initialCategory, initialTerritor
       <div className="p-6 md:p-8">
         {step === "intent" && (
           <fieldset>
-            <legend className="label">Que souhaitez-vous faire ?</legend>
+            <legend className="pub-eyebrow">Que souhaitez-vous faire ?</legend>
             <p className="mt-2 text-sm leading-6 text-[#667b81]">Commencez par le résultat recherché. Vous n’avez pas besoin de connaître la solution technique.</p>
             <div className="mt-6 grid gap-3 md:grid-cols-2">
               {intents.map((option) => (
                 <button key={option.id} type="button" onClick={() => selectIntent(option)} className="flex items-start gap-3 rounded-2xl border border-[#d9e3e3] bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-[#8fc3bd]">
                   <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#e5f7f3] text-[#075568]"><option.icon size={18} /></span>
                   <span>
-                    <strong className="block text-sm font-bold text-[#102e37]">{option.title}</strong>
+                    <strong className="block text-sm font-bold text-[var(--pub-deep-900)]">{option.title}</strong>
                     <span className="mt-1 block text-xs leading-5 text-[#718489]">{option.description}</span>
                   </span>
                 </button>
@@ -204,7 +204,7 @@ export function SolutionWizard({ initialIntent, initialCategory, initialTerritor
 
         {step === "territory" && (
           <fieldset>
-            <legend className="label">Quel territoire est concerné ?</legend>
+            <legend className="pub-eyebrow">Quel territoire est concerné ?</legend>
             <p className="mt-2 text-sm leading-6 text-[#667b81]">Un quai, une localité, une région, ou « national » si votre besoin n’est pas localisé.</p>
             <input
               autoFocus
@@ -214,15 +214,15 @@ export function SolutionWizard({ initialIntent, initialCategory, initialTerritor
               className="mt-5 w-full rounded-xl border border-[#c8d7da] bg-white px-3.5 py-3 text-sm outline-none transition focus:border-[#58b8ad] focus:ring-3 focus:ring-[#58b8ad]/10"
             />
             <div className="mt-6 flex justify-between">
-              <button type="button" onClick={back} className="btn-secondary"><ArrowLeft size={15} /> Retour</button>
-              <button type="button" disabled={!territory.trim()} onClick={afterTerritory} className="btn-primary disabled:opacity-50">Continuer <ArrowRight size={15} /></button>
+              <button type="button" onClick={back} className="pub-btn pub-btn-outline"><ArrowLeft size={15} /> Retour</button>
+              <button type="button" disabled={!territory.trim()} onClick={afterTerritory} className="pub-btn pub-btn-primary disabled:opacity-50">Continuer <ArrowRight size={15} /></button>
             </div>
           </fieldset>
         )}
 
         {step === "context" && intent?.quickOptions && (
           <fieldset>
-            <legend className="label">Précisez si possible</legend>
+            <legend className="pub-eyebrow">Précisez si possible</legend>
             <p className="mt-2 text-sm leading-6 text-[#667b81]">Cette précision aide Mbàmbulaan à orienter votre demande plus vite. Vous pouvez passer cette étape.</p>
             <div className="mt-5 flex flex-wrap gap-2">
               {intent.quickOptions.map((option) => (
@@ -232,15 +232,15 @@ export function SolutionWizard({ initialIntent, initialCategory, initialTerritor
               ))}
             </div>
             <div className="mt-6 flex justify-between">
-              <button type="button" onClick={back} className="btn-secondary"><ArrowLeft size={15} /> Retour</button>
-              <button type="button" onClick={() => goTo("description")} className="btn-primary">Continuer <ArrowRight size={15} /></button>
+              <button type="button" onClick={back} className="pub-btn pub-btn-outline"><ArrowLeft size={15} /> Retour</button>
+              <button type="button" onClick={() => goTo("description")} className="pub-btn pub-btn-primary">Continuer <ArrowRight size={15} /></button>
             </div>
           </fieldset>
         )}
 
         {step === "description" && (
           <fieldset>
-            <legend className="label">Décrivez votre besoin</legend>
+            <legend className="pub-eyebrow">Décrivez votre besoin</legend>
             <textarea
               autoFocus
               required
@@ -254,15 +254,15 @@ export function SolutionWizard({ initialIntent, initialCategory, initialTerritor
               <input value={attachmentNote} onChange={(event) => setAttachmentNote(event.target.value)} placeholder="Vous pourrez aussi l’envoyer par WhatsApp ou e-mail" className="mt-2 w-full rounded-xl border border-[#c8d7da] bg-white px-3.5 py-3 text-sm outline-none transition focus:border-[#58b8ad] focus:ring-3 focus:ring-[#58b8ad]/10" />
             </label>
             <div className="mt-6 flex justify-between">
-              <button type="button" onClick={back} className="btn-secondary"><ArrowLeft size={15} /> Retour</button>
-              <button type="button" disabled={description.trim().length < 8} onClick={() => goTo("contact")} className="btn-primary disabled:opacity-50">Continuer <ArrowRight size={15} /></button>
+              <button type="button" onClick={back} className="pub-btn pub-btn-outline"><ArrowLeft size={15} /> Retour</button>
+              <button type="button" disabled={description.trim().length < 8} onClick={() => goTo("contact")} className="pub-btn pub-btn-primary disabled:opacity-50">Continuer <ArrowRight size={15} /></button>
             </div>
           </fieldset>
         )}
 
         {step === "contact" && (
           <fieldset>
-            <legend className="label">Vos coordonnées</legend>
+            <legend className="pub-eyebrow">Vos coordonnées</legend>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <label className="block md:col-span-2">
                 <span className="text-xs font-bold">Vous êtes</span>
@@ -278,15 +278,15 @@ export function SolutionWizard({ initialIntent, initialCategory, initialTerritor
               <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(event) => setHoneypot(event.target.value)} className="hidden" aria-hidden />
             </div>
             <div className="mt-6 flex justify-between">
-              <button type="button" onClick={back} className="btn-secondary"><ArrowLeft size={15} /> Retour</button>
-              <button type="button" disabled={!actorType || !contactName.trim() || phone.trim().length < 8} onClick={() => goTo("channel")} className="btn-primary disabled:opacity-50">Continuer <ArrowRight size={15} /></button>
+              <button type="button" onClick={back} className="pub-btn pub-btn-outline"><ArrowLeft size={15} /> Retour</button>
+              <button type="button" disabled={!actorType || !contactName.trim() || phone.trim().length < 8} onClick={() => goTo("channel")} className="pub-btn pub-btn-primary disabled:opacity-50">Continuer <ArrowRight size={15} /></button>
             </div>
           </fieldset>
         )}
 
         {step === "channel" && (
           <fieldset>
-            <legend className="label">Canal préféré pour la suite</legend>
+            <legend className="pub-eyebrow">Canal préféré pour la suite</legend>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               {channels.map((item) => (
                 <button key={item.id} type="button" onClick={() => setChannel(item.id)} className={`flex items-center gap-2 rounded-xl border p-4 text-sm font-bold transition ${channel === item.id ? "border-[#10373a] bg-[#10373a] text-white" : "border-[#d9e3e3] bg-white text-[#60737a] hover:border-[#8fc3bd]"}`}>
@@ -300,8 +300,8 @@ export function SolutionWizard({ initialIntent, initialCategory, initialTerritor
             </label>
             {error && <p className="mt-3 text-sm font-semibold text-[#c24545]">{error}</p>}
             <div className="mt-6 flex justify-between">
-              <button type="button" onClick={back} className="btn-secondary"><ArrowLeft size={15} /> Retour</button>
-              <button type="button" disabled={!channel || submitting} onClick={() => void submit()} className="btn-primary disabled:opacity-50">{submitting ? "Envoi…" : "Envoyer ma demande"} <ArrowRight size={15} /></button>
+              <button type="button" onClick={back} className="pub-btn pub-btn-outline"><ArrowLeft size={15} /> Retour</button>
+              <button type="button" disabled={!channel || submitting} onClick={() => void submit()} className="pub-btn pub-btn-primary disabled:opacity-50">{submitting ? "Envoi…" : "Envoyer ma demande"} <ArrowRight size={15} /></button>
             </div>
           </fieldset>
         )}

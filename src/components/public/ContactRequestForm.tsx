@@ -98,20 +98,20 @@ export function ContactRequestForm({
 
   if (reference) {
     return (
-      <div className="surface p-7 md:p-9">
+      <div className="pub-card p-7 md:p-9">
         <span className="grid size-12 place-items-center rounded-full bg-[#e9f7f1] text-[#126b58]"><CheckCircle2 /></span>
-        <h2 className="mt-5 text-2xl font-[740] tracking-[-.035em] text-[#102e37]">Votre demande {reference} est enregistrée.</h2>
+        <h2 className="mt-5 text-2xl font-[740] tracking-[-.035em] text-[var(--pub-deep-900)]">Votre demande {reference} est enregistrée.</h2>
         <p className="mt-3 text-sm leading-6 text-[#536f67]">Mbàmbulaan revient vers vous par {channel === "whatsapp" ? "WhatsApp" : channel === "telephone" ? "téléphone" : "e-mail"}. Conservez cette référence pour tout échange avec l’équipe.</p>
         <div className="mt-6 flex flex-wrap gap-2">
-          <Link href="/decouvrir" className="btn-primary">Continuer à découvrir <ArrowRight size={15} /></Link>
-          <Link href="/atlas" className="btn-secondary">Explorer l’Atlas</Link>
+          <Link href="/decouvrir" className="pub-btn pub-btn-primary">Continuer à découvrir <ArrowRight size={15} /></Link>
+          <Link href="/atlas" className="pub-btn pub-btn-outline">Explorer l’Atlas</Link>
         </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={submit} className="surface overflow-hidden">
+    <form onSubmit={submit} className="pub-card overflow-hidden">
       <div className="grid gap-5 p-6 md:grid-cols-2 md:p-8">
         <label className="block md:col-span-2">
           <span className="text-xs font-bold">{descriptionLabel}{descriptionRequired ? "" : " (optionnel)"}</span>
@@ -143,7 +143,7 @@ export function ContactRequestForm({
           <span>J’accepte que Mbàmbulaan utilise ces informations pour traiter ma demande et me recontacter.</span>
         </label>
         {error && <p className="text-sm font-semibold text-[#c24545] md:col-span-2">{error}</p>}
-        <button disabled={submitting} className="btn-primary justify-center disabled:opacity-60 md:col-span-2">{submitting ? "Envoi…" : "Envoyer"} <ArrowRight size={16} /></button>
+        <button disabled={submitting} className="pub-btn pub-btn-primary justify-center disabled:opacity-60 md:col-span-2">{submitting ? "Envoi…" : "Envoyer"} <ArrowRight size={16} /></button>
       </div>
     </form>
   );
