@@ -1,6 +1,6 @@
 # Mbàmbulaan Produit — Journal de décisions
 
-> Compagnon de `PRODUCT_REFOUNDATION_AUDIT.md` et `PRODUCT_EXECUTION_PLAN.md`. Deux sections : décisions déjà actées (ne pas rouvrir sans raison sérieuse), et décisions qui attendent l'arbitrage du CEO avant que le Lot 1 ne démarre.
+> Compagnon de `PRODUCT_REFOUNDATION_AUDIT.md` et `PRODUCT_EXECUTION_PLAN.md`. Deux sections : décisions déjà actées (ne pas rouvrir sans raison sérieuse), et décisions arbitrées par le CEO (2026-08-10) qui cadrent les Lots 1 à 6.
 
 ---
 
@@ -30,9 +30,9 @@
 
 ---
 
-## 2. Décisions à trancher avant le Lot 1
+## 2. Décisions arbitrées par le CEO (2026-08-10)
 
-Chaque entrée : la question, les options considérées, une recommandation (pas une décision — le CEO tranche), et pourquoi.
+Chaque entrée : la question, les options considérées, la recommandation initiale, et l'arbitrage retenu. Ces décisions cadrent l'exécution des Lots 1 à 6 ; elles ne sont pas rouvertes sans raison sérieuse — au même titre que la section 1.
 
 ### D1 — Unification de `ServiceRequest`
 
@@ -47,6 +47,8 @@ Chaque entrée : la question, les options considérées, une recommandation (pas
 
 **Impact si reporté** : le Lot 1 ne peut pas livrer un `ServiceRequest` unifié propre ; le Lot 5 (besoin collectif → programme) devra agréger deux formes différentes, plus fragile.
 
+**Arbitrage CEO** : option (a) retenue. `Need` converge vers la forme de `PublicRequest`.
+
 ---
 
 ### D2 — Refonte de l'Espace État (`field-visit`/`vigilance`) dans le modèle unifié
@@ -58,6 +60,8 @@ Chaque entrée : la question, les options considérées, une recommandation (pas
 - (b) Les laisser tels quels jusqu'au Lot 2 (reconstruction de l'écran Institution), refondre à ce moment-là.
 
 **Recommandation** : (a). Peu de données réelles existent encore dans ces tables (construites il y a quelques jours) — le coût de migration est minimal maintenant, il augmente à chaque semaine d'usage supplémentaire.
+
+**Arbitrage CEO** : option (a) retenue. Refonte immédiate dans le modèle `Signal`/`Situation`/`Commitment` **au Lot 1**, pendant que le volume de données est encore faible.
 
 ---
 
@@ -71,6 +75,8 @@ Chaque entrée : la question, les options considérées, une recommandation (pas
 
 **Recommandation** : (a). La démonstration doit prouver que « chaque action laisse une trace exploitable » (spec §9.2, séquence 5) — un objet `Evidence` typé et réutilisable (photo, document, mesure) est plus convaincant devant un ministère qu'un champ texte, et évite une deuxième migration si le besoin se confirme après la démo.
 
+**Arbitrage CEO** : option (a) retenue. `Decision` et `Evidence` deviennent des objets de première classe dès le Lot 1, pas des champs enrichis sur `Situation`.
+
 ---
 
 ### D4 — Scénario canonique unique ou scénarios de secours
@@ -82,6 +88,8 @@ Chaque entrée : la question, les options considérées, une recommandation (pas
 - (b) Deux ou trois scénarios également développés.
 
 **Recommandation** : (a) pour la V1. Un scénario unique mais irréprochable (données cohérentes, tous les objets liés, aucun trou) vaut mieux devant un ministre que plusieurs scénarios à moitié finis. D'autres scénarios (§8.3 à §8.6 du spec) restent documentés comme extensions futures, pas construits maintenant.
+
+**Arbitrage CEO** : option (a) retenue. Un seul scénario canonique (Joal / chaîne du froid / machine à glace indisponible), approfondi jusqu'à être irréprochable. Aucun scénario de secours avant que celui-ci soit fini.
 
 ---
 
@@ -95,6 +103,8 @@ Chaque entrée : la question, les options considérées, une recommandation (pas
 
 **Recommandation** : (a). Une intégration réelle suppose un compte Meta Business vérifié, un numéro dédié, des coûts récurrents et un délai d'approbation — aucun de ces éléments n'est sous le contrôle direct de l'équipe produit à ce stade, et le spec autorise explicitement le simulé pour la V1.
 
+**Arbitrage CEO** : option (a) retenue. Communication simulée et explicitement étiquetée comme telle pour toute la V1. Aucune intégration WhatsApp/SMS/téléphonie réelle avant un nouvel arbitrage.
+
 ---
 
 ### D6 — Stack cartographique de l'Atlas
@@ -102,6 +112,8 @@ Chaque entrée : la question, les options considérées, une recommandation (pas
 **Question** : l'Atlas national/territorial a-t-il besoin d'une vraie librairie cartographique (Mapbox, Leaflet…) ou la représentation actuelle (illustrative, sans fond de carte réel) suffit-elle pour la démonstration ?
 
 **Recommandation** : ne pas trancher maintenant — à évaluer concrètement au Lot 2, une fois la maquette de la vue nationale posée. Le spec liste ce point comme « à challenger avant décision », pas comme urgent.
+
+**Arbitrage CEO** : reporté au Lot 2, comme proposé. Décision prise à ce moment, sur preuve concrète, pas maintenant.
 
 ---
 
@@ -111,6 +123,8 @@ Chaque entrée : la question, les options considérées, une recommandation (pas
 
 **Recommandation** : après (Lot 1 terminé et stable). Réorganiser des dossiers en même temps qu'on ajoute des objets multiplie le risque de régression pour un bénéfice purement cosmétique à ce stade.
 
+**Arbitrage CEO** : reportée après stabilisation du Lot 1, comme proposé.
+
 ---
 
 ### D8 — Sort des 4 fichiers de domaine à usage unique
@@ -118,6 +132,25 @@ Chaque entrée : la question, les options considérées, une recommandation (pas
 **Question** : `coordination-engine.ts`, `institution/decision-engine.ts`, `national/national-engine.ts`, `value-engine.ts` ne sont chacun utilisés que par un seul composant, tous en lien avec la zone Institution/National qui sera reconstruite au Lot 2.
 
 **Recommandation** : les réviser avant de coder le Lot 2 plutôt que de les supprimer aveuglément avec le reste du Lot 0 — ils peuvent contenir des idées de présentation ou de calcul valables même si leur UI actuelle est remplacée.
+
+**Arbitrage CEO** : revue avant le Lot 2, pas de suppression aveugle au Lot 0, comme proposé. Ces 4 fichiers (`coordination-engine.ts`, `institution/decision-engine.ts`, `national/national-engine.ts`, `value-engine.ts`) sont donc **volontairement conservés** à l'issue du Lot 0.
+
+---
+
+### D9 — Shell partagé vs entrée technique distincte par expérience (Institution, Terrain)
+
+**Question** : `AppShell`/`AppSidebar` (Lot P2) offrent une coquille professionnelle partagée entre rôles. A14 impose des expériences différenciées (décision-first / situation-first / task-first / mobile-first / outcome-first) — jusqu'où le partage de shell est-il compatible avec cette exigence, en particulier pour ce que verra la Ministre (Institution/Espace État) et pour le Terrain mobile ?
+
+**Options considérées** :
+- (a) Un seul shell partagé pour tous les rôles, composition (nav, densité) variable par rôle.
+- (b) Shell partagé pour les rôles « outils de travail » (Coordinateur, Opérateur) ; entrée technique propre pour Institution/Espace État et pour Terrain mobile.
+- (c) Un shell technique entièrement distinct pour chaque rôle.
+
+**Arbitrage CEO (nouveau, absent du plan initial)** : option (b) retenue.
+- `AppShell`/`AppSidebar` restent acceptables pour **Coordinateur** et **Opérateur** — outils de travail où une navigation persistante latérale est légitime.
+- **Institution/Espace État** (ce que voit la Ministre) et **Terrain mobile** doivent avoir une **entrée techniquement distincte** — pas seulement une composition différente du même shell, mais une structure de navigation propre à chacune.
+- Échéance : Institution/Espace État au **Lot 2**, Terrain mobile au **Lot 6**.
+- Conséquence pour le Lot 2 : ne pas se contenter de brancher `/app/etat` sur `AppShell` avec un jeu de items de nav différent — construire une coquille de navigation dédiée à l'Espace État, cohérente avec le principe « décision-first » (A14) et avec le sentiment de « système unique » exigé par le brief d'audit, sans être une redite du shell Coordinateur/Opérateur.
 
 ---
 
