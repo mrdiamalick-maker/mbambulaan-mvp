@@ -17,10 +17,12 @@ export function HeroBackgroundImage({ src, alt }: { src: string; alt: string }) 
         alt={alt}
         fill
         sizes="100vw"
-        className="absolute inset-0 object-cover opacity-40"
+        priority={false}
+        className="absolute inset-0 object-cover"
         onError={() => setFailed(true)}
       />
-      <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(5,27,33,.96)_0%,rgba(5,27,33,.82)_42%,rgba(5,27,33,.5)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(5,27,33,.94)_0%,rgba(5,27,33,.78)_38%,rgba(5,27,33,.5)_68%,rgba(5,27,33,.32)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,27,33,.2),transparent_35%,rgba(5,27,33,.55)_100%)]" />
     </>
   );
 }
