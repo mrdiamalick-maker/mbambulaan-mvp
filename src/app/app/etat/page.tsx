@@ -31,6 +31,10 @@ import {
 const activityLabels: Record<Territory["activity"], string> = { stable: "Stable", vigilance: "Vigilance", critique: "Critique" };
 const activityTagClass: Record<Territory["activity"], string> = { stable: "etat-tag--stable", vigilance: "etat-tag--vigilance", critique: "etat-tag--critique" };
 const severityToTag: Record<VigilanceSeverity, "stable" | "vigilance" | "critique"> = { faible: "stable", moyenne: "vigilance", haute: "vigilance", critique: "critique" };
+// Même code couleur que TensionGlyph — le liseré de gauche prolonge le
+// motif signature dans les listes, plutôt que de s'appuyer sur la seule
+// pastille pour porter la hiérarchie.
+const glyphBorderColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "#1d4468", vigilance: "#c68a2c", critique: "#b6522f" };
 
 function formatFcfa(amount: number) {
   return `${new Intl.NumberFormat("fr-FR").format(Math.round(amount))} FCFA`;
@@ -147,11 +151,11 @@ export default function EtatPage() {
       <section className="etat-canvas-dark mx-5 mt-4 overflow-hidden rounded-[28px] p-6 lg:mx-8 lg:p-10">
         <p className="etat-eyebrow etat-eyebrow--on-dark">Espace État · {actor?.name ?? "Ministère"}</p>
         <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-center">
-          <TensionGlyph status={dominant.glyphStatus} size={84} pulse={dominant.kind !== "calme"} />
+          <TensionGlyph status={dominant.glyphStatus} size={104} pulse={dominant.kind !== "calme"} />
           <div className="min-w-0 flex-1">
             {dominant.kind === "signal" && (
               <>
-                <h1 className="etat-display text-2xl not-italic leading-[1.15] text-white md:text-[1.7rem]">
+                <h1 className="etat-display text-[2.1rem] not-italic leading-[1.08] text-white md:text-[2.9rem]">
                   En ce moment : {vigilanceCategoryLabels[dominant.case.category]} à {dominant.case.territoryLabel}.
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">{dominant.case.description}</p>
@@ -159,7 +163,7 @@ export default function EtatPage() {
             )}
             {dominant.kind === "territoire" && (
               <>
-                <h1 className="etat-display text-2xl not-italic leading-[1.15] text-white md:text-[1.7rem]">
+                <h1 className="etat-display text-[2.1rem] not-italic leading-[1.08] text-white md:text-[2.9rem]">
                   En ce moment : {dominant.territory.name} concentre l’attention du réseau.
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">Territoire classé en activité critique — voir le détail pour comprendre ce qui s’y joue.</p>
@@ -167,7 +171,7 @@ export default function EtatPage() {
             )}
             {dominant.kind === "calme" && (
               <>
-                <h1 className="etat-display text-2xl not-italic leading-[1.15] text-white md:text-[1.7rem]">Aucune tension prioritaire signalée pour le moment.</h1>
+                <h1 className="etat-display text-[2.1rem] not-italic leading-[1.08] text-white md:text-[2.9rem]">Aucune tension prioritaire signalée pour le moment.</h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">Le réseau reste sous surveillance continue ; les territoires et signaux actifs restent consultables ci-dessous.</p>
               </>
             )}
@@ -185,7 +189,7 @@ export default function EtatPage() {
         {/* Défi 1 — valeur générée */}
         <section>
           <p className="etat-eyebrow">Diversifier les revenus des pêcheurs</p>
-          <h2 className="etat-display mt-2 text-xl not-italic text-[var(--etat-navy-950)]">Une valeur additionnelle réelle, générée par la coordination.</h2>
+          <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Une valeur additionnelle réelle, générée par la coordination.</h2>
           <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.2fr]">
             <div className="etat-panel p-6">
               <span className="etat-tag etat-tag--demo">Environnement de démonstration</span>
@@ -217,11 +221,11 @@ export default function EtatPage() {
         {/* Défi 2 — présence terrain */}
         <section>
           <p className="etat-eyebrow">Rencontrer les pêcheurs sans déplacement systématique</p>
-          <h2 className="etat-display mt-2 text-xl not-italic text-[var(--etat-navy-950)]">La réalité terrain, territoire par territoire.</h2>
+          <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">La réalité terrain, territoire par territoire.</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--etat-stone-600)]">{territoiresAttention.length} territoire(s) demandent une attention particulière sur {territoiresActifs} suivis par le réseau.</p>
           <div className="mt-5 flex flex-wrap gap-2.5">
             {territoiresAttention.map((territory) => (
-              <button key={territory.id} onClick={() => setTerritoryDrawer(territory)} className="etat-panel flex items-center gap-2.5 px-3.5 py-2.5 text-left transition hover:border-[var(--etat-navy-600)]">
+              <button key={territory.id} onClick={() => setTerritoryDrawer(territory)} className="etat-panel flex items-center gap-2.5 px-3.5 py-2.5 text-left transition hover:border-[var(--etat-navy-600)]" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[territory.activity] }}>
                 <TensionGlyph status={territory.activity} size={26} />
                 <span>
                   <span className="block text-sm font-bold text-[var(--etat-navy-950)]">{territory.name}</span>
@@ -247,7 +251,7 @@ export default function EtatPage() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="etat-eyebrow">Lutter contre les fléaux</p>
-              <h2 className="etat-display mt-2 text-xl not-italic text-[var(--etat-navy-950)]">Vigilance — signaux à qualifier.</h2>
+              <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Vigilance — signaux à qualifier.</h2>
             </div>
             <button onClick={() => setSignalDrawerOpen(true)} className="etat-btn etat-btn-outline"><Radio size={15} /> Signaler une situation</button>
           </div>
@@ -256,7 +260,7 @@ export default function EtatPage() {
           ) : (
             <div className="mt-5 space-y-2.5">
               {openCases.map((item) => (
-                <div key={item.id} className="etat-panel flex flex-wrap items-center justify-between gap-3 p-4">
+                <div key={item.id} className="etat-panel flex flex-wrap items-center justify-between gap-3 p-4" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[severityToTag[item.severity]] }}>
                   <div className="flex items-center gap-3">
                     <TensionGlyph status={severityToTag[item.severity]} size={30} />
                     <div>
@@ -277,14 +281,14 @@ export default function EtatPage() {
         {/* Défi 6 — missions terrain recommandées */}
         <section>
           <p className="etat-eyebrow">Donner au ministère une activité terrain concrète</p>
-          <h2 className="etat-display mt-2 text-xl not-italic text-[var(--etat-navy-950)]">Missions recommandées.</h2>
+          <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Missions recommandées.</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--etat-stone-600)]">Générées à partir des tensions et signaux actifs — une liste priorisée, pas un système de gestion.</p>
           {missions.length === 0 ? (
             <p className="mt-5 text-sm text-[var(--etat-stone-600)]">Aucune mission suggérée : aucune tension active à traiter en priorité.</p>
           ) : (
             <div className="mt-5 space-y-2.5">
               {missions.map((mission) => (
-                <div key={mission.key} className="etat-panel flex flex-wrap items-center justify-between gap-3 p-4">
+                <div key={mission.key} className="etat-panel flex flex-wrap items-center justify-between gap-3 p-4" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[mission.glyphStatus] }}>
                   <div className="flex items-center gap-3">
                     <TensionGlyph status={mission.glyphStatus} size={30} />
                     <div>
@@ -308,7 +312,7 @@ export default function EtatPage() {
         {/* Défi 4 — statistiques */}
         <section>
           <p className="etat-eyebrow">Outil statistique de supervision</p>
-          <h2 className="etat-display mt-2 text-xl not-italic text-[var(--etat-navy-950)]">La coordination en chiffres.</h2>
+          <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">La coordination en chiffres.</h2>
           <div className="mt-5 grid gap-4 lg:grid-cols-[1.3fr_1fr_1fr]">
             <div className="etat-panel p-6">
               <div className="flex items-center gap-2 text-[var(--etat-navy-600)]"><Users size={16} /><span className="etat-tag etat-tag--demo">Démonstration</span></div>
@@ -334,7 +338,7 @@ export default function EtatPage() {
         <section className="etat-canvas-dark flex flex-col gap-5 rounded-[24px] p-7 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="etat-eyebrow etat-eyebrow--on-dark">Capter l’attention des bailleurs</p>
-            <h2 className="etat-display mt-2 text-xl not-italic text-white">Un rapport d’impact prêt à partager.</h2>
+            <h2 className="etat-display mt-2 text-2xl not-italic text-white">Un rapport d’impact prêt à partager.</h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-white/65">Structuré par territoire, exportable, pensé pour vos propres échanges avec les bailleurs et programmes.</p>
           </div>
           <Link href="/app/etat/rapport" className="etat-btn etat-btn-primary shrink-0"><FileDown size={16} /> Ouvrir le rapport bailleurs</Link>

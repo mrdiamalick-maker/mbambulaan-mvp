@@ -30,6 +30,7 @@ import type { Role } from "@/domain/types";
 import type { PlatformModule } from "@/domain/platform/modules";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { resolveCapabilities } from "@/domain/platform/access-resolver";
+import { EtatChrome } from "@/components/etat/EtatChrome";
 
 type NavItem = {
   href: string;
@@ -311,6 +312,18 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
       window.location.href = "/";
     });
   };
+
+  // L'Espace État a son propre chrome (voir EtatChrome) : il ne doit pas
+  // hériter de la console opérationnelle (fond clair, accent bleu,
+  // sidebar de navigation dense) qui ne correspond ni à son ton ni à sa
+  // palette. Le contenu détermine le chrome, pas seulement le rôle.
+  if (pathname.startsWith("/app/etat")) {
+    return (
+      <EtatChrome actorName={actor?.name} tenantName={state?.tenant.name} showLoading={loading && !state} error={error} onLogout={logout}>
+        {children}
+      </EtatChrome>
+    );
+  }
 
   return (
     <div className="op-scope min-h-screen bg-[var(--op-canvas)]">
