@@ -771,6 +771,45 @@ export function createDemoState(): ProductState {
         trust: "declaree"
       }
     ],
+    communications: [
+      {
+        id: "com-glace-1",
+        channel: "whatsapp",
+        status: "lu",
+        actorId: "act-operateur",
+        situationId: "sit-glace",
+        subject: "Panne machine à glace — quai de Joal",
+        body: "Le poste de quai signale la machine à glace à l’arrêt depuis 08:10. Confirmation demandée avant mobilisation.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-glace-2",
+        channel: "telephone",
+        status: "repondu",
+        actorId: "act-coordinateur",
+        situationId: "sit-glace",
+        commitmentId: "eng-2",
+        subject: "Organisation du délestage vers Mbour",
+        body: "Appel au prestataire froid pour confirmer la capacité disponible à Mbour le temps de la réparation.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-securite-1",
+        channel: "sms",
+        status: "envoye",
+        actorId: "act-operateur",
+        situationId: "sit-saint-louis",
+        subject: "Suivi retour retardé",
+        body: "SMS de relance envoyé au dispositif territorial de sécurité, en attente de réponse.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      }
+    ],
     priceObservations: [
       { id: "price-thiof-kayar", speciesId: "sp-thiof", territoryId: "kayar", marketName: "Marché de Kayar", priceFcfaKg: 3900, observedAt: now, source: "Relevé déclaratif mareyeur", trust: "declaree", trend: "hausse", flagged: false },
       { id: "price-thiof-joal", speciesId: "sp-thiof", territoryId: "joal", marketName: "Marché de Joal", priceFcfaKg: 3400, observedAt: now, source: "Relais marché", trust: "observee", trend: "hausse", flagged: false },

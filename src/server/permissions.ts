@@ -12,6 +12,7 @@ const all: Command["type"][] = [
   "close",
   "create_decision",
   "record_evidence",
+  "log_communication",
   "announce_return",
   "confirm_arrival",
   "record_landing",
@@ -35,6 +36,7 @@ const allowed: Record<Role, Command["type"][]> = {
     "confirm_weighing",
     "create_lots",
     "record_evidence",
+    "log_communication",
     "create_community_post",
     "convert_post",
     "flag_price"
@@ -45,7 +47,7 @@ const allowed: Record<Role, Command["type"][]> = {
   prestataire: ["start_intervention", "wait", "resume", "record_result", "record_evidence", "create_community_post"],
   gestionnaire_organisation: ["prioritize", "coordinate", "create_decision", "accept_opportunity", "create_community_post", "convert_post"],
   coordinateur: all,
-  institution: ["prioritize", "coordinate", "create_decision", "close", "flag_price", "reset_demo"],
+  institution: ["prioritize", "coordinate", "create_decision", "log_communication", "close", "flag_price", "reset_demo"],
   partenaire: ["create_community_post"]
 };
 

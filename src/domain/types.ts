@@ -343,6 +343,54 @@ export interface Evidence {
   trust: TrustLevel;
 }
 
+// Communication — objet de première classe (§5.10) reliant une situation,
+// un engagement ou un acteur à un canal omnicanal. Arbitrage D5 : toute
+// communication est simulée pour la V1 (`simulated: true`, littéral —
+// impossible de créer une Communication non étiquetée comme telle tant que
+// D5 n'est pas révisé). Aucune intégration WhatsApp/SMS/téléphonie réelle.
+export type CommunicationChannel =
+  | "whatsapp"
+  | "telephone"
+  | "sms"
+  | "email"
+  | "notification_produit"
+  | "saisie_terrain";
+
+export const communicationChannelLabels: Record<CommunicationChannel, string> = {
+  whatsapp: "WhatsApp",
+  telephone: "Téléphone",
+  sms: "SMS",
+  email: "E-mail",
+  notification_produit: "Notification Produit",
+  saisie_terrain: "Saisie terrain"
+};
+
+export type CommunicationStatus = "prepare" | "envoye" | "remis" | "lu" | "repondu" | "echec" | "relance_requise";
+
+export const communicationStatusLabels: Record<CommunicationStatus, string> = {
+  prepare: "Préparé",
+  envoye: "Envoyé",
+  remis: "Remis",
+  lu: "Lu",
+  repondu: "Répondu",
+  echec: "Échec",
+  relance_requise: "Relance requise"
+};
+
+export interface Communication {
+  id: string;
+  channel: CommunicationChannel;
+  status: CommunicationStatus;
+  actorId: string;
+  situationId?: string;
+  commitmentId?: string;
+  subject: string;
+  body: string;
+  simulated: true;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PriceObservation {
   id: string;
   speciesId: string;
@@ -506,6 +554,7 @@ export interface ProductState {
   coordinationSpaces: CoordinationSpace[];
   decisions: Decision[];
   evidences: Evidence[];
+  communications: Communication[];
   priceObservations: PriceObservation[];
   scarcity: ScarcityIndicator[];
   sustainability: SustainabilityAssessment[];
@@ -532,6 +581,7 @@ export type Command =
   | { type: "close"; situationId: string; actorId: string }
   | { type: "create_decision"; situationId: string; actorId: string; decisionType: DecisionType; rationale: string; coordinationId?: string }
   | { type: "record_evidence"; situationId: string; actorId: string; evidenceType: EvidenceType; label: string; detail: string; commitmentId?: string }
+  | { type: "log_communication"; actorId: string; channel: CommunicationChannel; subject: string; body: string; situationId?: string; commitmentId?: string }
   | { type: "announce_return"; tripId: string; actorId: string }
   | { type: "confirm_arrival"; tripId: string; actorId: string }
   | { type: "record_landing"; tripId: string; actorId: string }

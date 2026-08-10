@@ -35,6 +35,16 @@ test("le tenant de démonstration relie les objets sans référence orpheline", 
       );
     }
   }
+  for (const communication of state.communications) {
+    assert.equal(communication.simulated, true);
+    assert.ok(actorIds.has(communication.actorId));
+    if (communication.situationId) assert.ok(situationIds.has(communication.situationId));
+    if (communication.commitmentId) {
+      assert.ok(
+        state.coordinationSpaces.some((space) => space.commitments.some((commitment) => commitment.id === communication.commitmentId))
+      );
+    }
+  }
   for (const initiative of state.initiatives) {
     initiative.territoryIds.forEach((id) => assert.ok(territoryIds.has(id)));
     initiative.funding.forEach((fund) => assert.ok(actorIds.has(fund.partnerId)));

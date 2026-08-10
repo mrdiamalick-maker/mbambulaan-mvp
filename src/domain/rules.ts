@@ -1,6 +1,7 @@
 import type {
   AuditEntry,
   Command,
+  Communication,
   Decision,
   Evidence,
   HistoryEntry,
@@ -10,7 +11,7 @@ import type {
   Situation,
   SituationStatus
 } from "./types";
-import { decisionTypeLabels, evidenceTypeLabels } from "./types";
+import { communicationChannelLabels, decisionTypeLabels, evidenceTypeLabels } from "./types";
 
 const transitions: Record<
   Exclude<
@@ -31,6 +32,7 @@ const transitions: Record<
     | "flag_price"
     | "create_decision"
     | "record_evidence"
+    | "log_communication"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -429,6 +431,55 @@ function applyEvidenceCommand(state: ProductState, command: Extract<Command, { t
   return withAudit(next, command.actorId, "preuve", evidence.id, command.type, evidence.label);
 }
 
+// Communication — objet de première classe (§5.10). Arbitrage D5 : toujours
+// simulée en V1 (`simulated: true`), jamais un envoi réel WhatsApp/SMS/appel.
+// Reliée à une situation et/ou un engagement si fournis, sinon consignée
+// seule (ex. contact d'un acteur hors dossier ouvert).
+function applyCommunicationCommand(state: ProductState, command: Extract<Command, { type: "log_communication" }>) {
+  if (!command.subject.trim() || !command.body.trim()) throw new Error("L'objet et le contenu de la communication sont obligatoires.");
+  const situation = command.situationId ? state.situations.find((item) => item.id === command.situationId) : undefined;
+  if (command.situationId && !situation) throw new Error("Situation introuvable.");
+  if (
+    command.commitmentId &&
+    !state.coordinationSpaces.some((space) => space.commitments.some((commitment) => commitment.id === command.commitmentId))
+  ) {
+    throw new Error("Engagement introuvable.");
+  }
+
+  const createdAt = timestamp();
+  const communication: Communication = {
+    id: id("com"),
+    channel: command.channel,
+    status: "envoye",
+    actorId: command.actorId,
+    situationId: command.situationId,
+    commitmentId: command.commitmentId,
+    subject: command.subject.trim(),
+    body: command.body.trim(),
+    simulated: true,
+    createdAt,
+    updatedAt: createdAt
+  };
+
+  let next: ProductState = {
+    ...state,
+    communications: [communication, ...state.communications]
+  };
+
+  if (situation) {
+    const updatedSituation: Situation = {
+      ...situation,
+      history: [
+        history(command.actorId, "Communication consignée (simulée)", `${communicationChannelLabels[command.channel]} — ${communication.subject}`),
+        ...situation.history
+      ]
+    };
+    next = { ...next, situations: state.situations.map((item) => (item.id === situation.id ? updatedSituation : item)) };
+  }
+
+  return withAudit(next, command.actorId, "communication", communication.id, command.type, `${communicationChannelLabels[command.channel]} (simulée) — ${communication.subject}`);
+}
+
 export function applyCommand(state: ProductState, command: Command): ProductState {
   if (command.type === "reset_demo") return state;
 
@@ -437,6 +488,9 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   }
   if (command.type === "record_evidence") {
     return applyEvidenceCommand(state, command);
+  }
+  if (command.type === "log_communication") {
+    return applyCommunicationCommand(state, command);
   }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
@@ -589,6 +643,7 @@ export type WorkflowAction = Exclude<
   | "flag_price"
   | "create_decision"
   | "record_evidence"
+  | "log_communication"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {
