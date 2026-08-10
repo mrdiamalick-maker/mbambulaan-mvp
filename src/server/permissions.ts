@@ -10,6 +10,7 @@ const all: Command["type"][] = [
   "resume",
   "record_result",
   "close",
+  "create_decision",
   "announce_return",
   "confirm_arrival",
   "record_landing",
@@ -40,9 +41,9 @@ const allowed: Record<Role, Command["type"][]> = {
   mareyeur: ["accept_opportunity", "complete_logistics", "create_community_post", "convert_post"],
   transformateur: ["accept_opportunity", "complete_logistics", "create_community_post", "convert_post"],
   prestataire: ["start_intervention", "wait", "resume", "record_result", "create_community_post"],
-  gestionnaire_organisation: ["prioritize", "coordinate", "accept_opportunity", "create_community_post", "convert_post"],
+  gestionnaire_organisation: ["prioritize", "coordinate", "create_decision", "accept_opportunity", "create_community_post", "convert_post"],
   coordinateur: all,
-  institution: ["prioritize", "coordinate", "close", "flag_price", "reset_demo"],
+  institution: ["prioritize", "coordinate", "create_decision", "close", "flag_price", "reset_demo"],
   partenaire: ["create_community_post"]
 };
 

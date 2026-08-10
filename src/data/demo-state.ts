@@ -708,6 +708,34 @@ export function createDemoState(): ProductState {
       },
       ...generatedCoordinationSpaces
     ],
+    decisions: [
+      {
+        id: "dec-glace-1",
+        situationId: "sit-glace",
+        type: "demander_verification",
+        rationale: "Confirmer l’indisponibilité avec le poste de quai avant de mobiliser une capacité de remplacement.",
+        decidedByActorId: "act-coordinateur",
+        decidedAt: now
+      },
+      {
+        id: "dec-glace-2",
+        situationId: "sit-glace",
+        type: "ouvrir_coordination",
+        rationale: "Panne confirmée : organiser sans délai un délestage temporaire vers Mbour pendant la réparation.",
+        decidedByActorId: "act-coordinateur",
+        decidedAt: now,
+        coordinationId: "coord-froid"
+      },
+      {
+        id: "dec-securite-1",
+        situationId: "sit-saint-louis",
+        type: "escalader",
+        rationale: "Retard non expliqué : informer le dispositif territorial et renforcer le suivi téléphonique.",
+        decidedByActorId: "act-coordinateur",
+        decidedAt: now,
+        coordinationId: "coord-securite"
+      }
+    ],
     priceObservations: [
       { id: "price-thiof-kayar", speciesId: "sp-thiof", territoryId: "kayar", marketName: "Marché de Kayar", priceFcfaKg: 3900, observedAt: now, source: "Relevé déclaratif mareyeur", trust: "declaree", trend: "hausse", flagged: false },
       { id: "price-thiof-joal", speciesId: "sp-thiof", territoryId: "joal", marketName: "Marché de Joal", priceFcfaKg: 3400, observedAt: now, source: "Relais marché", trust: "observee", trend: "hausse", flagged: false },

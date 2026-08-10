@@ -14,11 +14,17 @@ test("le tenant de démonstration relie les objets sans référence orpheline", 
   const tripIds = new Set(state.trips.map((item) => item.id));
   const landingIds = new Set(state.landings.map((item) => item.id));
   const speciesIds = new Set(state.species.map((item) => item.id));
+  const situationIds = new Set(state.situations.map((item) => item.id));
   for (const situation of state.situations) {
     assert.ok(territoryIds.has(situation.territoryId));
     if (situation.responsibleId) assert.ok(actorIds.has(situation.responsibleId));
     validateSituation(situation);
     if (situation.coordinationId) assert.ok(state.coordinationSpaces.some((space) => space.id === situation.coordinationId));
+  }
+  for (const decision of state.decisions) {
+    assert.ok(situationIds.has(decision.situationId));
+    assert.ok(actorIds.has(decision.decidedByActorId));
+    if (decision.coordinationId) assert.ok(state.coordinationSpaces.some((space) => space.id === decision.coordinationId));
   }
   for (const initiative of state.initiatives) {
     initiative.territoryIds.forEach((id) => assert.ok(territoryIds.has(id)));

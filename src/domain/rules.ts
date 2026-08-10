@@ -1,6 +1,7 @@
 import type {
   AuditEntry,
   Command,
+  Decision,
   HistoryEntry,
   Lot,
   Opportunity,
@@ -8,6 +9,7 @@ import type {
   Situation,
   SituationStatus
 } from "./types";
+import { decisionTypeLabels } from "./types";
 
 const transitions: Record<
   Exclude<
@@ -26,6 +28,7 @@ const transitions: Record<
     | "create_community_post"
     | "convert_post"
     | "flag_price"
+    | "create_decision"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -343,9 +346,51 @@ function applyCommunityCommand(state: ProductState, command: Extract<Command, { 
   return withAudit(next, command.actorId, "publication", post.id, command.type, `Situation ${situationId} créée`);
 }
 
+// Decision — objet de première classe (D3) : une situation peut porter
+// plusieurs décisions successives, chacune tracée indépendamment de la
+// transition de statut de la situation (§4.1 étape 4 du cahier des
+// charges maître). Ne remplace pas la machine à états de Situation —
+// vient documenter le choix humain qui la motive.
+function applyDecisionCommand(state: ProductState, command: Extract<Command, { type: "create_decision" }>) {
+  const situation = state.situations.find((item) => item.id === command.situationId);
+  if (!situation) throw new Error("Situation introuvable.");
+  if (!command.rationale.trim()) throw new Error("La justification de la décision est obligatoire.");
+  if (command.coordinationId && !state.coordinationSpaces.some((item) => item.id === command.coordinationId)) {
+    throw new Error("Coordination introuvable.");
+  }
+
+  const decision: Decision = {
+    id: id("dec"),
+    situationId: command.situationId,
+    type: command.decisionType,
+    rationale: command.rationale.trim(),
+    decidedByActorId: command.actorId,
+    decidedAt: timestamp(),
+    coordinationId: command.coordinationId
+  };
+
+  const updatedSituation: Situation = {
+    ...situation,
+    history: [
+      history(command.actorId, "Décision enregistrée", `${decisionTypeLabels[command.decisionType]} — ${decision.rationale}`),
+      ...situation.history
+    ]
+  };
+
+  const next: ProductState = {
+    ...state,
+    decisions: [decision, ...state.decisions],
+    situations: state.situations.map((item) => (item.id === situation.id ? updatedSituation : item))
+  };
+  return withAudit(next, command.actorId, "decision", decision.id, command.type, decisionTypeLabels[command.decisionType]);
+}
+
 export function applyCommand(state: ProductState, command: Command): ProductState {
   if (command.type === "reset_demo") return state;
 
+  if (command.type === "create_decision") {
+    return applyDecisionCommand(state, command);
+  }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
   }
@@ -495,6 +540,7 @@ export type WorkflowAction = Exclude<
   | "create_community_post"
   | "convert_post"
   | "flag_price"
+  | "create_decision"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {

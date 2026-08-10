@@ -271,6 +271,43 @@ export interface CoordinationSpace {
   nextReviewAt: string;
 }
 
+// Decision — objet de première classe (Lot 1, D3), pas un champ enrichi sur
+// Situation : le cahier des charges maître (§4.1 étape 4) exige de tracer
+// explicitement le choix humain qui suit une situation qualifiée, avant
+// que des engagements ne soient créés. Un même dossier peut porter
+// plusieurs décisions successives (ex. « demander une vérification » puis
+// « ouvrir une coordination »).
+export type DecisionType =
+  | "mobiliser_capacite"
+  | "ouvrir_coordination"
+  | "demander_verification"
+  | "informer"
+  | "escalader"
+  | "lancer_intervention"
+  | "constituer_programme"
+  | "cloturer_sans_action";
+
+export const decisionTypeLabels: Record<DecisionType, string> = {
+  mobiliser_capacite: "Mobiliser une capacité",
+  ouvrir_coordination: "Ouvrir une coordination",
+  demander_verification: "Demander une vérification",
+  informer: "Informer",
+  escalader: "Escalader",
+  lancer_intervention: "Lancer une intervention",
+  constituer_programme: "Constituer un programme",
+  cloturer_sans_action: "Clôturer sans action"
+};
+
+export interface Decision {
+  id: string;
+  situationId: string;
+  type: DecisionType;
+  rationale: string;
+  decidedByActorId: string;
+  decidedAt: string;
+  coordinationId?: string;
+}
+
 export interface PriceObservation {
   id: string;
   speciesId: string;
@@ -432,6 +469,7 @@ export interface ProductState {
   signals: Signal[];
   situations: Situation[];
   coordinationSpaces: CoordinationSpace[];
+  decisions: Decision[];
   priceObservations: PriceObservation[];
   scarcity: ScarcityIndicator[];
   sustainability: SustainabilityAssessment[];
@@ -456,6 +494,7 @@ export type Command =
   | { type: "resume"; situationId: string; actorId: string }
   | { type: "record_result"; situationId: string; actorId: string; result: string; confirmation: string }
   | { type: "close"; situationId: string; actorId: string }
+  | { type: "create_decision"; situationId: string; actorId: string; decisionType: DecisionType; rationale: string; coordinationId?: string }
   | { type: "announce_return"; tripId: string; actorId: string }
   | { type: "confirm_arrival"; tripId: string; actorId: string }
   | { type: "record_landing"; tripId: string; actorId: string }
