@@ -26,7 +26,7 @@ import {
   SheetHeader,
   SheetTitle
 } from "@/components/ui/sheet";
-import type { Territory } from "@/domain/types";
+import type { Situation, Territory } from "@/domain/types";
 import {
   fieldVisitObjectiveLabels,
   type FieldVisit,
@@ -402,12 +402,19 @@ function rankGlyph(status: "stable" | "vigilance" | "critique") {
   return { stable: 0, vigilance: 1, critique: 2 }[status];
 }
 
+const situationPriorityRank: Record<Situation["priority"], number> = { critique: 3, haute: 2, moyenne: 1, faible: 0 };
+
 function TerritoryDetail({ territory, cases }: { territory: Territory; cases: VigilanceCase[] }) {
   const { state } = useProduct();
   if (!state) return null;
   const sites = state.sites.filter((item) => item.territoryId === territory.id);
   const infrastructures = state.infrastructures.filter((item) => item.territoryId === territory.id);
   const fragile = infrastructures.filter((item) => item.status !== "operationnelle");
+  const acteurs = state.actors.filter((item) => item.territoryIds.includes(territory.id));
+  const prioritySituation = state.situations
+    .filter((item) => item.territoryId === territory.id && item.status !== "reglee")
+    .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])[0];
+
   return (
     <div className="space-y-6 px-4">
       <StatusBadge status={territory.activity} />
@@ -416,9 +423,31 @@ function TerritoryDetail({ territory, cases }: { territory: Territory; cases: Vi
         <p className="mt-1 text-sm">{territory.region}</p>
       </div>
       <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Acteurs actifs</p>
+        <p className="mt-1 text-sm">{acteurs.length} acteur(s) rattaché(s) à ce territoire.</p>
+      </div>
+      <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Infrastructures</p>
         <p className="mt-1 text-sm">{sites.length} site(s) · {infrastructures.length} infrastructure(s), dont {fragile.length} fragile(s) ou indisponible(s).</p>
       </div>
+      {prioritySituation && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Situation prioritaire</p>
+          <div className="mt-2 rounded-lg border bg-card p-3">
+            <p className="text-sm font-semibold">{prioritySituation.title}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{prioritySituation.nextStep}</p>
+            {/* Accès direct à la Situation Room (livrable Lot 2) — cette route
+                vit dans le groupe (coordination) et rend donc le shell partagé,
+                pas InstitutionShell : état intermédiaire assumé, la Situation
+                Room elle-même sera reconstruite « dans le nouveau système de
+                composants » au Lot 4, occasion de traiter aussi son rendu pour
+                un accès Institution. */}
+            <Button variant="secondary" size="sm" className="mt-3 w-full" asChild>
+              <Link href={`/app/situations/${prioritySituation.id}`}>Entrer dans la Situation Room <ArrowRight /></Link>
+            </Button>
+          </div>
+        </div>
+      )}
       {cases.length > 0 && (
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signaux sur ce territoire</p>
