@@ -3,14 +3,15 @@ import { ArrowRight, CalendarDays, CircleDollarSign, GraduationCap, Handshake, M
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicSectionHero } from "@/components/public/PublicSectionHero";
-import { publicAnnouncements } from "@/data/public-content";
+import { publicAnnouncements, type PublicOpportunityType } from "@/data/public-content";
 
-const typeIcon = {
-  "Appel à participation": UsersRound,
-  "Besoin qualifié": Handshake,
-  Agenda: CalendarDays,
-  "Capacité disponible": Megaphone
-} as const;
+const typeIcon: Record<PublicOpportunityType, typeof GraduationCap> = {
+  Formation: GraduationCap,
+  Programme: Megaphone,
+  Financement: CircleDollarSign,
+  Rencontre: UsersRound,
+  Appel: Handshake
+};
 
 export default function OpportunitiesPage() {
   return (

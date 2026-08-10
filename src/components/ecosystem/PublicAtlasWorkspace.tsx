@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Anchor,
+  ArrowRight,
   ChevronDown,
   Compass,
   Factory,
@@ -11,63 +13,29 @@ import {
   ShieldCheck,
   Waves
 } from "lucide-react";
-import { useProduct } from "@/components/providers/ProductProvider";
+import { publicTerritories } from "@/data/public-atlas";
 
 type PublicView = "portrait" | "activites" | "capacites" | "produits";
-
-const positions: Record<string, [number, number]> = {
-  "saint-louis": [43, 8],
-  lompoul: [30, 14],
-  "fass-boye": [49, 20],
-  kayar: [33, 26],
-  yoff: [48, 32],
-  ouakam: [30, 37],
-  soumbedioune: [48, 40],
-  hann: [61, 43],
-  rufisque: [48, 47],
-  popenguine: [31, 52],
-  mbour: [49, 57],
-  joal: [33, 62],
-  foundiougne: [51, 67],
-  djiffer: [33, 72],
-  missirah: [51, 77],
-  kafountine: [31, 83],
-  elinkine: [49, 88],
-  "cap-skirring": [33, 94]
-};
 
 const views = [
   { id: "portrait" as const, label: "Portrait du territoire", icon: Compass },
   { id: "activites" as const, label: "Activités", icon: Waves },
-  { id: "capacites" as const, label: "Services & capacités", icon: Factory },
+  { id: "capacites" as const, label: "Services documentés", icon: Factory },
   { id: "produits" as const, label: "Espèces & produits", icon: Fish }
 ];
 
-function humanize(value: string) {
-  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
 export function PublicAtlasWorkspace() {
-  const { state } = useProduct();
   const [region, setRegion] = useState("all");
   const [selectedId, setSelectedId] = useState("joal");
   const [view, setView] = useState<PublicView>("portrait");
-  if (!state) return null;
 
-  const regions = [...new Set(state.territories.map((item) => item.region))].sort((a, b) => a.localeCompare(b, "fr"));
-  const territories = region === "all" ? state.territories : state.territories.filter((item) => item.region === region);
-  const territory = territories.find((item) => item.id === selectedId) ?? territories[0] ?? state.territories[0];
-  const quayId = `quai-${territory.id}`;
-  const vessels = state.vessels.filter((item) => item.homeSiteId === quayId);
-  const landings = state.landings.filter((item) => item.siteId === quayId);
-  const catches = landings.flatMap((item) => item.catches);
-  const speciesIds = new Set(catches.map((item) => item.speciesId));
-  const species = state.species.filter((item) => speciesIds.has(item.id));
-  const infrastructures = state.infrastructures.filter((item) => item.territoryId === territory.id);
+  const regions = [...new Set(publicTerritories.map((item) => item.region))].sort((a, b) => a.localeCompare(b, "fr"));
+  const territories = region === "all" ? publicTerritories : publicTerritories.filter((item) => item.region === region);
+  const territory = territories.find((item) => item.id === selectedId) ?? territories[0] ?? publicTerritories[0];
 
   const selectRegion = (value: string) => {
     setRegion(value);
-    const first = value === "all" ? state.territories[0] : state.territories.find((item) => item.region === value);
+    const first = value === "all" ? publicTerritories[0] : publicTerritories.find((item) => item.region === value);
     if (first) setSelectedId(first.id);
   };
 
@@ -103,9 +71,9 @@ export function PublicAtlasWorkspace() {
         <div className="public-coast-map">
           <div className="public-coast-land" />
           <div className="public-map-heading"><Waves size={18} /><div><span>Océan Atlantique</span><strong>Territoires de pêche artisanale</strong></div></div>
-          <p className="public-map-caption">Représentation illustrative · couverture de démonstration</p>
+          <p className="public-map-caption">Représentation illustrative · couverture en cours d’enrichissement</p>
           {territories.map((item) => {
-            const [left, top] = positions[item.id] ?? [45, 50];
+            const [left, top] = item.mapPosition;
             const active = item.id === territory.id;
             return (
               <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} style={{ left: `${left}%`, top: `${top}%` }} className={active ? "public-quay-marker public-quay-marker-active" : "public-quay-marker"} aria-label={`Découvrir ${item.name}`}>
@@ -120,18 +88,18 @@ export function PublicAtlasWorkspace() {
           <div className="public-story-cover">
             <p className="public-kicker">{views.find((item) => item.id === view)?.label}</p>
             <h2>{territory.name}</h2>
-            <p>{territory.region} · Littoral sénégalais</p>
+            <p>{territory.region}{territory.department ? ` · ${territory.department}` : ""} · {territory.type}</p>
           </div>
 
           {view === "portrait" && (
             <div className="public-story-body">
-              <p className="public-story-intro">Un point d’ancrage de l’économie halieutique où se croisent métiers, débarquement, transformation, conservation, transport et services.</p>
+              <p className="public-story-intro">{territory.description}</p>
               <div className="public-plain-list">
-                <p><Anchor size={15} /><span>Territoire référencé dans l’Atlas Mbàmbulaan</span></p>
-                <p><Factory size={15} /><span>{infrastructures.length ? "Services et infrastructures documentés dans la démonstration" : "Services et infrastructures à documenter"}</span></p>
-                <p><Fish size={15} /><span>{species.length ? "Espèces et produits représentés dans la démonstration" : "Espèces et produits à enrichir"}</span></p>
+                <p><Anchor size={15} /><span>Niveau de couverture : {territory.verification}</span></p>
+                <p><Factory size={15} /><span>{territory.documentedServices.length} service(s) documenté(s)</span></p>
+                {territory.species && <p><Fish size={15} /><span>{territory.species.length} espèce(s) représentée(s)</span></p>}
               </div>
-              <p className="public-source-note"><ShieldCheck size={15} /> Les informations affichées ici sont publiques, documentaires ou clairement identifiées comme démonstration.</p>
+              <p className="public-source-note"><ShieldCheck size={15} /> Source : {territory.source} · mise à jour {territory.updatedAt}.</p>
             </div>
           )}
 
@@ -139,10 +107,7 @@ export function PublicAtlasWorkspace() {
             <div className="public-story-body">
               <p className="public-story-intro">Cette lecture décrit les grandes activités du territoire sans publier de métriques opérationnelles privées.</p>
               <div className="public-species-cloud">
-                <span><Waves size={14} /> Pêche artisanale</span>
-                <span><Anchor size={14} /> Débarquement</span>
-                {infrastructures.length > 0 && <span><Factory size={14} /> Services aux activités</span>}
-                {species.length > 0 && <span><Fish size={14} /> Valorisation des produits</span>}
+                {territory.activities.map((activity) => <span key={activity}><Waves size={14} /> {activity}</span>)}
               </div>
               <p className="public-source-note"><ShieldCheck size={15} /> Les niveaux d’activité, volumes, tensions et opérations individuelles restent hors de l’Atlas public.</p>
             </div>
@@ -152,7 +117,9 @@ export function PublicAtlasWorkspace() {
             <div className="public-story-body">
               <p className="public-story-intro">Les capacités sont présentées comme catégories de services documentés, jamais comme disponibilités instantanées ou garanties commerciales.</p>
               <div className="public-plain-list">
-                {infrastructures.length ? infrastructures.map((item) => <p key={item.id}><Factory size={15} /><span>{humanize(item.type)}</span></p>) : <p><Factory size={15} /><span>Capacités à documenter</span></p>}
+                {territory.documentedServices.length
+                  ? territory.documentedServices.map((item) => <p key={item}><Factory size={15} /><span>{item}</span></p>)
+                  : <p><Factory size={15} /><span>Capacités à documenter</span></p>}
               </div>
               <p className="public-source-note"><ShieldCheck size={15} /> Pour vérifier une capacité mobilisable, décrivez votre besoin à Mbàmbulaan.</p>
             </div>
@@ -160,11 +127,18 @@ export function PublicAtlasWorkspace() {
 
           {view === "produits" && (
             <div className="public-story-body">
-              <p className="public-story-intro">Cette lecture présente les espèces ou produits représentés dans le jeu de démonstration sans publier les quantités débarquées.</p>
-              <div className="public-species-cloud">{species.length ? species.map((item) => <span key={item.id}><Fish size={14} /> {item.name}</span>) : <span><Fish size={14} /> Informations à enrichir</span>}</div>
+              <p className="public-story-intro">Cette lecture présente les espèces ou produits documentés pour ce territoire, sans publier les quantités débarquées.</p>
+              <div className="public-species-cloud">
+                {territory.species?.length ? territory.species.map((item) => <span key={item}><Fish size={14} /> {item}</span>) : <span><Fish size={14} /> Informations à enrichir</span>}
+              </div>
               <p className="public-source-note"><ShieldCheck size={15} /> Aucune donnée individuelle de lot, de capture ou de transaction n’est exposée.</p>
             </div>
           )}
+
+          <div className="public-story-actions">
+            <Link href={`/atlas/${territory.slug}`} className="btn-primary">Voir la fiche complète <ArrowRight size={15} /></Link>
+            <Link href={`/contact?intent=solution&source=atlas&territory=${encodeURIComponent(territory.name)}`} className="btn-secondary">Trouver une solution ici</Link>
+          </div>
         </article>
       </div>
     </section>
