@@ -3,6 +3,8 @@
 > **Statut : FIGÉ — source de vérité pour le Public Mbàmbulaan.**
 >
 > Cette spécification remplace les anciennes interprétations du Public. Le code doit s’aligner sur ce document, jamais l’inverse.
+>
+> **Règle d’exécution : aucune page, rubrique, route visible ou capacité ne doit être ajoutée au Public si elle n’est pas explicitement prévue ici ou décidée par le CEO. Les URLs techniques ne doivent jamais dicter la navigation ni créer artificiellement de nouvelles rubriques.**
 
 ## 1. Vision
 
@@ -95,23 +97,31 @@ Header cible :
 
 Le Public ne doit pas exposer dans le header une liste exhaustive de types de contenus.
 
+### Règle stricte
+
+Ces éléments sont les seules entrées majeures visibles du Public. Une route technique comme `/solutions` ou `/reseau` n’est jamais une rubrique de navigation par elle-même. Le wording visible reste celui défini ici.
+
 ## 6. Architecture publique canonique
 
-Routes cibles :
+### Expériences publiques visibles
 
-- `/`
-- `/decouvrir`
-- `/decouvrir/[slug]`
-- `/atlas`
-- `/atlas/[slug]`
-- `/opportunites`
-- `/opportunites/[slug]`
-- `/solutions`
-- `/reseau`
-- `/mbambulaan`
-- `/contact`
+- `/` — Landing
+- `/decouvrir` — porte pédagogique et éditoriale
+- `/decouvrir/[slug]` — contenus éditoriaux
+- `/atlas` — Atlas / Territoires
+- `/atlas/[slug]` — fiche territoire ou quai
+- `/opportunites` — opportunités
+- `/opportunites/[slug]` — détail d’une opportunité
+- `/mbambulaan` — entreprise, approche, terrain, réseau, technologie
+- `/contact` — routeur d’intentions
 - `/mentions-legales`
 - `/confidentialite`
+
+### Capabilities transverses
+
+- **Trouver une solution** : moteur contextuel accessible depuis Landing, Atlas, contenus, opportunités et Contact. Son URL d’implémentation est secondaire et ne doit pas apparaître comme une rubrique nommée “Solutions”.
+- **Proposer mes services / capacités** : parcours de contribution au réseau, accessible depuis Mbàmbulaan et Contact, sans créer une rubrique majeure “Réseau”.
+- **Étudier une intervention / partenariat** : parcours contextuel pour entreprises, ONG, institutions et programmes.
 
 Les anciennes routes publiques doivent être migrées puis redirigées, sans coexistence legacy visible.
 
@@ -456,14 +466,15 @@ Principes :
 - navigation réduite ;
 - Atlas plein écran / quasi plein écran ;
 - CTA précis ;
-- pas de jargon SaaS.
+- pas de jargon SaaS ;
+- **toutes les pages publiques doivent utiliser la même grammaire visuelle, les mêmes composants, espacements, typographies, surfaces et comportements. Aucune page secondaire ne peut paraître issue d’un autre produit.**
 
 ## 19. Système de composants Public
 
 Composants cibles :
 - PublicHeader ;
 - PublicFooter ;
-- Hero ;
+- Hero / PublicSectionHero ;
 - SectionHeader ;
 - ContentCard ;
 - OpportunityCard ;
@@ -551,7 +562,7 @@ Parcours obligatoires :
 1. Landing -> contenu froid -> CTA contextualisé -> demande -> référence -> WhatsApp.
 2. Landing -> Atlas -> Joal -> fiche -> besoin transport -> demande.
 3. Landing -> Opportunités -> programme -> intérêt -> contact Mbàmbulaan.
-4. Landing -> Réseau -> prestataire transport -> proposition de capacité.
+4. Landing -> Mbàmbulaan / Contact -> “Proposer mes services / capacités” -> proposition de capacité.
 5. Mobile -> Contact -> être rappelé.
 6. Demande créée depuis source terrain -> même objet métier que le Web.
 
@@ -602,6 +613,7 @@ Non bloquants :
 - Pas de CTA commercial agressif partout.
 - Pas de design différent à chaque page.
 - Pas de jargon produit incompréhensible pour le visiteur.
+- Pas de création d’une rubrique simplement parce qu’une route technique existe.
 
 ## 27. Registre des décisions figées
 
@@ -612,12 +624,14 @@ Non bloquants :
 - Public = contenu + Atlas + opportunités + moteur de besoins + réseau + terrain + conversion.
 - Header réduit.
 - Atlas comme service public majeur.
-- “Trouver une solution” comme moteur central de conversion.
+- “Trouver une solution” comme moteur central de conversion, pas comme rubrique “Solutions”.
+- Le réseau est une capability et un actif Mbàmbulaan, pas une rubrique majeure ni un annuaire public.
 - Aucun prix public.
 - Pas de marketplace.
 - Mbàmbulaan reste intermédiaire et opérateur de valeur.
 - Terrain + réseau + technologie.
 - Mobile-first.
+- Design harmonisé sur toutes les pages publiques.
 - Source de vérité documentaire : ce document GitHub.
 
 ### PLUS TARD
@@ -645,3 +659,5 @@ Toute modification du Public doit être évaluée contre cette spécification.
 Si une implémentation existante contredit ce document, **l’implémentation doit être modifiée**.
 
 Si une nouvelle idée contredit une décision FIGÉE, elle ne doit pas être implémentée sans décision explicite du CEO.
+
+Avant toute création de page ou de route visible, vérifier qu’elle correspond à une expérience publique explicitement listée dans la section 6.
