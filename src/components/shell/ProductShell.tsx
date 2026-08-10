@@ -294,63 +294,67 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
     }))
     .filter((group) => group.items.length > 0);
   const mobileItems = visibleGroups.flatMap((group) => group.items).slice(0, 4);
+  const logout = () => {
+    void fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+      window.location.href = "/";
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-[#f3f7f6]">
-      <header className="no-print sticky top-0 z-40 flex h-[72px] items-center border-b border-[#d9e3e3] bg-white/94 px-4 backdrop-blur-xl md:px-6 lg:pl-[284px]">
-        <button className="mr-2 grid size-10 place-items-center rounded-lg text-[#075568] hover:bg-[#edf5f4] lg:hidden" onClick={() => setOpen(true)} aria-label="Ouvrir la navigation">
-          <Menu size={22} />
+    <div className="op-scope min-h-screen bg-[var(--op-canvas)]">
+      <header className="no-print sticky top-0 z-40 flex h-[68px] items-center border-b border-[var(--op-surface-line)] bg-white/95 px-4 backdrop-blur-xl md:px-6 lg:pl-[292px]">
+        <button className="op-btn-ghost mr-2 grid size-10 place-items-center rounded-lg lg:hidden" onClick={() => setOpen(true)} aria-label="Ouvrir la navigation">
+          <Menu size={21} />
         </button>
         <div className="min-w-0">
-          <p className="truncate text-[11px] font-extrabold uppercase tracking-[.08em] text-[#7a8e94]">
-            Mbàmbulaan Ops · {roleLabels[role]}
-          </p>
-          <p className="mt-1 truncate text-sm font-bold text-[#102e37]">
-            {organization?.name ?? "Organisation active"} · {plan?.name ?? "Plan démonstration"} · {capabilities.modules.length} module(s) actif(s)
+          <p className="op-eyebrow">{roleLabels[role]}</p>
+          <p className="mt-0.5 truncate text-sm font-bold text-[var(--op-ink-900)]">
+            {organization?.name ?? "Organisation active"} <span className="text-[var(--op-ink-300)]">·</span> {plan?.name ?? "Plan démonstration"} <span className="text-[var(--op-ink-300)]">·</span> {capabilities.modules.length} module(s) actif(s)
           </p>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <span className="hidden items-center gap-2 rounded-full border border-[#d9e3e3] bg-[#f7faf9] px-3 py-1.5 text-[11px] font-bold text-[#667b81] xl:inline-flex">
-            <span className="size-2 rounded-full bg-[#1fb6a4]" />
-            Démonstration · {persistence === "postgresql" ? "PostgreSQL" : "mémoire locale"}
+          <span className="op-badge op-badge--neutral hidden xl:inline-flex">
+            <span className="op-badge-dot text-[var(--op-success-500)]" />
+            {persistence === "postgresql" ? "Base de production" : "Environnement de démonstration"}
           </span>
 
-          <span className="hidden h-10 items-center gap-2 rounded-lg border border-[#d0ddde] bg-white px-3 text-xs font-bold text-[#102e37] shadow-sm md:inline-flex">
-            <CircleUserRound size={17} className="text-[#08758a]" />
+          <span className="hidden h-10 items-center gap-2 rounded-lg border border-[var(--op-surface-line)] bg-white px-3 text-xs font-bold text-[var(--op-ink-900)] shadow-sm md:inline-flex">
+            <CircleUserRound size={17} className="text-[var(--op-signal-500)]" />
             {roleLabels[role]}
           </span>
 
-          <button className="relative grid size-10 place-items-center rounded-lg text-[#075568] hover:bg-[#edf5f4]" aria-label={`${unread} notifications non lues`}>
+          <button className="op-btn-ghost relative grid size-10 place-items-center rounded-lg" aria-label={`${unread} notifications non lues`}>
             <Bell size={19} />
-            {unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full border-2 border-white bg-[#c65242]" />}
+            {unread > 0 && <span className="absolute right-2 top-2 size-2 rounded-full border-2 border-white bg-[var(--op-danger-500)]" />}
           </button>
           {persistence === "memoire_locale_demo" && (
-            <button onClick={() => void reset()} className="hidden size-10 place-items-center rounded-lg border border-[#d0ddde] text-[#075568] hover:bg-[#edf5f4] sm:grid" title="Réinitialiser la démonstration" aria-label="Réinitialiser la démonstration">
-              <RotateCcw size={17} />
+            <button onClick={() => void reset()} className="op-btn-outline hidden size-10 place-items-center rounded-lg !p-0 sm:grid" title="Réinitialiser la démonstration" aria-label="Réinitialiser la démonstration">
+              <RotateCcw size={16} />
             </button>
           )}
         </div>
       </header>
 
-      <aside className="no-print fixed inset-y-0 left-0 z-50 hidden w-[260px] overflow-y-auto border-r border-white/8 bg-[#031a22] text-white lg:block">
-        <div className="flex h-[72px] items-center gap-3 border-b border-white/10 px-5">
-          <span className="grid size-10 place-items-center rounded-xl bg-[#5fe0d3] text-[#031a22]"><ShipWheel size={20} /></span>
-          <div>
-            <strong className="block text-sm">Mbàmbulaan Ops</strong>
-            <span className="text-[11px] text-white/48">{roleLabels[role]}</span>
+      <aside className="op-instrumented no-print fixed inset-y-0 left-0 z-50 hidden w-[268px] overflow-y-auto text-white lg:block">
+        <div className="flex h-[68px] items-center gap-3 border-b border-[var(--op-graphite-line)] px-5">
+          <span className="grid size-9 place-items-center rounded-lg bg-[var(--op-signal-500)] text-white"><ShipWheel size={18} /></span>
+          <div className="min-w-0">
+            <strong className="block truncate text-sm tracking-[-.01em]">Mbàmbulaan</strong>
+            <span className="op-eyebrow op-eyebrow--on-dark !text-[9.5px]">Espace professionnel</span>
           </div>
         </div>
 
         <nav aria-label="Navigation principale" className="space-y-5 px-3 py-5">
           {visibleGroups.map((group) => (
             <div key={group.label}>
-              <p className="px-3 pb-1.5 text-[9px] font-black uppercase tracking-[.14em] text-white/30">{group.label}</p>
+              <p className="op-nav-group-label">{group.label}</p>
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const active = pathname === item.href || (item.href !== "/app/travail" && pathname.startsWith(item.href));
                   return (
-                    <Link key={item.href} href={item.href} className={`group flex min-h-10 items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-semibold transition ${active ? "bg-white/12 text-white shadow-[inset_3px_0_0_#5fe0d3]" : "text-white/62 hover:bg-white/6 hover:text-white"}`}>
-                      <item.icon size={17} className={active ? "text-[#74e1d6]" : "text-white/42 group-hover:text-white/72"} />
+                    <Link key={item.href} href={item.href} className={`op-nav-link group ${active ? "op-nav-link--active" : ""}`}>
+                      <item.icon size={17} className={active ? "text-[var(--op-signal-400)]" : "text-white/42 group-hover:text-white/72"} />
                       <span className="truncate">{item.label}</span>
                     </Link>
                   );
@@ -361,45 +365,37 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
 
           {role === "administrateur" && (
             <div>
-              <p className="px-3 pb-1.5 text-[9px] font-black uppercase tracking-[.14em] text-white/30">Exploiter</p>
-              <Link href="/app/administration" className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-semibold ${pathname.startsWith("/app/administration") ? "bg-white/12 text-white" : "text-white/62 hover:bg-white/6 hover:text-white"}`}>
+              <p className="op-nav-group-label">Exploiter</p>
+              <Link href="/app/administration" className={`op-nav-link ${pathname.startsWith("/app/administration") ? "op-nav-link--active" : ""}`}>
                 <Settings size={17} /> Administration
               </Link>
             </div>
           )}
         </nav>
 
-        <div className="mx-3 mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="flex items-center gap-2 text-[#74e1d6]"><Sparkles size={15} /><p className="text-[10px] font-black uppercase tracking-[.1em]">Votre périmètre</p></div>
-          <p className="mt-2 text-xs leading-5 text-white/52">Seules les données, actions et informations nécessaires à votre rôle sont affichées.</p>
+        <div className="mx-3 mb-4 rounded-[var(--op-radius-md)] border border-[var(--op-graphite-line)] bg-white/[.04] p-4">
+          <div className="flex items-center gap-2 text-[var(--op-signal-400)]"><Sparkles size={15} /><p className="text-[10px] font-black uppercase tracking-[.1em]">Votre périmètre</p></div>
+          <p className="mt-2 text-xs leading-5 text-white/52">Seules les données, actions et informations nécessaires à votre mandat sont affichées.</p>
         </div>
-        <div className="border-t border-white/10 px-5 py-4">
+        <div className="border-t border-[var(--op-graphite-line)] px-5 py-4">
           <p className="text-[10px] uppercase tracking-wider text-white/30">Organisation active</p>
-          <p className="mt-1 text-xs font-bold text-white/80">{state?.tenant.name ?? "Chargement…"}</p>
-          <button
-            type="button"
-            onClick={() => {
-              void fetch("/api/auth/logout", { method: "POST" }).finally(() => {
-                window.location.href = "/";
-              });
-            }}
-            className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-white/48 hover:text-white"
-          >
+          <p className="mt-1 truncate text-xs font-bold text-white/80">{state?.tenant.name ?? "Chargement…"}</p>
+          <button type="button" onClick={logout} className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-white/48 hover:text-white">
             <LogOut size={13} /> Quitter l’espace
           </button>
         </div>
       </aside>
 
       {open && (
-        <div className="no-print fixed inset-0 z-[70] overflow-y-auto bg-[#031a22] p-5 text-white lg:hidden">
+        <div className="op-instrumented no-print fixed inset-0 z-[70] overflow-y-auto p-5 text-white lg:hidden">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-[#5fe0d3] text-[#031a22]"><ShipWheel size={20} /></span><div><strong className="block">Mbàmbulaan</strong><span className="text-xs text-white/50">{roleLabels[role]}</span></div></div>
+            <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-[var(--op-signal-500)] text-white"><ShipWheel size={20} /></span><div><strong className="block">Mbàmbulaan</strong><span className="text-xs text-white/50">{roleLabels[role]}</span></div></div>
             <button onClick={() => setOpen(false)} className="grid size-10 place-items-center rounded-lg bg-white/8" aria-label="Fermer la navigation"><X /></button>
           </div>
           <div className="mt-7 rounded-xl border border-white/10 bg-white/5 p-4">
             <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Espace actif</p>
             <p className="mt-2 text-sm font-bold text-white">{roleLabels[role]}</p>
-            <p className="mt-1 text-xs leading-5 text-white/50">Votre rôle est défini par votre session. Le changement de rôle reste disponible uniquement depuis la démonstration.</p>
+            <p className="mt-1 text-xs leading-5 text-white/50">Votre rôle est défini par votre session et votre mandat.</p>
           </div>
           <nav className="mt-7 space-y-5">
             {visibleGroups.map((group) => (
@@ -408,7 +404,7 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
                 <div className="space-y-1">
                   {group.items.map((item) => (
                     <Link onClick={() => setOpen(false)} key={item.href} href={item.href} className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/4 px-4 py-3 font-semibold">
-                      <item.icon size={18} className="text-[#74e1d6]" /> {item.label}
+                      <item.icon size={18} className="text-[var(--op-signal-400)]" /> {item.label}
                     </Link>
                   ))}
                 </div>
@@ -416,23 +412,26 @@ export function ProductShell({ children }: { children: React.ReactNode }) {
             ))}
             {role === "administrateur" && (
               <Link onClick={() => setOpen(false)} href="/app/administration" className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/4 px-4 py-3 font-semibold">
-                <Settings size={18} className="text-[#74e1d6]" /> Administration
+                <Settings size={18} className="text-[var(--op-signal-400)]" /> Administration
               </Link>
             )}
           </nav>
+          <button type="button" onClick={logout} className="op-btn op-btn-on-dark mt-7 w-full justify-center">
+            <LogOut size={15} /> Quitter l’espace
+          </button>
         </div>
       )}
 
-      <main className="mobile-safe min-w-0 lg:ml-[260px]">
-        {error && <div role="alert" className="border-b border-[#efc8c1] bg-[#fff1ee] px-5 py-3 text-sm font-semibold text-[#9c392b]">{error}</div>}
-        {loading && !state ? <div className="grid min-h-[70vh] place-items-center text-sm text-[#667b81]">Initialisation de votre espace…</div> : children}
+      <main className="mobile-safe min-w-0 lg:ml-[268px]">
+        {error && <div role="alert" className="border-b border-[var(--op-danger-100)] bg-[var(--op-danger-100)] px-5 py-3 text-sm font-semibold text-[var(--op-danger-600)]">{error}</div>}
+        {loading && !state ? <div className="grid min-h-[70vh] place-items-center text-sm text-[var(--op-ink-400)]">Initialisation de votre espace…</div> : children}
       </main>
 
-      <nav className="no-print fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-[#d0ddde] bg-white/96 px-1 backdrop-blur lg:hidden">
+      <nav className="no-print fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-[var(--op-surface-line)] bg-white/96 px-1 backdrop-blur lg:hidden">
         {mobileItems.map((item) => {
           const active = pathname === item.href || (item.href !== "/app/travail" && pathname.startsWith(item.href));
           return (
-            <Link key={item.href} href={item.href} className={`flex min-w-0 flex-col items-center gap-1 px-1 py-2.5 text-[10px] font-bold ${active ? "text-[#075568]" : "text-[#71858a]"}`}>
+            <Link key={item.href} href={item.href} className={`flex min-w-0 flex-col items-center gap-1 px-1 py-2.5 text-[10px] font-bold ${active ? "text-[var(--op-signal-600)]" : "text-[var(--op-ink-400)]"}`}>
               <item.icon size={18} /><span className="truncate">{item.shortLabel}</span>
             </Link>
           );

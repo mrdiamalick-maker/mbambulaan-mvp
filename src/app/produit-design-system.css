@@ -1,0 +1,199 @@
+/* Mbàmbulaan Produit — système de design dédié à app.mbambulaan.sn.
+   Distinct du site Public (pub-*, éditorial, turquoise/ivoire/laiton) et de
+   l'ancien tableau de bord (brand.css / globals.css, classes .surface,
+   .ops-*) : ce fichier ne redéfinit ni ne surcharge ces classes, il ajoute
+   un nouveau vocabulaire visuel (préfixe op-*) porté par .op-scope, pensé
+   pour une console professionnelle de pilotage — dense, précise,
+   instrumentée — plutôt qu'éditoriale. Les pages non encore migrées
+   continuent de fonctionner à l'identique avec l'ancien système. */
+
+@layer components {
+  .op-scope {
+    --op-graphite-950: #0a0f14;
+    --op-graphite-900: #0f161d;
+    --op-graphite-850: #131b23;
+    --op-graphite-800: #182029;
+    --op-graphite-700: #212b35;
+    --op-graphite-line: rgba(255, 255, 255, .08);
+
+    --op-canvas: #f2f5f7;
+    --op-surface: #ffffff;
+    --op-surface-line: #e1e7eb;
+    --op-surface-line-soft: #eaeff2;
+
+    --op-ink-900: #0c1520;
+    --op-ink-700: #29373f;
+    --op-ink-500: #56666f;
+    --op-ink-400: #7c8b95;
+    --op-ink-300: #a4b0b8;
+
+    --op-signal-600: #1f5fe0;
+    --op-signal-500: #2f74fb;
+    --op-signal-400: #5c96ff;
+    --op-signal-100: #e8f0ff;
+
+    --op-success-600: #158a5c;
+    --op-success-500: #1fae72;
+    --op-success-100: #e2f6ec;
+    --op-warning-600: #b5750f;
+    --op-warning-500: #e0982a;
+    --op-warning-100: #fdf0dc;
+    --op-danger-600: #c23a2c;
+    --op-danger-500: #e5493a;
+    --op-danger-100: #fbe6e3;
+    --op-critical-600: #9c1f3c;
+    --op-critical-500: #c62f52;
+    --op-critical-100: #fbe3ea;
+
+    --op-radius-sm: 10px;
+    --op-radius-md: 14px;
+    --op-radius-lg: 20px;
+    --op-shadow-card: 0 1px 2px rgba(10, 20, 30, .04), 0 10px 28px rgba(10, 20, 30, .06);
+    --op-shadow-panel: 0 30px 70px rgba(6, 12, 20, .28);
+
+    color: var(--op-ink-900);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Fond très légèrement instrumenté (grille de points) pour les zones
+     sombres du chrome — évoque une salle de pilotage sans devenir décoratif. */
+  .op-instrumented {
+    position: relative;
+    background-color: var(--op-graphite-950);
+    background-image: radial-gradient(rgba(255, 255, 255, .05) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+
+  .op-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--op-signal-500);
+  }
+  .op-eyebrow--on-dark { color: var(--op-signal-400); }
+
+  .op-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 40px;
+    border-radius: var(--op-radius-sm);
+    padding: 9px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, .6);
+    transition: background-color .15s ease, color .15s ease;
+  }
+  .op-nav-link:hover { background: rgba(255, 255, 255, .06); color: #fff; }
+  .op-nav-link--active {
+    background: rgba(47, 116, 251, .16);
+    color: #fff;
+    box-shadow: inset 3px 0 0 var(--op-signal-500);
+  }
+  .op-nav-group-label {
+    padding: 0 12px 6px;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .28);
+  }
+
+  .op-card {
+    background: var(--op-surface);
+    border: 1px solid var(--op-surface-line);
+    border-radius: var(--op-radius-lg);
+    box-shadow: var(--op-shadow-card);
+  }
+  .op-card--flat {
+    background: var(--op-surface);
+    border: 1px solid var(--op-surface-line-soft);
+    border-radius: var(--op-radius-md);
+  }
+  .op-card--dark {
+    background: linear-gradient(160deg, var(--op-graphite-850), var(--op-graphite-950));
+    border: 1px solid var(--op-graphite-line);
+    border-radius: var(--op-radius-lg);
+    color: #fff;
+    box-shadow: var(--op-shadow-panel);
+  }
+
+  .op-stat-value {
+    font-weight: 800;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--op-ink-900);
+  }
+  .op-stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    color: var(--op-ink-400);
+  }
+
+  .op-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: .03em;
+    white-space: nowrap;
+  }
+  .op-badge--neutral { background: #eef2f4; color: var(--op-ink-500); }
+  .op-badge--signal { background: var(--op-signal-100); color: var(--op-signal-600); }
+  .op-badge--success { background: var(--op-success-100); color: var(--op-success-600); }
+  .op-badge--warning { background: var(--op-warning-100); color: var(--op-warning-600); }
+  .op-badge--danger { background: var(--op-danger-100); color: var(--op-danger-600); }
+  .op-badge--critical { background: var(--op-critical-100); color: var(--op-critical-600); }
+  .op-badge-dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+
+  .op-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    border-radius: var(--op-radius-sm);
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    transition: filter .15s ease, background-color .15s ease, border-color .15s ease;
+  }
+  .op-btn-primary { background: var(--op-signal-500); color: #fff; }
+  .op-btn-primary:hover { filter: brightness(1.06); }
+  .op-btn-outline { border: 1px solid var(--op-surface-line); color: var(--op-ink-700); background: var(--op-surface); }
+  .op-btn-outline:hover { background: var(--op-canvas); }
+  .op-btn-ghost { color: var(--op-ink-500); }
+  .op-btn-ghost:hover { background: var(--op-canvas); color: var(--op-ink-900); }
+  .op-btn-on-dark { border: 1px solid rgba(255, 255, 255, .16); color: #fff; background: rgba(255, 255, 255, .06); }
+  .op-btn-on-dark:hover { background: rgba(255, 255, 255, .1); }
+
+  .op-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+  .op-table th {
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--op-ink-400);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--op-surface-line);
+  }
+  .op-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--op-surface-line-soft);
+    color: var(--op-ink-700);
+  }
+  .op-table tr:last-child td { border-bottom: none; }
+  .op-table tbody tr:hover td { background: var(--op-canvas); }
+
+  .op-divider { height: 1px; background: var(--op-surface-line); border: 0; }
+  .op-divider--dark { height: 1px; background: rgba(255, 255, 255, .1); border: 0; }
+}
