@@ -4,7 +4,7 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 
 export const metadata: Metadata = {
   title: "Confidentialité | Mbàmbulaan",
-  description: "Comment Mbàmbulaan traite les informations transmises via le site public.",
+  description: "Comment Mbàmbulaan traite les informations que vous nous transmettez.",
   alternates: { canonical: "/confidentialite" }
 };
 
