@@ -127,12 +127,15 @@ export default function HomePage() {
           </div>
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {publicNews.slice(0, 6).map((item) => (
-              <article key={item.id} className="surface flex min-h-60 flex-col p-5">
+              <Link key={item.id} href={`/decouvrir/${item.id}`} className="surface group flex min-h-60 flex-col p-5 transition hover:-translate-y-0.5 hover:border-[#8fc3bd]">
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.11em] text-[#118f83]"><BookOpenText size={14}/>{item.category}</div>
                 <h3 className="mt-4 text-xl font-bold tracking-[-.03em] text-[#102e37]">{item.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-[#667b81]">{item.excerpt}</p>
-                <div className="mt-auto pt-5 text-xs font-semibold text-[#718489]">{item.territory} · {item.readingTime}</div>
-              </article>
+                <div className="mt-auto flex items-center justify-between pt-5">
+                  <span className="text-xs font-semibold text-[#718489]">{item.territory} · {item.readingTime}</span>
+                  <span className="inline-flex items-center gap-1 text-sm font-bold text-[#075568] opacity-0 transition group-hover:opacity-100">Lire <ArrowRight size={14}/></span>
+                </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -167,12 +170,15 @@ export default function HomePage() {
           </div>
           <div className="mt-8 grid gap-4 lg:grid-cols-3">
             {publicAnnouncements.slice(0, 6).map((item) => (
-              <article key={item.id} className="surface flex min-h-64 flex-col p-5">
+              <Link key={item.id} href={`/opportunites/${item.id}`} className="surface group flex min-h-64 flex-col p-5 transition hover:-translate-y-0.5 hover:border-[#8fc3bd]">
                 <div className="text-[10px] font-black uppercase tracking-[.11em] text-[#118f83]">{item.type}</div>
                 <h3 className="mt-4 text-xl font-bold tracking-[-.03em] text-[#102e37]">{item.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-[#667b81]">{item.description}</p>
-                <div className="mt-auto pt-5 text-xs font-semibold text-[#718489]">{item.territory}</div>
-              </article>
+                <div className="mt-auto flex items-center justify-between pt-5">
+                  <span className="text-xs font-semibold text-[#718489]">{item.territory}</span>
+                  <span className="inline-flex items-center gap-1 text-sm font-bold text-[#075568] opacity-0 transition group-hover:opacity-100">Voir <ArrowRight size={14}/></span>
+                </div>
+              </Link>
             ))}
           </div>
         </div>

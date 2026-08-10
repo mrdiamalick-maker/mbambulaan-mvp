@@ -1,23 +1,30 @@
 import Link from "next/link";
-import { ArrowRight, BookOpenText, Compass, Snowflake, ShipWheel, Truck, Wrench, GraduationCap, Handshake, Factory, Waves, Leaf } from "lucide-react";
+import { ArrowRight, BookOpenText, Compass, Snowflake, ShipWheel, Truck, Wrench, GraduationCap, Handshake, Factory, Waves, Leaf, X } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicSectionHero } from "@/components/public/PublicSectionHero";
-import { publicNews } from "@/data/public-content";
+import { publicNews, type PublicContentDomain } from "@/data/public-content";
 
-const domains = [
-  { title: "Pêche & ressources", text: "Comprendre les pratiques, les espèces, la saisonnalité et les dynamiques de la ressource.", icon: Waves, href: "/decouvrir/peche-ressources" },
-  { title: "Débarquement", text: "Voir comment les quais structurent les flux, les métiers et la première mise en marché.", icon: ShipWheel, href: "/decouvrir/debarquement" },
-  { title: "Conservation & froid", text: "Glace, stockage, chaîne du froid et préservation de la qualité après capture.", icon: Snowflake, href: "/decouvrir/conservation-froid" },
-  { title: "Transformation & valorisation", text: "Transformation artisanale, conditionnement et création de valeur locale.", icon: Factory, href: "/decouvrir/transformation-valorisation" },
-  { title: "Transport & logistique", text: "Collecte, acheminement, manutention et organisation des flux entre territoires.", icon: Truck, href: "/decouvrir/transport-logistique" },
-  { title: "Équipements & maintenance", text: "Matériel, moteurs, froid, sécurité et services de maintenance utiles à l’activité.", icon: Wrench, href: "/decouvrir/equipements-maintenance" },
-  { title: "Compétences & formation", text: "Savoirs métier, sécurité, qualité, gestion et montée en compétences des acteurs.", icon: GraduationCap, href: "/decouvrir/competences-formation" },
-  { title: "Financement & développement", text: "Programmes, appuis, partenariats et leviers d’investissement dans les territoires.", icon: Handshake, href: "/decouvrir/financement-developpement" },
-  { title: "Durabilité & environnement", text: "Préserver la ressource, réduire les pertes et mieux documenter les pratiques.", icon: Leaf, href: "/decouvrir/durabilite-environnement" }
-] as const;
+const domains: { title: PublicContentDomain; text: string; icon: typeof Waves }[] = [
+  { title: "Pêche & ressources", text: "Comprendre les pratiques, les espèces, la saisonnalité et les dynamiques de la ressource.", icon: Waves },
+  { title: "Débarquement", text: "Voir comment les quais structurent les flux, les métiers et la première mise en marché.", icon: ShipWheel },
+  { title: "Conservation & froid", text: "Glace, stockage, chaîne du froid et préservation de la qualité après capture.", icon: Snowflake },
+  { title: "Transformation & valorisation", text: "Transformation artisanale, conditionnement et création de valeur locale.", icon: Factory },
+  { title: "Transport & logistique", text: "Collecte, acheminement, manutention et organisation des flux entre territoires.", icon: Truck },
+  { title: "Équipements & maintenance", text: "Matériel, moteurs, froid, sécurité et services de maintenance utiles à l’activité.", icon: Wrench },
+  { title: "Compétences & formation", text: "Savoirs métier, sécurité, qualité, gestion et montée en compétences des acteurs.", icon: GraduationCap },
+  { title: "Financement & développement", text: "Programmes, appuis, partenariats et leviers d’investissement dans les territoires.", icon: Handshake },
+  { title: "Durabilité & environnement", text: "Préserver la ressource, réduire les pertes et mieux documenter les pratiques.", icon: Leaf }
+];
 
-export default function DiscoverPage() {
+type SearchParams = Record<string, string | string[] | undefined>;
+
+export default async function DiscoverPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const params = await searchParams;
+  const domaineParam = Array.isArray(params.domaine) ? params.domaine[0] : params.domaine;
+  const activeDomain = domains.find((item) => item.title === domaineParam)?.title;
+  const filteredNews = activeDomain ? publicNews.filter((item) => item.domain === activeDomain) : publicNews.slice(0, 6);
+
   return (
     <main className="min-h-screen bg-[#f3f7f6]">
       <PublicHeader dark />
@@ -30,8 +37,8 @@ export default function DiscoverPage() {
 
       <section className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-20">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {domains.map(({ title, text, icon: Icon, href }) => (
-            <Link key={title} href={href} className="surface group p-6 transition hover:-translate-y-0.5 hover:border-[#8fc3bd]">
+          {domains.map(({ title, text, icon: Icon }) => (
+            <Link key={title} href={`/decouvrir?domaine=${encodeURIComponent(title)}`} className={`surface group p-6 transition hover:-translate-y-0.5 hover:border-[#8fc3bd] ${activeDomain === title ? "border-[#0a6d68] ring-2 ring-[#0a6d68]/15" : ""}`}>
               <span className="grid size-11 place-items-center rounded-xl bg-[#e5f7f3] text-[#075568]"><Icon size={20}/></span>
               <h2 className="mt-5 text-xl font-bold tracking-[-.025em] text-[#102e37]">{title}</h2>
               <p className="mt-3 text-sm leading-6 text-[#667b81]">{text}</p>
@@ -45,20 +52,27 @@ export default function DiscoverPage() {
         <div className="mx-auto max-w-[1500px]">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="label">À lire maintenant</p>
-              <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[#102e37] md:text-4xl">Des contenus utiles, reliés à l’action.</h2>
+              <p className="label">{activeDomain ?? "À lire maintenant"}</p>
+              <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[#102e37] md:text-4xl">{activeDomain ? `Contenus : ${activeDomain}` : "Des contenus utiles, reliés à l’action."}</h2>
             </div>
-            <Link href="/opportunites" className="inline-flex items-center gap-2 text-sm font-bold text-[#075568]">Voir les opportunités <ArrowRight size={15}/></Link>
+            {activeDomain ? (
+              <Link href="/decouvrir" className="inline-flex items-center gap-2 text-sm font-bold text-[#075568]"><X size={15}/> Réinitialiser le filtre</Link>
+            ) : (
+              <Link href="/opportunites" className="inline-flex items-center gap-2 text-sm font-bold text-[#075568]">Voir les opportunités <ArrowRight size={15}/></Link>
+            )}
           </div>
           <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            {publicNews.slice(0, 6).map((item) => (
-              <article key={item.id} className="surface flex min-h-64 flex-col p-5">
+            {filteredNews.length ? filteredNews.map((item) => (
+              <Link key={item.id} href={`/decouvrir/${item.id}`} className="surface group flex min-h-64 flex-col p-5 transition hover:-translate-y-0.5 hover:border-[#8fc3bd]">
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.11em] text-[#118f83]"><BookOpenText size={14}/>{item.category}</div>
                 <h3 className="mt-4 text-xl font-bold tracking-[-.03em] text-[#102e37]">{item.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-[#667b81]">{item.excerpt}</p>
-                <div className="mt-auto pt-5 text-xs font-semibold text-[#718489]">{item.territory} · {item.readingTime}</div>
-              </article>
-            ))}
+                <div className="mt-auto flex items-center justify-between pt-5">
+                  <span className="text-xs font-semibold text-[#718489]">{item.territory} · {item.readingTime}</span>
+                  <span className="inline-flex items-center gap-1 text-sm font-bold text-[#075568]">Lire <ArrowRight size={14} className="transition group-hover:translate-x-1"/></span>
+                </div>
+              </Link>
+            )) : <p className="text-sm text-[#718489]">Aucun contenu publié pour ce domaine pour le moment.</p>}
           </div>
         </div>
       </section>
