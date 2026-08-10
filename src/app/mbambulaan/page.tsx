@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, Compass, MapPinned, Network, Radar, Route, Waves } from "lucide-react";
+import { ArrowRight, Compass, MapPinned, Network, Radar, Route } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
+import { PublicSectionHero } from "@/components/public/PublicSectionHero";
 
 const pillars = [
   { title: "Terrain", text: "Comprendre les réalités, identifier les besoins et maintenir une relation directe avec les territoires.", icon: Route },
@@ -13,35 +14,36 @@ const loop = ["Observer", "Qualifier", "Connecter", "Coordonner", "Réaliser", "
 
 export default function MbambulaanPage() {
   return (
-    <main className="min-h-screen bg-[#fffaf0] text-[#10373a]">
-      <PublicHeader />
-      <section className="relative overflow-hidden border-b border-[#ded2bd] bg-[#031a22] px-5 py-16 text-white md:px-10 md:py-24">
-        <div className="absolute inset-0 ocean-grid opacity-30" />
-        <div className="relative mx-auto max-w-7xl">
-          <div className="max-w-5xl">
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[.16em] text-[#74e1d6]"><Waves size={16} /> Mbàmbulaan entreprise</div>
-            <h1 className="mt-5 font-serif text-5xl leading-[.98] tracking-[-.045em] md:text-7xl">Terrain, réseau et technologie.<br /><em>Une même capacité d’action.</em></h1>
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-white/72">Mbàmbulaan construit une infrastructure de coordination pour l’économie maritime, en commençant par la filière halieutique sénégalaise.</p>
-          </div>
-        </div>
-      </section>
+    <main className="min-h-screen bg-[#f3f7f6] text-[#10373a]">
+      <PublicHeader dark />
+      <PublicSectionHero
+        eyebrow="Mbàmbulaan"
+        title={<>Terrain, réseau et technologie. <span className="text-[#74e1d6]">Une même capacité d’action.</span></>}
+        description="Mbàmbulaan construit une infrastructure de coordination pour l’économie maritime, en commençant par la filière halieutique sénégalaise."
+        actions={
+          <>
+            <Link href="/atlas" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/18 bg-white/8 px-4 py-2.5 text-sm font-bold text-white hover:bg-white/12"><MapPinned size={16}/> Ouvrir l’Atlas</Link>
+            <Link href="/contact?intent=solution" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#5fe0d3] px-4 py-2.5 text-sm font-bold text-[#031a22]">Trouver une solution <ArrowRight size={16}/></Link>
+          </>
+        }
+      />
 
-      <section className="mx-auto max-w-7xl px-5 py-14 md:px-10 md:py-20">
+      <section className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-20">
         <div className="grid gap-4 md:grid-cols-3">
           {pillars.map(({ title, text, icon: Icon }) => (
-            <article key={title} className="rounded-[24px] border border-[#ded5c5] bg-white p-6 shadow-[0_18px_45px_rgba(16,55,58,.06)]">
+            <article key={title} className="surface p-6">
               <span className="grid size-11 place-items-center rounded-xl bg-[#e5f7f3] text-[#075568]"><Icon size={20} /></span>
-              <h2 className="mt-5 text-2xl font-black tracking-[-.03em]">{title}</h2>
+              <h2 className="mt-5 text-2xl font-bold tracking-[-.03em]">{title}</h2>
               <p className="mt-3 text-sm leading-6 text-[#667b81]">{text}</p>
             </article>
           ))}
         </div>
 
-        <section className="mt-14 grid gap-8 rounded-[28px] border border-[#ded5c5] bg-white p-6 md:p-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+        <section className="mt-14 grid gap-8 rounded-[28px] border border-[#d9e3e3] bg-white p-6 md:p-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.14em] text-[#0a6d68]">Ce que fait Mbàmbulaan</p>
-            <h2 className="mt-4 font-serif text-4xl tracking-[-.04em]">Comprendre avant d’organiser l’action.</h2>
-            <p className="mt-4 text-sm leading-7 text-[#667b81]">Mbàmbulaan ne remplace pas les métiers. L’entreprise aide à transformer un besoin, une capacité ou une opportunité en action plus lisible, plus coordonnée et mieux suivie.</p>
+            <p className="label">Ce que fait Mbàmbulaan</p>
+            <h2 className="mt-4 text-4xl font-[740] tracking-[-.04em]">Comprendre avant d’organiser l’action.</h2>
+            <p className="mt-4 text-sm leading-7 text-[#667b81]">Mbàmbulaan aide à transformer un besoin, une capacité ou une opportunité en action plus lisible, plus coordonnée et mieux suivie.</p>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {loop.map((item, index) => (
@@ -58,13 +60,13 @@ export default function MbambulaanPage() {
             <p className="text-xs font-black uppercase tracking-[.14em] text-[#0a6d68]">Vous avez un besoin ?</p>
             <h2 className="mt-3 text-2xl font-black">Décrivez ce que vous cherchez à accomplir.</h2>
             <p className="mt-3 text-sm leading-6 text-[#60716f]">Transport, froid, équipement, formation, sourcing, projet ou autre besoin : Mbàmbulaan organise la qualification.</p>
-            <Link href="/solutions" className="mt-6 inline-flex items-center gap-2 font-black text-[#075568]">Trouver une solution <ArrowRight size={16} /></Link>
+            <Link href="/contact?intent=solution" className="mt-6 inline-flex items-center gap-2 font-black text-[#075568]">Trouver une solution <ArrowRight size={16} /></Link>
           </div>
           <div className="rounded-[26px] bg-[#f2eadb] p-6 md:p-8">
             <p className="text-xs font-black uppercase tracking-[.14em] text-[#8b601e]">Vous pouvez apporter une capacité ?</p>
             <h2 className="mt-3 text-2xl font-black">Faites connaître votre capacité à Mbàmbulaan.</h2>
             <p className="mt-3 text-sm leading-6 text-[#6e6657]">Entreprise, ONG, expert, transporteur, formateur, financeur ou organisation : l’entrée dans le réseau reste qualifiée.</p>
-            <Link href="/reseau" className="mt-6 inline-flex items-center gap-2 font-black text-[#8b601e]">Rejoindre le réseau <ArrowRight size={16} /></Link>
+            <Link href="/contact?intent=contribution" className="mt-6 inline-flex items-center gap-2 font-black text-[#8b601e]">Proposer mes services <ArrowRight size={16} /></Link>
           </div>
         </section>
 
