@@ -232,7 +232,7 @@ export default function EtatPage() {
               <p className="mt-4 text-xs leading-5 text-muted-foreground/80">Origine : mise en relation directe entre lots disponibles et besoins qualifiés par le réseau Mbàmbulaan — un calcul sur les opportunités réellement traitées, pas une promesse théorique.</p>
             </CardContent>
           </Card>
-          <Card className="bg-muted/40">
+          <Card className="bg-muted">
             <CardHeader>
               <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Évolution des programmes en cours</Label>
             </CardHeader>

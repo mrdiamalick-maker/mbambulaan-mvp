@@ -81,7 +81,12 @@
 
 :root {
   --radius: 0.625rem;
-  --background: #f7f4ee;
+  /* Refonte palette (retour CEO) : fond blanc — plus la teinte pastel
+     crème (#f7f4ee) qui, trop proche du blanc des cartes, aplatissait
+     tout en un rendu "juste des tracés". Les blocs (Card, badges,
+     sections) doivent maintenant se détacher par un contour et un fond
+     réellement visibles, pas par un fond de page teinté. */
+  --background: #ffffff;
   --foreground: #14202b;
   --card: #ffffff;
   --card-foreground: #14202b;
@@ -89,16 +94,16 @@
   --popover-foreground: #14202b;
   --primary: #b6522f;
   --primary-foreground: #fff8f2;
-  --secondary: #eef1f3;
+  --secondary: #eef2f5;
   --secondary-foreground: #14202b;
-  --muted: #eef1f3;
-  --muted-foreground: #64717a;
+  --muted: #f3f5f7;
+  --muted-foreground: #526270;
   --accent: #f1ded3;
   --accent-foreground: #7a3b21;
   --destructive: #c23a2c;
   --destructive-foreground: #fff8f2;
-  --border: #e3e6e8;
-  --input: #e3e6e8;
+  --border: #d7dee3;
+  --input: #d7dee3;
   --ring: #b6522f;
   --chart-1: #b6522f;
   --chart-2: #c68a2c;
