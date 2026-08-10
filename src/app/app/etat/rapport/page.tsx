@@ -9,13 +9,25 @@ const trustLabels: Record<TrustLevel, string> = {
   declaree: "Déclarée",
   observee: "Observée",
   verifiee: "Vérifiée",
-  consolidee: "Consolidée"
+  consolidee: "Consolidée",
+  rapprochee: "Rapprochée",
+  documentee: "Documentée",
+  officielle: "Officielle",
+  estimee: "Estimée",
+  contestee: "Contestée",
+  expiree: "Expirée"
 };
 const trustTagClass: Record<TrustLevel, string> = {
   declaree: "etat-tag--demo",
   observee: "etat-tag--vigilance",
   verifiee: "etat-tag--reel",
-  consolidee: "etat-tag--stable"
+  consolidee: "etat-tag--stable",
+  rapprochee: "etat-tag--vigilance",
+  documentee: "etat-tag--stable",
+  officielle: "etat-tag--reel",
+  estimee: "etat-tag--demo",
+  contestee: "etat-tag--critique",
+  expiree: "etat-tag--critique"
 };
 
 function buildMarkdown(state: NonNullable<ReturnType<typeof useProduct>["state"]>) {

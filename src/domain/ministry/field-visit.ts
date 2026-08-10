@@ -37,6 +37,9 @@ export interface FieldVisitInput {
   notes?: string;
   createdByActorId: string;
   createdByName: string;
+  // Porté dès maintenant (Lot 0) même à tenant unique : évite une
+  // migration lourde le jour où l'isolation multi-tenant réelle arrive.
+  tenantId?: string;
 }
 
 export interface FieldVisit extends FieldVisitInput {

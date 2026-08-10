@@ -10,7 +10,22 @@ export type Role =
   | "institution"
   | "partenaire";
 
-export type TrustLevel = "declaree" | "observee" | "verifiee" | "consolidee";
+// Étendu (Lot 0) pour couvrir les 8 niveaux du cahier des charges maître
+// (§12.1 : déclaré, rapproché, documenté, vérifié, officiel, estimé,
+// contesté, expiré), en conservant les 4 valeurs historiques utilisées
+// par les données et tests existants — extension additive, pas de
+// migration de données requise.
+export type TrustLevel =
+  | "declaree"
+  | "observee"
+  | "verifiee"
+  | "consolidee"
+  | "rapprochee"
+  | "documentee"
+  | "officielle"
+  | "estimee"
+  | "contestee"
+  | "expiree";
 export type Visibility = "organisation" | "partenaires" | "publique";
 export type Priority = "faible" | "moyenne" | "haute" | "critique";
 export type ActionStatus = "a_faire" | "en_cours" | "bloquee" | "terminee";

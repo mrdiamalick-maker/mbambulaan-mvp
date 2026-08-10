@@ -37,6 +37,7 @@ async function ensureSchema() {
   await db`
     create table if not exists mbambulaan_field_visits (
       id text primary key,
+      tenant_id text not null default 'tenant-demo',
       title text not null,
       territory_id text not null,
       territory_label text not null,
@@ -52,6 +53,7 @@ async function ensureSchema() {
   await db`
     create table if not exists mbambulaan_vigilance_cases (
       id text primary key,
+      tenant_id text not null default 'tenant-demo',
       category text not null,
       territory_id text not null,
       territory_label text not null,
@@ -68,7 +70,7 @@ async function ensureSchema() {
 }
 
 export async function createFieldVisit(input: FieldVisitInput): Promise<FieldVisit> {
-  const visit: FieldVisit = { ...input, id: crypto.randomUUID(), status: "planifiee", createdAt: new Date().toISOString() };
+  const visit: FieldVisit = { ...input, tenantId: input.tenantId ?? "tenant-demo", id: crypto.randomUUID(), status: "planifiee", createdAt: new Date().toISOString() };
   const db = database();
   if (!db) {
     memoryVisits.unshift(visit);
@@ -77,9 +79,9 @@ export async function createFieldVisit(input: FieldVisitInput): Promise<FieldVis
   await ensureSchema();
   await db`
     insert into mbambulaan_field_visits (
-      id, title, territory_id, territory_label, objective, planned_at, notes, status, created_by_actor_id, created_by_name, created_at
+      id, tenant_id, title, territory_id, territory_label, objective, planned_at, notes, status, created_by_actor_id, created_by_name, created_at
     ) values (
-      ${visit.id}, ${visit.title}, ${visit.territoryId}, ${visit.territoryLabel}, ${visit.objective}, ${visit.plannedAt},
+      ${visit.id}, ${visit.tenantId ?? "tenant-demo"}, ${visit.title}, ${visit.territoryId}, ${visit.territoryLabel}, ${visit.objective}, ${visit.plannedAt},
       ${visit.notes ?? null}, ${visit.status}, ${visit.createdByActorId}, ${visit.createdByName}, ${visit.createdAt}
     )
   `;
@@ -91,11 +93,11 @@ export async function listFieldVisits(): Promise<FieldVisit[]> {
   if (!db) return [...memoryVisits].sort((a, b) => a.plannedAt.localeCompare(b.plannedAt));
   await ensureSchema();
   const rows = await db<Array<{
-    id: string; title: string; territory_id: string; territory_label: string; objective: FieldVisit["objective"];
+    id: string; tenant_id: string; title: string; territory_id: string; territory_label: string; objective: FieldVisit["objective"];
     planned_at: string; notes: string | null; status: FieldVisitStatus; created_by_actor_id: string; created_by_name: string; created_at: string;
   }>>`select * from mbambulaan_field_visits order by planned_at asc`;
   return rows.map((row) => ({
-    id: row.id, title: row.title, territoryId: row.territory_id, territoryLabel: row.territory_label,
+    id: row.id, tenantId: row.tenant_id, title: row.title, territoryId: row.territory_id, territoryLabel: row.territory_label,
     objective: row.objective, plannedAt: row.planned_at, notes: row.notes ?? undefined, status: row.status,
     createdByActorId: row.created_by_actor_id, createdByName: row.created_by_name, createdAt: row.created_at
   }));
@@ -103,7 +105,7 @@ export async function listFieldVisits(): Promise<FieldVisit[]> {
 
 export async function createVigilanceCase(input: VigilanceCaseInput): Promise<VigilanceCase> {
   const now = new Date().toISOString();
-  const item: VigilanceCase = { ...input, id: crypto.randomUUID(), status: "signale", createdAt: now, updatedAt: now };
+  const item: VigilanceCase = { ...input, tenantId: input.tenantId ?? "tenant-demo", id: crypto.randomUUID(), status: "signale", createdAt: now, updatedAt: now };
   const db = database();
   if (!db) {
     memoryVigilance.unshift(item);
@@ -112,10 +114,10 @@ export async function createVigilanceCase(input: VigilanceCaseInput): Promise<Vi
   await ensureSchema();
   await db`
     insert into mbambulaan_vigilance_cases (
-      id, category, territory_id, territory_label, severity, description, status,
+      id, tenant_id, category, territory_id, territory_label, severity, description, status,
       reported_by_actor_id, reported_by_name, created_at, updated_at
     ) values (
-      ${item.id}, ${item.category}, ${item.territoryId}, ${item.territoryLabel}, ${item.severity}, ${item.description},
+      ${item.id}, ${item.tenantId ?? "tenant-demo"}, ${item.category}, ${item.territoryId}, ${item.territoryLabel}, ${item.severity}, ${item.description},
       ${item.status}, ${item.reportedByActorId}, ${item.reportedByName}, ${item.createdAt}, ${item.updatedAt}
     )
   `;
@@ -127,12 +129,12 @@ export async function listVigilanceCases(): Promise<VigilanceCase[]> {
   if (!db) return [...memoryVigilance].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   await ensureSchema();
   const rows = await db<Array<{
-    id: string; category: VigilanceCase["category"]; territory_id: string; territory_label: string;
+    id: string; tenant_id: string; category: VigilanceCase["category"]; territory_id: string; territory_label: string;
     severity: VigilanceCase["severity"]; description: string; status: VigilanceStatus;
     reported_by_actor_id: string; reported_by_name: string; created_at: string; updated_at: string;
   }>>`select * from mbambulaan_vigilance_cases order by created_at desc`;
   return rows.map((row) => ({
-    id: row.id, category: row.category, territoryId: row.territory_id, territoryLabel: row.territory_label,
+    id: row.id, tenantId: row.tenant_id, category: row.category, territoryId: row.territory_id, territoryLabel: row.territory_label,
     severity: row.severity, description: row.description, status: row.status,
     reportedByActorId: row.reported_by_actor_id, reportedByName: row.reported_by_name,
     createdAt: row.created_at, updatedAt: row.updated_at

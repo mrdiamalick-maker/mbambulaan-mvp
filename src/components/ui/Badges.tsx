@@ -47,7 +47,13 @@ const trustLabels: Record<TrustLevel, string> = {
   declaree: "Déclarée",
   observee: "Observée",
   verifiee: "Vérifiée",
-  consolidee: "Consolidée"
+  consolidee: "Consolidée",
+  rapprochee: "Rapprochée",
+  documentee: "Documentée",
+  officielle: "Officielle",
+  estimee: "Estimée",
+  contestee: "Contestée",
+  expiree: "Expirée"
 };
 
 export function TrustBadge({ trust, source }: { trust: TrustLevel; source?: string }) {
