@@ -166,6 +166,12 @@ Chaque entrée : la question, les options considérées, la recommandation initi
 
 **Dette ouverte, à ne pas laisser silencieuse** : une situation peut désormais se clore avec `result`/`confirmation` en texte libre **et/ou** une ou plusieurs `Evidence` réelles, sans qu'aucune règle ne les relie ni n'exige l'une plutôt que l'autre. Cette coexistence doit être tranchée (fusionner `record_result` dans `record_evidence`, faire de `record_result` un raccourci qui crée une `Evidence` de type `confirmation`, ou autre) avant de considérer le modèle métier Signal→Situation→Décision→Engagement→Preuve comme stabilisé. Ne pas la refermer au fil de l'eau dans un lot ultérieur sans arbitrage explicite.
 
+**Arbitrage CEO (Lot 7)** : 3 options présentées avec risque/effort (A. statu quo documenté — effort nul, ne ferme pas l'écart ; B. `record_result` crée aussi une `Evidence` de type `confirmation` — additif, risque faible ; C. fusion complète, `close` exige ≥1 `Evidence`, dépréciation de `record_result` — risque élevé sur le scénario canonique et les données de démo). **Option B retenue.**
+
+**Implémentation (Lot 7)** : `applyCommand` (branche `record_result`, `src/domain/rules.ts`) construit désormais aussi une `Evidence` (`type: "confirmation"`, `label: "Résultat de l'intervention"`, `detail` composé de `result`/`confirmation`, `trust: "consolidee"`) et l'ajoute à `state.evidences` — dans le même appel, sans champ supplémentaire à saisir, sans toucher au comportement de `record_evidence` ni à la validation existante de `record_result`. `SituationAction.tsx` inchangé : l'utilisateur ne voit aucune différence, mais chaque situation close produit désormais réellement au moins une preuve typée. Testé : `tests/domain-cycle.test.ts` (le scénario canonique) vérifie qu'une `Evidence` de type `confirmation` apparaît après `record_result`, en plus des assertions déjà existantes sur `situation.result`/`confirmation`.
+
+**Dette refermée** : le modèle métier Signal→Situation→Décision→Engagement→Preuve n'a plus de trou — toute clôture produit une preuve réelle, que l'auteur ait ou non utilisé le panneau Preuve séparément.
+
 ---
 
 ## 3. Décisions explicitement hors de ce document

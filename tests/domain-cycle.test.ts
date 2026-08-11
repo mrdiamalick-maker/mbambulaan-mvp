@@ -52,6 +52,14 @@ test("le cycle complet impose ses validations et conserve son historique", () =>
   assert.equal(state.situations[0].result, "Machine remise en service");
   assert.equal(state.situations[0].confirmation, "Constat signé du poste de quai");
 
+  // D10 (PRODUCT_DECISION_LOG.md) : record_result produit désormais
+  // aussi une Evidence réelle de type "confirmation" — additif, ne
+  // remplace pas record_evidence.
+  const resultEvidence = state.evidences.find((item) => item.situationId === id && item.type === "confirmation");
+  assert.ok(resultEvidence, "record_result doit produire une Evidence de type confirmation");
+  assert.match(resultEvidence!.detail, /Machine remise en service/);
+  assert.equal(resultEvidence!.recordedByActorId, actorId);
+
   state = applyCommand(state, { type: "close", situationId: id, actorId });
   assert.equal(state.situations[0].status, "reglee");
   assert.match(state.situations[0].nextStep, /apprentissage/);

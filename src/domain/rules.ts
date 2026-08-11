@@ -727,6 +727,15 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   if (!situationItem) throw new Error("Situation introuvable.");
   const updated: Situation = structuredClone(situationItem);
   let detail = "";
+  // D10 (PRODUCT_DECISION_LOG.md, arbitrage CEO) : record_result (texte
+  // libre, porte de la machine à états depuis avant le Lot 1) et
+  // record_evidence (objet Evidence réel, Lot 1/D3) coexistaient sans
+  // être reliés — une situation pouvait se clore sans jamais produire
+  // une seule Evidence. Option retenue (B, additive) : record_result
+  // continue de fonctionner à l'identique, mais produit désormais aussi
+  // une Evidence de type "confirmation" — sans exiger de saisie
+  // supplémentaire, sans toucher au comportement de record_evidence.
+  let resultEvidence: Evidence | undefined;
 
   if (command.type === "wait") {
     if (situationItem.status !== "intervention") throw new Error("Seule une intervention en cours peut être mise en attente.");
@@ -773,6 +782,16 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
       updated.trust = "consolidee";
       updated.nextStep = "Valider la clôture et capitaliser l’apprentissage";
       detail = command.result;
+      resultEvidence = {
+        id: id("ev"),
+        situationId: updated.id,
+        type: "confirmation",
+        label: "Résultat de l’intervention",
+        detail: `${command.result} — ${command.confirmation}`,
+        recordedByActorId: command.actorId,
+        recordedAt: timestamp(),
+        trust: "consolidee"
+      };
     }
     if (command.type === "close") {
       updated.nextStep = "Partager l’apprentissage avec les autres quais";
@@ -784,7 +803,8 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   validateSituation(updated);
   const next = {
     ...state,
-    situations: state.situations.map((item) => (item.id === updated.id ? updated : item))
+    situations: state.situations.map((item) => (item.id === updated.id ? updated : item)),
+    evidences: resultEvidence ? [resultEvidence, ...state.evidences] : state.evidences
   };
   return withAudit(next, command.actorId, "situation", updated.id, command.type, detail);
 }
