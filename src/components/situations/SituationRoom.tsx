@@ -1,12 +1,13 @@
 "use client";
 
-// Situation Room — reconstruite en D9 (Lot 4, étape 2/4). Contexte,
-// trajectoire, action recommandée, capacité alternative et historique
-// sont propres à ce fichier ; la coordination (participants,
-// engagements, décision) reste dans CoordinationProposal, restylée à
-// l'étape 3/4 avec le panneau Décision. Les panneaux Preuve et
-// Communication (Evidence/Communication, Lot 1) et le retrait de
-// ValueImpactPanel/value-engine.ts arrivent à l'étape 4/4.
+// Situation Room — reconstruite en D9 (Lot 4). Contexte, trajectoire,
+// action recommandée, capacité alternative et historique sont propres
+// à ce fichier ; la coordination (participants, engagements, décision)
+// vit dans CoordinationProposal (restylée à l'étape 3/4, avec le
+// panneau Décision — première écriture réelle sur create_decision hors
+// Lot 1). Les panneaux Preuve et Communication (Evidence/Communication,
+// Lot 1) et le retrait de ValueImpactPanel/value-engine.ts arrivent à
+// l'étape 4/4.
 import type { ProductState, Situation } from "@/domain/types";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { EngagementIcon } from "@/components/etat/MotifIcons";
@@ -121,7 +122,7 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
         </Card>
       </div>
 
-      <CoordinationProposal coordination={coordination} state={state} />
+      <CoordinationProposal coordination={coordination} state={state} situationId={situation.id} />
 
       <ValueImpactPanel state={state} situation={situation} />
 
