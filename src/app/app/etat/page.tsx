@@ -51,10 +51,22 @@ const priorityLabels: Record<Situation["priority"], string> = { critique: "Criti
 const priorityToTag: Record<Situation["priority"], "stable" | "vigilance" | "critique"> = { critique: "critique", haute: "vigilance", moyenne: "stable", faible: "stable" };
 const glyphBorderColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "#1d4468", vigilance: "#c68a2c", critique: "#b6522f" };
 const glyphFillColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "rgba(29,68,104,.05)", vigilance: "rgba(198,138,44,.07)", critique: "rgba(182,82,47,.07)" };
+// Remplissage plus marqué que glyphFillColor — réservé aux blocs qui
+// appellent une décision (situations à arbitrer) : ils doivent se
+// détacher des blocs de simple lecture (liste territoriale de
+// l'Atlas, qui garde glyphFillColor). Hiérarchie de contraste, pas une
+// nouvelle couleur.
+const arbitrageFillColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "rgba(29,68,104,.08)", vigilance: "rgba(198,138,44,.14)", critique: "rgba(182,82,47,.15)" };
 
+// Passe de resserrage visuel (post-Lot 4) : variantes pleines plutôt
+// que destructive (rouge générique, pas la terre-cuite de marque) ou
+// ambre pastel — un statut critique doit se voir immédiatement.
+// "Stable" reste volontairement discret (secondary) : la hiérarchie
+// vient du contraste entre calme et urgent, pas d'un remplissage
+// uniforme partout.
 function StatusBadge({ status }: { status: "stable" | "vigilance" | "critique" }) {
-  if (status === "critique") return <Badge variant="destructive">Critique</Badge>;
-  if (status === "vigilance") return <Badge className="border-transparent bg-amber-100 text-amber-800 hover:bg-amber-100">Vigilance</Badge>;
+  if (status === "critique") return <Badge variant="terracotta">Critique</Badge>;
+  if (status === "vigilance") return <Badge variant="amber">Vigilance</Badge>;
   return <Badge variant="secondary">Stable</Badge>;
 }
 
@@ -252,43 +264,54 @@ export default function EtatPage() {
         </div>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">Ce que la coordination a produit, en un coup d’œil.</h2>
         <div className="mt-5 grid gap-4 lg:grid-cols-3">
-          <Card className="border-primary/25 bg-gradient-to-br from-primary/[0.09] via-primary/[0.03] to-transparent">
+          {/* Revenus = le point-clé de la section (référentiel D9 :
+              terre-cuite réservée aux décisions/tensions/points-clés) —
+              fond plein, pas un lavis léger. */}
+          <Card className="overflow-hidden border-none bg-gradient-to-br from-[#b6522f] to-[#8a3d20] text-white shadow-lg">
             <CardContent>
-              <ResultatIcon size={22} color="#b6522f" />
-              <p className="mt-3 text-3xl font-bold tracking-tight text-primary"><NumberTicker value={executedValue} /> <span className="text-base font-semibold">FCFA</span></p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Valeur exécutée à date</p>
-              <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
-                <div className="h-full rounded-full bg-primary" style={{ width: `${executedRatio}%` }} />
+              <ResultatIcon size={22} color="#fff8f2" />
+              <p className="mt-3 text-3xl font-bold tracking-tight"><NumberTicker value={executedValue} /> <span className="text-base font-semibold">FCFA</span></p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-white/70">Valeur exécutée à date</p>
+              <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/15">
+                <div className="h-full rounded-full bg-white" style={{ width: `${executedRatio}%` }} />
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">{executedRatio}% exécuté · {formatFcfa(engagedValue)} encore engagés, en cours de réalisation.</p>
+              <p className="mt-2 text-xs text-white/75">{executedRatio}% exécuté · {formatFcfa(engagedValue)} encore engagés, en cours de réalisation.</p>
             </CardContent>
           </Card>
-          <Card className="border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.08] via-[#1d4468]/[0.02] to-transparent">
+          {/* Territoires et Signaux = lecture d'ensemble (neutre), pas un
+              point de décision isolé — fond plein marine plutôt que
+              terre-cuite, cohérent avec « neutre = information » de la
+              passe de resserrage visuel. */}
+          <Card className="overflow-hidden border-none bg-gradient-to-br from-[#1d4468] to-[#122c44] text-white shadow-lg">
             <CardContent>
-              <SituationIcon size={22} color="#1d4468" />
-              <p className="mt-3 text-3xl font-bold tracking-tight text-[#1d4468]"><NumberTicker value={territoiresActifs} /></p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Territoires suivis par le réseau</p>
-              <div className="mt-4 flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <SituationIcon size={22} color="#eef2f4" />
+              <p className="mt-3 text-3xl font-bold tracking-tight"><NumberTicker value={territoiresActifs} /></p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-white/70">Territoires suivis par le réseau</p>
+              <div className="mt-4 flex h-1.5 w-full overflow-hidden rounded-full bg-white/15">
                 {territoryHealthData.map((entry) => (
-                  <div key={entry.name} className="h-full" style={{ width: `${territoiresActifs > 0 ? (entry.value / territoiresActifs) * 100 : 0}%`, backgroundColor: entry.fill }} />
+                  <div key={entry.name} className="h-full" style={{ width: `${territoiresActifs > 0 ? (entry.value / territoiresActifs) * 100 : 0}%`, backgroundColor: entry.name === "Stable" ? "rgba(255,255,255,.45)" : entry.fill }} />
                 ))}
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">{territoryHealthData.map((entry) => `${entry.name} ${entry.value}`).join(" · ")}</p>
+              <p className="mt-2 text-xs text-white/75">{territoryHealthData.map((entry) => `${entry.name} ${entry.value}`).join(" · ")}</p>
             </CardContent>
           </Card>
-          <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/[0.09] via-amber-500/[0.02] to-transparent">
+          <Card className="overflow-hidden border-none bg-gradient-to-br from-[#1d4468] to-[#122c44] text-white shadow-lg">
             <CardContent>
-              <SignalIcon size={22} color="#c68a2c" />
-              <p className="mt-3 text-3xl font-bold tracking-tight text-amber-700"><NumberTicker value={signauxTraites} /></p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Signaux traités sur {cases.length} reçu(s)</p>
-              <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-amber-500/10">
-                <div className="h-full rounded-full bg-amber-500" style={{ width: `${tauxTraitement}%` }} />
+              <SignalIcon size={22} color="#eef2f4" />
+              <p className="mt-3 text-3xl font-bold tracking-tight"><NumberTicker value={signauxTraites} /></p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-white/70">Signaux traités sur {cases.length} reçu(s)</p>
+              <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/15">
+                <div className="h-full rounded-full bg-[#c68a2c]" style={{ width: `${tauxTraitement}%` }} />
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">{tauxTraitement}% de taux de traitement.</p>
+              <p className="mt-2 text-xs text-white/75">{tauxTraitement}% de taux de traitement.</p>
             </CardContent>
           </Card>
         </div>
-        <Card className="mt-4 border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.06] via-transparent to-transparent">
+        {/* Lecture seule (indicateurs de programmes déjà connus) — reste
+            volontairement plus sobre que les 3 tuiles ci-dessus : c'est
+            la hiérarchie de contraste demandée entre blocs de décision
+            et blocs d'information. */}
+        <Card className="mt-4">
           <CardHeader>
             <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Évolution des programmes en cours</Label>
           </CardHeader>
@@ -412,13 +435,16 @@ export default function EtatPage() {
               const tag = priorityToTag[situation.priority];
               const stageLabel = pipelineStages.find((stage) => stage.status === situation.status)?.label ?? situation.status;
               return (
-                <Card key={situation.id} className="flex-row flex-wrap items-center justify-between gap-3 p-4" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[tag], backgroundColor: glyphFillColor[tag] }}>
+                <Card key={situation.id} className="flex-row flex-wrap items-center justify-between gap-3 p-4" style={{ borderLeftWidth: 4, borderLeftColor: glyphBorderColor[tag], backgroundColor: arbitrageFillColor[tag] }}>
                   <div className="flex items-center gap-3">
                     <TensionGlyph status={tag} size={30} />
                     <div>
-                      <p className="text-sm font-semibold">{territory?.name ?? situation.territoryId} · {situation.title}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{situation.nextStep}</p>
-                      <p className="mt-1 text-[11px] text-muted-foreground/70">Risque {priorityLabels[situation.priority].toLowerCase()} · étape {stageLabel.toLowerCase()}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold">{territory?.name ?? situation.territoryId} · {situation.title}</p>
+                        <Badge variant={tag === "critique" ? "terracotta" : "amber"}>{priorityLabels[situation.priority]}</Badge>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{situation.nextStep}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground/70">Étape {stageLabel.toLowerCase()}</p>
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
@@ -471,9 +497,9 @@ export default function EtatPage() {
               const territory = situation ? state.territories.find((item) => item.id === situation.territoryId) : undefined;
               const decider = state.actors.find((item) => item.id === decision.decidedByActorId);
               return (
-                <Card key={decision.id} className="flex-row flex-wrap items-center justify-between gap-3 border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.05] via-transparent to-transparent p-4">
+                <Card key={decision.id} className="flex-row flex-wrap items-center justify-between gap-3 border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.08] via-[#1d4468]/[0.02] to-transparent p-4">
                   <div className="flex items-center gap-3">
-                    <DecisionIcon size={26} color="#1d4468" />
+                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#1d4468]"><DecisionIcon size={20} color="#eef2f4" /></span>
                     <div>
                       <p className="text-sm font-semibold">{decisionTypeLabels[decision.type]}{situation ? ` · ${territory?.name ?? situation.territoryId}` : ""}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">{decision.rationale}</p>
