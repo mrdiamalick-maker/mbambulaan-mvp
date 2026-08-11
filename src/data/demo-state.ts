@@ -620,17 +620,26 @@ export function createDemoState(): ProductState {
         status: item.status === "indisponible" ? "indisponible" : "disponible"
       })),
     opportunities,
+    // Origine des signaux : diversifiée volontairement pour le scénario
+    // canonique. sit-saint-louis suit le §8.4 du spec maître (« Retour
+    // retardé / sécurité » — « Signal par quai ou proche habilité ») :
+    // un appel d'un proche, moins certain à réception qu'une fois la
+    // situation qualifiée — d'où un trust de signal ("declaree")
+    // distinct du trust de la situation ("verifiee") une fois vérifiée.
+    // Condition Lot 3 (référentiel D9, intake omnicanal) : au moins un
+    // signal du scénario canonique reçu par téléphone/WhatsApp, visible
+    // avec son origine et son niveau de confiance propre.
     signals: situations.map((item) => ({
       id: `obs-${item.id}`,
       territoryId: item.territoryId,
       actorId: "act-operateur",
       createdAt: now,
-      channel: item.id === "sit-glace" ? "poste_quai" : "terrain",
+      channel: item.id === "sit-glace" ? "poste_quai" : item.id === "sit-saint-louis" ? "telephone" : "terrain",
       category: item.id === "sit-glace" ? "infrastructure" : item.id === "sit-saint-louis" ? "securite" : "production",
       title: item.title,
       description: item.description,
-      trust: item.trust,
-      source: item.id === "sit-glace" ? "Poste de quai de Joal" : "Relais territorial"
+      trust: item.id === "sit-saint-louis" ? "declaree" : item.trust,
+      source: item.id === "sit-glace" ? "Poste de quai de Joal" : item.id === "sit-saint-louis" ? "Appel d’un proche habilité" : "Relais territorial"
     })),
     situations,
     coordinationSpaces: [
