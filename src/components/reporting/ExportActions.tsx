@@ -1,7 +1,7 @@
 "use client";
 
 import { Download, FileSpreadsheet, Printer, Share2 } from "lucide-react";
-import { downloadCsv, type ExportRow } from "@/lib/exports";
+import { downloadCsv, downloadXlsx, type ExportRow } from "@/lib/exports";
 
 export function ExportActions({ filename, rows, compact = false }: { filename: string; rows: ExportRow[]; compact?: boolean }) {
   const size = compact ? "px-3 py-2 text-xs" : "px-4 py-2.5 text-sm";
@@ -19,8 +19,8 @@ export function ExportActions({ filename, rows, compact = false }: { filename: s
   };
   return (
     <div className="flex flex-wrap gap-2 no-print">
-      <button type="button" onClick={() => downloadCsv(filename, rows)} className={`inline-flex items-center gap-2 rounded-xl border border-[#9ecbd2] bg-white font-bold text-[#075568] transition hover:bg-[#edf7f6] ${size}`}>
-        <FileSpreadsheet size={compact ? 14 : 16} /> Excel (.csv)
+      <button type="button" onClick={() => void downloadXlsx(filename, rows)} className={`inline-flex items-center gap-2 rounded-xl border border-[#9ecbd2] bg-white font-bold text-[#075568] transition hover:bg-[#edf7f6] ${size}`}>
+        <FileSpreadsheet size={compact ? 14 : 16} /> Excel (.xlsx)
       </button>
       <button type="button" onClick={() => window.print()} className={`inline-flex items-center gap-2 rounded-xl bg-[#075568] font-bold text-white transition hover:bg-[#064858] ${size}`}>
         <Printer size={compact ? 14 : 16} /> PDF / imprimer
