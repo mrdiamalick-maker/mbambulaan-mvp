@@ -156,6 +156,18 @@ Chaque entrée : la question, les options considérées, la recommandation initi
 
 ---
 
+### D10 — Coexistence de `record_result` et `record_evidence` (dette ouverte, Lot 4)
+
+**Constat** : `record_result` (`SituationAction.tsx`) écrit `situation.result`/`situation.confirmation` en texte libre depuis avant le Lot 1. `record_evidence` (Lot 1, D3) crée un vrai objet `Evidence` de première classe, mais n'était consommé nulle part avant le Lot 4 — les deux mécanismes coexistaient sans lien.
+
+**Décision pour le Lot 4** : ajouter un panneau Preuve dans la Situation Room qui appelle réellement `record_evidence`, en plus de `record_result` — de façon **additive**, sans toucher au comportement ni à la validation de `record_result`. Aucune nouvelle règle de blocage à la clôture n'est introduite.
+
+**Raison de ne pas réconcilier maintenant** : `record_result` est directement couvert par `tests/domain-cycle.test.ts` (le scénario canonique s'appuie dessus) ; une fusion ou une dépréciation aurait un risque de régression disproportionné pour un lot dont l'objectif est de rendre `Evidence` visible, pas de refondre la clôture de situation.
+
+**Dette ouverte, à ne pas laisser silencieuse** : une situation peut désormais se clore avec `result`/`confirmation` en texte libre **et/ou** une ou plusieurs `Evidence` réelles, sans qu'aucune règle ne les relie ni n'exige l'une plutôt que l'autre. Cette coexistence doit être tranchée (fusionner `record_result` dans `record_evidence`, faire de `record_result` un raccourci qui crée une `Evidence` de type `confirmation`, ou autre) avant de considérer le modèle métier Signal→Situation→Décision→Engagement→Preuve comme stabilisé. Ne pas la refermer au fil de l'eau dans un lot ultérieur sans arbitrage explicite.
+
+---
+
 ## 3. Décisions explicitement hors de ce document
 
 Modèle tarifaire, contrats institutionnels, hébergement de production final : différés, non nécessaires pour trancher le Lot 1 ni pour la démonstration institutionnelle V1 (cohérent avec spec §23 « à challenger avant décision » / « plus tard »).
