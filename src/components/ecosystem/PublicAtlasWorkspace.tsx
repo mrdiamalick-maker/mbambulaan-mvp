@@ -115,7 +115,7 @@ export function PublicAtlasWorkspace() {
 
           <div className="flex flex-wrap gap-3 border-t border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)] p-5 md:px-8">
             <Link href={`/atlas/${territory.slug}`} className="pub-btn pub-btn-dark">Voir la fiche territoire <ArrowRight size={15}/></Link>
-            <Link href={`/solutions?source=atlas&territory=${encodeURIComponent(territory.name)}`} className="pub-btn pub-btn-outline">Trouver une solution ici</Link>
+            <Link href={`/solutions?source=atlas&territory=${encodeURIComponent(territory.name)}`} className="pub-btn pub-btn-outline">Décrire une situation ici</Link>
           </div>
         </BlurFade>
       </div>
