@@ -59,7 +59,7 @@ export const publicNews: PublicNewsItem[] = [
       "En mer, la ressource est prélevée selon des pratiques, des zones et une saisonnalité propres à chaque espèce. Au débarquement, le quai organise la première mise en marché : pesée, tri, premières transactions. Vient ensuite la conservation — glace, froid, séchage — qui conditionne la durée de vie du produit avant qu'il ne soit transformé, transporté puis vendu sur les marchés locaux, régionaux ou à l'export.",
       "Chaque maillon dépend des autres : un excellent débarquement sans chaîne du froid perd sa valeur ; un bon transport sans débouché organisé ne sert à rien. C'est cette interdépendance que Mbàmbulaan cherche à rendre lisible, territoire par territoire, pour que les besoins réels — équipement, organisation, compétence, financement — soient identifiés au bon endroit de la chaîne."
     ],
-    cta: { label: "Trouver une solution sur ma chaîne de valeur", href: "/solutions" },
+    cta: { label: "Décrire une situation sur ma chaîne de valeur", href: "/solutions" },
     territory: "Sénégal",
     publishedAt: "10 août 2026",
     readingTime: "7 min",
@@ -77,7 +77,7 @@ export const publicNews: PublicNewsItem[] = [
       "La localisation et l'accès à l'électricité ou à un carburant fiable conditionnent fortement les options techniques disponibles. Enfin, la fréquence d'usage (quotidienne, saisonnière, ponctuelle) et le nombre d'acteurs qui partageraient l'équipement changent complètement le modèle économique d'une solution de froid.",
       "Une fois ces éléments réunis, Mbàmbulaan peut qualifier la demande et l'orienter vers la bonne réponse — location, mutualisation, investissement ou intervention d'un acteur du réseau."
     ],
-    cta: { label: "Trouver une solution de froid", href: "/solutions?intent=conservation" },
+    cta: { label: "Décrire mon besoin de froid", href: "/solutions?intent=conservation" },
     territory: "Littoral sénégalais",
     publishedAt: "9 août 2026",
     readingTime: "5 min",
@@ -176,7 +176,7 @@ export const publicNews: PublicNewsItem[] = [
       "Penser la maintenance comme une capacité territoriale signifie identifier, en amont d'un investissement, qui peut intervenir, avec quel délai, avec quelles pièces disponibles localement, et selon quel modèle de financement du service après-vente.",
       "C'est une dimension souvent négligée dans les projets d'équipement, alors qu'elle conditionne directement leur durée de vie utile et leur retour sur investissement réel pour les acteurs du territoire."
     ],
-    cta: { label: "Trouver une solution de maintenance", href: "/solutions?intent=maintenance" },
+    cta: { label: "Décrire une situation de maintenance", href: "/solutions?intent=maintenance" },
     territory: "Littoral sénégalais",
     publishedAt: "3 août 2026",
     readingTime: "6 min",
@@ -294,7 +294,7 @@ export const publicNews: PublicNewsItem[] = [
       "Une rupture sur un seul de ces trois maillons — un camion sans isolation correcte, un lieu de stockage mal ventilé — annule les efforts faits sur les deux autres. C'est pourquoi une solution de froid efficace se pense comme un système complet, pas comme un équipement isolé.",
       "Qualifier un besoin de froid suppose donc de préciser à quel maillon se situe la rupture actuelle : production insuffisante, transport non réfrigéré, ou absence de stockage intermédiaire. Chaque cas appelle une réponse différente."
     ],
-    cta: { label: "Trouver une solution de froid", href: "/solutions?intent=conservation" },
+    cta: { label: "Décrire mon besoin de froid", href: "/solutions?intent=conservation" },
     territory: "Sénégal",
     publishedAt: "14 août 2026",
     readingTime: "5 min",
@@ -327,7 +327,7 @@ export const publicNews: PublicNewsItem[] = [
       "Ce constat, documenté dans plusieurs filières agricoles et halieutiques ouest-africaines, s'applique directement aux territoires les plus enclavés du littoral sénégalais, notamment en Casamance et dans certaines zones du delta du Saloum.",
       "Qualifier un besoin de transport suppose donc de préciser non seulement l'origine et la destination finale, mais aussi les conditions réelles du premier tronçon — c'est souvent là que se joue la faisabilité économique d'une solution."
     ],
-    cta: { label: "Organiser un transport", href: "/solutions?intent=transport" },
+    cta: { label: "Décrire une situation de transport", href: "/solutions?intent=transport" },
     territory: "Sénégal",
     publishedAt: "16 août 2026",
     readingTime: "5 min",
