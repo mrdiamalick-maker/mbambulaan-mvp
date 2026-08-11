@@ -8,8 +8,8 @@ import { SolutionWizard } from "@/components/public/SolutionWizard";
 import type { PublicRequestIntent } from "@/domain/public/request";
 
 export const metadata: Metadata = {
-  title: "Trouver une solution | Mbàmbulaan",
-  description: "Décrivez votre besoin — transport, froid, transformation, équipement, maintenance, formation, débouchés, financement. Mbàmbulaan qualifie et organise la suite, sans prix public ni annuaire de prestataires.",
+  title: "Décrire une situation | Mbàmbulaan",
+  description: "Décrivez une situation liée au transport, au froid, à la transformation, à l’équipement, à la maintenance, à la formation, aux débouchés ou au financement. Mbàmbulaan qualifie le besoin et organise la suite.",
   alternates: { canonical: "/solutions" }
 };
 
@@ -30,9 +30,9 @@ export default async function SolutionsPage({ searchParams }: { searchParams: Pr
     <main className="pub-scope min-h-screen">
       <PublicHeader dark />
       <PublicSectionHero
-        eyebrow="Trouver une solution"
-        title={<>Décrivez le besoin. <span className="text-[var(--pub-turquoise-300)]">Mbàmbulaan organise la suite.</span></>}
-        description="Pas de catalogue public de prestataires ni de prix automatiques. Nous qualifions votre besoin, son territoire et son contexte avant d’organiser la réponse adaptée."
+        eyebrow="Décrire une situation"
+        title={<>Décrivez la situation. <span className="text-[var(--pub-turquoise-300)]">Mbàmbulaan qualifie le besoin et organise la suite.</span></>}
+        description="Indiquez ce qui se passe, le territoire concerné et le résultat recherché. Mbàmbulaan transforme ces éléments en besoin qualifié avant d’organiser la réponse adaptée."
         actions={<Link href="/contact?intent=callback" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/18 bg-white/8 px-4 py-2.5 text-sm font-bold text-white">Être rappelé plutôt <PhoneCall size={16}/></Link>}
       />
 
@@ -50,13 +50,13 @@ export default async function SolutionsPage({ searchParams }: { searchParams: Pr
         <div className="mx-auto grid max-w-[1500px] gap-8 lg:grid-cols-[1.15fr_.85fr] lg:items-start">
           <div>
             <p className="pub-eyebrow">Un même moteur, plusieurs canaux</p>
-            <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Web, WhatsApp, téléphone ou terrain : le besoin reste le même objet Mbàmbulaan.</h2>
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--pub-stone-700)]">Le site n’impose pas un parcours numérique unique. L’équipe peut reprendre le contexte, qualifier la demande et poursuivre l’échange sur le canal le plus adapté.</p>
+            <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Web, WhatsApp, téléphone ou terrain : la situation reste le même objet Mbàmbulaan.</h2>
+            <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--pub-stone-700)]">Le site n’impose pas un parcours numérique unique. L’équipe peut reprendre le contexte, qualifier le besoin et poursuivre l’échange sur le canal le plus adapté.</p>
           </div>
           <aside className="pub-card p-6 md:p-8">
             <p className="public-kicker">Ce que Mbàmbulaan protège</p>
             <div className="mt-5 space-y-4 text-sm leading-6 text-[#5f7378]">
-              <p>La demande est qualifiée avant toute mise en relation.</p>
+              <p>La situation est qualifiée avant toute mise en relation.</p>
               <p>Les coordonnées de tiers ne sont pas exposées comme un annuaire.</p>
               <p>La valeur vient de la compréhension, du réseau, de la coordination et du suivi.</p>
               <p>Aucune promesse de prix, de financement ou d’autorisation n’est faite automatiquement.</p>
