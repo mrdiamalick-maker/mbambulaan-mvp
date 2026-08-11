@@ -648,6 +648,14 @@ export type Command =
   | { type: "create_community_post"; actorId: string; territoryId: string; category: CommunityPost["category"]; title: string; body: string }
   | { type: "convert_post"; postId: string; actorId: string }
   | { type: "flag_price"; priceId: string; actorId: string }
+  | {
+      type: "create_initiative";
+      actorId: string;
+      title: string;
+      objective: string;
+      budgetFcfa: number;
+      serviceRequestIds: string[];
+    }
   | { type: "reset_demo"; actorId: string };
 
 export type CommandInput = Command extends infer Item

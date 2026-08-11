@@ -7,6 +7,7 @@ import type {
   Decision,
   Evidence,
   HistoryEntry,
+  Initiative,
   Lot,
   Opportunity,
   ProductState,
@@ -53,6 +54,7 @@ const transitions: Record<
     | "log_communication"
     | "create_service_request"
     | "plan_field_commitment"
+    | "create_initiative"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -538,6 +540,58 @@ function applyServiceRequestCommand(state: ProductState, command: Extract<Comman
   return withAudit(next, command.actorId, "demande", serviceRequest.id, command.type, `${serviceRequest.quantityKg} kg — ${serviceRequest.intent}`);
 }
 
+// Initiative — besoin collectif → programme (Lot 5). Jusqu'ici Initiative
+// n'existait que côté données de démonstration : create_initiative promeut
+// un regroupement de ServiceRequest ouvertes de même intention (seuil ≥ 2
+// demandes distinctes approuvé) en programme réel, en cadrage, sans
+// financement ni indicateur au départ — cela viendra des commandes déjà
+// existantes de suivi de programme (hors périmètre de cette commande de
+// création). Les demandes d'origine passent "couvert" pour ne pas rester
+// doublement visibles comme besoin non traité une fois le programme ouvert.
+function applyInitiativeCommand(state: ProductState, command: Extract<Command, { type: "create_initiative" }>) {
+  if (!command.title.trim()) throw new Error("Le titre du programme est obligatoire.");
+  if (!command.objective.trim()) throw new Error("L'objectif du programme est obligatoire.");
+  if (!Number.isFinite(command.budgetFcfa) || command.budgetFcfa <= 0) throw new Error("Le budget doit être positif.");
+
+  const uniqueIds = Array.from(new Set(command.serviceRequestIds));
+  if (uniqueIds.length < 2) throw new Error("Un programme doit regrouper au moins deux demandes distinctes.");
+
+  const requests = uniqueIds.map((requestId) => {
+    const request = state.serviceRequests.find((item) => item.id === requestId);
+    if (!request) throw new Error("Demande de service introuvable.");
+    if (request.status !== "ouvert") throw new Error(`La demande ${request.reference} n'est plus ouverte.`);
+    return request;
+  });
+
+  const [firstRequest, ...otherRequests] = requests;
+  if (otherRequests.some((request) => request.intent !== firstRequest.intent)) {
+    throw new Error("Un programme ne peut regrouper que des demandes de même intention.");
+  }
+
+  const territoryIds = Array.from(new Set(requests.map((request) => request.territoryId)));
+
+  const initiative: Initiative = {
+    id: id("init"),
+    title: command.title.trim(),
+    territoryIds,
+    situationIds: [],
+    objective: command.objective.trim(),
+    status: "cadrage",
+    ownerId: command.actorId,
+    budgetFcfa: command.budgetFcfa,
+    funding: [],
+    indicators: []
+  };
+
+  const requestIdSet = new Set(uniqueIds);
+  const next: ProductState = {
+    ...state,
+    initiatives: [initiative, ...state.initiatives],
+    serviceRequests: state.serviceRequests.map((item) => (requestIdSet.has(item.id) ? { ...item, status: "couvert" as const } : item))
+  };
+  return withAudit(next, command.actorId, "initiative", initiative.id, command.type, `${initiative.title} — ${uniqueIds.length} demandes regroupées`);
+}
+
 // Mission terrain → Commitment (D2, refonte de l'Espace État dans le modèle
 // unifié). Une mission planifiée par le ministère n'est plus un enregistrement
 // isolé : elle devient un engagement réel dans une coordination, visible dans
@@ -594,6 +648,9 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   }
   if (command.type === "create_service_request") {
     return applyServiceRequestCommand(state, command);
+  }
+  if (command.type === "create_initiative") {
+    return applyInitiativeCommand(state, command);
   }
   if (command.type === "plan_field_commitment") {
     return applyFieldCommitmentCommand(state, command);
@@ -752,6 +809,7 @@ export type WorkflowAction = Exclude<
   | "log_communication"
   | "create_service_request"
   | "plan_field_commitment"
+  | "create_initiative"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {
