@@ -61,7 +61,7 @@ function LoginForm() {
 
               <p className="label-inverse mt-8">Espace réservé</p>
               <h1 className="mt-3 text-3xl font-[760] leading-[1.05] tracking-[-.04em]">Un accès par mandat, pour les équipes et partenaires Mbàmbulaan.</h1>
-              <p className="mt-4 text-sm leading-6 text-white/62">Cet espace n’est pas destiné au grand public. Si vous avez un besoin ou une capacité à proposer, utilisez plutôt <Link href="/solutions" className="underline decoration-white/40 underline-offset-4 hover:text-[#74e1d6]">Trouver une solution</Link> ou <Link href="/contact" className="underline decoration-white/40 underline-offset-4 hover:text-[#74e1d6]">Contact</Link>.</p>
+              <p className="mt-4 text-sm leading-6 text-white/62">Cet espace n’est pas destiné au grand public. Si vous avez une situation à décrire ou une capacité à proposer, utilisez plutôt <Link href="/solutions" className="underline decoration-white/40 underline-offset-4 hover:text-[#74e1d6]">Décrire une situation</Link> ou <Link href="/contact" className="underline decoration-white/40 underline-offset-4 hover:text-[#74e1d6]">Contact</Link>.</p>
 
               <form onSubmit={submit} className="mt-8 rounded-2xl border border-white/12 bg-white/[.06] p-5 backdrop-blur">
                 <div className="flex items-center gap-2 text-[#74e1d6]"><LockKeyhole size={17} /><p className="text-xs font-black uppercase tracking-[.12em]">Connexion</p></div>
