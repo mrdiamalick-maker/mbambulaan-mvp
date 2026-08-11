@@ -38,7 +38,7 @@ const territoryMarkers = [
 const pillars = [
   {
     title: "Terrain",
-    text: "Observer les réalités, qualifier les besoins et documenter les territoires au contact des acteurs.",
+    text: "Observer les réalités, qualifier les situations et documenter les territoires au contact des acteurs.",
     icon: Route,
     href: "/mbambulaan",
     cta: "Comprendre l’approche",
@@ -88,11 +88,11 @@ export default function HomePage() {
                 Connecter les acteurs. <em className="not-italic text-[var(--pub-turquoise-300)]">Coordonner les territoires.</em>
               </h1>
               <p className="mt-7 max-w-2xl text-lg leading-8 text-white/72 md:text-xl">
-                Mbàmbulaan relie information de terrain, acteurs, besoins et capacités pour transformer des situations dispersées en actions mieux coordonnées.
+                Mbàmbulaan relie information de terrain, acteurs et capacités pour transformer des situations dispersées en besoins qualifiés, puis en actions mieux coordonnées.
               </p>
               <div className="mt-9 flex flex-wrap gap-3">
                 <Link href="/solutions" className="pub-btn pub-btn-primary min-h-12 px-5 text-[.95rem]">
-                  Trouver une solution <ArrowRight size={18} />
+                  Décrire une situation <ArrowRight size={18} />
                 </Link>
                 <Link href="/atlas" className="pub-btn pub-btn-on-dark min-h-12 px-5 text-[.95rem]">
                   Explorer les territoires <MapPinned size={17} />
@@ -119,7 +119,7 @@ export default function HomePage() {
               De la mer au marché, la valeur dépend de maillons qui doivent fonctionner ensemble.
             </h2>
             <p className="mt-5 max-w-3xl text-sm leading-6 text-[var(--pub-stone-700)]">
-              Débarquement, froid, transformation, transport, débouchés et services : chaque besoin local s’inscrit dans une chaîne plus large. Mbàmbulaan aide à relier ces dépendances au lieu de les traiter isolément.
+              Débarquement, froid, transformation, transport, débouchés et services : chaque situation locale s’inscrit dans une chaîne plus large. Mbàmbulaan aide à relier ces dépendances au lieu de les traiter isolément.
             </p>
           </BlurFade>
 
@@ -167,7 +167,7 @@ export default function HomePage() {
               Le numérique n’est qu’un moyen. La valeur vient de ce qu’il permet d’organiser.
             </h2>
             <p className="mt-5 max-w-3xl text-sm leading-6 text-[var(--pub-stone-700)]">
-              Mbàmbulaan combine présence terrain, réseau mobilisable et technologie pour qualifier une situation, connecter les bons acteurs et suivre ce qui se passe réellement après la décision.
+              Mbàmbulaan combine présence terrain, réseau mobilisable et technologie pour qualifier une situation, relier les bons acteurs et suivre ce qui se passe réellement après la décision.
             </p>
           </BlurFade>
 
@@ -181,9 +181,7 @@ export default function HomePage() {
                 href={href}
                 cta={cta}
                 className={`${className} border border-[var(--pub-stone-150)] bg-[#fbf8f1]`}
-                background={
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_15%,rgba(182,82,47,.09),transparent_38%)]" />
-                }
+                background={<div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_15%,rgba(182,82,47,.09),transparent_38%)]" />}
               />
             ))}
           </BentoGrid>
@@ -198,140 +196,42 @@ export default function HomePage() {
             <BlurFade inView>
               <span className="pub-index text-[var(--pub-turquoise-300)]">03</span>
               <p className="pub-eyebrow pub-eyebrow--dark mt-3">Atlas Mbàmbulaan</p>
-              <h2 className="pub-display mt-3 text-[2.4rem] not-italic leading-[1.05] md:text-[3.2rem]">
-                Voir les territoires pour mieux comprendre où agir.
-              </h2>
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-white/62">
-                L’Atlas relie territoires, quais, activités et informations publiques documentées. Il donne un contexte commun avant d’aller vers les données opérationnelles privées du Produit.
-              </p>
+              <h2 className="pub-display mt-3 text-[2.4rem] not-italic leading-[1.05] md:text-[3.2rem]">Voir les territoires pour mieux comprendre où agir.</h2>
+              <p className="mt-5 max-w-2xl text-sm leading-7 text-white/62">L’Atlas relie territoires, quais, activités et informations publiques documentées. Il donne un contexte commun avant d’aller vers les données opérationnelles privées du Produit.</p>
               <Link href="/atlas" className="pub-btn pub-btn-primary mt-7">Ouvrir l’Atlas <MapPinned size={16}/></Link>
             </BlurFade>
 
             <div className="pub-card--dark min-h-[360px] overflow-hidden p-5 md:p-7">
-              <div className="mb-5 flex items-center justify-between gap-4">
-                <p className="text-xs font-black uppercase tracking-[.14em] text-[var(--pub-turquoise-300)]">Territoires représentés</p>
-                <span className="text-xs font-semibold text-white/42">Couverture en enrichissement</span>
-              </div>
-              <div className="h-[285px] overflow-hidden rounded-2xl border border-white/10 bg-white/[.025] p-3">
-                <DottedMap
-                  width={180}
-                  height={110}
-                  countries={["SEN"]}
-                  region={{ lat: { min: 12.1, max: 16.8 }, lng: { min: -17.7, max: -11.2 } }}
-                  markers={territoryMarkers}
-                  dotColor="rgba(247,243,233,.28)"
-                  markerColor="#b6522f"
-                  dotRadius={0.28}
-                  pulse
-                />
-              </div>
+              <div className="mb-5 flex items-center justify-between gap-4"><p className="text-xs font-black uppercase tracking-[.14em] text-[var(--pub-turquoise-300)]">Territoires représentés</p><span className="text-xs font-semibold text-white/42">Couverture en enrichissement</span></div>
+              <div className="h-[285px] overflow-hidden rounded-2xl border border-white/10 bg-white/[.025] p-3"><DottedMap width={180} height={110} countries={["SEN"]} region={{ lat: { min: 12.1, max: 16.8 }, lng: { min: -17.7, max: -11.2 } }} markers={territoryMarkers} dotColor="rgba(247,243,233,.28)" markerColor="#b6522f" dotRadius={0.28} pulse /></div>
             </div>
           </div>
 
-          <div className="mt-8 border-y border-white/10 py-2">
-            <Marquee pauseOnHover className="[--duration:36s] [--gap:1.5rem]">
-              {territories.map((territory) => (
-                <span key={territory} className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-semibold text-white/68">
-                  <span className="size-1.5 rounded-full bg-[var(--pub-turquoise-500)]" /> {territory}
-                </span>
-              ))}
-            </Marquee>
-          </div>
+          <div className="mt-8 border-y border-white/10 py-2"><Marquee pauseOnHover className="[--duration:36s] [--gap:1.5rem]">{territories.map((territory) => <span key={territory} className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-semibold text-white/68"><span className="size-1.5 rounded-full bg-[var(--pub-turquoise-500)]" /> {territory}</span>)}</Marquee></div>
         </div>
       </section>
       <SectionWave className="rotate-180" />
 
-      {/* 05 — Agir : besoin + opportunités */}
+      {/* 05 — Agir : situation + opportunités */}
       <section className="px-5 py-16 md:px-10 md:py-24">
         <div className="mx-auto max-w-[1500px]">
           <div className="grid gap-8 lg:grid-cols-[.72fr_1.28fr] lg:items-start">
             <BlurFade inView>
               <span className="pub-index">04</span>
               <p className="pub-eyebrow mt-3">Passer à l’action</p>
-              <h2 className="pub-display mt-3 text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[3rem]">
-                Un besoin, une capacité ou un programme : commencez par le bon point d’entrée.
-              </h2>
-              <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--pub-stone-700)]">
-                Mbàmbulaan ne publie pas un annuaire de prestataires. Le besoin est qualifié, relié au contexte territorial et orienté vers les capacités pertinentes.
-              </p>
-              <div className="mt-7 flex flex-wrap gap-3">
-                <Link href="/solutions" className="pub-btn pub-btn-dark">Décrire mon besoin <ArrowRight size={16}/></Link>
-                <Link href="/contact?intent=contribution" className="pub-btn pub-btn-outline">Proposer une capacité</Link>
-              </div>
+              <h2 className="pub-display mt-3 text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[3rem]">Partir d’une situation réelle, pas d’un catalogue.</h2>
+              <p className="mt-5 text-sm leading-7 text-[var(--pub-stone-700)]">Décrivez le contexte, le territoire et le résultat recherché. Mbàmbulaan qualifie le besoin avant de mobiliser les capacités pertinentes.</p>
+              <div className="mt-7 flex flex-wrap gap-3"><Link href="/solutions" className="pub-btn pub-btn-primary">Décrire une situation <ArrowRight size={16}/></Link><Link href="/opportunites" className="pub-btn pub-btn-outline">Voir les opportunités</Link></div>
             </BlurFade>
-
             <div className="grid gap-4 md:grid-cols-2">
-              {publicAnnouncements.slice(0, 4).map((item) => (
-                <Link key={item.id} href={`/opportunites/${item.id}`} className="pub-card group flex min-h-56 flex-col p-5">
-                  <div className="text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]">{item.type}</div>
-                  <h3 className="mt-4 text-lg font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{item.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{item.description}</p>
-                  <div className="mt-auto flex items-center justify-between pt-5">
-                    <span className="text-xs font-semibold text-[var(--pub-stone-500)]">{item.territory}</span>
-                    <span className="inline-flex items-center gap-1 text-sm font-bold text-[var(--pub-deep-800)]">Voir <ArrowRight size={14}/></span>
-                  </div>
-                </Link>
-              ))}
+              <div className="pub-card p-6 md:p-7"><Handshake className="text-[var(--pub-deep-800)]"/><p className="pub-eyebrow mt-5">Capacités</p><h3 className="mt-2 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Vous pouvez contribuer à une réponse ?</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Entreprise, expert, organisation, programme ou partenaire : faites connaître une capacité mobilisable.</p><Link href="/contact?intent=contribution" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Proposer une capacité <ArrowRight size={15}/></Link></div>
+              <div className="pub-card p-6 md:p-7"><BookOpenText className="text-[var(--pub-deep-800)]"/><p className="pub-eyebrow mt-5">Comprendre</p><h3 className="mt-2 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Besoin de contexte avant d’agir ?</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Explorez les contenus reliés aux métiers, territoires et chaînes de valeur.</p><Link href="/decouvrir" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Découvrir la filière <ArrowRight size={15}/></Link></div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 06 — Comprendre + CTA final */}
-      <section className="px-5 pb-20 pt-4 md:px-10 md:pb-24">
-        <div className="mx-auto max-w-[1500px]">
-          <div className="pub-tideline" />
-          <div className="mt-14 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <BlurFade inView className="max-w-3xl">
-              <span className="pub-index">05</span>
-              <p className="pub-eyebrow mt-3">Découvrir</p>
-              <h2 className="pub-display mt-3 text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[3rem]">
-                Comprendre la filière par les territoires, les usages et les situations concrètes.
-              </h2>
-            </BlurFade>
-            <Link href="/decouvrir" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Explorer les contenus <ArrowRight size={16}/></Link>
-          </div>
-
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {publicNews.slice(0, 3).map((item) => (
-              <Link key={item.id} href={`/decouvrir/${item.id}`} className="pub-card group flex min-h-60 flex-col p-5">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]"><BookOpenText size={14}/>{item.category}</div>
-                <h3 className="mt-4 text-xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">{item.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{item.excerpt}</p>
-                <div className="mt-auto flex items-center justify-between pt-5">
-                  <span className="text-xs font-semibold text-[var(--pub-stone-500)]">{item.territory} · {item.readingTime}</span>
-                  <span className="inline-flex items-center gap-1 text-sm font-bold text-[var(--pub-deep-800)]">Lire <ArrowRight size={14}/></span>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            <div className="pub-card p-6">
-              <Handshake className="text-[var(--pub-deep-800)]" />
-              <p className="pub-eyebrow mt-5">Vous avez un besoin</p>
-              <h3 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Trouver une solution</h3>
-              <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Décrivez votre situation. Mbàmbulaan aide à qualifier la réponse et à organiser la suite.</p>
-              <Link href="/solutions" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Commencer <ArrowRight size={15}/></Link>
-            </div>
-            <div className="pub-card p-6">
-              <Network className="text-[var(--pub-deep-800)]" />
-              <p className="pub-eyebrow mt-5">Vous pouvez contribuer</p>
-              <h3 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Proposer une capacité</h3>
-              <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Entreprise, expert, ONG ou organisation : présentez ce que vous pouvez réellement apporter au réseau.</p>
-              <Link href="/contact?intent=contribution" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Contribuer <ArrowRight size={15}/></Link>
-            </div>
-            <div className="pub-card p-6">
-              <MapPinned className="text-[var(--pub-deep-800)]" />
-              <p className="pub-eyebrow mt-5">Vous portez un programme</p>
-              <h3 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Étudier une intervention</h3>
-              <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Territoire, acteurs, partenaires et suivi : Mbàmbulaan peut structurer le cadrage avant déploiement.</p>
-              <Link href="/contact?intent=programme" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Parler à Mbàmbulaan <ArrowRight size={15}/></Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
+      <section className="border-t border-[var(--pub-stone-150)] bg-white px-5 py-14 md:px-10"><div className="mx-auto max-w-[1500px]"><div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between"><div><p className="pub-eyebrow">Repères & actualités</p><h2 className="pub-display mt-3 text-[2.1rem] not-italic text-[var(--pub-deep-900)]">Suivre ce qui éclaire l’action.</h2></div><Link href="/decouvrir" className="text-sm font-bold text-[var(--pub-deep-800)]">Tout découvrir →</Link></div><div className="mt-7 grid gap-4 lg:grid-cols-3">{publicNews.slice(0,2).map(item => <Link key={item.id} href={`/decouvrir/${item.id}`} className="pub-card p-5"><p className="pub-index">{item.category}</p><h3 className="mt-3 text-lg font-bold text-[var(--pub-deep-900)]">{item.title}</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{item.excerpt}</p></Link>)}{publicAnnouncements.slice(0,1).map(item => <Link key={item.id} href={item.ctaHref} className="pub-card p-5"><p className="pub-index">À suivre</p><h3 className="mt-3 text-lg font-bold text-[var(--pub-deep-900)]">{item.title}</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{item.excerpt}</p></Link>)}</div></div></section>
       <PublicFooter />
     </main>
   );
