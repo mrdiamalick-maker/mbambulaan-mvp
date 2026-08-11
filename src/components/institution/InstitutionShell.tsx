@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { LogOut, PlayCircle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { usePresentationGuide } from "@/components/providers/PresentationGuideProvider";
 
 // Entrée technique distincte pour l'Espace État (D9, PRODUCT_DECISION_LOG.md) :
 // pas AppSidebar/SidebarProvider composés différemment, une structure de
@@ -42,6 +43,7 @@ export function InstitutionShell({
   error: string;
   showLoading: boolean;
 }) {
+  const { start } = usePresentationGuide();
   return (
     <div className="shadcn-scope flex min-h-screen flex-col bg-background">
       <header className="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 bg-sidebar px-5 text-sidebar-foreground lg:px-8">
@@ -53,6 +55,9 @@ export function InstitutionShell({
           {orgName ?? "Ministère de la Pêche et de l’Économie Maritime"}
         </span>
         <div className="ml-auto flex items-center gap-2">
+          <Button variant="ghost" size="sm" className="hidden gap-1.5 text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground sm:inline-flex" onClick={start}>
+            <PlayCircle size={15} /> Présentation guidée
+          </Button>
           <Badge variant="outline" className="hidden gap-1.5 border-white/15 text-sidebar-foreground/70 xl:inline-flex">
             <span className="size-1.5 rounded-full bg-emerald-400" />
             {persistence === "postgresql" ? "Base de production" : "Environnement de démonstration"}
