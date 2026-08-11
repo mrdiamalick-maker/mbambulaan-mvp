@@ -386,7 +386,15 @@ export function createDemoState(): ProductState {
     { id: "need-sole-dakar", reference: "MBA-SR-SOLE-DAKAR", channel: "web", actorId: "act-mareyeur", territoryId: "soumbedioune", speciesId: "sp-sole", quantityKg: 350, quality: "A", intent: "achat", status: "ouvert", priority: "haute", createdAt: now, source: "Demande mareyeur qualifiée" },
     { id: "need-mulet-saint", reference: "MBA-SR-MULET-SAINT", channel: "telephone", actorId: "act-mareyeur-nord", territoryId: "saint-louis", speciesId: "sp-mulet", quantityKg: 500, quality: "A", intent: "achat", status: "ouvert", priority: "moyenne", createdAt: now, source: "Besoin groupé de deux acheteurs" },
     { id: "need-sardinelle-kaf", reference: "MBA-SR-SARDINELLE-KAF", channel: "terrain", actorId: "act-transform-sud", territoryId: "kafountine", speciesId: "sp-sardinelle", quantityKg: 500, quality: "B", intent: "transformation", status: "couvert", priority: "haute", createdAt: now, source: "Programme de transformation locale" },
-    { id: "need-sole-cap", reference: "MBA-SR-SOLE-CAP", channel: "web", actorId: "act-mareyeur-sud", territoryId: "cap-skirring", speciesId: "sp-sole", quantityKg: 260, quality: "A", intent: "transport", status: "ouvert", priority: "moyenne", createdAt: now, source: "Besoin logistique déclaré" }
+    { id: "need-sole-cap", reference: "MBA-SR-SOLE-CAP", channel: "web", actorId: "act-mareyeur-sud", territoryId: "cap-skirring", speciesId: "sp-sole", quantityKg: 260, quality: "A", intent: "transport", status: "ouvert", priority: "moyenne", createdAt: now, source: "Besoin logistique déclaré" },
+    // Grappe "formation" (Lot 5, besoin collectif → programme) : trois
+    // organisations distinctes, trois territoires distincts, la même
+    // intention — le scénario canonique du §8.5 (plusieurs organisations
+    // expriment le même besoin) devient démontrable sans être fabriqué
+    // pour une seule fiche isolée.
+    { id: "need-formation-mbour", reference: "MBA-SR-FORMATION-MBOUR", channel: "web", actorId: "act-transform", territoryId: "mbour", speciesId: "sp-sardinelle", quantityKg: 400, quality: "B", intent: "formation", status: "ouvert", priority: "moyenne", createdAt: now, source: "Demande de formation en manipulation et hygiène post-capture" },
+    { id: "need-formation-joal", reference: "MBA-SR-FORMATION-JOAL", channel: "terrain", actorId: "act-gestionnaire", territoryId: "joal", speciesId: "sp-thiof", quantityKg: 350, quality: "B", intent: "formation", status: "ouvert", priority: "moyenne", createdAt: now, source: "Demande de formation en manipulation et hygiène post-capture" },
+    { id: "need-formation-saint-louis", reference: "MBA-SR-FORMATION-SAINT-LOUIS", channel: "telephone", actorId: "act-mareyeur-nord", territoryId: "saint-louis", speciesId: "sp-mulet", quantityKg: 300, quality: "B", intent: "formation", status: "ouvert", priority: "moyenne", createdAt: now, source: "Demande de formation en manipulation et hygiène post-capture" }
   ];
 
   const generatedServiceRequests: ProductState["serviceRequests"] = territoryRows.flatMap(([territoryId], index) => {

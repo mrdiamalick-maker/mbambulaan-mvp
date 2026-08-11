@@ -11,10 +11,25 @@ import type {
   Opportunity,
   ProductState,
   ServiceRequest,
+  ServiceRequestIntent,
   Situation,
   SituationStatus
 } from "./types";
 import { communicationChannelLabels, decisionTypeLabels, evidenceTypeLabels } from "./types";
+
+// Le moteur de rapprochement Lot ↔ ServiceRequest (§5.11) ne concerne que
+// les intentions d'approvisionnement : une demande de formation ou de
+// financement ne se "couvre" jamais par un lot débarqué, même si elle
+// porte par contrainte de type un speciesId/quantityKg (cf. types.ts:169-180).
+const SOURCING_INTENTS: ReadonlySet<ServiceRequestIntent> = new Set([
+  "achat",
+  "transformation",
+  "conservation",
+  "transport",
+  "equipement",
+  "maintenance",
+  "sourcing"
+]);
 
 const transitions: Record<
   Exclude<
@@ -187,7 +202,7 @@ function applyLandingCommand(state: ProductState, command: Extract<Command, { ty
 
   const newOpportunities: Opportunity[] = lots.flatMap((lot) =>
     state.serviceRequests
-      .filter((request) => request.status === "ouvert" && request.speciesId === lot.speciesId && lot.availableKg >= request.quantityKg)
+      .filter((request) => request.status === "ouvert" && SOURCING_INTENTS.has(request.intent) && request.speciesId === lot.speciesId && lot.availableKg >= request.quantityKg)
       .map((request) => ({
         id: `opp-${lot.id}-${request.id}`,
         lotId: lot.id,
