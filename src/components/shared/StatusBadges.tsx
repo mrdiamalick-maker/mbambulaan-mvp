@@ -3,30 +3,44 @@
 // shadcn (Badge), pas la palette sarcelle des anciens Badges.tsx
 // (src/components/ui/Badges.tsx, toujours utilisé par SituationRow
 // pour le registre /app/situations des rôles hors périmètre).
+//
+// Resserrage visuel (post-Lot 4) : variantes pleines plutôt qu'outline
+// — un badge de confiance contestée/expirée doit se voir immédiatement,
+// pas se fondre dans un gris pastel. Le canal, lui, reste une
+// information neutre (marine plein) : ce n'est pas un signal
+// d'urgence, juste l'origine du signal.
+//
+// Effet de bord utile : ces variantes ont toutes un fond opaque, donc
+// restent lisibles aussi bien sur une carte claire que sur un héros
+// marine (bg-sidebar) — l'ancien contournement tone="dark" (nécessaire
+// avec le variant "outline" par défaut, texte sombre invisible sur
+// fond sombre) n'est plus nécessaire et a été retiré.
 import type { Signal, TrustLevel } from "@/domain/types";
 import { Badge } from "@/components/ui/badge";
 import { channelMeta, trustLabels } from "@/lib/status-tokens";
 
-// tone="dark" : le variant "outline" par défaut (text-foreground,
-// bordure --border) devient illisible sur un fond marine (héros
-// bg-sidebar) — bug réel constaté au Lot 4 (contraste quasi nul dans
-// le héros de la Situation Room, présent depuis le Lot 3 dans
-// CoordinatorHub sans avoir été remarqué). tone="dark" force un
-// contraste correct sur fond sombre plutôt que d'ajouter une classe
-// ad hoc à chaque appel.
-type Tone = "default" | "dark";
-const toneClassName: Record<Tone, string> = {
-  default: "",
-  dark: "border-white/20 bg-white/[0.06] text-sidebar-foreground"
+type BadgeVariant = "marine" | "terracotta" | "amber" | "success";
+
+const trustVariant: Record<TrustLevel, BadgeVariant> = {
+  verifiee: "success",
+  consolidee: "success",
+  documentee: "success",
+  officielle: "success",
+  rapprochee: "success",
+  declaree: "marine",
+  observee: "marine",
+  estimee: "amber",
+  contestee: "terracotta",
+  expiree: "terracotta"
 };
 
-export function ChannelBadge({ signal, tone = "default" }: { signal?: Signal; tone?: Tone }) {
+export function ChannelBadge({ signal }: { signal?: Signal }) {
   if (!signal) return null;
   const meta = channelMeta[signal.channel];
   const Icon = meta.icon;
-  return <Badge variant="outline" className={toneClassName[tone]}><Icon size={12} /> {meta.label}</Badge>;
+  return <Badge variant="marine"><Icon size={12} /> {meta.label}</Badge>;
 }
 
-export function TrustBadge({ trust, tone = "default" }: { trust: TrustLevel; tone?: Tone }) {
-  return <Badge variant="outline" className={toneClassName[tone]}>{trustLabels[trust]}</Badge>;
+export function TrustBadge({ trust }: { trust: TrustLevel }) {
+  return <Badge variant={trustVariant[trust]}>{trustLabels[trust]}</Badge>;
 }

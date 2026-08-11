@@ -99,8 +99,8 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <Badge variant="secondary">{statusLabels[situation.status]}</Badge>
                 <Badge variant={situation.priority === "critique" ? "destructive" : "outline"}>{priorityLabels[situation.priority]}</Badge>
-                <TrustBadge trust={situation.trust} tone="dark" />
-                <ChannelBadge signal={signal} tone="dark" />
+                <TrustBadge trust={situation.trust} />
+                <ChannelBadge signal={signal} />
               </div>
             </div>
           </div>

@@ -30,6 +30,12 @@ export const priorityToTag: Record<Situation["priority"], GlyphTag> = {
 
 export const glyphBorderColor: Record<GlyphTag, string> = { stable: "#1d4468", vigilance: "#c68a2c", critique: "#b6522f" };
 export const glyphFillColor: Record<GlyphTag, string> = { stable: "rgba(29,68,104,.05)", vigilance: "rgba(198,138,44,.07)", critique: "rgba(182,82,47,.07)" };
+// Remplissage renforcé — réservé aux blocs qui appellent une décision
+// (file de situations à traiter), qui doivent se détacher des blocs de
+// simple lecture (glyphFillColor, ~2x plus léger). Même principe que
+// arbitrageFillColor dans src/app/app/etat/page.tsx (Lot 2, non
+// dupliqué ici pour ne pas rouvrir ce fichier déjà validé).
+export const glyphFillColorStrong: Record<GlyphTag, string> = { stable: "rgba(29,68,104,.08)", vigilance: "rgba(198,138,44,.14)", critique: "rgba(182,82,47,.15)" };
 
 export const trustLabels: Record<TrustLevel, string> = {
   declaree: "Déclarée",
