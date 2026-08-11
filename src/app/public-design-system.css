@@ -3,10 +3,16 @@
  * indépendante de la grammaire visuelle du Produit professionnel (brand.css,
  * classes ops-, mb-tension- et metric-premium). Toutes les classes de ce
  * fichier sont préfixées `pub-` pour ne jamais entrer en collision avec
- * l'espace /app. Palette imposée par le MASTER_SPEC (§18) : bleu-vert
- * profond, turquoise Mbàmbulaan, blanc cassé, sable, ivoire, gris minéraux.
+ * l'espace /app.
+ *
+ * Palette Mbàmbulaan verrouillée :
+ * - marine #0b1a2a = structure, autorité, fonds institutionnels ;
+ * - terre-cuite #b6522f = signal, action, point clé ;
+ * - crème #f7f3e9 = surface principale ;
+ * - neutres dérivés uniquement pour texte, bordures et profondeur.
+ *
  * Principe : sophistication derrière, simplicité devant — un système
- * éditorial, littoral et humain plutôt qu'un dashboard SaaS.
+ * éditorial, territorial et humain plutôt qu'un dashboard SaaS.
  *
  * Les règles ci-dessous vivent dans @layer components : les utilitaires
  * Tailwind (hidden, sm:flex, etc. — @layer utilities) doivent toujours
@@ -14,36 +20,36 @@
  */
 
 :root {
-  /* Bleu-vert profond — fonds sombres, texte fort */
-  --pub-deep-900: #051b21;
-  --pub-deep-800: #0a2b30;
-  --pub-deep-700: #0f3a3d;
-  --pub-deep-600: #16504f;
+  /* Marine Mbàmbulaan — structure, autorité, fonds sombres */
+  --pub-deep-900: #0b1a2a;
+  --pub-deep-800: #13263a;
+  --pub-deep-700: #1d3449;
+  --pub-deep-600: #30485f;
 
-  /* Turquoise Mbàmbulaan — accent de marque, réservé aux CTA/repères */
-  --pub-turquoise-500: #22b8ab;
-  --pub-turquoise-400: #4fd4c5;
-  --pub-turquoise-300: #86e6d9;
+  /* Terre-cuite Mbàmbulaan — signal, action, repère clé */
+  --pub-turquoise-500: #b6522f;
+  --pub-turquoise-400: #c56745;
+  --pub-turquoise-300: #d98a6d;
 
-  /* Sable / ivoire — fond clair, chaleur, contraste avec le bleu-vert */
-  --pub-ivory-100: #f8f3e6;
-  --pub-ivory-200: #f0e6cd;
-  --pub-sand-300: #e2cf9e;
-  --pub-sand-500: #b8863a;
-  --pub-gold-300: #e6c583;
+  /* Crème Mbàmbulaan — surfaces claires et nuances dérivées */
+  --pub-ivory-100: #f7f3e9;
+  --pub-ivory-200: #eee8dc;
+  --pub-sand-300: #d8cec0;
+  --pub-sand-500: #8c7869;
+  --pub-gold-300: #d6a089;
 
-  /* Gris minéraux — texte, bordures, neutralité */
-  --pub-stone-900: #1c2b29;
-  --pub-stone-700: #3d5350;
-  --pub-stone-500: #647c79;
-  --pub-stone-300: #b9c8c4;
-  --pub-stone-150: #dde5e1;
+  /* Neutres dérivés du marine et du crème */
+  --pub-stone-900: #172331;
+  --pub-stone-700: #3f4b58;
+  --pub-stone-500: #6f7983;
+  --pub-stone-300: #b9b8b2;
+  --pub-stone-150: #dedbd3;
 
   --pub-radius-sm: 12px;
   --pub-radius-md: 20px;
   --pub-radius-lg: 30px;
-  --pub-shadow-card: 0 1px 2px rgba(5, 27, 33, .04), 0 18px 40px rgba(5, 27, 33, .07);
-  --pub-shadow-deep: 0 30px 90px rgba(3, 20, 25, .28);
+  --pub-shadow-card: 0 1px 2px rgba(11, 26, 42, .04), 0 18px 40px rgba(11, 26, 42, .07);
+  --pub-shadow-deep: 0 30px 90px rgba(7, 18, 30, .28);
 
   --pub-font-display: ui-serif, Iowan Old Style, Apple Garamond, Baskerville, "Palatino Linotype", "URW Palladio", P052, serif;
   --pub-ease: cubic-bezier(.22, .8, .28, 1);
@@ -54,20 +60,20 @@
     position: relative;
     isolation: isolate;
     background:
-      radial-gradient(circle at 100% 0%, rgba(184, 134, 58, .05), transparent 46rem),
+      radial-gradient(circle at 100% 0%, rgba(182, 82, 47, .045), transparent 46rem),
       var(--pub-ivory-100);
     color: var(--pub-stone-900);
     font-feature-settings: "cv02", "cv03", "cv11";
   }
 
-  /* Trame discrète évoquant une carte marine — matérialité plutôt que fond plat. */
+  /* Trame discrète évoquant une carte territoriale — matérialité plutôt que fond plat. */
   .pub-scope::before {
     position: fixed;
     inset: 0;
     z-index: 0;
     background-image:
-      linear-gradient(rgba(28, 43, 41, .035) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(28, 43, 41, .035) 1px, transparent 1px);
+      linear-gradient(rgba(11, 26, 42, .035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(11, 26, 42, .035) 1px, transparent 1px);
     background-size: 46px 46px;
     background-position: center;
     content: "";
@@ -99,7 +105,7 @@
     display: inline-flex;
     align-items: center;
     gap: .5rem;
-    color: var(--pub-sand-500);
+    color: var(--pub-turquoise-500);
     font-size: .72rem;
     font-weight: 800;
     letter-spacing: .16em;
@@ -107,7 +113,7 @@
   }
 
   .pub-eyebrow--dark {
-    color: var(--pub-gold-300);
+    color: var(--pub-turquoise-300);
   }
 
   .pub-eyebrow::before {
@@ -126,7 +132,7 @@
     overflow: hidden;
     border: 1px solid var(--pub-stone-150);
     border-radius: var(--pub-radius-md);
-    background: linear-gradient(175deg, #fffefb, #fbf8f1);
+    background: linear-gradient(175deg, #fbf8f1, var(--pub-ivory-100));
     box-shadow: var(--pub-shadow-card);
     transition: transform .28s var(--pub-ease), border-color .28s var(--pub-ease), box-shadow .28s var(--pub-ease);
   }
@@ -135,31 +141,31 @@
     position: absolute;
     inset: 0 0 auto 0;
     height: 2px;
-    background: linear-gradient(90deg, var(--pub-sand-500), transparent 65%);
+    background: linear-gradient(90deg, var(--pub-turquoise-500), transparent 65%);
     content: "";
-    opacity: .55;
+    opacity: .5;
   }
 
   .pub-card:hover {
     transform: translateY(-3px);
     border-color: var(--pub-turquoise-500);
-    box-shadow: 0 1px 2px rgba(5, 27, 33, .06), 0 30px 60px rgba(5, 27, 33, .13);
+    box-shadow: 0 1px 2px rgba(11, 26, 42, .06), 0 30px 60px rgba(11, 26, 42, .13);
   }
 
   .pub-card--quiet {
     border: 1px dashed var(--pub-stone-300);
     border-radius: var(--pub-radius-md);
-    background: rgba(255, 255, 255, .5);
+    background: rgba(247, 243, 233, .72);
   }
 
   .pub-card--dark {
-    border: 1px solid rgba(134, 230, 217, .16);
+    border: 1px solid rgba(217, 138, 109, .16);
     border-radius: var(--pub-radius-lg);
     background:
-      radial-gradient(circle at 82% 10%, rgba(79, 212, 197, .16), transparent 30%),
+      radial-gradient(circle at 82% 10%, rgba(182, 82, 47, .14), transparent 30%),
       linear-gradient(160deg, var(--pub-deep-700), var(--pub-deep-900) 78%);
     box-shadow: var(--pub-shadow-deep);
-    color: #f4f0e4;
+    color: var(--pub-ivory-100);
   }
 
   /* ---------- Boutons ---------- */
@@ -179,12 +185,12 @@
   }
 
   .pub-btn-primary {
-    border: 1px solid var(--pub-turquoise-400);
-    background: var(--pub-turquoise-400);
-    color: var(--pub-deep-900);
-    box-shadow: 0 14px 30px rgba(79, 212, 197, .28);
+    border: 1px solid var(--pub-turquoise-500);
+    background: var(--pub-turquoise-500);
+    color: #fffaf5;
+    box-shadow: 0 14px 30px rgba(182, 82, 47, .22);
   }
-  .pub-btn-primary:hover { background: var(--pub-turquoise-300); transform: translateY(-1px); box-shadow: 0 18px 36px rgba(79, 212, 197, .34); }
+  .pub-btn-primary:hover { background: var(--pub-turquoise-400); transform: translateY(-1px); box-shadow: 0 18px 36px rgba(182, 82, 47, .28); }
 
   .pub-btn-dark {
     border: 1px solid var(--pub-deep-800);
@@ -198,36 +204,35 @@
     background: transparent;
     color: var(--pub-deep-800);
   }
-  .pub-btn-outline:hover { border-color: var(--pub-turquoise-500); background: rgba(34, 184, 171, .06); }
+  .pub-btn-outline:hover { border-color: var(--pub-turquoise-500); background: rgba(182, 82, 47, .055); }
 
   .pub-btn-on-dark {
-    border: 1px solid rgba(255, 255, 255, .22);
-    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(247, 243, 233, .22);
+    background: rgba(247, 243, 233, .06);
     color: #fff;
     backdrop-filter: blur(10px);
   }
-  .pub-btn-on-dark:hover { border-color: rgba(255, 255, 255, .4); background: rgba(255, 255, 255, .12); }
+  .pub-btn-on-dark:hover { border-color: rgba(247, 243, 233, .4); background: rgba(247, 243, 233, .12); }
 
-  /* ---------- Hero / fond littoral ---------- */
+  /* ---------- Hero / fond institutionnel ---------- */
 
   .pub-hero {
     position: relative;
     overflow: hidden;
     background:
-      radial-gradient(circle at 85% 8%, rgba(79, 212, 197, .18), transparent 32%),
-      radial-gradient(circle at 10% 95%, rgba(200, 165, 101, .08), transparent 40%),
+      radial-gradient(circle at 85% 8%, rgba(182, 82, 47, .16), transparent 32%),
+      radial-gradient(circle at 10% 95%, rgba(247, 243, 233, .07), transparent 40%),
       linear-gradient(170deg, var(--pub-deep-700) 0%, var(--pub-deep-900) 68%);
-    color: #f4f0e4;
+    color: var(--pub-ivory-100);
   }
 
   .pub-hero > * { position: relative; z-index: 1; }
 
-  /* Ligne de marée : motif signature en pied de section, plus océanique
-     qu'une simple bordure. */
+  /* Ligne de liaison : motif signature discret en pied de section. */
   .pub-tideline {
     position: relative;
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--pub-sand-500) 18%, var(--pub-sand-500) 82%, transparent);
+    background: linear-gradient(90deg, transparent, var(--pub-turquoise-500) 18%, var(--pub-turquoise-500) 82%, transparent);
     opacity: .45;
   }
 
@@ -239,7 +244,7 @@
     gap: .5rem;
     border: 1px solid var(--pub-stone-150);
     border-radius: 999px;
-    background: #fff;
+    background: #fbf8f1;
     padding: .5rem .85rem;
     color: var(--pub-stone-700);
     font-size: .72rem;
@@ -270,7 +275,7 @@
     flex-direction: column;
     gap: .55rem;
     border: 1px solid var(--pub-stone-150);
-    background: #fff;
+    background: #fbf8f1;
     padding: 1.3rem 1.1rem 1.5rem;
     transition: transform .25s var(--pub-ease), border-color .25s var(--pub-ease), box-shadow .25s var(--pub-ease);
   }
@@ -299,7 +304,7 @@
     font-family: var(--pub-font-display);
     font-style: italic;
     font-size: .78rem;
-    color: var(--pub-sand-500);
+    color: var(--pub-turquoise-500);
   }
 
   .pub-chain-glyph {
@@ -357,7 +362,7 @@
   }
 
   .pub-stat-tile {
-    background: #fff;
+    background: #fbf8f1;
     padding: 1.5rem 1.4rem;
   }
 
@@ -388,7 +393,7 @@
     color: var(--pub-stone-500);
   }
 
-  .pub-stat-tile--dark .pub-stat-detail { color: rgba(255, 255, 255, .5); }
+  .pub-stat-tile--dark .pub-stat-detail { color: rgba(247, 243, 233, .56); }
 
   .pub-stat-source {
     display: block;
@@ -397,10 +402,10 @@
     font-weight: 700;
     letter-spacing: .04em;
     text-transform: uppercase;
-    color: var(--pub-sand-500);
+    color: var(--pub-turquoise-500);
   }
 
-  .pub-stat-tile--dark .pub-stat-source { color: var(--pub-gold-300); }
+  .pub-stat-tile--dark .pub-stat-source { color: var(--pub-turquoise-300); }
 
   /* ---------- Comparaison horizontale simple (dataviz) ---------- */
 
@@ -437,12 +442,18 @@
     border-radius: 14px;
     background: var(--pub-ivory-200);
     padding: .95rem .9rem;
-    transition: background .2s var(--pub-ease), transform .2s var(--pub-ease);
+    transition: background .2s var(--pub-ease), transform .2s var(--pub-ease), color .2s var(--pub-ease);
   }
 
   .pub-loop-node:hover {
-    background: var(--pub-turquoise-400);
+    background: var(--pub-turquoise-500);
     transform: translateY(-2px);
+  }
+
+  .pub-loop-node:hover .pub-loop-number,
+  .pub-loop-node:hover .pub-loop-title,
+  .pub-loop-node:hover .pub-loop-text {
+    color: #fffaf5;
   }
 
   .pub-loop-number {
@@ -450,7 +461,7 @@
     font-family: var(--pub-font-display);
     font-style: italic;
     font-size: .72rem;
-    color: var(--pub-sand-500);
+    color: var(--pub-turquoise-500);
   }
 
   .pub-loop-title {
@@ -480,7 +491,7 @@
       gap: .8rem;
       margin-top: .4rem;
       padding: 0 3%;
-      color: var(--pub-sand-500);
+      color: var(--pub-turquoise-500);
     }
     .pub-loop-return-svg { width: 100%; height: 20px; flex: 1; }
     .pub-loop-return-label {
@@ -494,7 +505,7 @@
   .pub-index {
     font-family: var(--pub-font-display);
     font-size: .8rem;
-    color: var(--pub-sand-500);
+    color: var(--pub-turquoise-500);
     font-style: italic;
   }
 }
