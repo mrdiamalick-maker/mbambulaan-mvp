@@ -9,7 +9,7 @@ import { EditorialPhoto } from "@/components/public/EditorialPhoto";
 
 export const metadata: Metadata = {
   title: "Mbàmbulaan | Infrastructure de coordination",
-  description: "Mbàmbulaan organise la coordination entre territoires, besoins et capacités dans l’économie maritime, en commençant par la pêche artisanale sénégalaise.",
+  description: "Mbàmbulaan organise la coordination entre territoires, situations et capacités dans l’économie maritime, en commençant par la pêche artisanale sénégalaise.",
   alternates: { canonical: "/mbambulaan" }
 };
 
@@ -39,7 +39,7 @@ export default function MbambulaanPage() {
 
       <PublicSectionHero
         eyebrow="Mbàmbulaan"
-        title={<>Mbàmbulaan organise la coordination là où les acteurs, les besoins et les capacités sont <span className="text-[var(--pub-turquoise-300)]">dispersés.</span></>}
+        title={<>Mbàmbulaan organise la coordination là où les acteurs, les situations et les capacités sont <span className="text-[var(--pub-turquoise-300)]">dispersés.</span></>}
         description="Nous commençons par la pêche artisanale sénégalaise : comprendre les territoires, qualifier les situations, relier les bons acteurs et suivre l’action jusqu’au résultat."
         actions={<><Link href="/atlas" className="pub-btn pub-btn-on-dark"><MapPinned size={16}/> Comprendre un territoire</Link><Link href="/solutions" className="pub-btn pub-btn-primary">Décrire une situation <ArrowRight size={16}/></Link></>}
         backgroundImage="/images/mbambulaan-terrain-hero.jpg"
@@ -69,7 +69,7 @@ export default function MbambulaanPage() {
         <section className="mt-16 rounded-[var(--pub-radius-lg)] border border-[var(--pub-stone-150)] bg-white p-6 md:p-10">
           <p className="pub-eyebrow">Comment ça fonctionne</p>
           <h2 className="mt-4 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Une situation devient une action coordonnée.</h2>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--pub-stone-700)]">Chaque interaction enrichit progressivement la connaissance du territoire, du réseau et des capacités disponibles. La coordination devient une boucle continue, pas une transaction ponctuelle.</p>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--pub-stone-700)]">Mbàmbulaan relie les territoires et les capacités, qualifie les situations et coordonne l’action. La boucle ci-dessous décrit comment cette coordination se déroule dans le temps.</p>
           <div className="mt-8"><LoopDiagram/></div>
         </section>
 
@@ -84,7 +84,7 @@ export default function MbambulaanPage() {
           <p className="pub-eyebrow">Entrer dans Mbàmbulaan</p>
           <h2 className="mt-3 max-w-3xl text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Trois portes d’entrée, une même logique de coordination.</h2>
           <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            <article className="pub-card p-6"><p className="text-xs font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-500)]">J’ai une situation à résoudre</p><h3 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Décrire le besoin avant de chercher la réponse.</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Transport, froid, équipement, formation, financement, sourcing ou autre situation : Mbàmbulaan organise la qualification.</p><Link href="/solutions" className="pub-btn pub-btn-primary mt-6">Décrire ma situation <ArrowRight size={16}/></Link></article>
+            <article className="pub-card p-6"><p className="text-xs font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-500)]">J’ai une situation à résoudre</p><h3 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Décrire la situation avant de qualifier le besoin.</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Transport, froid, équipement, formation, financement, sourcing ou autre situation : Mbàmbulaan organise la qualification.</p><Link href="/solutions" className="pub-btn pub-btn-primary mt-6">Décrire ma situation <ArrowRight size={16}/></Link></article>
             <article className="pub-card p-6"><p className="text-xs font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-500)]">Je peux apporter une capacité</p><h3 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Faire connaître une capacité mobilisable.</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Entreprise, ONG, expert, transporteur, formateur, financeur ou organisation : l’entrée dans le réseau reste qualifiée.</p><Link href="/contact?intent=contribution" className="pub-btn pub-btn-outline mt-6">Proposer une capacité <ArrowRight size={16}/></Link></article>
             <article className="rounded-[var(--pub-radius-md)] bg-[var(--pub-deep-800)] p-6 text-white"><p className="text-xs font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-300)]">Je veux agir sur un territoire</p><h3 className="mt-3 text-2xl font-bold tracking-[-.03em]">Comprendre le contexte avant d’intervenir.</h3><p className="mt-3 text-sm leading-6 text-white/62">L’Atlas relie activités, capacités documentées et contenus territoriaux pour préparer une décision ou une intervention.</p><Link href="/atlas" className="pub-btn pub-btn-primary mt-6"><MapPinned size={16}/> Ouvrir l’Atlas</Link></article>
           </div>
