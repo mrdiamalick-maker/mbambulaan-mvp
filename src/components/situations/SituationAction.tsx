@@ -1,8 +1,10 @@
 "use client";
 
-// Restylé en D9 (Lot 4, étape 2/4) — même logique et mêmes commandes
-// qu'avant (availableAction, run()) : aucun changement de comportement,
-// seule la palette change (sarcelle → marine/terre-cuite).
+// Restylé en D9 (Lot 4, étape 2/4 puis resserrage visuel étape 3/3) —
+// même logique et mêmes commandes qu'avant (availableAction, run()) :
+// aucun changement de comportement. Fond plein terre-cuite : c'est la
+// décision/action centrale de la Situation Room, le bloc qui doit le
+// plus se détacher de tous (hiérarchie de contraste demandée).
 import { FormEvent, useState } from "react";
 import { ArrowRight, CheckCircle2, PauseCircle, PlayCircle } from "lucide-react";
 import type { Situation } from "@/domain/types";
@@ -42,8 +44,8 @@ export function SituationAction({ situation }: { situation: Situation }) {
 
   if (!action) {
     return (
-      <Card className="border-[#1d8a5f]/25 bg-[#1d8a5f]/[0.06]">
-        <CardContent className="flex items-center gap-2 p-4 text-sm font-semibold text-[#1d8a5f]">
+      <Card className="overflow-hidden border-none bg-gradient-to-br from-[#1d8a5f] to-[#146144] text-white shadow-lg">
+        <CardContent className="flex items-center gap-2 p-4 text-sm font-semibold">
           <CheckCircle2 size={17} /> Aucune action requise. La situation est réglée.
         </CardContent>
       </Card>
@@ -63,39 +65,39 @@ export function SituationAction({ situation }: { situation: Situation }) {
   };
 
   return (
-    <Card className="border-primary/25 bg-gradient-to-br from-primary/[0.07] via-primary/[0.02] to-transparent">
-      <CardContent className="p-5">
-        <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary"><ResultatIcon size={14} color="#b6522f" /> Action recommandée</p>
-        <h3 className="mt-2 text-lg font-semibold">{labels[action]}</h3>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">{outcomes[action]}</p>
+    <Card className="overflow-hidden border-none bg-gradient-to-br from-[#b6522f] to-[#8a3d20] text-white shadow-lg">
+      <CardContent className="p-6">
+        <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-white/80"><ResultatIcon size={14} color="#fff8f2" /> Action recommandée</p>
+        <h3 className="mt-2 text-xl font-semibold">{labels[action]}</h3>
+        <p className="mt-2 text-sm leading-6 text-white/75">{outcomes[action]}</p>
         {mode ? (
-          <form onSubmit={submit} className="mt-5 space-y-4 border-t pt-4">
+          <form onSubmit={submit} className="mt-5 space-y-4 border-t border-white/15 pt-4">
             {mode === "wait" ? (
               <label className="block text-xs font-semibold">
                 Pourquoi l’intervention est-elle bloquée ?
-                <textarea required rows={3} value={reason} onChange={(e) => setReason(e.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+                <textarea required rows={3} value={reason} onChange={(e) => setReason(e.target.value)} className="mt-1.5 w-full rounded-md border-0 bg-white px-3 py-2 text-sm text-foreground outline-none" />
               </label>
             ) : action === "record_result" ? (
               <>
                 <label className="block text-xs font-semibold">
                   Résultat constaté
-                  <textarea required rows={3} value={result} onChange={(e) => setResult(e.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+                  <textarea required rows={3} value={result} onChange={(e) => setResult(e.target.value)} className="mt-1.5 w-full rounded-md border-0 bg-white px-3 py-2 text-sm text-foreground outline-none" />
                 </label>
                 <label className="block text-xs font-semibold">
                   Élément de confirmation
-                  <input required value={confirmation} onChange={(e) => setConfirmation(e.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+                  <input required value={confirmation} onChange={(e) => setConfirmation(e.target.value)} className="mt-1.5 w-full rounded-md border-0 bg-white px-3 py-2 text-sm text-foreground outline-none" />
                 </label>
               </>
-            ) : <p className="text-sm text-muted-foreground">Confirmez l’action pour mettre à jour la situation et son historique.</p>}
+            ) : <p className="text-sm text-white/75">Confirmez l’action pour mettre à jour la situation et son historique.</p>}
             <div className="flex flex-wrap gap-2">
-              <Button type="submit"><CheckCircle2 size={16} /> Confirmer</Button>
-              <Button type="button" variant="ghost" onClick={() => setMode(null)}>Annuler</Button>
+              <Button type="submit" variant="secondary"><CheckCircle2 size={16} /> Confirmer</Button>
+              <Button type="button" variant="ghost" className="text-white hover:bg-white/10 hover:text-white" onClick={() => setMode(null)}>Annuler</Button>
             </div>
           </form>
         ) : (
           <div className="mt-5 flex flex-wrap gap-2">
-            <Button onClick={() => setMode("primary")}>{action === "resume" ? <PlayCircle size={17} /> : <ArrowRight size={17} />} {labels[action]}</Button>
-            {situation.status === "intervention" && <Button variant="outline" onClick={() => setMode("wait")}><PauseCircle size={17} /> Signaler un blocage</Button>}
+            <Button variant="secondary" onClick={() => setMode("primary")}>{action === "resume" ? <PlayCircle size={17} /> : <ArrowRight size={17} />} {labels[action]}</Button>
+            {situation.status === "intervention" && <Button variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={() => setMode("wait")}><PauseCircle size={17} /> Signaler un blocage</Button>}
           </div>
         )}
       </CardContent>

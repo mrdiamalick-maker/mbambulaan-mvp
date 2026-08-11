@@ -9,7 +9,7 @@
 // consommateur) est retiré à cette étape.
 import { useState } from "react";
 import { Mail, MessageCircleMore, MessageSquare, PhoneCall } from "lucide-react";
-import { communicationChannelLabels, communicationStatusLabels, evidenceTypeLabels, type CommunicationChannel, type ProductState, type Situation } from "@/domain/types";
+import { communicationChannelLabels, communicationStatusLabels, evidenceTypeLabels, type CommunicationChannel, type CommunicationStatus, type ProductState, type Situation } from "@/domain/types";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { EngagementIcon, PreuveIcon } from "@/components/etat/MotifIcons";
 import { ChannelBadge, TrustBadge } from "@/components/shared/StatusBadges";
@@ -42,6 +42,16 @@ const statusLabels: Record<Situation["status"], string> = {
   attente: "En attente",
   resultat: "Résultat enregistré",
   reglee: "Réglée"
+};
+
+const communicationStatusVariant: Record<CommunicationStatus, "marine" | "amber" | "terracotta" | "success"> = {
+  prepare: "marine",
+  envoye: "marine",
+  remis: "success",
+  lu: "success",
+  repondu: "success",
+  relance_requise: "amber",
+  echec: "terracotta"
 };
 
 const capacityTypeLabels: Record<"glace" | "stockage" | "transport" | "transformation", string> = {
@@ -98,7 +108,7 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
               <p className="mt-3 max-w-2xl text-sm text-sidebar-foreground/70">{situation.description}</p>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <Badge variant="secondary">{statusLabels[situation.status]}</Badge>
-                <Badge variant={situation.priority === "critique" ? "destructive" : "outline"}>{priorityLabels[situation.priority]}</Badge>
+                <Badge variant={tag === "critique" ? "terracotta" : tag === "vigilance" ? "amber" : "marine"}>{priorityLabels[situation.priority]}</Badge>
                 <TrustBadge trust={situation.trust} />
                 <ChannelBadge signal={signal} />
               </div>
@@ -110,7 +120,9 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
       <div className="grid gap-4 lg:grid-cols-3">
         <InfoCard label="Territoire" value={territory?.name ?? "Non défini"} />
         <InfoCard label="Responsable" value={responsible?.name ?? "À désigner"} />
-        <InfoCard label="Prochaine décision" value={situation.nextStep} />
+        {/* Seule tuile décisionnelle des 3 — accent terre-cuite, les
+            deux autres restent neutres (information de contexte). */}
+        <InfoCard label="Prochaine décision" value={situation.nextStep} accent />
       </div>
 
       <SituationAction situation={situation} />
@@ -151,7 +163,10 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
         <Card>
           <CardContent className="p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary"><PreuveIcon size={14} color="#b6522f" /> Preuve</p>
+              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary">
+                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#b6522f]"><PreuveIcon size={14} color="#fff8f2" /></span>
+                Preuve
+              </p>
               <Button variant="outline" size="sm" onClick={() => setEvidenceDrawerOpen(true)}>Enregistrer une preuve</Button>
             </div>
             {evidences.length === 0 ? (
@@ -164,7 +179,7 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
                     <div key={evidence.id} className="rounded-lg border bg-card px-3.5 py-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold">{evidenceTypeLabels[evidence.type]} — {evidence.label}</p>
-                        {evidence.commitmentId && <Badge variant="outline">Engagement lié</Badge>}
+                        {evidence.commitmentId && <Badge variant="marine">Engagement lié</Badge>}
                       </div>
                       <p className="mt-0.5 text-xs text-muted-foreground">{evidence.detail}</p>
                       <p className="mt-1 text-[11px] text-muted-foreground/70">
@@ -182,7 +197,10 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
         <Card>
           <CardContent className="p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">Communication</p>
+              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#1d4468]">
+                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#1d4468]"><MessageCircleMore size={14} color="#eef2f4" /></span>
+                Communication
+              </p>
               <Button variant="outline" size="sm" onClick={() => setCommunicationDrawerOpen(true)}>Consigner une communication</Button>
             </div>
             {communications.length === 0 ? (
@@ -197,8 +215,8 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
                       <div className="flex flex-wrap items-center gap-2">
                         <Icon size={14} className="text-[#1d4468]" />
                         <p className="text-sm font-semibold">{communication.subject}</p>
-                        <Badge variant="outline">{communicationChannelLabels[communication.channel]}</Badge>
-                        <Badge variant="secondary">{communicationStatusLabels[communication.status]}</Badge>
+                        <Badge variant="marine">{communicationChannelLabels[communication.channel]}</Badge>
+                        <Badge variant={communicationStatusVariant[communication.status]}>{communicationStatusLabels[communication.status]}</Badge>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">{communication.body}</p>
                       <p className="mt-1 text-[11px] text-muted-foreground/70">
@@ -251,7 +269,17 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
   );
 }
 
-function InfoCard({ label, value }: { label: string; value: string }) {
+function InfoCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  if (accent) {
+    return (
+      <Card className="overflow-hidden border-none bg-gradient-to-br from-[#b6522f] to-[#8a3d20] text-white shadow-lg">
+        <CardContent className="p-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-white/70">{label}</p>
+          <p className="mt-2 text-base font-semibold">{value}</p>
+        </CardContent>
+      </Card>
+    );
+  }
   return (
     <Card>
       <CardContent className="p-4">
