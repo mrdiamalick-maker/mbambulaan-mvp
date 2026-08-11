@@ -8,7 +8,7 @@ const columns = [
   },
   {
     title: "Agir",
-    links: [["Trouver une solution", "/solutions"], ["Proposer mes services", "/contact?intent=contribution"], ["Contact", "/contact"], ["Accès professionnel", "/connexion"]]
+    links: [["Décrire une situation", "/solutions"], ["Proposer une capacité", "/contact?intent=contribution"], ["Contact", "/contact"], ["Accès professionnel", "/connexion"]]
   },
   {
     title: "Mbàmbulaan",
@@ -28,7 +28,7 @@ export function PublicFooter() {
               <span className="text-xs text-white/45">Économie maritime · terrain, réseau, technologie</span>
             </span>
           </Link>
-          <p className="mt-5 text-sm leading-6 text-white/54">Mbàmbulaan construit une infrastructure de coordination pour l’économie maritime, en commençant par la filière halieutique sénégalaise.</p>
+          <p className="mt-5 text-sm leading-6 text-white/54">Mbàmbulaan relie territoires, situations et capacités pour mieux coordonner l’action, en commençant par la pêche artisanale sénégalaise.</p>
           <Link href="/atlas" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-turquoise-300)]"><MapPinned size={15}/> Ouvrir l’Atlas</Link>
           <p className="mt-5 text-[11px] leading-5 text-white/35">Les données de démonstration ou d’illustration sont identifiées comme telles et ne sont jamais présentées comme des données officielles.</p>
         </div>
@@ -48,7 +48,7 @@ export function PublicFooter() {
       <div className="pub-tideline mx-auto mt-10 max-w-[1500px]" />
       <div className="mx-auto mt-6 flex max-w-[1500px] flex-col gap-2 text-[11px] text-white/32 sm:flex-row sm:justify-between">
         <span>© 2026 Mbàmbulaan Sénégal</span>
-        <span>Connecter les acteurs · coordonner les territoires · faire circuler la valeur</span>
+        <span>Relier les territoires · qualifier les situations · mobiliser les capacités · coordonner l’action</span>
       </div>
     </footer>
   );
