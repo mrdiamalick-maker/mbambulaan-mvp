@@ -8,7 +8,7 @@
 // l'Institution, Lot 2).
 import { useState } from "react";
 import { Handshake, UsersRound } from "lucide-react";
-import type { ActionStatus, CoordinationSpace, ProductState } from "@/domain/types";
+import type { CoordinationSpace, ProductState } from "@/domain/types";
 import { decisionTypeLabels } from "@/domain/types";
 import { DecisionIcon } from "@/components/etat/MotifIcons";
 import { Badge } from "@/components/ui/badge";
@@ -16,19 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DecisionForm } from "@/components/coordination/DecisionForm";
-
-const commitmentStatusLabel: Record<ActionStatus, string> = {
-  a_faire: "À faire",
-  en_cours: "En cours",
-  bloquee: "Bloquée",
-  terminee: "Terminée"
-};
-const commitmentStatusVariant: Record<ActionStatus, "marine" | "amber" | "terracotta" | "success"> = {
-  a_faire: "marine",
-  en_cours: "amber",
-  bloquee: "terracotta",
-  terminee: "success"
-};
+import { commitmentStatusLabel, commitmentStatusVariant } from "@/lib/status-tokens";
 
 export function CoordinationProposal({
   coordination,

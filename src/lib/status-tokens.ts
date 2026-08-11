@@ -10,7 +10,7 @@
 // ce lot — le risque de dérive entre les deux est nul, les valeurs
 // étant verrouillées par le référentiel.
 import { Anchor, Footprints, MessageCircleMore, PhoneCall } from "lucide-react";
-import type { Signal, Situation, TrustLevel } from "@/domain/types";
+import type { ActionStatus, Signal, Situation, TrustLevel } from "@/domain/types";
 
 export type GlyphTag = "stable" | "vigilance" | "critique";
 
@@ -58,4 +58,21 @@ export const channelMeta: Record<Signal["channel"], { label: string; icon: typeo
   telephone: { label: "Téléphone", icon: PhoneCall },
   whatsapp_structure: { label: "WhatsApp", icon: MessageCircleMore },
   poste_quai: { label: "Poste de quai", icon: Anchor }
+};
+
+// Statut d'un engagement (Commitment.status) — introduit par
+// CoordinationProposal.tsx (Lot 4), repris tel quel par la page de
+// détail /app/coordination/[id] (passe de cohérence pré-Lot 6) : un
+// seul jeu de libellés/couleurs pour ne pas en faire dériver deux.
+export const commitmentStatusLabel: Record<ActionStatus, string> = {
+  a_faire: "À faire",
+  en_cours: "En cours",
+  bloquee: "Bloquée",
+  terminee: "Terminée"
+};
+export const commitmentStatusVariant: Record<ActionStatus, "marine" | "amber" | "terracotta" | "success"> = {
+  a_faire: "marine",
+  en_cours: "amber",
+  bloquee: "terracotta",
+  terminee: "success"
 };
