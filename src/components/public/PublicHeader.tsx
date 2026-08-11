@@ -39,7 +39,7 @@ export function PublicHeader({ dark = false }: { dark?: boolean }) {
             <MapPinned size={15} /> Ouvrir l’Atlas
           </Link>
           <Link href="/solutions" className="pub-btn pub-btn-primary hidden sm:inline-flex">
-            <Compass size={15} /> Trouver une solution
+            <Compass size={15} /> Décrire une situation
           </Link>
 
           <details className="group relative xl:hidden">
@@ -57,7 +57,7 @@ export function PublicHeader({ dark = false }: { dark?: boolean }) {
                   <MapPinned size={16} /> Ouvrir l’Atlas
                 </Link>
                 <Link href="/solutions" className="mt-1 flex items-center gap-2 rounded-xl bg-[var(--pub-deep-800)] px-4 py-3 text-sm font-bold text-white">
-                  <Compass size={16} /> Trouver une solution
+                  <Compass size={16} /> Décrire une situation
                 </Link>
                 <Link href="/contact" className="mt-1 block rounded-xl px-4 py-3 text-sm font-bold text-[var(--pub-deep-800)]">Contact</Link>
                 <Link href="/connexion" className="block rounded-xl px-4 py-3 text-sm font-semibold text-[var(--pub-stone-500)]">Accès professionnel</Link>
