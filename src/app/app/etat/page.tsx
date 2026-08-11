@@ -424,7 +424,10 @@ export default function EtatPage() {
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">Situations critiques à arbitrer.</h2>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{situationsAArbitrer.length} situation(s) de risque élevé ou critique attendent une décision, sur {state.situations.filter((item) => item.status !== "reglee").length} dossier(s) ouverts.</p>
           </div>
-          <div className="flex shrink-0 gap-2">
+          {/* Lot 7 (étape 4/4, audit mobile) : shrink-0 empêchait ces deux
+              boutons de passer à la ligne sur petit écran (390px) — seul
+              débordement horizontal réel trouvé sur tout le Produit. */}
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setSignalDrawerOpen(true)}><Radio /> Signaler une situation</Button>
             <Button variant="ghost" asChild><Link href="/app/situations">Voir toutes les situations <ArrowRight /></Link></Button>
           </div>
