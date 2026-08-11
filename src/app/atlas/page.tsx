@@ -23,7 +23,7 @@ export default function PublicAtlasPage() {
         eyebrow="Atlas Mbàmbulaan"
         title={<>Comprendre un territoire avant de décider <span className="text-[var(--pub-turquoise-300)]">où agir.</span></>}
         description="L’Atlas public rassemble des repères territoriaux, des activités et des capacités documentées pour donner un contexte commun. Il n’expose ni opérations individuelles, ni volumes privés, ni disponibilité en temps réel."
-        actions={<><Link href="/solutions?source=atlas" className="pub-btn pub-btn-primary">Trouver une solution <ArrowRight size={16}/></Link><Link href="/contact?intent=programme&source=atlas" className="pub-btn pub-btn-on-dark"><Compass size={16}/> Étudier une intervention</Link></>}
+        actions={<><Link href="/solutions?source=atlas" className="pub-btn pub-btn-primary">Décrire une situation <ArrowRight size={16}/></Link><Link href="/contact?intent=programme&source=atlas" className="pub-btn pub-btn-on-dark"><Compass size={16}/> Étudier une intervention</Link></>}
         backgroundImage="/images/atlas-cover.jpg"
         backgroundAlt="Quai de pêche artisanale sur le littoral sénégalais."
       />
