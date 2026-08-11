@@ -38,7 +38,13 @@ const operationalGroups: NavGroup[] = [
     label: "Filière",
     items: [
       { href: "/app/operations", module: "operations", label: "Opérations", icon: Anchor, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur"] },
-      { href: "/app/situations", module: "operations", label: "Situations", icon: ClipboardList, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur"] },
+      // Situations : registre séparé conservé uniquement pour les rôles
+      // qui n'ont pas la file fusionnée de CoordinatorHub (Lot 3,
+      // /app/travail). Pour administrateur/gestionnaire_organisation/
+      // coordinateur/partenaire, /app/situations redirige désormais
+      // vers /app/travail — ne pas les lister ici, ce serait une entrée
+      // de nav vers une redirection, pas une destination.
+      { href: "/app/situations", module: "operations", label: "Situations", icon: ClipboardList, roles: ["operateur", "capitaine", "mareyeur", "transformateur", "prestataire"] },
       { href: "/app/coordination", module: "coordination", label: "Coordinations", icon: Handshake, roles: ["administrateur", "operateur", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur", "partenaire"] },
       { href: "/app/atlas", module: "territory_intelligence", label: "Territoires & capacités", icon: Globe2, roles: [] },
       { href: "/app/marches", module: "market_intelligence", label: "Flux & débouchés", icon: Store, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur"] },

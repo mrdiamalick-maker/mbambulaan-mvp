@@ -2,7 +2,7 @@
 
 import { useProduct } from "@/components/providers/ProductProvider";
 import { UnifiedWorkView } from "@/components/work/UnifiedWorkView";
-import { CommandCenter } from "@/components/work/CommandCenter";
+import { CoordinatorHub } from "@/components/work/CoordinatorHub";
 
 export default function WorkPage() {
   const { state, role, actorId } = useProduct();
@@ -20,9 +20,10 @@ export default function WorkPage() {
   }
 
   return (
-    <CommandCenter
+    <CoordinatorHub
       state={state}
       actorId={actorId}
+      role={role}
     />
   );
 }
