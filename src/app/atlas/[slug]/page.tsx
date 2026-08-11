@@ -47,7 +47,7 @@ export default async function TerritoryDetailPage({ params }: { params: Promise<
               <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-300)]"><span>{territory.type}</span><span className="text-white/30">·</span><span>{territory.region}{territory.department ? ` · ${territory.department}` : ""}</span></div>
               <h1 className="pub-display mt-4 text-[clamp(3rem,7vw,5.8rem)] not-italic leading-[.98]">{territory.name}</h1>
               <p className="mt-5 max-w-3xl text-base leading-7 text-white/70">{territory.description}</p>
-              <div className="mt-8 flex flex-wrap gap-3"><Link href={`/solutions?territory=${encodeURIComponent(territory.name)}`} className="pub-btn pub-btn-primary">Trouver une solution ici <ArrowRight size={16}/></Link><Link href={`/contact?intent=programme&territory=${encodeURIComponent(territory.name)}`} className="pub-btn pub-btn-on-dark"><Compass size={16}/> Étudier une intervention</Link></div>
+              <div className="mt-8 flex flex-wrap gap-3"><Link href={`/solutions?territory=${encodeURIComponent(territory.name)}`} className="pub-btn pub-btn-primary">Décrire une situation ici <ArrowRight size={16}/></Link><Link href={`/contact?intent=programme&territory=${encodeURIComponent(territory.name)}`} className="pub-btn pub-btn-on-dark"><Compass size={16}/> Étudier une intervention</Link></div>
             </div>
             <div className="rounded-[var(--pub-radius-md)] border border-white/12 bg-white/[.06] p-5 backdrop-blur-sm">
               <p className="text-[10px] font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-300)]">Référentiel public</p>
