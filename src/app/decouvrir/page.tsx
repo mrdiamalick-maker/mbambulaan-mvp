@@ -47,7 +47,7 @@ export default function DiscoverPage() {
         eyebrow="Découvrir"
         title={<>Comprendre la filière pour mieux savoir <span className="text-[var(--pub-turquoise-300)]">où agir.</span></>}
         description="Mbàmbulaan relie métiers, territoires, infrastructures et situations concrètes pour rendre la filière plus lisible avant une décision ou une demande d’action."
-        actions={<><Link href="/atlas" className="pub-btn pub-btn-on-dark"><Compass size={16}/> Ouvrir l’Atlas</Link><Link href="/solutions" className="pub-btn pub-btn-primary">Trouver une solution <ArrowRight size={16}/></Link></>}
+        actions={<><Link href="/atlas" className="pub-btn pub-btn-on-dark"><Compass size={16}/> Ouvrir l’Atlas</Link><Link href="/solutions" className="pub-btn pub-btn-primary">Décrire une situation <ArrowRight size={16}/></Link></>}
         backgroundImage="/images/decouvrir-cover.jpg"
         backgroundAlt="Débarquement et transformation artisanale sur un quai sénégalais."
       />
@@ -90,8 +90,8 @@ export default function DiscoverPage() {
 
       <section className="bg-[var(--pub-deep-900)] px-5 py-14 text-white md:px-10 md:py-16">
         <div className="mx-auto grid max-w-[1500px] gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div><p className="text-xs font-black uppercase tracking-[.14em] text-[var(--pub-turquoise-300)]">Passer à l’action</p><h2 className="mt-3 max-w-3xl text-3xl font-[740] tracking-[-.04em]">Un sujet correspond à une situation réelle ?</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">Décrivez votre besoin. Mbàmbulaan le qualifie, le contextualise et organise la suite avec les acteurs pertinents.</p></div>
-          <Link href="/solutions" className="pub-btn pub-btn-primary min-h-12">Décrire mon besoin <ArrowRight size={17}/></Link>
+          <div><p className="text-xs font-black uppercase tracking-[.14em] text-[var(--pub-turquoise-300)]">Passer à l’action</p><h2 className="mt-3 max-w-3xl text-3xl font-[740] tracking-[-.04em]">Un sujet correspond à une situation réelle ?</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">Décrivez la situation. Mbàmbulaan qualifie le besoin, le contextualise et organise la suite avec les acteurs pertinents.</p></div>
+          <Link href="/solutions" className="pub-btn pub-btn-primary min-h-12">Décrire ma situation <ArrowRight size={17}/></Link>
         </div>
       </section>
       <PublicFooter />
