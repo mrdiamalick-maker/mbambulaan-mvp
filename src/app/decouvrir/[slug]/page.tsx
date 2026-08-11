@@ -77,8 +77,8 @@ export default async function ContentDetailPage({ params }: { params: Promise<{ 
         <section className="mt-12 rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-white p-6 md:p-7">
           <p className="pub-eyebrow">Passer de la compréhension à l’action</p>
           <h2 className="mt-3 text-2xl font-bold tracking-[-.035em] text-[var(--pub-deep-900)]">Ce sujet correspond à une situation réelle ?</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--pub-stone-700)]">Décrivez le besoin, le territoire et le contexte. Mbàmbulaan qualifie la situation avant d’organiser la suite.</p>
-          <Link href={item.cta?.href ?? "/solutions"} className="pub-btn pub-btn-primary mt-6">{item.cta?.label ?? "Décrire mon besoin"} <ArrowRight size={16}/></Link>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--pub-stone-700)]">Décrivez la situation, le territoire et le contexte. Mbàmbulaan qualifie ensuite le besoin avant d’organiser la suite.</p>
+          <Link href={item.cta?.href ?? "/solutions"} className="pub-btn pub-btn-primary mt-6">{item.cta?.label ?? "Décrire ma situation"} <ArrowRight size={16}/></Link>
         </section>
       </section>
 
