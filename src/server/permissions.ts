@@ -45,7 +45,11 @@ const allowed: Record<Role, Command["type"][]> = {
     "convert_post",
     "flag_price"
   ],
-  capitaine: ["announce_return", "create_signal", "create_community_post"],
+  // log_communication ajouté au Lot 6 : le capitaine simule désormais
+  // lui-même un appel/WhatsApp depuis /app/terrain (§11.1 du spec
+  // maître), plutôt que ce geste ne soit réservé qu'aux rôles de
+  // coordination.
+  capitaine: ["announce_return", "create_signal", "log_communication", "create_community_post"],
   mareyeur: ["accept_opportunity", "complete_logistics", "create_service_request", "create_community_post", "convert_post"],
   transformateur: ["accept_opportunity", "complete_logistics", "create_service_request", "create_community_post", "convert_post"],
   prestataire: ["start_intervention", "wait", "resume", "record_result", "record_evidence", "create_community_post"],

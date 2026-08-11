@@ -175,6 +175,21 @@ async function ensureDemoAccount() {
       passwordHash,
       failedAttempts: 0,
       lockedUntil: null
+    },
+    {
+      id: "acc-demo-capitaine",
+      tenantId: "tenant-demo",
+      email: "capitaine@mbambulaan.sn",
+      role: "capitaine",
+      actorId: "act-capitaine",
+      organizationId: null,
+      fullName: "Compte de démonstration — Capitaine",
+      status: "active",
+      createdAt: new Date().toISOString(),
+      lastLoginAt: null,
+      passwordHash,
+      failedAttempts: 0,
+      lockedUntil: null
     }
   );
 }

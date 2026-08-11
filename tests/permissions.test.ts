@@ -36,3 +36,14 @@ test("créer un programme (besoin collectif) reste réservé aux mandats de coor
   assert.throws(() => assertCan("partenaire", command), /mandat/);
   assert.throws(() => assertCan("mareyeur", command), /mandat/);
 });
+
+test("le capitaine peut simuler un appel/WhatsApp depuis le Terrain mobile (Lot 6)", () => {
+  const command = {
+    type: "log_communication" as const,
+    actorId: "act-capitaine",
+    channel: "telephone" as const,
+    subject: "Retour de pêche",
+    body: "Confirmation du retour à Joal."
+  };
+  assert.doesNotThrow(() => assertCan("capitaine", command));
+});
