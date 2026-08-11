@@ -278,7 +278,77 @@ try {
   sessionCookie = "";
   await expectStatus("/api/state", 401);
 
-  console.log(`Smoke E2E: authentification réelle, Espace État (parcours, missions, vigilance, rapport bailleurs), Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
+  // Parcours Terrain mobile : rejeu du critère §21.15 (rejouer le parcours
+  // depuis un rôle terrain mobile) — connexion capitaine réelle, entrée
+  // technique distincte (/app/terrain, D9), confirmation de retour,
+  // appel/WhatsApp simulé et signalement, tous réellement écrits dans le
+  // state (pas la simulation décorative retirée avant le Lot 6).
+  const captainLogin = await expectOk("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "capitaine@mbambulaan.sn", password: process.env.DEMO_ACCOUNT_PASSWORD ?? "demo-mbambulaan-2026" })
+  });
+  const captainCookie = captainLogin.headers.get("set-cookie");
+  if (!captainCookie) throw new Error("La connexion capitaine n'établit pas de session.");
+  sessionCookie = captainCookie.split(";")[0];
+
+  await expectOk("/app/terrain");
+
+  // Garde de rôle, même principe que /app/etat plus haut : un mandat
+  // capitaine ne doit voir ni l'Espace État ni l'Administration.
+  const etatAsCaptain = await (await expectOk("/app/etat")).text();
+  if (etatAsCaptain.includes("qualifie et signale")) {
+    throw new Error("/app/etat reste visible pour un mandat capitaine.");
+  }
+  const administrationAsCaptain = await (await expectOk("/app/administration")).text();
+  if (administrationAsCaptain.includes("Mandats actifs")) {
+    throw new Error("/app/administration reste visible pour un mandat capitaine.");
+  }
+
+  // Pas de nouveau /api/demo/reset ici : reset_demo n'est pas dans le
+  // mandat capitaine (à raison — un capitaine ne doit pas pouvoir effacer
+  // la démonstration), et ce n'est pas nécessaire : en mode démo
+  // (mémoire locale), demoState voyage dans chaque requête plutôt que
+  // d'être tenu côté serveur — celui déjà en main (dernier reset, avant
+  // la section Public) est toujours "frais", trip-joal compris.
+  const tripBefore = demoState.trips.find((item) => item.id === "trip-joal");
+  if (tripBefore?.status !== "en_mer") throw new Error("Le voyage de démonstration ne démarre pas 'en_mer' comme attendu par /app/terrain.");
+
+  const terrainConfirm = await expectOk("/api/actions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Idempotency-Key": `smoke-terrain-confirm-${crypto.randomUUID()}` },
+    body: JSON.stringify({ type: "announce_return", tripId: "trip-joal", demoState })
+  });
+  demoState = (await terrainConfirm.json()).state;
+  if (demoState.trips.find((item) => item.id === "trip-joal")?.status !== "retour_annonce") {
+    throw new Error("La confirmation de retour terrain ne fait pas progresser le voyage.");
+  }
+
+  const terrainCall = await expectOk("/api/actions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Idempotency-Key": `smoke-terrain-call-${crypto.randomUUID()}` },
+    body: JSON.stringify({ type: "log_communication", channel: "telephone", subject: "Appel au quai", body: "Smoke test : point rapide au quai.", demoState })
+  });
+  demoState = (await terrainCall.json()).state;
+  if (!demoState.communications.some((item) => item.subject === "Appel au quai")) {
+    throw new Error("L'appel simulé depuis le Terrain mobile n'est pas enregistré.");
+  }
+
+  const terrainSignal = await expectOk("/api/actions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Idempotency-Key": `smoke-terrain-signal-${crypto.randomUUID()}` },
+    body: JSON.stringify({ type: "create_signal", territoryId: "joal", title: "Smoke test : glace insuffisante", description: "Signalement transmis depuis le Terrain mobile.", channel: "terrain", demoState })
+  });
+  demoState = (await terrainSignal.json()).state;
+  if (!demoState.signals.some((item) => item.title === "Smoke test : glace insuffisante")) {
+    throw new Error("Le signalement depuis le Terrain mobile n'est pas enregistré.");
+  }
+
+  await expectOk("/api/auth/logout", { method: "POST" });
+  sessionCookie = "";
+  await expectStatus("/api/state", 401);
+
+  console.log(`Smoke E2E: authentification réelle, Espace État (parcours, missions, vigilance, rapport bailleurs), Terrain mobile (entrée dédiée, retour, appel simulé, signalement), Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
 } finally {
   server?.kill("SIGTERM");
 }
