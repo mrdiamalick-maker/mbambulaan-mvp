@@ -192,6 +192,19 @@ export type ServiceRequestIntent =
   | "sourcing"
   | "autre";
 
+export const serviceRequestIntentLabels: Record<ServiceRequestIntent, string> = {
+  achat: "Achat",
+  transformation: "Transformation",
+  conservation: "Conservation",
+  transport: "Transport",
+  equipement: "Équipement",
+  maintenance: "Maintenance",
+  formation: "Formation",
+  financement: "Financement",
+  sourcing: "Sourcing",
+  autre: "Autre"
+};
+
 export interface ServiceRequest {
   id: string;
   reference: string;

@@ -19,3 +19,20 @@ test("les permissions suivent le mandat sans créer de produit séparé", () => 
     () => assertCan("institution", { type: "prioritize", situationId: "sit-glace", actorId: "act-institution" })
   );
 });
+
+test("créer un programme (besoin collectif) reste réservé aux mandats de coordination (Lot 5)", () => {
+  const command = {
+    type: "create_initiative" as const,
+    actorId: "act-coordinateur",
+    title: "Programme",
+    objective: "Objectif",
+    budgetFcfa: 1000000,
+    serviceRequestIds: ["need-formation-mbour", "need-formation-joal"]
+  };
+  assert.doesNotThrow(() => assertCan("coordinateur", command));
+  assert.doesNotThrow(() => assertCan("administrateur", command));
+  assert.doesNotThrow(() => assertCan("institution", command));
+  assert.doesNotThrow(() => assertCan("gestionnaire_organisation", command));
+  assert.throws(() => assertCan("partenaire", command), /mandat/);
+  assert.throws(() => assertCan("mareyeur", command), /mandat/);
+});

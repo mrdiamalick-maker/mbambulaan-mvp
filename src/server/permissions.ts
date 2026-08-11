@@ -25,6 +25,7 @@ const all: Command["type"][] = [
   "create_community_post",
   "convert_post",
   "flag_price",
+  "create_initiative",
   "reset_demo"
 ];
 
@@ -48,9 +49,9 @@ const allowed: Record<Role, Command["type"][]> = {
   mareyeur: ["accept_opportunity", "complete_logistics", "create_service_request", "create_community_post", "convert_post"],
   transformateur: ["accept_opportunity", "complete_logistics", "create_service_request", "create_community_post", "convert_post"],
   prestataire: ["start_intervention", "wait", "resume", "record_result", "record_evidence", "create_community_post"],
-  gestionnaire_organisation: ["prioritize", "coordinate", "create_decision", "accept_opportunity", "create_community_post", "convert_post"],
+  gestionnaire_organisation: ["prioritize", "coordinate", "create_decision", "create_initiative", "accept_opportunity", "create_community_post", "convert_post"],
   coordinateur: all,
-  institution: ["create_signal", "prioritize", "coordinate", "create_decision", "log_communication", "plan_field_commitment", "close", "flag_price", "reset_demo"],
+  institution: ["create_signal", "prioritize", "coordinate", "create_decision", "create_initiative", "log_communication", "plan_field_commitment", "close", "flag_price", "reset_demo"],
   partenaire: ["create_community_post"]
 };
 

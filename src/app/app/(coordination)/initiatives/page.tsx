@@ -4,6 +4,7 @@ import { Banknote, CircleDollarSign, Flag, Target, UsersRound } from "lucide-rea
 import { useProduct } from "@/components/providers/ProductProvider";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ExportActions } from "@/components/reporting/ExportActions";
+import { CollectiveNeedsPanel } from "@/components/coordination/CollectiveNeedsPanel";
 
 const money = new Intl.NumberFormat("fr-FR", { notation: "compact", style: "currency", currency: "XOF", maximumFractionDigits: 0 });
 
@@ -23,6 +24,7 @@ export default function InitiativesPage() {
     <>
       <PageHeader eyebrow="Transformation territoriale" title="Initiatives & financements" description="Les difficultés récurrentes deviennent des initiatives structurées, reliées aux territoires, aux décisions, aux financements et aux résultats attendus." />
       <div className="space-y-6 p-5 lg:p-8">
+        <CollectiveNeedsPanel state={state} />
         <section className="surface flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between"><div><p className="label">Portefeuille de démonstration</p><h2 className="mt-2 text-xl font-bold">{state.initiatives.length} programmes · {money.format(state.initiatives.reduce((sum, item) => sum + item.budgetFcfa, 0))}</h2><p className="mt-1 text-sm text-[#60737a]">Besoins, conditions et statuts restent distincts des engagements fermes.</p></div><ExportActions filename="mbambulaan-programmes-financements" rows={portfolioRows} compact /></section>
         {state.initiatives.map((initiative) => {
           const secured = initiative.funding.filter((item) => item.status === "confirme").reduce((sum, item) => sum + item.amountFcfa, 0);
