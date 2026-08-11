@@ -145,52 +145,31 @@ async function ensureDemoAccount() {
   demoSeeded = true;
   const password = process.env.DEMO_ACCOUNT_PASSWORD ?? "demo-mbambulaan-2026";
   const passwordHash = await hashPassword(password);
+  const build = (id: string, email: string, role: Role, actorId: string, fullName: string): StoredAccount => ({
+    id,
+    tenantId: "tenant-demo",
+    email,
+    role,
+    actorId,
+    organizationId: null,
+    fullName,
+    status: "active",
+    createdAt: new Date().toISOString(),
+    lastLoginAt: null,
+    passwordHash,
+    failedAttempts: 0,
+    lockedUntil: null
+  });
   memoryAccounts.push(
-    {
-      id: "acc-demo-coordinateur",
-      tenantId: "tenant-demo",
-      email: "demo@mbambulaan.sn",
-      role: "coordinateur",
-      actorId: "act-coordinateur",
-      organizationId: null,
-      fullName: "Compte de démonstration",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      lastLoginAt: null,
-      passwordHash,
-      failedAttempts: 0,
-      lockedUntil: null
-    },
-    {
-      id: "acc-demo-ministere",
-      tenantId: "tenant-demo",
-      email: "ministere@mbambulaan.sn",
-      role: "institution",
-      actorId: "act-institution",
-      organizationId: null,
-      fullName: "Compte de démonstration — Ministère",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      lastLoginAt: null,
-      passwordHash,
-      failedAttempts: 0,
-      lockedUntil: null
-    },
-    {
-      id: "acc-demo-capitaine",
-      tenantId: "tenant-demo",
-      email: "capitaine@mbambulaan.sn",
-      role: "capitaine",
-      actorId: "act-capitaine",
-      organizationId: null,
-      fullName: "Compte de démonstration — Capitaine",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      lastLoginAt: null,
-      passwordHash,
-      failedAttempts: 0,
-      lockedUntil: null
-    }
+    build("acc-demo-coordinateur", "demo@mbambulaan.sn", "coordinateur", "act-coordinateur", "Compte de démonstration"),
+    build("acc-demo-ministere", "ministere@mbambulaan.sn", "institution", "act-institution", "Compte de démonstration — Ministère"),
+    build("acc-demo-capitaine", "capitaine@mbambulaan.sn", "capitaine", "act-capitaine", "Compte de démonstration — Capitaine"),
+    // Lot 7 — un compte par rôle hors périmètre du Lot 6, pour pouvoir
+    // se connecter et démontrer chaque expérience task-first dédiée.
+    build("acc-demo-operateur", "operateur@mbambulaan.sn", "operateur", "act-operateur", "Compte de démonstration — Opérateur"),
+    build("acc-demo-mareyeur", "mareyeur@mbambulaan.sn", "mareyeur", "act-mareyeur", "Compte de démonstration — Mareyeur"),
+    build("acc-demo-transformateur", "transformateur@mbambulaan.sn", "transformateur", "act-transform", "Compte de démonstration — Transformateur"),
+    build("acc-demo-prestataire", "prestataire@mbambulaan.sn", "prestataire", "act-prestataire", "Compte de démonstration — Prestataire")
   );
 }
 
