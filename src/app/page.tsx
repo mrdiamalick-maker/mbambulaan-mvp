@@ -219,19 +219,53 @@ export default function HomePage() {
             <BlurFade inView>
               <span className="pub-index">04</span>
               <p className="pub-eyebrow mt-3">Passer à l’action</p>
-              <h2 className="pub-display mt-3 text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[3rem]">Partir d’une situation réelle, pas d’un catalogue.</h2>
-              <p className="mt-5 text-sm leading-7 text-[var(--pub-stone-700)]">Décrivez le contexte, le territoire et le résultat recherché. Mbàmbulaan qualifie le besoin avant de mobiliser les capacités pertinentes.</p>
-              <div className="mt-7 flex flex-wrap gap-3"><Link href="/solutions" className="pub-btn pub-btn-primary">Décrire une situation <ArrowRight size={16}/></Link><Link href="/opportunites" className="pub-btn pub-btn-outline">Voir les opportunités</Link></div>
+              <h2 className="pub-display mt-3 text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[3rem]">Une situation, une capacité ou un programme : commencez par le bon point d’entrée.</h2>
+              <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--pub-stone-700)]">Mbàmbulaan part de la situation réelle, qualifie le besoin, le relie au contexte territorial et mobilise les capacités pertinentes.</p>
+              <div className="mt-7 flex flex-wrap gap-3"><Link href="/solutions" className="pub-btn pub-btn-dark">Décrire une situation <ArrowRight size={16}/></Link><Link href="/contact?intent=contribution" className="pub-btn pub-btn-outline">Proposer une capacité</Link></div>
             </BlurFade>
+
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="pub-card p-6 md:p-7"><Handshake className="text-[var(--pub-deep-800)]"/><p className="pub-eyebrow mt-5">Capacités</p><h3 className="mt-2 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Vous pouvez contribuer à une réponse ?</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Entreprise, expert, organisation, programme ou partenaire : faites connaître une capacité mobilisable.</p><Link href="/contact?intent=contribution" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Proposer une capacité <ArrowRight size={15}/></Link></div>
-              <div className="pub-card p-6 md:p-7"><BookOpenText className="text-[var(--pub-deep-800)]"/><p className="pub-eyebrow mt-5">Comprendre</p><h3 className="mt-2 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Besoin de contexte avant d’agir ?</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Explorez les contenus reliés aux métiers, territoires et chaînes de valeur.</p><Link href="/decouvrir" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Découvrir la filière <ArrowRight size={15}/></Link></div>
+              {publicAnnouncements.slice(0, 4).map((item) => (
+                <Link key={item.id} href={`/opportunites/${item.id}`} className="pub-card group flex min-h-56 flex-col p-5">
+                  <div className="text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]">{item.type}</div>
+                  <h3 className="mt-4 text-lg font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{item.description}</p>
+                  <div className="mt-auto flex items-center justify-between pt-5"><span className="text-xs font-semibold text-[var(--pub-stone-500)]">{item.territory}</span><span className="inline-flex items-center gap-1 text-sm font-bold text-[var(--pub-deep-800)]">Voir <ArrowRight size={14}/></span></div>
+                </Link>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      <section className="border-t border-[var(--pub-stone-150)] bg-white px-5 py-14 md:px-10"><div className="mx-auto max-w-[1500px]"><div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between"><div><p className="pub-eyebrow">Repères & actualités</p><h2 className="pub-display mt-3 text-[2.1rem] not-italic text-[var(--pub-deep-900)]">Suivre ce qui éclaire l’action.</h2></div><Link href="/decouvrir" className="text-sm font-bold text-[var(--pub-deep-800)]">Tout découvrir →</Link></div><div className="mt-7 grid gap-4 lg:grid-cols-3">{publicNews.slice(0,2).map(item => <Link key={item.id} href={`/decouvrir/${item.id}`} className="pub-card p-5"><p className="pub-index">{item.category}</p><h3 className="mt-3 text-lg font-bold text-[var(--pub-deep-900)]">{item.title}</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{item.excerpt}</p></Link>)}{publicAnnouncements.slice(0,1).map(item => <Link key={item.id} href={item.ctaHref} className="pub-card p-5"><p className="pub-index">À suivre</p><h3 className="mt-3 text-lg font-bold text-[var(--pub-deep-900)]">{item.title}</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{item.excerpt}</p></Link>)}</div></div></section>
+      {/* 06 — Comprendre + CTA final */}
+      <section className="px-5 pb-20 pt-4 md:px-10 md:pb-24">
+        <div className="mx-auto max-w-[1500px]">
+          <div className="pub-tideline" />
+          <div className="mt-14 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <BlurFade inView className="max-w-3xl"><span className="pub-index">05</span><p className="pub-eyebrow mt-3">Découvrir</p><h2 className="pub-display mt-3 text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[3rem]">Comprendre la filière par les territoires, les usages et les situations concrètes.</h2></BlurFade>
+            <Link href="/decouvrir" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Explorer les contenus <ArrowRight size={16}/></Link>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {publicNews.slice(0, 3).map((item) => (
+              <Link key={item.id} href={`/decouvrir/${item.id}`} className="pub-card group flex min-h-60 flex-col p-5">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]"><BookOpenText size={14}/>{item.category}</div>
+                <h3 className="mt-4 text-xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">{item.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{item.excerpt}</p>
+                <div className="mt-auto flex items-center justify-between pt-5"><span className="text-xs font-semibold text-[var(--pub-stone-500)]">{item.territory} · {item.readingTime}</span><span className="inline-flex items-center gap-1 text-sm font-bold text-[var(--pub-deep-800)]">Lire <ArrowRight size={14}/></span></div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-8 grid gap-4 lg:grid-cols-3">
+            <div className="pub-card p-6"><Handshake className="text-[var(--pub-deep-800)]" /><p className="pub-eyebrow mt-5">Vous avez une situation</p><h3 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Décrire une situation</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Décrivez ce qui se passe. Mbàmbulaan qualifie le besoin et organise la suite.</p><Link href="/solutions" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Commencer <ArrowRight size={15}/></Link></div>
+            <div className="pub-card p-6"><Network className="text-[var(--pub-deep-800)]" /><p className="pub-eyebrow mt-5">Vous pouvez contribuer</p><h3 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Proposer une capacité</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Entreprise, expert, ONG ou organisation : présentez ce que vous pouvez réellement apporter au réseau.</p><Link href="/contact?intent=contribution" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Contribuer <ArrowRight size={15}/></Link></div>
+            <div className="pub-card p-6"><MapPinned className="text-[var(--pub-deep-800)]" /><p className="pub-eyebrow mt-5">Vous portez un programme</p><h3 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Étudier une intervention</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Territoire, acteurs, partenaires et suivi : Mbàmbulaan peut structurer le cadrage avant déploiement.</p><Link href="/contact?intent=programme" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Parler à Mbàmbulaan <ArrowRight size={15}/></Link></div>
+          </div>
+        </div>
+      </section>
+
       <PublicFooter />
     </main>
   );
