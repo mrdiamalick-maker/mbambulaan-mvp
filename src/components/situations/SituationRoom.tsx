@@ -1,24 +1,37 @@
 "use client";
 
 // Situation Room — reconstruite en D9 (Lot 4). Contexte, trajectoire,
-// action recommandée, capacité alternative et historique sont propres
-// à ce fichier ; la coordination (participants, engagements, décision)
-// vit dans CoordinationProposal (restylée à l'étape 3/4, avec le
-// panneau Décision — première écriture réelle sur create_decision hors
-// Lot 1). Les panneaux Preuve et Communication (Evidence/Communication,
-// Lot 1) et le retrait de ValueImpactPanel/value-engine.ts arrivent à
-// l'étape 4/4.
-import type { ProductState, Situation } from "@/domain/types";
+// action recommandée, capacité alternative, preuve, communication et
+// historique sont propres à ce fichier ; la coordination (participants,
+// engagements, décision) vit dans CoordinationProposal. ValueImpactPanel
+// (métriques globales mal placées dans une vue par situation, doublon
+// de l'Impact clé de l'Institution — value-engine.ts n'avait pas d'autre
+// consommateur) est retiré à cette étape.
+import { useState } from "react";
+import { Mail, MessageCircleMore, MessageSquare, PhoneCall } from "lucide-react";
+import { communicationChannelLabels, communicationStatusLabels, evidenceTypeLabels, type CommunicationChannel, type ProductState, type Situation } from "@/domain/types";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
-import { EngagementIcon } from "@/components/etat/MotifIcons";
+import { EngagementIcon, PreuveIcon } from "@/components/etat/MotifIcons";
 import { ChannelBadge, TrustBadge } from "@/components/shared/StatusBadges";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SituationAction } from "@/components/situations/SituationAction";
 import { SituationTimeline } from "@/components/situations/SituationTimeline";
+import { EvidenceForm } from "@/components/situations/EvidenceForm";
+import { CommunicationForm } from "@/components/situations/CommunicationForm";
 import { CoordinationProposal } from "@/components/coordination/CoordinationProposal";
-import { ValueImpactPanel } from "@/components/impact/ValueImpactPanel";
 import { glyphBorderColor, glyphFillColor, priorityLabels, priorityToTag } from "@/lib/status-tokens";
+
+const communicationChannelIcons: Record<CommunicationChannel, typeof PhoneCall> = {
+  whatsapp: MessageCircleMore,
+  telephone: PhoneCall,
+  sms: MessageSquare,
+  email: Mail,
+  notification_produit: Mail,
+  saisie_terrain: MessageSquare
+};
 
 const statusLabels: Record<Situation["status"], string> = {
   recue: "Signal reçu",
@@ -39,11 +52,21 @@ const capacityTypeLabels: Record<"glace" | "stockage" | "transport" | "transform
 };
 
 export function SituationRoom({ situation, state }: { situation: Situation; state: ProductState }) {
+  const [evidenceDrawerOpen, setEvidenceDrawerOpen] = useState(false);
+  const [communicationDrawerOpen, setCommunicationDrawerOpen] = useState(false);
   const territory = state.territories.find((item) => item.id === situation.territoryId);
   const signal = state.signals.find((item) => situation.signalIds.includes(item.id));
   const coordination = state.coordinationSpaces.find((item) => item.id === situation.coordinationId);
   const responsible = state.actors.find((item) => item.id === situation.responsibleId);
   const tag = priorityToTag[situation.priority];
+  const commitments = coordination?.commitments ?? [];
+
+  const evidences = state.evidences
+    .filter((item) => item.situationId === situation.id)
+    .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+  const communications = state.communications
+    .filter((item) => item.situationId === situation.id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   // Capacité alternative — répond concrètement à « chercher une
   // capacité alternative » du scénario canonique (§8.2 du spec
@@ -124,7 +147,72 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
 
       <CoordinationProposal coordination={coordination} state={state} situationId={situation.id} />
 
-      <ValueImpactPanel state={state} situation={situation} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary"><PreuveIcon size={14} color="#b6522f" /> Preuve</p>
+              <Button variant="outline" size="sm" onClick={() => setEvidenceDrawerOpen(true)}>Enregistrer une preuve</Button>
+            </div>
+            {evidences.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">Aucune preuve enregistrée pour cette situation pour le moment.</p>
+            ) : (
+              <div className="mt-4 space-y-2.5">
+                {evidences.map((evidence) => {
+                  const author = state.actors.find((item) => item.id === evidence.recordedByActorId);
+                  return (
+                    <div key={evidence.id} className="rounded-lg border bg-card px-3.5 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold">{evidenceTypeLabels[evidence.type]} — {evidence.label}</p>
+                        {evidence.commitmentId && <Badge variant="outline">Engagement lié</Badge>}
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{evidence.detail}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground/70">
+                        {new Date(evidence.recordedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
+                        {author ? ` · ${author.name}` : ""}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">Communication</p>
+              <Button variant="outline" size="sm" onClick={() => setCommunicationDrawerOpen(true)}>Consigner une communication</Button>
+            </div>
+            {communications.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">Aucune communication consignée pour cette situation pour le moment.</p>
+            ) : (
+              <div className="mt-4 space-y-2.5">
+                {communications.map((communication) => {
+                  const Icon = communicationChannelIcons[communication.channel];
+                  const author = state.actors.find((item) => item.id === communication.actorId);
+                  return (
+                    <div key={communication.id} className="rounded-lg border bg-card px-3.5 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Icon size={14} className="text-[#1d4468]" />
+                        <p className="text-sm font-semibold">{communication.subject}</p>
+                        <Badge variant="outline">{communicationChannelLabels[communication.channel]}</Badge>
+                        <Badge variant="secondary">{communicationStatusLabels[communication.status]}</Badge>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{communication.body}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground/70">
+                        {new Date(communication.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
+                        {author ? ` · ${author.name}` : ""} · simulée
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardContent className="p-5">
@@ -139,6 +227,26 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
           </div>
         </CardContent>
       </Card>
+
+      <Sheet open={evidenceDrawerOpen} onOpenChange={setEvidenceDrawerOpen}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Enregistrer une preuve</SheetTitle>
+            <SheetDescription>Photo, document, mesure ou appel consigné — rattaché à la situation ou à un engagement précis.</SheetDescription>
+          </SheetHeader>
+          <EvidenceForm situationId={situation.id} commitments={commitments} onDone={() => setEvidenceDrawerOpen(false)} />
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={communicationDrawerOpen} onOpenChange={setCommunicationDrawerOpen}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Consigner une communication</SheetTitle>
+            <SheetDescription>Toujours simulée — aucun envoi réel n’est déclenché.</SheetDescription>
+          </SheetHeader>
+          <CommunicationForm situationId={situation.id} commitments={commitments} onDone={() => setCommunicationDrawerOpen(false)} />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
