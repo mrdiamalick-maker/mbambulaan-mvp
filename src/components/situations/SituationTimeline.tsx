@@ -10,6 +10,10 @@ import type {
 } from "@/domain/types";
 
 
+// Les 8 statuts de SituationStatus, dans l'ordre du cycle de vie
+// (domain/types.ts). "attente" manquait ici : une situation bloquée
+// affichait alors currentIndex = -1, donc aucune étape active visible
+// (Lot 4, gap analysis).
 const steps = [
   {
     id:"recue",
@@ -30,6 +34,10 @@ const steps = [
   {
     id:"intervention",
     label:"Intervention"
+  },
+  {
+    id:"attente",
+    label:"En attente"
   },
   {
     id:"resultat",
