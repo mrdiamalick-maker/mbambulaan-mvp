@@ -1,10 +1,16 @@
 "use client";
 
+// Restylé en D9 (Lot 4, étape 2/4) — même logique et mêmes commandes
+// qu'avant (availableAction, run()) : aucun changement de comportement,
+// seule la palette change (sarcelle → marine/terre-cuite).
 import { FormEvent, useState } from "react";
 import { ArrowRight, CheckCircle2, PauseCircle, PlayCircle } from "lucide-react";
 import type { Situation } from "@/domain/types";
 import { availableAction } from "@/domain/rules";
 import { useProduct } from "@/components/providers/ProductProvider";
+import { ResultatIcon } from "@/components/etat/MotifIcons";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 const labels = {
   qualify: "Qualifier le signal",
@@ -34,7 +40,15 @@ export function SituationAction({ situation }: { situation: Situation }) {
   const [result, setResult] = useState("Production de glace rétablie et lots sécurisés");
   const [confirmation, setConfirmation] = useState("Constat terrain signé par le poste de quai");
 
-  if (!action) return <div className="border border-[#b9dfd2] bg-[#e9f7f1] p-4 text-sm font-semibold text-[#126b58]"><CheckCircle2 className="mr-2 inline" size={17} />Aucune action requise. La situation est réglée.</div>;
+  if (!action) {
+    return (
+      <Card className="border-[#1d8a5f]/25 bg-[#1d8a5f]/[0.06]">
+        <CardContent className="flex items-center gap-2 p-4 text-sm font-semibold text-[#1d8a5f]">
+          <CheckCircle2 size={17} /> Aucune action requise. La situation est réglée.
+        </CardContent>
+      </Card>
+    );
+  }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -49,28 +63,42 @@ export function SituationAction({ situation }: { situation: Situation }) {
   };
 
   return (
-    <div className="border-l-4 border-[#18a394] bg-[#f1faf7] p-5">
-      <p className="label">Action recommandée</p>
-      <h3 className="mt-2 text-lg font-bold">{labels[action]}</h3>
-      <p className="mt-2 text-sm leading-6 text-[#52666d]">{outcomes[action]}</p>
-      {mode ? (
-        <form onSubmit={submit} className="mt-5 space-y-4 border-t border-[#cce4dd] pt-4">
-          {mode === "wait" ? (
-            <label className="block"><span className="text-sm font-bold">Pourquoi l’intervention est-elle bloquée ?</span><textarea required rows={3} value={reason} onChange={(e) => setReason(e.target.value)} className="mt-2 w-full border border-[#aacdc5] bg-white p-3" /></label>
-          ) : action === "record_result" ? (
-            <>
-              <label className="block"><span className="text-sm font-bold">Résultat constaté</span><textarea required rows={3} value={result} onChange={(e) => setResult(e.target.value)} className="mt-2 w-full border border-[#aacdc5] bg-white p-3" /></label>
-              <label className="block"><span className="text-sm font-bold">Élément de confirmation</span><input required value={confirmation} onChange={(e) => setConfirmation(e.target.value)} className="mt-2 w-full border border-[#aacdc5] bg-white p-3" /></label>
-            </>
-          ) : <p className="text-sm">Confirmez l’action pour mettre à jour la situation et son historique.</p>}
-          <div className="flex flex-wrap gap-2"><button className="inline-flex items-center gap-2 bg-[#075466] px-4 py-2.5 text-sm font-bold text-white"><CheckCircle2 size={16} /> Confirmer</button><button type="button" onClick={() => setMode(null)} className="px-4 py-2.5 text-sm font-bold text-[#60737a]">Annuler</button></div>
-        </form>
-      ) : (
-        <div className="mt-5 flex flex-wrap gap-2">
-          <button onClick={() => setMode("primary")} className="inline-flex items-center gap-2 bg-[#075466] px-4 py-2.5 text-sm font-bold text-white">{action === "resume" ? <PlayCircle size={17} /> : <ArrowRight size={17} />}{labels[action]}</button>
-          {situation.status === "intervention" && <button onClick={() => setMode("wait")} className="inline-flex items-center gap-2 border border-[#d8b65c] bg-white px-4 py-2.5 text-sm font-bold text-[#725b25]"><PauseCircle size={17} /> Signaler un blocage</button>}
-        </div>
-      )}
-    </div>
+    <Card className="border-primary/25 bg-gradient-to-br from-primary/[0.07] via-primary/[0.02] to-transparent">
+      <CardContent className="p-5">
+        <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary"><ResultatIcon size={14} color="#b6522f" /> Action recommandée</p>
+        <h3 className="mt-2 text-lg font-semibold">{labels[action]}</h3>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{outcomes[action]}</p>
+        {mode ? (
+          <form onSubmit={submit} className="mt-5 space-y-4 border-t pt-4">
+            {mode === "wait" ? (
+              <label className="block text-xs font-semibold">
+                Pourquoi l’intervention est-elle bloquée ?
+                <textarea required rows={3} value={reason} onChange={(e) => setReason(e.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+              </label>
+            ) : action === "record_result" ? (
+              <>
+                <label className="block text-xs font-semibold">
+                  Résultat constaté
+                  <textarea required rows={3} value={result} onChange={(e) => setResult(e.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+                </label>
+                <label className="block text-xs font-semibold">
+                  Élément de confirmation
+                  <input required value={confirmation} onChange={(e) => setConfirmation(e.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+                </label>
+              </>
+            ) : <p className="text-sm text-muted-foreground">Confirmez l’action pour mettre à jour la situation et son historique.</p>}
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit"><CheckCircle2 size={16} /> Confirmer</Button>
+              <Button type="button" variant="ghost" onClick={() => setMode(null)}>Annuler</Button>
+            </div>
+          </form>
+        ) : (
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button onClick={() => setMode("primary")}>{action === "resume" ? <PlayCircle size={17} /> : <ArrowRight size={17} />} {labels[action]}</Button>
+            {situation.status === "intervention" && <Button variant="outline" onClick={() => setMode("wait")}><PauseCircle size={17} /> Signaler un blocage</Button>}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

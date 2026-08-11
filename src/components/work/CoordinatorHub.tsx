@@ -19,83 +19,24 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import {
-  Anchor,
-  ArrowRight,
-  BellRing,
-  Footprints,
-  MessageCircleMore,
-  PhoneCall,
-  Radio
-} from "lucide-react";
-import type { ProductState, Role, Signal, TrustLevel } from "@/domain/types";
+import { ArrowRight, BellRing, Radio } from "lucide-react";
+import type { ProductState, Role } from "@/domain/types";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { DecisionIcon, EngagementIcon } from "@/components/etat/MotifIcons";
+import { ChannelBadge, TrustBadge } from "@/components/shared/StatusBadges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { CoordinatorSignalForm } from "@/components/work/CoordinatorSignalForm";
+import { glyphBorderColor, glyphFillColor, priorityLabels, priorityToTag } from "@/lib/status-tokens";
 
 const priorityWeight = { critique: 4, haute: 3, moyenne: 2, faible: 1 } as const;
-
-const priorityLabels: Record<"critique" | "haute" | "moyenne" | "faible", string> = {
-  critique: "Critique",
-  haute: "Élevé",
-  moyenne: "Moyen",
-  faible: "Faible"
-};
-// Mêmes tons que l'Espace État (glyphBorderColor/glyphFillColor,
-// src/app/app/etat/page.tsx) — dupliqués ici plutôt que partagés : ce
-// sont des constantes de palette figées par le référentiel D9, pas une
-// logique métier ; le risque de dérive entre les deux est faible.
-const priorityToTag: Record<"critique" | "haute" | "moyenne" | "faible", "stable" | "vigilance" | "critique"> = {
-  critique: "critique",
-  haute: "vigilance",
-  moyenne: "stable",
-  faible: "stable"
-};
-const glyphBorderColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "#1d4468", vigilance: "#c68a2c", critique: "#b6522f" };
-const glyphFillColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "rgba(29,68,104,.05)", vigilance: "rgba(198,138,44,.07)", critique: "rgba(182,82,47,.07)" };
-
-const trustLabels: Record<TrustLevel, string> = {
-  declaree: "Déclarée",
-  observee: "Observée",
-  verifiee: "Vérifiée",
-  consolidee: "Consolidée",
-  rapprochee: "Rapprochée",
-  documentee: "Documentée",
-  officielle: "Officielle",
-  estimee: "Estimée",
-  contestee: "Contestée",
-  expiree: "Expirée"
-};
-
-// Origine du signal — condition Lot 3 (intake omnicanal) : le canal
-// doit être visible à chaque étape, pas seulement en texte brut dans
-// la Situation Room (écart identifié au gap analysis, SituationRoom.tsx).
-const channelMeta: Record<Signal["channel"], { label: string; icon: typeof PhoneCall }> = {
-  terrain: { label: "Agent terrain", icon: Footprints },
-  telephone: { label: "Téléphone", icon: PhoneCall },
-  whatsapp_structure: { label: "WhatsApp", icon: MessageCircleMore },
-  poste_quai: { label: "Poste de quai", icon: Anchor }
-};
 
 function formatDate(value?: string) {
   if (!value) return "À planifier";
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
-}
-
-function ChannelBadge({ signal }: { signal?: Signal }) {
-  if (!signal) return null;
-  const meta = channelMeta[signal.channel];
-  const Icon = meta.icon;
-  return <Badge variant="outline"><Icon size={12} /> {meta.label}</Badge>;
-}
-
-function TrustBadge({ trust }: { trust: TrustLevel }) {
-  return <Badge variant="outline">{trustLabels[trust]}</Badge>;
 }
 
 export function CoordinatorHub({ state, actorId, role }: { state: ProductState; actorId: string; role: Role }) {
@@ -149,8 +90,8 @@ export function CoordinatorHub({ state, actorId, role }: { state: ProductState; 
                 <h2 className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">{primarySituation.title}</h2>
                 <p className="mt-3 max-w-2xl text-sm text-sidebar-foreground/70">{primarySituation.description}</p>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <ChannelBadge signal={primarySignal} />
-                  {primarySignal && <TrustBadge trust={primarySignal.trust} />}
+                  <ChannelBadge signal={primarySignal} tone="dark" />
+                  {primarySignal && <TrustBadge trust={primarySignal.trust} tone="dark" />}
                 </div>
                 <div className="mt-5 flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-3">
                   <DecisionIcon size={20} color="#fff8f2" />
