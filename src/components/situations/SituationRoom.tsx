@@ -44,6 +44,23 @@ const statusLabels: Record<Situation["status"], string> = {
   reglee: "Réglée"
 };
 
+// Statut de la situation — dernier badge encore en variant par défaut
+// (secondary) identifié lors de la vérification du resserrage visuel :
+// gradient sémantique cohérent avec les autres badges de statut du
+// produit (recue/qualification = neutre, coordination/intervention =
+// suivi actif, attente = appelle une attention, résultat/réglée =
+// confirmé).
+const statusVariant: Record<Situation["status"], "marine" | "amber" | "terracotta" | "success"> = {
+  recue: "marine",
+  qualification: "marine",
+  priorisee: "amber",
+  coordination: "amber",
+  intervention: "amber",
+  attente: "terracotta",
+  resultat: "success",
+  reglee: "success"
+};
+
 const communicationStatusVariant: Record<CommunicationStatus, "marine" | "amber" | "terracotta" | "success"> = {
   prepare: "marine",
   envoye: "marine",
@@ -107,7 +124,7 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
               <h1 className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">{situation.title}</h1>
               <p className="mt-3 max-w-2xl text-sm text-sidebar-foreground/70">{situation.description}</p>
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">{statusLabels[situation.status]}</Badge>
+                <Badge variant={statusVariant[situation.status]}>{statusLabels[situation.status]}</Badge>
                 <Badge variant={tag === "critique" ? "terracotta" : tag === "vigilance" ? "amber" : "marine"}>{priorityLabels[situation.priority]}</Badge>
                 <TrustBadge trust={situation.trust} />
                 <ChannelBadge signal={signal} />

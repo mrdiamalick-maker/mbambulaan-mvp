@@ -61,13 +61,16 @@ const arbitrageFillColor: Record<"stable" | "vigilance" | "critique", string> = 
 // Passe de resserrage visuel (post-Lot 4) : variantes pleines plutôt
 // que destructive (rouge générique, pas la terre-cuite de marque) ou
 // ambre pastel — un statut critique doit se voir immédiatement.
-// "Stable" reste volontairement discret (secondary) : la hiérarchie
-// vient du contraste entre calme et urgent, pas d'un remplissage
-// uniforme partout.
+// Passe de vérification (post-resserrage) : "Stable" passe aussi en
+// variante pleine (marine) — chaque badge de statut/priorité/
+// confiance/canal doit être plein, sans exception pour les états
+// calmes ; marine reste visuellement distinct de terracotta/amber,
+// la hiérarchie calme/urgent tient toujours sur la couleur, pas sur
+// un contour vide.
 function StatusBadge({ status }: { status: "stable" | "vigilance" | "critique" }) {
   if (status === "critique") return <Badge variant="terracotta">Critique</Badge>;
   if (status === "vigilance") return <Badge variant="amber">Vigilance</Badge>;
-  return <Badge variant="secondary">Stable</Badge>;
+  return <Badge variant="marine">Stable</Badge>;
 }
 
 function formatFcfa(amount: number) {
@@ -260,7 +263,7 @@ export default function EtatPage() {
       <section>
         <div className="flex flex-wrap items-center gap-2.5">
           <p className="text-xs font-bold uppercase tracking-widest text-primary">Impact clé</p>
-          <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">Environnement de démonstration</Badge>
+          <Badge variant="amber">Environnement de démonstration</Badge>
         </div>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">Ce que la coordination a produit, en un coup d’œil.</h2>
         <div className="mt-5 grid gap-4 lg:grid-cols-3">
@@ -608,7 +611,7 @@ function TerritoryDetail({ territory, cases }: { territory: Territory; cases: Vi
         ) : (
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {Object.entries(acteursParRole).map(([role, count]) => (
-              <Badge key={role} variant="outline" className="capitalize">{role.replaceAll("_", " ")} · {count}</Badge>
+              <Badge key={role} variant="marine" className="capitalize">{role.replaceAll("_", " ")} · {count}</Badge>
             ))}
           </div>
         )}
