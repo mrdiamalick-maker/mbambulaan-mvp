@@ -7,7 +7,6 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import { EventOnMount } from "@/components/public/EventOnMount";
 import { findTerritoryBySlug, publicTerritories } from "@/data/public-atlas";
 import { publicNews } from "@/data/public-content";
-import { BlurFade } from "@/components/magicui/blur-fade";
 
 export function generateStaticParams() {
   return publicTerritories.map((item) => ({ slug: item.slug }));
@@ -43,7 +42,7 @@ export default async function TerritoryDetailPage({ params }: { params: Promise<
       <section className="pub-hero px-5 pb-14 pt-10 md:px-10 md:pb-20 md:pt-14">
         <div className="mx-auto max-w-[1500px]">
           <Link href="/atlas" className="inline-flex items-center gap-2 text-sm font-bold text-white/64 transition hover:text-white"><ArrowLeft size={15}/> Retour à l’Atlas</Link>
-          <BlurFade inView className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-end">
+          <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-end">
             <div>
               <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-300)]"><span>{territory.type}</span><span className="text-white/30">·</span><span>{territory.region}{territory.department ? ` · ${territory.department}` : ""}</span></div>
               <h1 className="pub-display mt-4 text-[clamp(3rem,7vw,5.8rem)] not-italic leading-[.98]">{territory.name}</h1>
@@ -54,7 +53,7 @@ export default async function TerritoryDetailPage({ params }: { params: Promise<
               <p className="text-[10px] font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-300)]">Référentiel public</p>
               <div className="mt-4 grid gap-3 text-sm text-white/72"><p className="flex items-center gap-3"><BadgeCheck size={16}/> {territory.verification}</p><p className="flex items-center gap-3"><MapPin size={16}/> {territory.coordinates.lat.toFixed(2)}, {territory.coordinates.lon.toFixed(2)}</p><p className="flex items-center gap-3"><ShieldCheck size={16}/> Mise à jour {territory.updatedAt}</p></div>
             </div>
-          </BlurFade>
+          </div>
         </div>
       </section>
 
