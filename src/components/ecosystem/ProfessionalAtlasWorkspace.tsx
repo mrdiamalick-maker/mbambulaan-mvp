@@ -41,13 +41,38 @@ const lenses: Array<{ id: Lens; label: string; icon: typeof Activity }> = [
   { id: "durabilite", label: "Durabilité", icon: Leaf }
 ];
 
+// Positions littorales — corrigées (post-Lot 4, resserrage visuel) :
+// cet objet ne définissait que 6 des 18 territoires réels
+// (demo-state.ts, territoryRows). Les 12 manquants retombaient tous
+// sur le même repli [50, 50] et s'empilaient au même point, un bug
+// plus sérieux qu'une simple imprécision de calibrage. Reprend les 18
+// positions déjà vérifiées de TerritoryMap.tsx (src/components/
+// territories/TerritoryMap.tsx) — pourcentages gauche/haut, ordre
+// nord-sud cohérent avec les latitudes réelles (territoryRows),
+// dégagement large et vérifié par rapport au tracé côtier
+// (.ops-landmass, clip-path) de cette vue : aucune position ne
+// s'approche de la terre. Choisi plutôt qu'un recalibrage indépendant
+// pour garder les deux cartes illustratives du produit cohérentes
+// entre elles.
 const positions: Record<string, [number, number]> = {
-  "saint-louis": [43, 13],
-  kayar: [38, 31],
-  hann: [48, 43],
-  mbour: [42, 57],
-  joal: [49, 69],
-  kafountine: [34, 87]
+  "saint-louis": [43, 9],
+  lompoul: [34, 15],
+  "fass-boye": [49, 21],
+  kayar: [36, 27],
+  yoff: [47, 33],
+  ouakam: [34, 38],
+  soumbedioune: [48, 41],
+  hann: [59, 43],
+  rufisque: [49, 48],
+  popenguine: [35, 52],
+  mbour: [49, 57],
+  joal: [37, 63],
+  foundiougne: [51, 68],
+  djiffer: [37, 73],
+  missirah: [50, 78],
+  kafountine: [34, 84],
+  elinkine: [48, 89],
+  "cap-skirring": [36, 95]
 };
 
 const activityStyle = {
