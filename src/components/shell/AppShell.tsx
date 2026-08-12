@@ -42,9 +42,20 @@ export function AppShell({
     <SidebarProvider className="shadcn-scope">
       <AppSidebar role={role} modules={modules} orgName={orgName} />
       <SidebarInset>
+        {/* planName masqué pour tous les rôles sauf administrateur (revue
+            éditoriale Produit, 2026-08-12, 2e trouvaille de la vérification
+            rôle par rôle) : plan-institution (nom commercial réel, cible
+            ministères/agences) est assigné à org-coordination dans les
+            données de démo — pas une erreur, mais une collision visuelle
+            avec le rôle Institution/État une fois affiché ici. C'est une
+            information de facturation, pas utile au quotidien pour un
+            Coordinateur/Opérateur/Mareyeur/etc. Le plan n'est pas renommé
+            (objet commercial légitime) ; il reste visible pour
+            administrateur, seul rôle non-institution où cette information
+            garde un sens opérationnel. */}
         <SiteHeader
           title={roleLabel(role)}
-          subtitle={`${orgName ?? "Organisation active"} · ${planName ?? "Plan démonstration"}`}
+          subtitle={role === "administrateur" ? `${orgName ?? "Organisation active"} · ${planName ?? "Plan démonstration"}` : (orgName ?? "Organisation active")}
           actorName={actorName}
           unread={unread}
           persistence={persistence}

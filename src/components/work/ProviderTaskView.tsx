@@ -15,11 +15,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ProductState } from "@/domain/types";
 
+// Complété (revue éditoriale Produit, 2026-08-12, vérification rôle par
+// rôle) : ne couvrait que 4 des 8 Situation["status"] possibles — une
+// situation encore "recue"/"qualification"/"priorisee" affichait l'enum
+// brut dès qu'un engagement lui était attaché avant la coordination
+// formelle (principe B du paquet, fuite trouvée en conditions réelles).
+// Les 4 nouveaux libellés restent dans la voix du prestataire (courts,
+// orientés étape de sa propre intervention), pas une redite du
+// vocabulaire institutionnel de SituationRoom (F, voix par rôle) —
+// "reglee" n'est en pratique jamais atteint ici (filtré par
+// myOpenSituations plus bas), ajouté pour la complétude du type.
 const situationStatusLabel: Record<string, string> = {
+  recue: "Signalé",
+  qualification: "À vérifier",
+  priorisee: "À préparer",
   coordination: "À démarrer",
   intervention: "En cours",
   attente: "En attente",
-  resultat: "Résultat à valider"
+  resultat: "Résultat à valider",
+  reglee: "Terminé"
 };
 
 export function ProviderTaskView({ state, actorId }: { state: ProductState; actorId: string }) {
