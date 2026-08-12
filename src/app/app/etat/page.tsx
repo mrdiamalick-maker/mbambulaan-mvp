@@ -201,8 +201,35 @@ export default function EtatPage() {
         <p>Mbàmbulaan <strong>qualifie et signale</strong> les situations remontées du terrain. La décision et l’action relèvent des autorités compétentes.</p>
       </div>
 
-      <Card className="overflow-hidden border-none bg-sidebar text-sidebar-foreground shadow-lg">
-        <CardContent className="p-6 md:p-10">
+      <Card className="relative overflow-hidden border-none bg-sidebar text-sidebar-foreground shadow-lg">
+        {/* Matière photo territoriale — Livrable 2 mandat DA (2026-08-12).
+            Structure decision-first, TensionGlyph, texte et CTA
+            intégralement conservés (contrainte non négociable du mandat) :
+            cette couche est purement décorative, positionnée derrière le
+            contenu (z-0 vs CardContent z-10), concentrée dans le tiers
+            droit (~38%), masquée progressivement vers le texte par le
+            dégradé — jamais dominante. Photo réelle pas encore disponible
+            (brief "institution-territory-hero.webp", 21:9, désaturation
+            70-80%, dominante marine #0b1a2a) : le placeholder occupe
+            exactement l'espace qu'elle occupera (absolute inset-0,
+            object-cover le jour venu), masqué sous 640px pour ne jamais
+            concurrencer le texte sur mobile. */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[38%] md:block" aria-hidden="true">
+          <div className="absolute inset-0 bg-[#0b1a2a]">
+            <div
+              className="absolute inset-0 opacity-40"
+              style={{
+                backgroundImage: "radial-gradient(rgba(247,243,233,.09) 1px, transparent 1px)",
+                backgroundSize: "22px 22px"
+              }}
+            />
+          </div>
+          <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, var(--sidebar) 0%, transparent 60%)" }} />
+          <p className="absolute bottom-3 right-3 rounded-md bg-black/25 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white/45 backdrop-blur-sm">
+            Placeholder · institution-territory-hero.webp
+          </p>
+        </div>
+        <CardContent className="relative z-10 p-6 md:p-10">
           <p className="text-xs font-bold uppercase tracking-widest text-primary">Espace État · {actor?.name ?? "Ministère"}</p>
           <div className="mt-5 flex flex-col gap-6 md:flex-row md:items-center">
             <TensionGlyph status={dominant.glyphStatus} size={100} pulse={dominant.kind !== "calme"} />

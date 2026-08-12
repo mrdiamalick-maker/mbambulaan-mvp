@@ -34,6 +34,53 @@ import { glyphBorderColor, glyphFillColorStrong, priorityLabels, priorityToTag }
 
 const priorityWeight = { critique: 4, haute: 3, moyenne: 2, faible: 1 } as const;
 
+// Texture territoriale — Livrable 2 mandat DA (2026-08-11). Aucune photo
+// pour le Coordinateur (brief : reste situation-first/action-first) —
+// une texture vectorielle abstraite seulement, confinée au tiers droit de
+// la carte « Priorité du moment » (le conteneur w-[42%] borne la matière
+// graphique à droite, pas un dégradé d'opacité sur toute la largeur : les
+// 60% gauches qui portent TensionGlyph/référence/titre/description ne
+// reçoivent aucun élément). Courbes ton-sur-ton évoquant littoral/
+// bathymétrie, nœuds de réseau très subtils concentrés en bas à droite,
+// un unique micro-accent terre-cuite — jamais une donnée réelle, jamais
+// un radar. SVG à la main en attendant l'asset définitif (brief
+// "coordinator-territory-texture.svg", viewBox 1600×700) : même grammaire
+// visuelle que la version finale, pas une recréation à refaire de zéro.
+function TerritoryTexture() {
+  return (
+    <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[42%] overflow-hidden md:block" aria-hidden="true">
+      <svg viewBox="0 0 1600 700" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
+        <g stroke="#f7f3e9" strokeWidth="1.5" fill="none" opacity="0.09">
+          <path d="M0,140 C300,190 640,110 980,170 S1440,150 1600,210" />
+          <path d="M0,260 C320,300 660,230 1000,280 S1460,270 1600,320" />
+          <path d="M0,400 C300,440 640,380 980,420 S1440,410 1600,450" />
+        </g>
+        <g stroke="#0b1a2a" strokeWidth="1.5" fill="none" opacity="0.12">
+          <path d="M0,80 C280,40 640,100 980,60 S1420,80 1600,50" />
+          <path d="M0,530 C300,570 640,510 980,540 S1440,530 1600,570" />
+          <path d="M0,630 C300,670 620,610 960,640 S1400,620 1600,660" />
+        </g>
+        <g stroke="#f7f3e9" strokeWidth="1" opacity="0.10">
+          <line x1="1180" y1="420" x2="1320" y2="500" />
+          <line x1="1320" y1="500" x2="1440" y2="440" />
+          <line x1="1440" y1="440" x2="1500" y2="560" />
+        </g>
+        <g fill="#f7f3e9" opacity="0.13">
+          <circle cx="1180" cy="420" r="4" />
+          <circle cx="1320" cy="500" r="4" />
+          <circle cx="1500" cy="560" r="4" />
+          <circle cx="1250" cy="590" r="3.5" />
+          <circle cx="1050" cy="500" r="3.5" />
+        </g>
+        <circle cx="1440" cy="440" r="4" fill="#b6522f" opacity="0.13" />
+      </svg>
+      <p className="absolute bottom-3 right-3 rounded-md bg-black/25 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white/45 backdrop-blur-sm">
+        Placeholder · coordinator-territory-texture.svg
+      </p>
+    </div>
+  );
+}
+
 function formatDate(value?: string) {
   if (!value) return "À planifier";
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
@@ -101,8 +148,9 @@ export function CoordinatorHub({ state, actorId, role }: { state: ProductState; 
       </div>
 
       {primarySituation ? (
-        <Card className="overflow-hidden border-none bg-sidebar text-sidebar-foreground shadow-lg">
-          <CardContent className="p-6 md:p-10">
+        <Card className="relative overflow-hidden border-none bg-sidebar text-sidebar-foreground shadow-lg">
+          <TerritoryTexture />
+          <CardContent className="relative z-10 p-6 md:p-10">
             <div className="flex flex-col gap-6 md:flex-row md:items-center">
               <TensionGlyph status={priorityToTag[primarySituation.priority]} size={100} pulse={primarySituation.priority === "critique"} />
               <div className="min-w-0 flex-1">
@@ -128,8 +176,9 @@ export function CoordinatorHub({ state, actorId, role }: { state: ProductState; 
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-none bg-sidebar text-sidebar-foreground shadow-lg">
-          <CardContent className="p-6 md:p-10">
+        <Card className="relative overflow-hidden border-none bg-sidebar text-sidebar-foreground shadow-lg">
+          <TerritoryTexture />
+          <CardContent className="relative z-10 p-6 md:p-10">
             <p className="text-xs font-bold uppercase tracking-widest text-primary">Priorité du moment</p>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight">Aucune situation ouverte sur ce périmètre.</h2>
             <p className="mt-3 max-w-2xl text-sm text-sidebar-foreground/70">Le territoire reste sous surveillance ; les nouveaux signaux apparaîtront ici dès leur qualification.</p>
