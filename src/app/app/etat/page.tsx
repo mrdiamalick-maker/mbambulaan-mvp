@@ -11,6 +11,7 @@ import {
   ShieldCheck
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
+import { AtlasExecutiveSummary } from "@/components/atlas/AtlasExecutiveSummary";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { DecisionIcon, ResultatIcon, SignalIcon, SituationIcon } from "@/components/etat/MotifIcons";
 import { Badge } from "@/components/ui/badge";
@@ -348,6 +349,16 @@ export default function EtatPage() {
         <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">Rencontrer les pêcheurs sans déplacement systématique</p>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">Atlas territorial — le littoral, territoire par territoire.</h2>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{territoiresAttention.length} territoire(s) demandent une attention particulière sur {territoiresActifs} suivis par le réseau. Cliquez un point sur la carte ou une fiche pour ouvrir le détail.</p>
+        {/* AtlasExecutiveSummary, variante institution (P2, arbitrage
+            CEO du 2026-08-12) : même composant que /app/atlas
+            (Coordinateur), pas dupliqué — 2 des 4 métriques recadrées
+            pour l'Espace État (voir le composant). La carte + liste
+            ci-dessous restent la vue decision-first propre à
+            l'Institution (TerritoryDecisionPanel), pas remplacées par le
+            poste de commande du Coordinateur. */}
+        <div className="mt-5">
+          <AtlasExecutiveSummary state={state} variant="institution" />
+        </div>
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_1fr]">
           <Card className="overflow-hidden border-[#1d4468]/20 bg-gradient-to-br from-[#1d4468]/[0.06] via-transparent to-primary/[0.03]">
             <CardContent className="p-3">
