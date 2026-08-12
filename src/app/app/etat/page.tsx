@@ -263,7 +263,7 @@ export default function EtatPage() {
       <section>
         <div className="flex flex-wrap items-center gap-2.5">
           <p className="text-xs font-bold uppercase tracking-widest text-primary">Impact clé</p>
-          <Badge variant="amber">Environnement de démonstration</Badge>
+          <Badge variant="amber">Mode démonstration · données non opérationnelles</Badge>
         </div>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">Ce que la coordination a produit, en un coup d’œil.</h2>
         <div className="mt-5 grid gap-4 lg:grid-cols-3">

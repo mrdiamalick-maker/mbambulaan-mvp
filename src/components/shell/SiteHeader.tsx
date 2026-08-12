@@ -48,7 +48,7 @@ export function SiteHeader({
       <div className="ml-auto flex items-center gap-2">
         <Badge variant="outline" className="hidden gap-1.5 xl:inline-flex">
           <span className="size-1.5 rounded-full bg-emerald-500" />
-          {persistence === "postgresql" ? "Base de production" : "Environnement de démonstration"}
+          {persistence === "postgresql" ? "Base de production" : "Mode démonstration · données non opérationnelles"}
         </Badge>
         <Button variant="ghost" size="icon" className="relative" aria-label={`${unread} notifications non lues`}>
           <Bell />
