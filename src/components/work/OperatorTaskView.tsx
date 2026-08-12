@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { CoordinatorSignalForm } from "@/components/work/CoordinatorSignalForm";
+import { landingStatusLabel, tripStatusLabel } from "@/lib/status-tokens";
 import type { FishingTrip, Landing, ProductState } from "@/domain/types";
 
 const tripActionLabel: Record<string, string> = {
@@ -97,7 +98,7 @@ export function OperatorTaskView({ state, actorId }: { state: ProductState; acto
                 <div className="flex items-start gap-3">
                   <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#1d4468] text-white"><ShipWheel size={18} /></span>
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2"><Badge variant="marine">{trip.status.replaceAll("_", " ")}</Badge><span className="text-xs text-muted-foreground">{site?.name ?? "Quai"}</span></div>
+                    <div className="flex flex-wrap items-center gap-2"><Badge variant="marine">{tripStatusLabel[trip.status]}</Badge><span className="text-xs text-muted-foreground">{site?.name ?? "Quai"}</span></div>
                     <p className="mt-1.5 text-sm font-semibold">{vessel?.name ?? trip.id} · {trip.zone}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{tripActionLabel[trip.status]}</p>
                   </div>
@@ -114,7 +115,7 @@ export function OperatorTaskView({ state, actorId }: { state: ProductState; acto
                 <div className="flex items-start gap-3">
                   <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#c68a2c] text-white">{landing.status === "arrive" ? <Scale size={18} /> : <Anchor size={18} />}</span>
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2"><Badge variant="amber">{landing.status.replaceAll("_", " ")}</Badge><span className="text-xs text-muted-foreground">{site?.name ?? "Quai"}</span></div>
+                    <div className="flex flex-wrap items-center gap-2"><Badge variant="amber">{landingStatusLabel[landing.status]}</Badge><span className="text-xs text-muted-foreground">{site?.name ?? "Quai"}</span></div>
                     <p className="mt-1.5 text-sm font-semibold">{landing.totalWeightKg.toLocaleString("fr-FR")} kg déclarés</p>
                     <p className="mt-1 text-xs text-muted-foreground">{label}</p>
                   </div>

@@ -57,7 +57,7 @@ export function ProviderTaskView({ state, actorId }: { state: ProductState; acto
                     <p className="mt-1 text-xs text-muted-foreground">{situation.title}</p>
                   </div>
                 </div>
-                <Button size="sm" asChild><Link href={`/app/situations/${situation.id}`}>Ouvrir <ArrowRight size={15} /></Link></Button>
+                <Button size="sm" asChild><Link href={`/app/situations/${situation.id}`}>Ouvrir l’intervention <ArrowRight size={15} /></Link></Button>
               </Card>
             );
           })}

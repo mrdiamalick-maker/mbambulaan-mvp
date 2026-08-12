@@ -16,7 +16,7 @@ export const presentationSteps: PresentationStep[] = [
   { title: "3. Fiche territoire", description: "Cliquer sur Joal-Fadiouth pour ouvrir sa fiche.", href: "/app/etat" },
   { title: "4. Situation et sa source", description: "Repérer « Machine à glace indisponible » et la source du signal (canal, acteur, date).", href: "/app/etat" },
   { title: "5. Impact", description: "Lire la priorité et l’impact affichés pour cette situation.", href: "/app/etat" },
-  { title: "6. Situation Room", description: "Ouvrir la situation pour son détail complet — contexte, trajectoire, capacité alternative.", href: "/app/situations/sit-glace" },
+  { title: "6. Dossier de situation", description: "Ouvrir la situation pour son détail complet — contexte, trajectoire, capacité alternative.", href: "/app/situations/sit-glace" },
   { title: "7. Acteurs, décisions, engagements", description: "Panneau Coordination : acteurs mobilisés, décisions enregistrées, engagements pris.", href: "/app/situations/sit-glace" },
   { title: "8. Mobiliser une capacité", description: "Sélectionner ou confirmer la capacité alternative proposée.", href: "/app/situations/sit-glace" },
   { title: "9. Préparer une communication", description: "Panneau Communication : consigner un appel ou un WhatsApp simulé.", href: "/app/situations/sit-glace" },

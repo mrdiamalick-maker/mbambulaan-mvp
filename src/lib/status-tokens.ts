@@ -10,7 +10,7 @@
 // ce lot — le risque de dérive entre les deux est nul, les valeurs
 // étant verrouillées par le référentiel.
 import { Anchor, Footprints, MessageCircleMore, PhoneCall } from "lucide-react";
-import type { ActionStatus, Signal, Situation, TrustLevel } from "@/domain/types";
+import type { ActionStatus, FishingTrip, Landing, Signal, Situation, TrustLevel } from "@/domain/types";
 
 export type GlyphTag = "stable" | "vigilance" | "critique";
 
@@ -75,4 +75,25 @@ export const commitmentStatusVariant: Record<ActionStatus, "marine" | "amber" | 
   en_cours: "amber",
   bloquee: "terracotta",
   terminee: "success"
+};
+
+// Statut d'une sortie de pêche (FishingTrip.status) / d'un débarquement
+// (Landing.status) — révue éditoriale Produit (2026-08-12, paquet CEO,
+// section « Opérateur ») : remplace un affichage brut de l'enum
+// (`trip.status.replaceAll("_", " ")`) par un libellé métier. Partagé
+// entre OperatorTaskView.tsx (Lot 7) et TerrainCaptainView.tsx (Lot 6,
+// tripStatusLabel y était déjà dupliqué à l'identique) pour éviter une
+// 3e dérive silencieuse.
+export const tripStatusLabel: Record<FishingTrip["status"], string> = {
+  en_mer: "En mer",
+  retour_annonce: "Retour annoncé",
+  arrivee_confirmee: "Arrivée confirmée au quai",
+  debarquee: "Débarquement enregistré"
+};
+
+export const landingStatusLabel: Record<Landing["status"], string> = {
+  attendu: "Attendu",
+  arrive: "Arrivé au quai",
+  pese: "Pesé",
+  lots_crees: "Lots constitués"
 };

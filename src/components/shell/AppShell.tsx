@@ -44,7 +44,7 @@ export function AppShell({
       <SidebarInset>
         <SiteHeader
           title={roleLabel(role)}
-          subtitle={`${orgName ?? "Organisation active"} · ${planName ?? "Plan démonstration"} · ${modules.length} module(s) actif(s)`}
+          subtitle={`${orgName ?? "Organisation active"} · ${planName ?? "Plan démonstration"}`}
           actorName={actorName}
           unread={unread}
           persistence={persistence}

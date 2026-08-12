@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DecisionForm } from "@/components/coordination/DecisionForm";
+import { roleLabel } from "@/components/shell/AppSidebar";
 import { commitmentStatusLabel, commitmentStatusVariant } from "@/lib/status-tokens";
 
 export function CoordinationProposal({
@@ -66,7 +67,7 @@ export function CoordinationProposal({
                         <p className="text-sm font-semibold">{actor.name}</p>
                         {actor.verified && <Badge variant="success">Vérifié</Badge>}
                       </div>
-                      <p className="text-xs text-muted-foreground">{actor.role.replaceAll("_", " ")}</p>
+                      <p className="text-xs text-muted-foreground">{roleLabel(actor.role)}</p>
                     </div>
                   </div>
                 ))}

@@ -60,7 +60,7 @@ export function InstitutionShell({
           </Button>
           <Badge variant="outline" className="hidden gap-1.5 border-white/15 text-sidebar-foreground/70 xl:inline-flex">
             <span className="size-1.5 rounded-full bg-emerald-400" />
-            {persistence === "postgresql" ? "Base de production" : "Environnement de démonstration"}
+            {persistence === "postgresql" ? "Base de production" : "Mode démonstration · données non opérationnelles"}
           </Badge>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

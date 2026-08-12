@@ -661,7 +661,7 @@ function TerritoryDetail({ territory, cases }: { territory: Territory; cases: Vi
                 composants » au Lot 4, occasion de traiter aussi son rendu pour
                 un accès Institution. */}
             <Button variant="secondary" size="sm" className="mt-3 w-full" asChild>
-              <Link href={`/app/situations/${prioritySituation.id}`}>Entrer dans la Situation Room <ArrowRight /></Link>
+              <Link href={`/app/situations/${prioritySituation.id}`}>Entrer dans le dossier <ArrowRight /></Link>
             </Button>
           </div>
         </div>

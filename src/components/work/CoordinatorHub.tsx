@@ -121,7 +121,7 @@ export function CoordinatorHub({ state, actorId, role }: { state: ProductState; 
                   <p className="text-sm font-semibold">{primarySituation.nextStep}</p>
                 </div>
                 <Button className="mt-5" variant="secondary" asChild>
-                  <Link href={`/app/situations/${primarySituation.id}`}>Ouvrir la Situation Room <ArrowRight /></Link>
+                  <Link href={`/app/situations/${primarySituation.id}`}>Ouvrir le dossier <ArrowRight /></Link>
                 </Button>
               </div>
             </div>

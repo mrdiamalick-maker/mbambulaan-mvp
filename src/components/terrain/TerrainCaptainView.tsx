@@ -11,14 +11,8 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { tripStatusLabel } from "@/lib/status-tokens";
 import type { FishingTrip, ProductState } from "@/domain/types";
-
-const tripStatusLabel: Record<FishingTrip["status"], string> = {
-  en_mer: "En mer",
-  retour_annonce: "Retour annoncé",
-  arrivee_confirmee: "Arrivée confirmée au quai",
-  debarquee: "Débarquement enregistré"
-};
 
 const tripNextStep: Record<FishingTrip["status"], string> = {
   en_mer: "Annoncez votre retour dès que vous approchez du quai.",

@@ -17,6 +17,7 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { roleLabel } from "@/components/shell/AppSidebar";
 import { commitmentStatusLabel, commitmentStatusVariant } from "@/lib/status-tokens";
 
 export default function CoordinationDetailPage() {
@@ -85,7 +86,7 @@ export default function CoordinationDetailPage() {
                   return (
                     <li key={actorId} className="border-b pb-3 last:border-0 last:pb-0">
                       <p className="font-semibold">{actor?.name}</p>
-                      <p className="text-xs text-muted-foreground">{actor?.role.replaceAll("_", " ")}</p>
+                      <p className="text-xs text-muted-foreground">{actor ? roleLabel(actor.role) : ""}</p>
                     </li>
                   );
                 })}
