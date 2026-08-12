@@ -384,3 +384,13 @@ Sans ces métadonnées, une « tour de contrôle » deviendrait plus dangereuse 
 Le ministère ne paiera pas durablement pour « plus d'indicateurs ». Il peut payer pour une infrastructure qui réduit le temps entre **remontée terrain, qualification, arbitrage, coordination et preuve d'exécution**.
 
 La Tour de contrôle V2 doit donc être vendue comme une **capacité de supervision territoriale orientée décision**, pas comme un observatoire statistique exhaustif.
+
+## 9. Trajectoire de légitimité des données
+
+La légitimité de la Tour de contrôle ne dépend pas d'un partenariat de données national unique à obtenir avant de commencer. Elle doit se construire progressivement par la **densité, la continuité, la provenance et le croisement** des observations.
+
+`Mbàmbulaan Terrain` constitue la première source réelle et continue : incidents, capacités, disponibilités, observations locales, décisions et preuves d'exécution. Cette base doit ensuite s'élargir à toute voie pertinente et licite au fil de la crédibilité acquise : acteurs de la filière, partenaires, déclaratif structuré, imports, sources ouvertes, recherche et institutions.
+
+Chaque canal conserve son niveau de preuve ; une remontée Terrain ne devient pas une statistique officielle par accumulation. La valeur vient de la capacité à documenter l'origine, la fraîcheur, la couverture, les contradictions et les validations successives, puis à renforcer progressivement les observations par recoupement.
+
+La trajectoire de fond est de faire de Mbàmbulaan une **infrastructure de confiance et un digital twin progressif de l'économie maritime**, en commençant par la filière halieutique. Cette ambition ne justifie toutefois aucun raccourci méthodologique : le niveau de promesse affiché doit toujours rester inférieur ou égal au niveau de preuve réellement acquis.
