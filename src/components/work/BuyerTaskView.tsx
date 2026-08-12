@@ -15,11 +15,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ServiceRequestForm } from "@/components/work/ServiceRequestForm";
-import type { ProductState, Role } from "@/domain/types";
+import type { Opportunity, ProductState, Role } from "@/domain/types";
 
 const roleTitle: Record<string, string> = {
   mareyeur: "Mes achats en cours",
   transformateur: "Ma production en cours"
+};
+
+// Rapprochement marché — convention DEMANDE → PROPOSITION → ENGAGEMENT →
+// EXÉCUTION (révue éditoriale Produit, 2026-08-12). "proposee" n'est
+// jamais affiché ici (filtré plus bas, statut intermédiaire avant
+// détection côté acheteur) — pas de libellé fabriqué pour un statut qui
+// n'apparaît jamais dans cette vue.
+const opportunityStatusLabel: Record<Exclude<Opportunity["status"], "proposee">, string> = {
+  detectee: "Proposition identifiée",
+  engagee: "Engagement confirmé",
+  executee: "Collecte réalisée"
 };
 
 export function BuyerTaskView({ state, actorId, role }: { state: ProductState; actorId: string; role: Role }) {
@@ -58,13 +69,13 @@ export function BuyerTaskView({ state, actorId, role }: { state: ProductState; a
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">{actor?.name ?? "Mon activité"}</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">{roleTitle[role] ?? "Mes opportunités"}</h1>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">{roleTitle[role] ?? "Mes propositions"}</h1>
         </div>
         <Button variant="outline" onClick={() => setFormOpen(true)}><Plus /> Nouvelle demande</Button>
       </div>
 
       {myOpportunities.length === 0 ? (
-        <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground">Aucune opportunité détectée pour vos demandes actives — créez-en une pour être averti dès qu’un lot correspondant sera débarqué.</p></CardContent></Card>
+        <Card><CardContent className="p-6"><p className="text-sm text-muted-foreground">Aucune proposition pour vos demandes actives pour le moment. Vous serez averti lorsqu’un lot compatible sera identifié.</p></CardContent></Card>
       ) : (
         <div className="space-y-2.5">
           {[...toAccept, ...toComplete, ...done].map((opportunity) => {
@@ -79,11 +90,11 @@ export function BuyerTaskView({ state, actorId, role }: { state: ProductState; a
                   <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#1d4468] text-white"><Boxes size={18} /></span>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={statusVariant}>{opportunity.status.replaceAll("_", " ")}</Badge>
+                      <Badge variant={statusVariant}>{opportunityStatusLabel[opportunity.status as Exclude<Opportunity["status"], "proposee">] ?? opportunity.status}</Badge>
                       <span className="text-xs text-muted-foreground">{territory?.name}</span>
                     </div>
                     <p className="mt-1.5 text-sm font-semibold">{species?.name ?? request?.speciesId} · {(lot?.quantityKg ?? request?.quantityKg ?? 0).toLocaleString("fr-FR")} kg</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Score {opportunity.score} · {opportunity.reasons.join(", ")}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Niveau de correspondance : {opportunity.score}/100 · {opportunity.reasons.join(", ")}</p>
                   </div>
                 </div>
                 {opportunity.status === "detectee" && <Button size="sm" disabled={pending === opportunity.id} onClick={() => void accept(opportunity.id)}>{pending === opportunity.id ? "…" : "Accepter"} <ArrowRight size={15} /></Button>}
