@@ -238,7 +238,7 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
                       <p className="mt-1 text-xs text-muted-foreground">{communication.body}</p>
                       <p className="mt-1 text-[11px] text-muted-foreground/70">
                         {new Date(communication.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
-                        {author ? ` · ${author.name}` : ""} · simulée
+                        {author ? ` · ${author.name}` : ""} · Simulée · aucun envoi réel
                       </p>
                     </div>
                   );
@@ -277,7 +277,7 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
         <SheetContent className="overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Consigner une communication</SheetTitle>
-            <SheetDescription>Toujours simulée — aucun envoi réel n’est déclenché.</SheetDescription>
+            <SheetDescription>Communication simulée : aucun message, appel ou notification réel n’est envoyé. L’échange est uniquement consigné dans Mbàmbulaan.</SheetDescription>
           </SheetHeader>
           <CommunicationForm situationId={situation.id} commitments={commitments} onDone={() => setCommunicationDrawerOpen(false)} />
         </SheetContent>

@@ -125,7 +125,7 @@ export function TerrainCaptainView({ state, actorId }: { state: ProductState; ac
         </Button>
       </div>
       {callSent && (
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Radio size={12} className="text-[#1d8a5f]" /> {callSent === "telephone" ? "Appel" : "Message WhatsApp"} enregistré (simulé) — visible dans l’historique de coordination.</p>
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Radio size={12} className="text-[#1d8a5f]" /> Action simulée · aucun appel ou message réel n’a été envoyé. L’échange est enregistré dans l’historique.</p>
       )}
 
       <Card>
@@ -143,7 +143,7 @@ export function TerrainCaptainView({ state, actorId }: { state: ProductState; ac
               </div>
             </div>
           )}
-          {signalSent && !signalOpen && <p className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground"><Anchor size={12} className="text-[#1d8a5f]" /> Signal transmis — visible côté coordination.</p>}
+          {signalSent && !signalOpen && <p className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground"><Anchor size={12} className="text-[#1d8a5f]" /> Signal transmis à la coordination.</p>}
         </CardContent>
       </Card>
 

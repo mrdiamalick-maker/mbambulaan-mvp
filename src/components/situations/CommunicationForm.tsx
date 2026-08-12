@@ -53,7 +53,7 @@ export function CommunicationForm({ situationId, commitments, onDone }: { situat
         Contenu
         <textarea required rows={4} value={body} onChange={(event) => setBody(event.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" placeholder="Ce qui a été échangé." />
       </label>
-      <p className="text-xs text-muted-foreground">Communication simulée — aucun envoi réel n’est déclenché, seul l’échange est consigné.</p>
+      <p className="text-xs text-muted-foreground">Communication simulée — aucun envoi réel. Seul cet échange est consigné dans le dossier.</p>
       <Button type="submit" disabled={pending} className="w-full">{pending ? "Enregistrement…" : "Consigner la communication"}</Button>
     </form>
   );
