@@ -34,6 +34,13 @@ import { glyphBorderColor, glyphFillColorStrong, priorityLabels, priorityToTag }
 
 const priorityWeight = { critique: 4, haute: 3, moyenne: 2, faible: 1 } as const;
 
+// Chargement progressif — gap analysis Task 3 (2026-08-12), Option B
+// retenue par le CEO : un bouton explicite plutôt qu'un scroll infini
+// automatique, cohérent avec le principe déjà appliqué ailleurs dans le
+// Produit (D5 : rien ne se déclenche silencieusement, l'utilisateur
+// choisit chaque étape).
+const SITUATIONS_PAGE_SIZE = 8;
+
 // Texture territoriale — Livrable 2 mandat DA (2026-08-11). Aucune photo
 // pour le Coordinateur (brief : reste situation-first/action-first) —
 // une texture vectorielle abstraite seulement, confinée au tiers droit de
@@ -88,6 +95,7 @@ function formatDate(value?: string) {
 
 export function CoordinatorHub({ state, actorId, role }: { state: ProductState; actorId: string; role: Role }) {
   const [signalDrawerOpen, setSignalDrawerOpen] = useState(false);
+  const [visibleSituationsCount, setVisibleSituationsCount] = useState(SITUATIONS_PAGE_SIZE);
   const actor = state.actors.find((item) => item.id === actorId);
   const territoryIds = new Set(actor?.territoryIds ?? []);
   const territory = state.territories.find((item) => territoryIds.has(item.id)) ?? state.territories[0];
@@ -193,7 +201,7 @@ export function CoordinatorHub({ state, actorId, role }: { state: ProductState; 
           <p className="mt-5 text-sm text-muted-foreground">Aucune situation en attente d’action sur ce périmètre.</p>
         ) : (
           <div className="mt-5 space-y-2.5">
-            {openSituations.map((situation) => {
+            {openSituations.slice(0, visibleSituationsCount).map((situation) => {
               const territoryName = state.territories.find((item) => item.id === situation.territoryId)?.name ?? situation.territoryId;
               const signal = state.signals.find((item) => situation.signalIds.includes(item.id));
               const tag = priorityToTag[situation.priority];
@@ -226,6 +234,15 @@ export function CoordinatorHub({ state, actorId, role }: { state: ProductState; 
                 </Card>
               );
             })}
+            {visibleSituationsCount < openSituations.length && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setVisibleSituationsCount((count) => count + SITUATIONS_PAGE_SIZE)}
+              >
+                Charger plus ({openSituations.length - visibleSituationsCount} restante(s))
+              </Button>
+            )}
           </div>
         )}
       </section>
