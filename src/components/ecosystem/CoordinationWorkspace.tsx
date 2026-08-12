@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   ArrowRight,
   Boxes,
@@ -22,6 +22,7 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { CommandButton } from "@/components/ui/CommandButton";
 import { TrustBadge } from "@/components/ui/Badges";
 import type { PublicRequest, PublicRequestIntent } from "@/domain/public/request";
+import { serviceRequestIntentLabels, type CatchLine, type ProductState, type ServiceRequestIntent } from "@/domain/types";
 
 type View = "besoins" | "capacites" | "rapprochements" | "missions" | "demandes_publiques";
 
@@ -55,6 +56,32 @@ const publicIntentLabel: Record<PublicRequestIntent, string> = {
   presse: "Presse",
   callback: "Rappel souhaité",
   autre: "Autre"
+};
+
+// Pré-remplissage de l'intention lors de la conversion (étape 3/3) — les
+// deux enums ne se recouvrent pas complètement (PublicRequestIntent porte
+// des intentions hors-filière : presse, partenariat, comprendre-territoire…
+// qui n'ont pas d'équivalent ServiceRequestIntent). Un simple best-effort,
+// jamais figé : le coordinateur qui convertit voit ce choix dans le
+// formulaire et peut le corriger avant de créer la demande — ce n'est pas
+// une décision automatique silencieuse.
+const serviceRequestIntentFromPublic: Record<PublicRequestIntent, ServiceRequestIntent> = {
+  transport: "transport",
+  conservation: "conservation",
+  transformation: "transformation",
+  equipement: "equipement",
+  maintenance: "maintenance",
+  formation: "formation",
+  debouches: "autre",
+  programme: "autre",
+  sourcing: "sourcing",
+  "comprendre-territoire": "autre",
+  financement: "financement",
+  organisation: "autre",
+  partenariat: "autre",
+  presse: "autre",
+  callback: "autre",
+  autre: "autre"
 };
 
 export function CoordinationWorkspace() {
@@ -231,23 +258,12 @@ export function CoordinationWorkspace() {
             <div className="grid min-h-44 place-items-center p-8 text-center text-sm font-semibold text-[#c65242]">{pendingPublicRequestsError}</div>
           ) : (
             <div className="divide-y divide-[#e1e9e9]">{pendingPublicRequests.length ? pendingPublicRequests.map((request) => (
-              <article key={request.id} className="pro-table-row lg:grid-cols-[1fr_170px_auto] lg:items-start">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="size-2 rounded-full bg-[#d8951a]" />
-                    <p className="text-[10px] font-black uppercase tracking-[.08em] text-[#7a8e94]">{publicIntentLabel[request.intent]} · {request.territory ?? "Territoire non précisé"}</p>
-                  </div>
-                  <h3 className="mt-1.5 font-black">{request.reference}</h3>
-                  <p className="mt-1 text-sm leading-6 text-[#526970]">{request.description}</p>
-                  <p className="mt-2 text-xs text-[#667b81]">Demandé par {request.contactName}{request.organization ? ` · ${request.organization}` : ""} · {request.phone}{request.email ? ` · ${request.email}` : ""}</p>
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Reçue le</p>
-                  <p className="mt-1 text-sm font-bold">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(request.createdAt))}</p>
-                  <p className="mt-2 text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Canal</p>
-                  <p className="mt-1 text-sm font-bold capitalize text-[#075568]">{request.source}</p>
-                </div>
-              </article>
+              <PublicRequestRow
+                key={request.id}
+                request={request}
+                state={state}
+                onConverted={() => setPendingPublicRequests((current) => current.filter((item) => item.id !== request.id))}
+              />
             )) : <Empty label="Aucune demande publique en attente pour le moment." />}</div>
           )
         )}
@@ -270,4 +286,139 @@ export function CoordinationWorkspace() {
 
 function Empty({ label }: { label: string }) {
   return <div className="col-span-full grid min-h-44 place-items-center bg-white p-8 text-center"><div><Snowflake className="mx-auto text-[#9db0b4]" /><p className="mt-3 text-sm font-bold">{label}</p></div></div>;
+}
+
+// Ligne + action de conversion — pont PublicRequest → Produit, étape 3/3
+// (2026-08-12). L'actorId de la ServiceRequest créée est celui du
+// coordinateur qui convertit (pas un acteur public synthétique — aurait
+// exigé d'étendre l'enum Role fermé, cf. gap analysis Task 2) ; l'identité
+// du demandeur public reste portée par contactName/phone/email/organization,
+// déjà optionnels sur ServiceRequest. Territoire et espèce ne sont jamais
+// déduits silencieusement : PublicRequest.territory est un champ texte
+// libre (SolutionWizard.tsx), aucune garantie qu'il corresponde à un
+// territoire réel — la sélection reste un choix explicite du coordinateur,
+// seulement pré-rempli quand une correspondance de nom est sans ambiguïté.
+function PublicRequestRow({
+  request,
+  state,
+  onConverted
+}: {
+  request: PublicRequest;
+  state: ProductState;
+  onConverted: () => void;
+}) {
+  const { run } = useProduct();
+  const [open, setOpen] = useState(false);
+  const [territoryId, setTerritoryId] = useState(() => {
+    const needle = (request.territory ?? "").toLowerCase().trim();
+    if (!needle) return "";
+    const matches = state.territories.filter((item) => item.name.toLowerCase().includes(needle) || needle.includes(item.name.toLowerCase()));
+    return matches.length === 1 ? matches[0].id : "";
+  });
+  const [speciesId, setSpeciesId] = useState("");
+  const [quantityKg, setQuantityKg] = useState("");
+  const [quality, setQuality] = useState<CatchLine["quality"]>("A");
+  const [intent, setIntent] = useState<ServiceRequestIntent>(serviceRequestIntentFromPublic[request.intent]);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const quantity = Number(quantityKg);
+    if (!territoryId || !speciesId || !Number.isFinite(quantity) || quantity <= 0) {
+      setError("Territoire, espèce et quantité (kg) sont requis.");
+      return;
+    }
+    setError("");
+    setPending(true);
+    try {
+      const ok = await run({
+        type: "create_service_request",
+        territoryId,
+        speciesId,
+        quantityKg: quantity,
+        quality,
+        intent,
+        channel: request.source,
+        contactName: request.contactName,
+        phone: request.phone,
+        email: request.email,
+        organization: request.organization
+      });
+      if (!ok) {
+        setError("La création de la demande a échoué.");
+        return;
+      }
+      await fetch(`/api/coordination/public-requests/${request.id}`, { method: "PATCH" });
+      onConverted();
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <article className="p-4 lg:p-5">
+      <div className="grid gap-4 lg:grid-cols-[1fr_170px_auto] lg:items-start">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="size-2 rounded-full bg-[#d8951a]" />
+            <p className="text-[10px] font-black uppercase tracking-[.08em] text-[#7a8e94]">{publicIntentLabel[request.intent]} · {request.territory ?? "Territoire non précisé"}</p>
+          </div>
+          <h3 className="mt-1.5 font-black">{request.reference}</h3>
+          <p className="mt-1 text-sm leading-6 text-[#526970]">{request.description}</p>
+          <p className="mt-2 text-xs text-[#667b81]">Demandé par {request.contactName}{request.organization ? ` · ${request.organization}` : ""} · {request.phone}{request.email ? ` · ${request.email}` : ""}</p>
+        </div>
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Reçue le</p>
+          <p className="mt-1 text-sm font-bold">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(request.createdAt))}</p>
+          <p className="mt-2 text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Canal</p>
+          <p className="mt-1 text-sm font-bold capitalize text-[#075568]">{request.source}</p>
+        </div>
+        {!open && <button type="button" onClick={() => setOpen(true)} className="btn-secondary whitespace-nowrap">Convertir en demande <ArrowRight size={14} /></button>}
+      </div>
+
+      {open && (
+        <form onSubmit={submit} className="mt-4 space-y-3 rounded-xl border border-[#d0ddde] bg-[#f8fbfa] p-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="block text-xs font-bold text-[#526970]">
+              Territoire
+              <select required value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold">
+                <option value="">À choisir…</option>
+                {state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </label>
+            <label className="block text-xs font-bold text-[#526970]">
+              Espèce
+              <select required value={speciesId} onChange={(event) => setSpeciesId(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold">
+                <option value="">À choisir…</option>
+                {state.species.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </label>
+            <label className="block text-xs font-bold text-[#526970]">
+              Quantité (kg)
+              <input required type="number" min={1} step={1} value={quantityKg} onChange={(event) => setQuantityKg(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold" placeholder="Ex. 200" />
+            </label>
+            <label className="block text-xs font-bold text-[#526970]">
+              Qualité
+              <select value={quality} onChange={(event) => setQuality(event.target.value as CatchLine["quality"])} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold">
+                <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+              </select>
+            </label>
+          </div>
+          <label className="block text-xs font-bold text-[#526970]">
+            Intention
+            <select value={intent} onChange={(event) => setIntent(event.target.value as ServiceRequestIntent)} className="mt-1.5 h-10 w-full max-w-xs rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold">
+              {Object.entries(serviceRequestIntentLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+          <p className="text-[11px] text-[#8a9a9e]">Intention pré-remplie à partir de la demande publique ({publicIntentLabel[request.intent]}) — à ajuster si besoin. Coordonnées ({request.contactName}, {request.phone}) reportées automatiquement sur la demande créée.</p>
+          {error && <p className="text-xs font-bold text-[#c65242]">{error}</p>}
+          <div className="flex flex-wrap gap-2">
+            <button type="submit" disabled={pending} className="btn-primary whitespace-nowrap">{pending ? "Conversion…" : "Créer la demande"} <ArrowRight size={14} /></button>
+            <button type="button" onClick={() => setOpen(false)} className="btn-secondary whitespace-nowrap">Annuler</button>
+          </div>
+        </form>
+      )}
+    </article>
+  );
 }
