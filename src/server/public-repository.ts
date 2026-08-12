@@ -148,6 +148,51 @@ export async function createPublicContribution(input: PublicContributionInput): 
   return contribution;
 }
 
+// Lecture des demandes publiques en attente — la seule qui existait avant
+// ce pont était l'écriture (createPublicRequest) : aucune fonction de
+// lecture n'existait nulle part dans le repo, la conséquence directe
+// étant qu'une PublicRequest était écrite puis jamais relue par personne
+// (constat vérifié, gap analysis du 2026-08-12). Lecture seule, jamais
+// d'écriture depuis le Produit vers ce store en dehors des deux fonctions
+// ci-dessous — le Produit lit le Public, il ne le pilote pas (A17).
+export async function getPendingPublicRequests(): Promise<PublicRequest[]> {
+  const db = database();
+  if (!db) {
+    return memoryRequests.filter((item) => item.status === "recue");
+  }
+
+  await ensureSchema();
+  const rows = await db<PublicRequest[]>`
+    select
+      id, reference, created_at as "createdAt", source, context, intent, category, territory,
+      description, actor_type as "actorType", organization, contact_name as "contactName",
+      phone, email, preferred_channel as "preferredChannel", consent,
+      attachment_note as "attachmentNote", status
+    from mbambulaan_public_requests
+    where status = 'recue'
+    order by created_at desc
+  `;
+  return rows;
+}
+
+// Transition de statut déclenchée par la conversion en ServiceRequest côté
+// Produit (CoordinationWorkspace.tsx) — réutilise le cycle de statut déjà
+// modélisé pour PublicRequest (request.ts : recue → en_etude → ...) plutôt
+// que d'ajouter un nouveau champ de liaison : une fois "en_etude", la
+// demande sort naturellement de getPendingPublicRequests() ci-dessus, pas
+// de risque de conversion en double.
+export async function markPublicRequestInStudy(id: string): Promise<void> {
+  const db = database();
+  if (!db) {
+    const request = memoryRequests.find((item) => item.id === id);
+    if (request) request.status = "en_etude";
+    return;
+  }
+
+  await ensureSchema();
+  await db`update mbambulaan_public_requests set status = 'en_etude' where id = ${id}`;
+}
+
 export function publicPersistenceMode() {
   return process.env.DATABASE_URL ? "postgresql" : "memoire_locale_demo";
 }
