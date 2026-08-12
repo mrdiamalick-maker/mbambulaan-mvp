@@ -33,11 +33,23 @@ import {
 type NavItem = { href: string; label: string; icon: typeof Home; roles: Role[]; module?: PlatformModule };
 type NavGroup = { label: string; items: NavItem[] };
 
+// Regroupement en 3 sous-groupes visuels (revue éditoriale Produit,
+// arbitrage CEO du 2026-08-12, Option B du gap analysis navigation) :
+// jusqu'ici 10 entrées de premier niveau à plat (Aujourd'hui hors groupe +
+// 6 dans "Filière" + 3 dans "Organisation"), ce qui contredisait le
+// principe D9 appliqué ailleurs dans le Produit (un élément dominant, pas
+// une liste de tuiles égales) — ici, c'était la nav elle-même qui restait
+// une liste plate. Aucune route, aucune permission, aucun libellé de page
+// n'est touché par ce regroupement — seule la présentation dans la
+// sidebar change. "Travail" en premier (regroupe ce qui était déjà rendu
+// hors groupe, plus Situations/Coordinations qui vivaient dans "Filière")
+// porte la position dominante par sa place, pas par un traitement visuel
+// distinct des deux autres groupes.
 const operationalGroups: NavGroup[] = [
   {
-    label: "Filière",
+    label: "Travail",
     items: [
-      { href: "/app/operations", module: "operations", label: "Opérations", icon: Anchor, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur"] },
+      { href: "/app/travail", label: "Aujourd’hui", icon: Home, roles: [] },
       // Situations : registre séparé conservé uniquement pour les rôles
       // qui n'ont pas la file fusionnée de CoordinatorHub (Lot 3,
       // /app/travail). Pour administrateur/gestionnaire_organisation/
@@ -45,9 +57,20 @@ const operationalGroups: NavGroup[] = [
       // vers /app/travail — ne pas les lister ici, ce serait une entrée
       // de nav vers une redirection, pas une destination.
       { href: "/app/situations", module: "operations", label: "Situations", icon: ClipboardList, roles: ["operateur", "capitaine", "mareyeur", "transformateur", "prestataire"] },
-      { href: "/app/coordination", module: "coordination", label: "Coordinations", icon: Handshake, roles: ["administrateur", "operateur", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur", "partenaire"] },
+      { href: "/app/coordination", module: "coordination", label: "Coordinations", icon: Handshake, roles: ["administrateur", "operateur", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur", "partenaire"] }
+    ]
+  },
+  {
+    label: "Filière",
+    items: [
+      { href: "/app/operations", module: "operations", label: "Opérations", icon: Anchor, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur"] },
       { href: "/app/atlas", module: "territory_intelligence", label: "Territoires & capacités", icon: Globe2, roles: [] },
-      { href: "/app/marches", module: "market_intelligence", label: "Flux & débouchés", icon: Store, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur"] },
+      // Prix et marchés — arbitrage Navigation du 2026-08-12 : le contenu
+      // réel de MarketWorkspace.tsx (observations de prix + rareté
+      // explicable) ne couvre ni flux ni débouchés/logistique ; le libellé
+      // de nav est aligné sur le titre de page existant plutôt que
+      // l'inverse.
+      { href: "/app/marches", module: "market_intelligence", label: "Prix et marchés", icon: Store, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur"] },
       { href: "/app/durabilite", label: "Provenance & durabilité", icon: Leaf, roles: ["administrateur", "operateur", "capitaine", "transformateur", "gestionnaire_organisation", "coordinateur", "partenaire"] }
     ]
   },
@@ -114,17 +137,6 @@ export function AppSidebar({ role, modules, orgName }: { role: Role; modules: Pl
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {!isMinistry && (
-          <SidebarGroup>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/app/travail"} tooltip="Aujourd’hui">
-                  <Link href="/app/travail"><Home /><span>Aujourd’hui</span></Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-        )}
         {groups.map((group) => {
           const items = group.items.filter((item) => canSee(item, role, modules));
           if (items.length === 0) return null;

@@ -174,6 +174,21 @@ Chaque entrée : la question, les options considérées, la recommandation initi
 
 ---
 
+---
+
+### D11 — Navigation Coordinateur : 10 entrées de premier niveau à plat (revue éditoriale Produit, 2026-08-12)
+
+**Constat** : `AppSidebar.tsx` (Coordinateur/Opérateur) affichait 10 entrées de premier niveau sans hiérarchie interne (Aujourd'hui hors groupe, 6 entrées dans « Filière », 3 dans « Organisation ») — contredit le principe D9 appliqué partout ailleurs dans le Produit (un élément dominant par vue, pas une liste de tuiles égales) ; ici, c'était la structure de nav elle-même qui restait une liste plate.
+
+**Options présentées** :
+- (A) Reprioriser l'ordre des 10 entrées existantes sans nouveau regroupement — risque nul, mais ne résout pas le problème de fond (toujours 10 entrées à plat).
+- (B) Sous-groupes visuels dans la sidebar : regrouper les 10 destinations existantes en 3 groupes (Travail / Filière / Organisation) sans toucher à aucune route, permission ou page. Risque quasi nul, réversible en un commit, mais ne réduit pas le nombre réel de destinations.
+- (C) Fusionner des entrées proches en sous-onglets d'une même page (ex. Organisation + Programmes & financements sous une page à onglets), réduisant réellement le nombre de destinations de premier niveau (~10 → 7-8). Seule option qui résout le problème en profondeur, mais touche à la structure de navigation/pages — hors du mandat « travail éditorial uniquement » de la revue en cours, avec un risque de régression plus élevé sur des pages et parcours déjà validés en recette (Lots 6/7).
+
+**Arbitrage CEO** : Option B retenue et implémentée (2026-08-12) — voir `src/components/shell/AppSidebar.tsx`. **Option C non rejetée** : reconnue comme la cible probable à moyen terme (réduction réelle du nombre de destinations plutôt qu'un simple regroupement visuel), mais explicitement différée à un lot dédié avec sa propre recette, pas une décision prise en marge d'une revue éditoriale. À reprendre lors d'un futur arbitrage de structure de navigation.
+
+---
+
 ## 3. Décisions explicitement hors de ce document
 
 Modèle tarifaire, contrats institutionnels, hébergement de production final : différés, non nécessaires pour trancher le Lot 1 ni pour la démonstration institutionnelle V1 (cohérent avec spec §23 « à challenger avant décision » / « plus tard »).
