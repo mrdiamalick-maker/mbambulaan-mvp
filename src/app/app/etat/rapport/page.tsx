@@ -36,7 +36,7 @@ function buildMarkdown(state: NonNullable<ReturnType<typeof useProduct>["state"]
   lines.push("");
   lines.push(`Environnement : ${state.tenant.name} · Généré le ${new Date().toLocaleDateString("fr-FR")}`);
   lines.push("");
-  lines.push(`> Toute valeur non explicitement marquée « vérifiée » ou « consolidée » provient de l'environnement de démonstration Mbàmbulaan et ne constitue pas une statistique officielle.`);
+  lines.push(`> Les valeurs non marquées « Vérifiée » ou « Consolidée » sont des données de démonstration et ne constituent pas des statistiques officielles.`);
   lines.push("");
   for (const report of state.reports) {
     lines.push(`## ${report.title}`);
@@ -84,7 +84,7 @@ export default function EtatReportPage() {
       <section className="etat-canvas-dark mx-5 mt-5 rounded-[28px] p-8 lg:mx-8 lg:p-10">
         <p className="etat-eyebrow etat-eyebrow--on-dark">Rapport bailleurs</p>
         <h1 className="etat-display mt-3 text-2xl not-italic text-white md:text-3xl">Impact de la coordination, territoire par territoire.</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">Généré depuis l’environnement {state.tenant.name}, le {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}. Pensé pour être repris tel quel dans vos échanges avec les bailleurs et programmes.</p>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">Généré depuis l’environnement {state.tenant.name}, le {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}. Préparé pour faciliter vos échanges avec les partenaires et bailleurs.</p>
       </section>
 
       <div className="mx-5 mt-8 space-y-6 pb-16 lg:mx-8">

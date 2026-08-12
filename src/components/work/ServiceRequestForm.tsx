@@ -72,18 +72,18 @@ export function ServiceRequestForm({ state, onDone }: { state: ProductState; onD
         </label>
       </div>
       <label className="block text-xs font-semibold">
-        Intention
+        Besoin recherché
         <select value={intent} onChange={(event) => setIntent(event.target.value as ServiceRequestIntent)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary">
           {Object.entries(serviceRequestIntentLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
       <label className="block text-xs font-semibold">
-        Canal
+        Origine de la demande
         <select value={channel} onChange={(event) => setChannel(event.target.value as ServiceRequestChannel)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary">
           {Object.entries(channelLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
-      <p className="text-xs text-muted-foreground">La demande apparaît « ouverte » et se rapprochera automatiquement d’un lot compatible dès qu’un débarquement correspondant sera enregistré.</p>
+      <p className="text-xs text-muted-foreground">La demande restera ouverte jusqu’à ce qu’une correspondance compatible soit identifiée ou qu’elle soit clôturée.</p>
       <Button type="submit" disabled={pending} className="w-full">{pending ? "Envoi…" : "Créer la demande"}</Button>
     </form>
   );

@@ -61,7 +61,7 @@ export default function InitiativesPage() {
     <div className="shadcn-scope space-y-8 bg-background p-5 pb-16 lg:p-8">
       <div>
         <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">Transformation territoriale</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">Initiatives &amp; financements</h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">Programmes &amp; financements</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Les difficultés récurrentes deviennent des initiatives structurées, reliées aux territoires, aux décisions, aux financements et aux résultats attendus.</p>
       </div>
 
@@ -70,7 +70,7 @@ export default function InitiativesPage() {
       <Card>
         <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Portefeuille de démonstration</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Portefeuille présenté en mode démonstration</p>
             <h2 className="mt-2 text-xl font-bold">{state.initiatives.length} programmes · {money.format(totalBudget)}</h2>
             <p className="mt-1 text-sm text-muted-foreground">Besoins, conditions et statuts restent distincts des engagements fermes.</p>
           </div>
@@ -95,7 +95,7 @@ export default function InitiativesPage() {
               </div>
             </div>
             <div className="grid gap-px bg-border sm:grid-cols-2 xl:grid-cols-4">
-              <div className="bg-card p-5"><Banknote size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{money.format(initiative.budgetFcfa)}</p><p className="text-xs text-muted-foreground">budget indicatif simulé</p></div>
+              <div className="bg-card p-5"><Banknote size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{money.format(initiative.budgetFcfa)}</p><p className="text-xs text-muted-foreground">budget simulé à titre indicatif</p></div>
               <div className="bg-card p-5"><CircleDollarSign size={19} className="text-[#1d8a5f]" /><p className="mt-3 text-2xl font-bold">{money.format(secured + instructed)}</p><p className="text-xs text-muted-foreground">confirmé ou en instruction</p></div>
               <div className="bg-card p-5"><Flag size={19} className="text-[#c68a2c]" /><p className="mt-3 text-2xl font-bold">{initiative.territoryIds.length}</p><p className="text-xs text-muted-foreground">territoires reliés</p></div>
               <div className="bg-card p-5"><UsersRound size={19} className="text-[#1d4468]" /><p className="mt-3 font-bold">{owner?.name}</p><p className="text-xs text-muted-foreground">responsable de l’initiative</p></div>

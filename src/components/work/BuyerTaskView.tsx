@@ -109,7 +109,7 @@ export function BuyerTaskView({ state, actorId, role }: { state: ProductState; a
         <SheetContent className="overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Nouvelle demande</SheetTitle>
-            <SheetDescription>Elle sera rapprochée automatiquement d’un lot compatible dès qu’il sera débarqué.</SheetDescription>
+            <SheetDescription>Mbàmbulaan comparera cette demande aux lots enregistrés et vous proposera les correspondances compatibles.</SheetDescription>
           </SheetHeader>
           <ServiceRequestForm state={state} onDone={() => setFormOpen(false)} />
         </SheetContent>
