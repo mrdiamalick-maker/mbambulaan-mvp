@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1400" viewBox="0 0 1000 1400" fill="none">
+  <title>Mbàmbulaan — Atlas Public Senegal coast reference</title>
+  <desc>DA reference asset: simplified geographic silhouette of Senegal with the 18 calibrated coastal territories, for visual validation before Claude Code implementation.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#0b1a2a" flood-opacity="0.08"/></filter>
+  </defs>
+  <!-- Transparent asset by design. Host surface should be white or #f7f3e9. -->
+  <g opacity="0.35" stroke="#0b1a2a" stroke-width="1.5">
+    <path d="M75 210C165 165 245 155 320 175"/><path d="M60 245C155 198 240 190 315 208"/><path d="M52 280C150 232 235 225 310 242"/>
+    <path d="M90 1110C185 1068 275 1062 355 1085"/><path d="M78 1145C175 1102 265 1098 348 1120"/>
+  </g>
+  <!-- Simplified Senegal silhouette, geographically recognizable; Gambia inlet kept as a visual notch. -->
+  <path d="M315 145 L610 118 L790 205 L845 365 L804 510 L738 610 L760 705 L690 772 L610 792 L560 760 L500 785 L438 760 L390 708 L338 650 L302 565 L276 485 L248 408 L232 330 L250 255 Z
+           M390 760 L500 785 L560 760 L610 792 L690 772 L735 812 L700 860 L615 872 L550 858 L485 875 L420 858 L370 825 Z
+           M370 825 L420 858 L485 875 L550 858 L615 872 L700 860 L735 900 L690 952 L625 970 L555 955 L490 975 L420 958 L355 920 Z
+           M355 920 L420 958 L490 975 L555 955 L625 970 L690 952 L730 1015 L680 1095 L605 1140 L520 1160 L440 1142 L372 1098 L325 1030 Z" fill="#f7f3e9" stroke="#0b1a2a" stroke-width="5" stroke-linejoin="round" filter="url(#shadow)"/>
+  <!-- Gambia visual cut / river corridor -->
+  <path d="M300 805 C405 792 515 800 625 820 C670 828 705 830 742 816" stroke="#ffffff" stroke-width="22" stroke-linecap="round"/>
+  <path d="M300 805 C405 792 515 800 625 820 C670 828 705 830 742 816" stroke="#0b1a2a" stroke-opacity="0.18" stroke-width="2" stroke-linecap="round"/>
+  <!-- Coast guide: intentionally subtle, not a second map layer. -->
+  <path d="M250 255 C230 340 248 425 280 510 C305 578 330 650 380 716 C405 748 420 770 402 810 C378 862 350 920 330 990 C312 1055 345 1110 405 1140" stroke="#b6522f" stroke-opacity="0.22" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- 18 territory markers. Vertical order follows the already verified Pro reference; x positions are adapted once to this SVG viewBox. -->
+  <g font-family="Arial, sans-serif" font-size="18" fill="#0b1a2a">
+    <g transform="translate(258 205)"><circle r="9" fill="#0b1a2a"/><text x="18" y="6">Saint-Louis</text></g>
+    <g transform="translate(245 292)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Lompoul</text></g>
+    <g transform="translate(252 372)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Fass Boye</text></g>
+    <g transform="translate(265 450)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Kayar</text></g>
+    <g transform="translate(278 528)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Yoff</text></g>
+    <g transform="translate(286 575)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Ouakam</text></g>
+    <g transform="translate(295 610)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Soumbédioune</text></g>
+    <g transform="translate(316 642)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Hann</text></g>
+    <g transform="translate(342 684)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Rufisque</text></g>
+    <g transform="translate(350 720)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Popenguine</text></g>
+    <g transform="translate(362 758)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Mbour</text></g>
+    <g transform="translate(378 792)"><circle r="13" fill="#b6522f"/><circle r="20" stroke="#b6522f" stroke-opacity="0.28" stroke-width="3"/><text x="28" y="6" font-weight="700">Joal</text></g>
+    <g transform="translate(365 855)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Foundiougne</text></g>
+    <g transform="translate(340 900)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Djiffer</text></g>
+    <g transform="translate(330 965)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Missirah</text></g>
+    <g transform="translate(335 1040)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Kafountine</text></g>
+    <g transform="translate(365 1090)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Elinkine</text></g>
+    <g transform="translate(400 1135)"><circle r="7" fill="#0b1a2a"/><text x="18" y="6">Cap Skirring</text></g>
+  </g>
+
+  <g font-family="Arial, sans-serif" fill="#0b1a2a">
+    <text x="78" y="90" font-size="18" font-weight="700" letter-spacing="2">ATLAS PUBLIC · RÉFÉRENCE DA</text>
+    <text x="78" y="122" font-size="15" opacity="0.62">Fond transparent · surface hôte claire · sélection terracotta</text>
+    <text x="770" y="1280" font-size="14" opacity="0.5" text-anchor="end">Asset de référence — pas une carte SIG</text>
+  </g>
+</svg>
