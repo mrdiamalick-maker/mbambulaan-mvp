@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mbàmbulaan — Tendances publiques (prototype R&D)</title>
+  <style>
+    :root {
+      --navy: #0b1a2a;
+      --terra: #b6522f;
+      --cream: #f7f3e9;
+      --paper: #fffdf8;
+      --ink: #142434;
+      --muted: #68727b;
+      --line: #ddd6c9;
+      --sand: #e9dfcf;
+      --green: #386555;
+      --amber: #96702d;
+      --blue: #336178;
+      --shadow: 0 20px 52px rgba(11, 26, 42, .08);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 90% 3%, rgba(182, 82, 47, .09), transparent 26rem),
+        var(--cream);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, select { font: inherit; }
+    button { cursor: pointer; }
+    .shell { max-width: 1480px; margin: 0 auto; min-height: 100vh; }
+    .topbar {
+      min-height: 76px;
+      padding: 18px 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      background: var(--navy);
+      color: var(--cream);
+    }
+    .brand { font-size: 20px; font-weight: 790; letter-spacing: -.03em; }
+    .brand small { display: block; margin-bottom: 3px; font-size: 10px; font-weight: 650; letter-spacing: .16em; text-transform: uppercase; opacity: .62; }
+    .rd-pill { border: 1px solid rgba(247, 243, 233, .3); border-radius: 999px; padding: 8px 12px; font-size: 11px; white-space: nowrap; }
+    main { padding: 38px 34px 64px; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(310px, .5fr);
+      gap: 28px;
+      align-items: end;
+    }
+    .eyebrow { color: var(--terra); font-size: 11px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+    h1 { max-width: 920px; margin: 10px 0 16px; font-size: clamp(40px, 5.2vw, 72px); line-height: .98; letter-spacing: -.055em; }
+    .lead { max-width: 810px; margin: 0; color: var(--muted); font-size: 17px; line-height: 1.62; }
+    .promise {
+      border: 1px solid rgba(182, 82, 47, .35);
+      border-radius: 18px;
+      padding: 20px;
+      background: rgba(255, 253, 248, .62);
+    }
+    .promise strong { display: block; margin-bottom: 8px; font-size: 15px; }
+    .promise p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+    .filters {
+      margin: 32px 0 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 253, 248, .74);
+      box-shadow: var(--shadow);
+    }
+    label { display: grid; gap: 6px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 11px 12px;
+      background: var(--paper);
+      color: var(--ink);
+      outline: none;
+    }
+    select:focus { border-color: var(--terra); box-shadow: 0 0 0 3px rgba(182, 82, 47, .12); }
+    .method-link {
+      align-self: end;
+      border: 1px solid var(--navy);
+      border-radius: 11px;
+      padding: 11px 14px;
+      background: transparent;
+      color: var(--navy);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+    .legend span, .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+    .observed { background: #e1ece7; color: var(--green); }
+    .scenario { background: #f1e0d8; color: #8a4029; }
+    .science { background: #dfe9ee; color: var(--blue); }
+    .simulated { background: var(--navy); color: var(--cream); }
+
+    .dashboard { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(330px, .65fr); gap: 16px; }
+    .panel { border: 1px solid var(--line); border-radius: 20px; padding: 20px; background: rgba(255, 253, 248, .82); box-shadow: var(--shadow); }
+    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 18px; }
+    .panel-head h2 { margin: 5px 0 0; font-size: 22px; letter-spacing: -.03em; }
+    .panel-head p { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+    .coverage { text-align: right; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .coverage strong { display: block; color: var(--ink); font-size: 13px; }
+
+    .price-layout { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 18px; align-items: stretch; }
+    .chart { min-height: 260px; display: flex; flex-direction: column; justify-content: space-between; border-radius: 16px; padding: 20px 18px 14px; background: linear-gradient(180deg, #f8f1e8, #fffdf8); overflow: hidden; }
+    .chart-copy { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; }
+    .chart-copy strong { font-size: 30px; letter-spacing: -.04em; }
+    .chart-copy small { color: var(--muted); font-size: 10px; line-height: 1.4; text-align: right; }
+    .plot { position: relative; height: 150px; margin-top: 14px; border-bottom: 1px solid var(--line); }
+    .gridline { position: absolute; left: 0; right: 0; height: 1px; background: rgba(20, 36, 52, .08); }
+    .trendline { position: absolute; inset: 12px 2px 18px; width: calc(100% - 4px); height: calc(100% - 30px); overflow: visible; }
+    .months { display: flex; justify-content: space-between; padding-top: 8px; color: var(--muted); font-size: 9px; }
+    .summary-card { display: grid; align-content: space-between; border-radius: 16px; padding: 17px; background: var(--navy); color: var(--cream); }
+    .summary-card strong { display: block; margin: 12px 0 4px; font-size: 30px; line-height: 1; }
+    .summary-card p { margin: 0; color: rgba(247, 243, 233, .72); font-size: 11px; line-height: 1.5; }
+    .summary-card .small-note { padding-top: 18px; border-top: 1px solid rgba(247, 243, 233, .16); font-size: 10px; }
+
+    .availability { display: grid; gap: 9px; }
+    .place { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+    .place b { display: block; font-size: 13px; }
+    .place small { color: var(--muted); font-size: 10px; }
+    .level { min-width: 76px; text-align: center; border-radius: 999px; padding: 7px 9px; font-size: 10px; font-weight: 800; }
+    .usual { background: #dfece6; color: var(--green); }
+    .low { background: #f1e1d9; color: #8a4029; }
+    .unknown { background: #ebe7df; color: var(--muted); }
+
+    .science-card { margin-top: 16px; border: 1px solid #cadbe4; background: #eef4f6; }
+    .science-card h2 { margin: 8px 0; font-size: 20px; }
+    .science-card p { margin: 0; color: #526872; font-size: 12px; line-height: 1.55; }
+    .science-status { margin-top: 14px; display: flex; align-items: center; gap: 10px; }
+    .science-status strong { font-size: 13px; }
+
+    .simulator { margin-top: 16px; padding: 25px; background: var(--navy); color: var(--cream); }
+    .simulator .panel-head { margin-bottom: 22px; }
+    .simulator .panel-head h2 { font-size: 27px; }
+    .simulator .panel-head p { color: rgba(247, 243, 233, .67); }
+    .scenario-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr); gap: 18px; }
+    .controls { display: grid; gap: 14px; }
+    .control { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: center; }
+    .control span { font-size: 12px; font-weight: 720; }
+    .segmented { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 5px; border-radius: 12px; background: rgba(247, 243, 233, .08); }
+    .segmented button { border: 0; border-radius: 8px; padding: 9px 7px; background: transparent; color: rgba(247, 243, 233, .62); font-size: 10px; }
+    .segmented button.active { background: var(--terra); color: white; font-weight: 800; }
+    .result { border-radius: 16px; padding: 18px; background: var(--cream); color: var(--ink); }
+    .result h3 { margin: 8px 0 14px; font-size: 20px; }
+    .pressure { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .pressure div { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--paper); }
+    .pressure small { display: block; color: var(--muted); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+    .pressure strong { display: block; margin-top: 5px; font-size: 15px; }
+    .why { margin-top: 13px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .disclaimer { margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--line); color: #7b513f; font-size: 10px; line-height: 1.5; font-weight: 680; }
+
+    .method { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+    .method article { border: 1px solid var(--line); border-radius: 16px; padding: 16px; background: rgba(255, 253, 248, .62); }
+    .method b { font-size: 13px; }
+    .method p { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; line-height: 1.6; }
+
+    @media (max-width: 980px) {
+      .hero, .dashboard, .scenario-grid { grid-template-columns: 1fr; }
+      .price-layout { grid-template-columns: 1fr; }
+      .summary-card { min-height: 180px; }
+    }
+    @media (max-width: 680px) {
+      .topbar { padding: 16px 18px; }
+      main { padding: 28px 18px 48px; }
+      h1 { font-size: 42px; }
+      .filters { grid-template-columns: 1fr; }
+      .method-link { width: 100%; }
+      .panel, .simulator { padding: 17px; }
+      .panel-head { display: grid; }
+      .coverage { text-align: left; }
+      .control { grid-template-columns: 1fr; gap: 7px; }
+      .method { grid-template-columns: 1fr; }
+      .pressure { grid-template-columns: 1fr; }
+      .rd-pill { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><small>Mbàmbulaan · espace public</small>Tendances des marchés</div>
+      <div class="rd-pill">Prototype R&D · toutes les données sont simulées</div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <div class="eyebrow">Observer · comprendre · explorer</div>
+          <h1>Comprendre ce qui est observé.<br>Tester ce qui pourrait changer.</h1>
+          <p class="lead">Une lecture prudente des prix et disponibilités observés sur les marchés. Ni indice d'inflation, ni prévision, ni diagnostic automatique de la ressource en mer.</p>
+        </div>
+        <aside class="promise">
+          <strong>Ce que cet outil ne dira jamais</strong>
+          <p>« Cette espèce disparaît », « le prix sera de X FCFA » ou « cette hausse prouve une spéculation ». Ces conclusions nécessitent d'autres données, méthodes et autorités.</p>
+        </aside>
+      </section>
+
+      <section class="filters" aria-label="Filtres de lecture">
+        <label>Territoire
+          <select id="territory"><option>Joal–Mbour</option><option>Kayar</option><option>Saint-Louis</option></select>
+        </label>
+        <label>Espèce
+          <select id="species"><option>Sardinelle ronde</option><option>Maquereau</option><option>Dorade</option></select>
+        </label>
+        <button class="method-link" onclick="document.getElementById('method').scrollIntoView()">Voir la méthode ↓</button>
+      </section>
+
+      <div class="legend">
+        <span class="observed">● Observé</span>
+        <span class="scenario">◆ Scénario</span>
+        <span class="science">■ Source scientifique</span>
+        <span class="simulated">Données simulées</span>
+      </div>
+
+      <section class="dashboard">
+        <article class="panel">
+          <header class="panel-head">
+            <div><span class="badge observed">Observé</span><h2>Tendance de prix au détail</h2><p>Sardinelle ronde · Joal–Mbour · fourchettes hebdomadaires</p></div>
+            <div class="coverage"><strong>Couverture partielle</strong>38 observations · 4 marchés<br>Dernière collecte : il y a 3 jours</div>
+          </header>
+          <div class="price-layout">
+            <div class="chart">
+              <div class="chart-copy"><strong>650–760 <small>FCFA/kg</small></strong><small>Fourchette simulée<br>semaine courante</small></div>
+              <div class="plot" aria-label="Courbe simulée des fourchettes de prix">
+                <i class="gridline" style="top: 22%"></i><i class="gridline" style="top: 54%"></i><i class="gridline" style="top: 86%"></i>
+                <svg class="trendline" viewBox="0 0 600 120" preserveAspectRatio="none" role="img" aria-label="Tendance irrégulière et légèrement haussière">
+                  <path d="M0,88 C70,78 90,90 150,73 S250,63 300,70 S390,42 450,54 S540,37 600,28" fill="none" stroke="#b6522f" stroke-width="4" stroke-linecap="round"/>
+                  <path d="M0,101 C70,90 95,102 150,87 S250,76 300,83 S390,56 450,68 S540,51 600,43 L600,13 C530,25 500,29 450,39 S390,28 300,55 S230,46 150,61 S80,65 0,72 Z" fill="rgba(182,82,47,.12)"/>
+                </svg>
+              </div>
+              <div class="months"><span>S-7</span><span>S-6</span><span>S-5</span><span>S-4</span><span>S-3</span><span>S-2</span><span>S-1</span><span>Aujourd'hui</span></div>
+            </div>
+            <aside class="summary-card">
+              <div><span class="eyebrow" style="color:#e7a78f">Lecture prudente</span><strong>Hausse observée</strong><p>La médiane simulée progresse sur les trois dernières semaines. La couverture reste insuffisante pour parler d'inflation locale.</p></div>
+              <p class="small-note">Facteurs à documenter : arrivages, météo, demande, qualité, transport et capacité de froid.</p>
+            </aside>
+          </div>
+        </article>
+
+        <aside>
+          <article class="panel">
+            <header class="panel-head"><div><span class="badge observed">Observé</span><h2>Disponibilité locale</h2><p>Présence sur les points suivis, pas abondance en mer.</p></div></header>
+            <div class="availability">
+              <div class="place"><div><b>Marché central · Joal</b><small>12 observations cette semaine</small></div><span class="level usual">Habituelle</span></div>
+              <div class="place"><div><b>Marché aux poissons · Mbour</b><small>10 observations cette semaine</small></div><span class="level low">Faible</span></div>
+              <div class="place"><div><b>Quai de Joal</b><small>Couverture incomplète</small></div><span class="level unknown">À confirmer</span></div>
+            </div>
+          </article>
+
+          <article class="panel science-card">
+            <span class="badge science">Source scientifique</span>
+            <h2>État du stock : non renseigné ici</h2>
+            <p>La présence sur un marché ne permet pas d'évaluer la biomasse ou la santé d'un stock. Seule une évaluation scientifique datée et applicable peut renseigner cet état.</p>
+            <div class="science-status"><span aria-hidden="true">■</span><strong>Aucune déduction depuis les prix</strong></div>
+          </article>
+        </aside>
+      </section>
+
+      <section class="panel simulator">
+        <header class="panel-head">
+          <div><span class="badge scenario">Scénario pédagogique</span><h2>Et si les conditions changeaient ?</h2><p>Choisissez des hypothèses. Le résultat indique une pression plausible, jamais un prix futur.</p></div>
+          <div class="coverage" style="color:rgba(247,243,233,.6)"><strong style="color:var(--cream)">Règles explicables</strong>Aucun modèle prédictif</div>
+        </header>
+        <div class="scenario-grid">
+          <div class="controls">
+            <div class="control"><span>Arrivages au quai</span><div class="segmented" data-control="arrivals"><button class="active">En baisse</button><button>Stables</button><button>En hausse</button></div></div>
+            <div class="control"><span>Demande locale</span><div class="segmented" data-control="demand"><button>En baisse</button><button>Stable</button><button class="active">En hausse</button></div></div>
+            <div class="control"><span>Transport</span><div class="segmented" data-control="transport"><button>Fluide</button><button class="active">Perturbé</button><button>Très perturbé</button></div></div>
+            <div class="control"><span>Capacité de froid</span><div class="segmented" data-control="cold"><button>Disponible</button><button class="active">Sous tension</button><button>Indisponible</button></div></div>
+          </div>
+          <aside class="result">
+            <span class="badge scenario">Résultat du scénario</span>
+            <h3>Pression plausible à court terme</h3>
+            <div class="pressure"><div><small>Disponibilité locale</small><strong id="availability-result">Pression à la baisse ↓</strong></div><div><small>Prix observables</small><strong id="price-result">Pression à la hausse ↑</strong></div></div>
+            <p class="why" id="scenario-reason">Des arrivages en baisse, une demande en hausse et un transport perturbé peuvent tendre le marché local. D'autres facteurs peuvent inverser ce résultat.</p>
+            <p class="disclaimer">Ce résultat n'est ni une prévision, ni un conseil d'achat, ni une mesure de l'inflation ou de la spéculation.</p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="method" id="method">
+        <article><b>1 · Comparer ce qui est comparable</b><p>Même espèce, forme, unité, stade de marché, territoire et période. Un prix au quai n'est pas un prix au détail.</p></article>
+        <article><b>2 · Publier la couverture</b><p>Nombre d'observations, lieux, fraîcheur et biais connus accompagnent chaque tendance. Une série pauvre n'est pas masquée.</p></article>
+        <article><b>3 · Séparer les niveaux de preuve</b><p>Observations commerciales, scénarios et évaluations scientifiques ont des sources et des usages distincts.</p></article>
+      </section>
+
+      <footer>Prototype autonome R&D · palette verrouillée #0b1a2a / #b6522f / #f7f3e9 · aucun import du domaine, aucune permission, aucune donnée Produit, aucun déploiement. Les valeurs affichées sont entièrement simulées.</footer>
+    </main>
+  </div>
+
+  <script>
+    const groups = [...document.querySelectorAll('.segmented')];
+    groups.forEach(group => group.addEventListener('click', event => {
+      if (event.target.tagName !== 'BUTTON') return;
+      group.querySelectorAll('button').forEach(button => button.classList.remove('active'));
+      event.target.classList.add('active');
+      updateScenario();
+    }));
+
+    function selected(name) {
+      return document.querySelector(`[data-control="${name}"] .active`).textContent;
+    }
+
+    function updateScenario() {
+      const arrivals = selected('arrivals');
+      const demand = selected('demand');
+      const transport = selected('transport');
+      const cold = selected('cold');
+      let pressure = 0;
+      if (arrivals === 'En baisse') pressure += 2;
+      if (arrivals === 'En hausse') pressure -= 2;
+      if (demand === 'En hausse') pressure += 1;
+      if (demand === 'En baisse') pressure -= 1;
+      if (transport === 'Perturbé') pressure += 1;
+      if (transport === 'Très perturbé') pressure += 2;
+      if (cold === 'Sous tension') pressure += 1;
+      if (cold === 'Indisponible') pressure += 2;
+
+      const availability = document.getElementById('availability-result');
+      const price = document.getElementById('price-result');
+      const reason = document.getElementById('scenario-reason');
+      if (pressure >= 3) {
+        availability.textContent = 'Pression à la baisse ↓';
+        price.textContent = 'Pression à la hausse ↑';
+      } else if (pressure <= -2) {
+        availability.textContent = 'Pression à la hausse ↑';
+        price.textContent = 'Pression à la baisse ↓';
+      } else {
+        availability.textContent = 'Effet indéterminé';
+        price.textContent = 'Effet indéterminé';
+      }
+      reason.textContent = `${arrivals} pour les arrivages, demande ${demand.toLowerCase()}, transport ${transport.toLowerCase()} et froid ${cold.toLowerCase()} : ces hypothèses donnent une direction possible, sans valeur prédictive.`;
+    }
+  </script>
+</body>
+</html>
