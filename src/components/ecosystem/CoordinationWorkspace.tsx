@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Boxes,
@@ -11,6 +11,7 @@ import {
   ClipboardCheck,
   Factory,
   Handshake,
+  Inbox,
   MapPin,
   Network,
   Route,
@@ -20,21 +21,79 @@ import {
 import { useProduct } from "@/components/providers/ProductProvider";
 import { CommandButton } from "@/components/ui/CommandButton";
 import { TrustBadge } from "@/components/ui/Badges";
+import type { PublicRequest, PublicRequestIntent } from "@/domain/public/request";
 
-type View = "besoins" | "capacites" | "rapprochements" | "missions";
+type View = "besoins" | "capacites" | "rapprochements" | "missions" | "demandes_publiques";
 
 const views: Array<{ id: View; label: string; icon: typeof Boxes }> = [
   { id: "besoins", label: "Besoins à couvrir", icon: Boxes },
   { id: "capacites", label: "Capacités mobilisables", icon: Factory },
   { id: "rapprochements", label: "Rapprochements", icon: Network },
-  { id: "missions", label: "Missions en cours", icon: ClipboardCheck }
+  { id: "missions", label: "Missions en cours", icon: ClipboardCheck },
+  { id: "demandes_publiques", label: "Demandes publiques", icon: Inbox }
 ];
+
+// Étiquettes lisibles pour PublicRequestIntent — n'existaient nulle part
+// sous forme réutilisable (SolutionWizard.tsx a ses propres libellés
+// internes, non exportés). Pont PublicRequest → Produit, étape 2/3
+// (2026-08-12) : ce sont les demandes que /solutions écrit et que
+// personne ne relisait jusqu'ici (gap analysis Task 2).
+const publicIntentLabel: Record<PublicRequestIntent, string> = {
+  transport: "Transport",
+  conservation: "Conservation / froid",
+  transformation: "Transformation",
+  equipement: "Équipement",
+  maintenance: "Maintenance",
+  formation: "Formation",
+  debouches: "Débouchés",
+  programme: "Programme",
+  sourcing: "Sourcing / approvisionnement",
+  "comprendre-territoire": "Comprendre un territoire",
+  financement: "Financement",
+  organisation: "Organisation",
+  partenariat: "Partenariat",
+  presse: "Presse",
+  callback: "Rappel souhaité",
+  autre: "Autre"
+};
 
 export function CoordinationWorkspace() {
   const { state } = useProduct();
   const [view, setView] = useState<View>("besoins");
   const [territoryId, setTerritoryId] = useState("all");
   const [query, setQuery] = useState("");
+  const [pendingPublicRequests, setPendingPublicRequests] = useState<PublicRequest[]>([]);
+  const [pendingPublicRequestsLoading, setPendingPublicRequestsLoading] = useState(true);
+  const [pendingPublicRequestsError, setPendingPublicRequestsError] = useState("");
+
+  // Pont PublicRequest → Produit, étape 2/3 — lit ce que /solutions écrit
+  // depuis toujours sans que personne ne le relise (gap analysis Task 2,
+  // 2026-08-12). Chargé une fois au montage : cette liste change par
+  // action humaine (conversion, étape 3), pas par un flux temps réel à
+  // suivre en continu.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/coordination/public-requests")
+      .then(async (response) => {
+        const payload = await response.json();
+        if (cancelled) return;
+        if (!response.ok) {
+          setPendingPublicRequestsError(payload.error ?? "Impossible de charger les demandes publiques.");
+          return;
+        }
+        setPendingPublicRequests(payload.requests ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingPublicRequestsError("Connexion impossible. Vérifiez votre réseau puis réessayez.");
+      })
+      .finally(() => {
+        if (!cancelled) setPendingPublicRequestsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   if (!state) return null;
 
   const openNeeds = state.serviceRequests.filter((item) => item.status === "ouvert");
@@ -164,6 +223,34 @@ export function CoordinationWorkspace() {
             </div>
           </article>;
         }) : <Empty label="Aucune mission active sur ce périmètre." />}</div>}
+
+        {view === "demandes_publiques" && (
+          pendingPublicRequestsLoading ? (
+            <div className="grid min-h-44 place-items-center p-8 text-center text-sm text-[#667b81]">Chargement des demandes publiques…</div>
+          ) : pendingPublicRequestsError ? (
+            <div className="grid min-h-44 place-items-center p-8 text-center text-sm font-semibold text-[#c65242]">{pendingPublicRequestsError}</div>
+          ) : (
+            <div className="divide-y divide-[#e1e9e9]">{pendingPublicRequests.length ? pendingPublicRequests.map((request) => (
+              <article key={request.id} className="pro-table-row lg:grid-cols-[1fr_170px_auto] lg:items-start">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="size-2 rounded-full bg-[#d8951a]" />
+                    <p className="text-[10px] font-black uppercase tracking-[.08em] text-[#7a8e94]">{publicIntentLabel[request.intent]} · {request.territory ?? "Territoire non précisé"}</p>
+                  </div>
+                  <h3 className="mt-1.5 font-black">{request.reference}</h3>
+                  <p className="mt-1 text-sm leading-6 text-[#526970]">{request.description}</p>
+                  <p className="mt-2 text-xs text-[#667b81]">Demandé par {request.contactName}{request.organization ? ` · ${request.organization}` : ""} · {request.phone}{request.email ? ` · ${request.email}` : ""}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Reçue le</p>
+                  <p className="mt-1 text-sm font-bold">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(request.createdAt))}</p>
+                  <p className="mt-2 text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Canal</p>
+                  <p className="mt-1 text-sm font-bold capitalize text-[#075568]">{request.source}</p>
+                </div>
+              </article>
+            )) : <Empty label="Aucune demande publique en attente pour le moment." />}</div>
+          )
+        )}
       </section>
 
       <section className="signal-path">
