@@ -50,7 +50,7 @@ export default function CoordinationDetailPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(300px,.6fr)]">
         <Card className="overflow-hidden">
           <CardContent className="border-b p-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Décision partagée</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Décision retenue</p>
             <p className="mt-2 text-lg font-semibold leading-7">{space.decision}</p>
           </CardContent>
           <CardContent className="p-5">

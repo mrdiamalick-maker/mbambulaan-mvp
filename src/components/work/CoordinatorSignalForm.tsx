@@ -47,18 +47,18 @@ export function CoordinatorSignalForm({ territories, onDone }: { territories: Te
           <option value="poste_quai">Poste de quai</option>
           <option value="terrain">Agent terrain</option>
           <option value="telephone">Téléphone</option>
-          <option value="whatsapp_structure">WhatsApp structuré manuel</option>
+          <option value="whatsapp_structure">WhatsApp saisi manuellement</option>
         </select>
       </label>
       <label className="block text-xs font-semibold">
-        Objet du signal
+        Ce qui est signalé
         <input required value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" placeholder="Ex. Machine à glace indisponible" />
       </label>
       <label className="block text-xs font-semibold">
         Ce qui est observé
         <textarea required rows={4} value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" placeholder="Décrivez les faits, les personnes concernées et l’urgence apparente." />
       </label>
-      <p className="text-xs text-muted-foreground">Le signal reste déclaratif jusqu’à sa qualification. Une référence et une prochaine étape seront créées automatiquement.</p>
+      <p className="text-xs text-muted-foreground">Le signal reste déclaratif jusqu’à sa qualification. Mbàmbulaan attribuera une référence et préparera la prochaine étape après enregistrement.</p>
       <Button type="submit" disabled={pending} className="w-full">{pending ? "Enregistrement…" : "Enregistrer le signal"}</Button>
     </form>
   );

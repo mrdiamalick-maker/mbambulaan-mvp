@@ -17,7 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 const labels = {
   qualify: "Qualifier le signal",
   prioritize: "Confirmer la priorité",
-  coordinate: "Prendre en charge",
+  coordinate: "Organiser la prise en charge",
   start_intervention: "Démarrer l’intervention",
   resume: "Reprendre l’intervention",
   record_result: "Enregistrer le résultat",
@@ -25,7 +25,7 @@ const labels = {
 } as const;
 
 const outcomes = {
-  qualify: "Le signal sera recoupé et passera au niveau Vérifiée.",
+  qualify: "Le signal sera recoupé. S’il est confirmé, son niveau de confiance passera à « Vérifiée ».",
   prioritize: "La priorité sera enregistrée et la mobilisation pourra commencer.",
   coordinate: "Un responsable, une échéance et un suivi seront attachés à la situation.",
   start_intervention: "L’exécution deviendra visible pour tous les acteurs autorisés.",

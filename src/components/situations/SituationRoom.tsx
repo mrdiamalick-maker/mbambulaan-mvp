@@ -157,7 +157,7 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
 
         <Card style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor.stable, backgroundColor: glyphFillColor.stable }}>
           <CardContent className="p-5">
-            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground"><EngagementIcon size={14} color="#1d4468" /> Capacité alternative</p>
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground"><EngagementIcon size={14} color="#1d4468" /> Capacité mobilisable ailleurs</p>
             {alternativeCapacities.length === 0 ? (
               <p className="mt-3 text-sm text-muted-foreground">Aucune capacité disponible identifiée ailleurs sur le réseau pour le moment.</p>
             ) : (
