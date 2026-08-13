@@ -1,10 +1,5 @@
 "use client";
 
-// Restylé en D9 (Lot 4, étape 2/4 puis resserrage visuel étape 3/3) —
-// même logique et mêmes commandes qu'avant (availableAction, run()) :
-// aucun changement de comportement. Fond plein terre-cuite : c'est la
-// décision/action centrale de la Situation Room, le bloc qui doit le
-// plus se détacher de tous (hiérarchie de contraste demandée).
 import { FormEvent, useState } from "react";
 import { ArrowRight, CheckCircle2, PauseCircle, PlayCircle } from "lucide-react";
 import type { Situation } from "@/domain/types";
@@ -44,11 +39,9 @@ export function SituationAction({ situation }: { situation: Situation }) {
 
   if (!action) {
     return (
-      <Card className="overflow-hidden border-none bg-gradient-to-br from-[#1d8a5f] to-[#146144] text-white shadow-lg">
-        <CardContent className="flex items-center gap-2 p-4 text-sm font-semibold">
-          <CheckCircle2 size={17} /> Aucune action requise. La situation est réglée.
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-2 border-y py-4 text-sm font-semibold text-[#146144]">
+        <CheckCircle2 size={17} /> Situation réglée · aucune action requise.
+      </div>
     );
   }
 
@@ -65,7 +58,7 @@ export function SituationAction({ situation }: { situation: Situation }) {
   };
 
   return (
-    <Card className="overflow-hidden border-none bg-gradient-to-br from-[#b6522f] to-[#8a3d20] text-white shadow-lg">
+    <Card className="overflow-hidden border-none bg-[#b6522f] text-white">
       <CardContent className="p-6">
         <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-white/80"><ResultatIcon size={14} color="#fff8f2" /> Action recommandée</p>
         <h3 className="mt-2 text-xl font-semibold">{labels[action]}</h3>
