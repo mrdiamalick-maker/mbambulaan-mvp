@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mbàmbulaan — Prototype relais & balises</title>
+  <meta name="description" content="Prototype R&D simulé : deux parcours d'accès vers un même signal structuré, puis une initiative de balises en recherche de financement.">
+  <style>
+    :root {
+      --navy: #0b1a2a;
+      --navy-2: #173149;
+      --terracotta: #b6522f;
+      --terracotta-dark: #914027;
+      --cream: #f7f3e9;
+      --cream-2: #eee6d6;
+      --white: #fffdf8;
+      --ink: #162434;
+      --muted: #66717b;
+      --line: #d9d2c5;
+      --green: #397865;
+      --green-soft: #e6f0eb;
+      --amber: #9b6a1f;
+      --amber-soft: #f8edda;
+      --shadow: 0 22px 60px rgba(11, 26, 42, .12);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --max: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 4%, rgba(182, 82, 47, .08), transparent 24rem),
+        var(--cream);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    button { font: inherit; }
+    a { color: inherit; }
+
+    .shell { width: min(calc(100% - 40px), var(--max)); margin: 0 auto; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 16px;
+      color: var(--terracotta-dark);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--terracotta);
+      box-shadow: 0 0 0 5px rgba(182, 82, 47, .12);
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2, h3 { color: var(--navy); letter-spacing: -.035em; }
+    h1 { max-width: 850px; margin-bottom: 22px; font-size: clamp(42px, 6.3vw, 76px); line-height: .98; }
+    h2 { margin-bottom: 14px; font-size: clamp(30px, 4vw, 48px); line-height: 1.05; }
+    h3 { margin-bottom: 9px; font-size: 21px; line-height: 1.15; }
+    .lead { max-width: 720px; color: #485868; font-size: clamp(18px, 2vw, 22px); }
+    .small { font-size: 13px; color: var(--muted); }
+
+    .topbar {
+      position: sticky;
+      z-index: 20;
+      top: 0;
+      border-bottom: 1px solid rgba(11, 26, 42, .08);
+      background: rgba(247, 243, 233, .9);
+      backdrop-filter: blur(18px);
+    }
+    .topbar-inner {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 850; color: var(--navy); }
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 12px;
+      color: var(--white);
+      background: var(--navy);
+      font-size: 20px;
+    }
+    .prototype-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid rgba(182, 82, 47, .22);
+      border-radius: 999px;
+      color: var(--terracotta-dark);
+      background: rgba(255, 253, 248, .72);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .hero { padding: 94px 0 70px; }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(340px, .85fr);
+      gap: 70px;
+      align-items: center;
+    }
+    .hero-copy strong { color: var(--terracotta); }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 46px;
+      padding: 0 18px;
+      border: 1px solid var(--navy);
+      border-radius: 999px;
+      color: var(--white);
+      background: var(--navy);
+      font-weight: 750;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .btn.secondary { color: var(--navy); background: transparent; }
+    .btn:hover { transform: translateY(-1px); }
+    .hero-note { display: flex; gap: 28px; margin-top: 36px; }
+    .hero-note div { max-width: 180px; }
+    .hero-note b { display: block; color: var(--navy); font-size: 20px; }
+    .hero-note span { color: var(--muted); font-size: 13px; }
+
+    .hero-visual {
+      position: relative;
+      min-height: 500px;
+      padding: 26px;
+      overflow: hidden;
+      border-radius: var(--radius-lg);
+      color: var(--white);
+      background: var(--navy);
+      box-shadow: var(--shadow);
+    }
+    .hero-visual::before {
+      content: "";
+      position: absolute;
+      width: 270px;
+      height: 270px;
+      top: -120px;
+      right: -80px;
+      border-radius: 50%;
+      background: var(--terracotta);
+      opacity: .9;
+    }
+    .visual-head { position: relative; display: flex; justify-content: space-between; align-items: start; }
+    .visual-head p { color: #c9d3da; font-size: 13px; }
+    .sim-badge {
+      display: inline-flex;
+      padding: 6px 9px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(255,255,255,.09);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .route-mini { position: relative; display: grid; gap: 12px; margin-top: 34px; }
+    .route-row {
+      display: grid;
+      grid-template-columns: 46px 1fr auto;
+      gap: 13px;
+      align-items: center;
+      padding: 15px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      background: rgba(255,255,255,.065);
+    }
+    .route-icon {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border-radius: 14px;
+      color: var(--navy);
+      background: var(--cream);
+      font-weight: 900;
+    }
+    .route-row b { display: block; }
+    .route-row small { color: #adbbc5; }
+    .route-arrow { color: #f3b89f; font-size: 22px; }
+    .same-signal {
+      position: relative;
+      margin-top: 18px;
+      padding: 20px;
+      border-radius: 18px;
+      color: var(--navy);
+      background: var(--cream);
+    }
+    .same-signal span { color: var(--terracotta-dark); font-size: 11px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .same-signal strong { display: block; margin-top: 5px; font-size: 21px; }
+    .same-signal p { margin: 8px 0 0; color: #56616b; font-size: 13px; }
+
+    section { padding: 80px 0; }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 32px; }
+    .section-head p { max-width: 620px; margin-bottom: 0; color: var(--muted); }
+
+    .access-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .access-card {
+      position: relative;
+      min-height: 260px;
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(255,253,248,.72);
+      cursor: pointer;
+      transition: transform .2s, border-color .2s, box-shadow .2s;
+    }
+    .access-card:hover { transform: translateY(-3px); }
+    .access-card.active { border-color: var(--terracotta); box-shadow: 0 14px 40px rgba(182,82,47,.12); }
+    .access-card.active::after {
+      content: "Parcours affiché";
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: var(--white);
+      background: var(--terracotta);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .access-number {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      margin-bottom: 24px;
+      place-items: center;
+      border-radius: 14px;
+      color: var(--white);
+      background: var(--navy);
+      font-weight: 850;
+    }
+    .access-card p { max-width: 500px; color: var(--muted); }
+    .access-card ul { margin: 20px 0 0; padding: 0; list-style: none; }
+    .access-card li { margin-top: 8px; font-size: 14px; }
+    .access-card li::before { content: "✓"; margin-right: 9px; color: var(--green); font-weight: 900; }
+
+    .demo-panel {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 34px;
+      margin-top: 26px;
+      padding: 34px;
+      border-radius: var(--radius-lg);
+      background: var(--navy);
+      box-shadow: var(--shadow);
+    }
+    .phone {
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 34px;
+      background: #07131f;
+    }
+    .phone-screen {
+      min-height: 548px;
+      overflow: hidden;
+      border-radius: 26px;
+      background: #eef1eb;
+    }
+    .phone-head {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 18px;
+      color: #fff;
+      background: #2e6657;
+    }
+    .avatar { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 50%; background: #fff; color: var(--navy); font-weight: 900; }
+    .phone-head strong { display: block; font-size: 14px; }
+    .phone-head small { display: block; opacity: .78; }
+    .messages { display: flex; flex-direction: column; gap: 12px; padding: 20px 14px 30px; }
+    .msg {
+      max-width: 88%;
+      padding: 11px 12px;
+      border-radius: 12px;
+      color: #26343e;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,.06);
+      font-size: 13px;
+    }
+    .msg.out { align-self: end; background: #dcebdc; }
+    .msg.meta { color: #50606c; background: #f6e9de; }
+    .msg time { display: block; margin-top: 5px; color: #7c878e; font-size: 10px; text-align: right; }
+    .voice { display: flex; align-items: center; gap: 9px; min-width: 220px; }
+    .play { display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; border-radius: 50%; color: #fff; background: #3c7b68; }
+    .wave { display: flex; height: 24px; flex: 1; align-items: center; gap: 2px; }
+    .wave i { width: 3px; border-radius: 2px; background: #678b7e; }
+    .wave i:nth-child(1), .wave i:nth-child(7) { height: 7px; }
+    .wave i:nth-child(2), .wave i:nth-child(6) { height: 15px; }
+    .wave i:nth-child(3), .wave i:nth-child(5) { height: 22px; }
+    .wave i:nth-child(4) { height: 12px; }
+
+    .signal-card { color: var(--white); }
+    .signal-card h3 { margin: 6px 0 9px; color: var(--white); font-size: 30px; }
+    .signal-card > p { color: #b9c5cd; }
+    .signal-id { color: #f1b59f; font-size: 12px; font-weight: 850; letter-spacing: .1em; }
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin: 28px 0; overflow: hidden; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: rgba(255,255,255,.12); }
+    .field { min-height: 92px; padding: 16px; background: #10263a; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { display: block; margin-bottom: 5px; color: #91a3b0; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .field strong { font-size: 15px; }
+    .field .dynamic { color: #fff; }
+    .trust-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .trust-pill { padding: 8px 10px; border-radius: 999px; color: #e7c78d; background: rgba(155,106,31,.22); font-size: 12px; font-weight: 800; }
+    .trust-arrow { color: #748793; }
+    .micro-warning { margin-top: 24px; padding: 14px 16px; border-left: 3px solid var(--terracotta); color: #c8d1d8; background: rgba(255,255,255,.06); font-size: 13px; }
+
+    .journey { background: var(--white); }
+    .journey-layout { display: grid; grid-template-columns: 310px 1fr; gap: 40px; align-items: start; }
+    .steps { display: grid; gap: 8px; }
+    .step {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid transparent;
+      border-radius: 13px;
+      color: var(--navy);
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+    }
+    .step:hover { background: var(--cream); }
+    .step.active { border-color: #e7d6c9; background: #faeee6; }
+    .step-index { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 11px; color: var(--white); background: var(--navy); font-size: 12px; font-weight: 850; }
+    .step.active .step-index { background: var(--terracotta); }
+    .step b { font-size: 14px; }
+    .step small { display: block; color: var(--muted); }
+    .step-arrow { color: #a2a9ae; }
+
+    .journey-detail {
+      min-height: 470px;
+      padding: 40px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--cream);
+      box-shadow: 0 16px 45px rgba(11,26,42,.07);
+    }
+    .detail-top { display: flex; justify-content: space-between; gap: 24px; }
+    .detail-count { color: var(--terracotta); font-size: 12px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .journey-detail h3 { margin-top: 9px; font-size: 34px; }
+    .detail-status { height: fit-content; padding: 8px 11px; border-radius: 999px; color: var(--green); background: var(--green-soft); font-size: 12px; font-weight: 850; }
+    .detail-summary { max-width: 650px; color: #4f5e69; font-size: 18px; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 30px; }
+    .detail-box { padding: 20px; border-radius: 16px; background: var(--white); }
+    .detail-box label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 11px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .detail-box p { margin: 0; font-size: 14px; }
+    .detail-limit { margin-top: 20px; padding: 15px 17px; border-radius: 13px; color: #71451d; background: var(--amber-soft); font-size: 13px; }
+
+    .program-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: stretch; }
+    .program-copy { padding: 28px 0; }
+    .program-copy p { max-width: 540px; color: var(--muted); font-size: 18px; }
+    .program-list { display: grid; gap: 12px; margin-top: 28px; }
+    .program-list div { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; }
+    .check { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 8px; color: var(--green); background: var(--green-soft); font-size: 12px; font-weight: 900; }
+    .initiative {
+      position: relative;
+      padding: 30px;
+      overflow: hidden;
+      border-radius: var(--radius-lg);
+      color: var(--white);
+      background: var(--navy);
+      box-shadow: var(--shadow);
+    }
+    .initiative::after { content: ""; position: absolute; right: -75px; bottom: -105px; width: 230px; height: 230px; border: 38px solid rgba(182,82,47,.35); border-radius: 50%; }
+    .initiative-head { position: relative; z-index: 1; display: flex; justify-content: space-between; gap: 16px; }
+    .initiative h3 { margin-top: 24px; color: var(--white); font-size: 29px; }
+    .status-funding { padding: 8px 11px; border-radius: 999px; color: #ffe0cf; background: rgba(182,82,47,.26); font-size: 11px; font-weight: 850; text-align: center; }
+    .initiative dl { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 25px 0; }
+    .initiative dl div { padding: 14px; border: 1px solid rgba(255,255,255,.1); border-radius: 13px; background: rgba(255,255,255,.05); }
+    .initiative dt { color: #8fa2b0; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .initiative dd { margin: 5px 0 0; font-size: 14px; font-weight: 750; }
+    .initiative-foot { position: relative; z-index: 1; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.12); color: #b6c2ca; font-size: 12px; }
+
+    .guardrails { padding-bottom: 100px; }
+    .guard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .guard { padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,253,248,.75); }
+    .guard b { display: block; margin: 14px 0 7px; color: var(--navy); }
+    .guard p { margin: 0; color: var(--muted); font-size: 13px; }
+    .guard-icon { color: var(--terracotta); font-size: 22px; }
+
+    footer { padding: 26px 0 46px; border-top: 1px solid var(--line); }
+    .footer-inner { display: flex; justify-content: space-between; gap: 24px; color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 940px) {
+      .hero-grid, .demo-panel, .journey-layout, .program-grid { grid-template-columns: 1fr; }
+      .hero-grid { gap: 38px; }
+      .hero-visual { min-height: auto; }
+      .demo-panel { padding: 22px; }
+      .phone { width: min(100%, 380px); margin: 0 auto; }
+      .steps { grid-template-columns: repeat(3, 1fr); }
+      .step { grid-template-columns: 32px 1fr; }
+      .step-arrow, .step small { display: none; }
+      .guard-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 650px) {
+      .shell { width: min(calc(100% - 24px), var(--max)); }
+      .topbar-inner { min-height: 62px; }
+      .brand span:last-child { display: none; }
+      .hero { padding: 62px 0 46px; }
+      .hero-note { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      section { padding: 58px 0; }
+      .section-head { display: block; }
+      .access-grid, .field-grid, .detail-grid, .initiative dl, .guard-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .access-card.active::after { position: static; display: inline-flex; margin-bottom: 16px; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .journey-detail { min-height: auto; padding: 26px; }
+      .detail-top { display: block; }
+      .footer-inner { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div class="brand">
+        <span class="brand-mark">M</span>
+        <span>Mbàmbulaan</span>
+      </div>
+      <span class="prototype-pill">Prototype R&amp;D · Données simulées</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Accès direct ou accompagné</p>
+          <h1>Deux chemins d’accès. <strong>Un même signal structuré.</strong></h1>
+          <p class="lead">Un capitaine peut décrire son besoin lui-même. S’il préfère parler, un agent de quai reçoit sa note vocale ou son appel et saisit avec lui. La suite du traitement reste identique.</p>
+          <div class="hero-actions">
+            <a class="btn" href="#parcours">Comparer les deux parcours <span>↓</span></a>
+            <a class="btn secondary" href="#initiative">Voir l’initiative en recherche de financement</a>
+          </div>
+          <div class="hero-note">
+            <div><b>2</b><span>portes d’entrée représentées</span></div>
+            <div><b>1</b><span>signal commun dans Mbàmbulaan</span></div>
+            <div><b>0</b><span>connexion WhatsApp ou GPS réelle</span></div>
+          </div>
+        </div>
+
+        <aside class="hero-visual" aria-label="Résumé des deux parcours">
+          <div class="visual-head">
+            <div>
+              <span class="sim-badge">Simulation</span>
+              <p>Lompoul-sur-Mer · Besoin d’équipement</p>
+            </div>
+          </div>
+          <div class="route-mini">
+            <div class="route-row">
+              <span class="route-icon">A</span>
+              <div><b>Le capitaine saisit</b><small>Message guidé, en autonomie</small></div>
+              <span class="route-arrow">↘</span>
+            </div>
+            <div class="route-row">
+              <span class="route-icon">R</span>
+              <div><b>Le relais saisit avec lui</b><small>Note vocale ou appel au quai</small></div>
+              <span class="route-arrow">↗</span>
+            </div>
+          </div>
+          <div class="same-signal">
+            <span>Destination commune</span>
+            <strong>Signal SIM-LMP-001</strong>
+            <p>Besoin de balises pour renforcer la sécurité en mer et réduire les pertes liées aux retours prolongés.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="parcours">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">1 · Faire remonter le besoin</p>
+            <h2>Choisissez la porte d’entrée</h2>
+          </div>
+          <p>Les deux parcours conservent la même exigence : distinguer la personne qui exprime le besoin de celle qui effectue la saisie.</p>
+        </div>
+
+        <div class="access-grid" role="tablist" aria-label="Choix du parcours">
+          <button class="access-card" id="direct-tab" role="tab" aria-selected="false" data-path="direct">
+            <span class="access-number">A</span>
+            <h3>Saisie directe</h3>
+            <p>Le capitaine est à l’aise avec le numérique. Il répond lui-même à quelques questions guidées.</p>
+            <ul>
+              <li>Source : le capitaine</li>
+              <li>Saisie : le capitaine</li>
+              <li>Confiance initiale : déclarée</li>
+            </ul>
+          </button>
+          <button class="access-card active" id="relay-tab" role="tab" aria-selected="true" data-path="relay">
+            <span class="access-number">R</span>
+            <h3>Avec un relais humain</h3>
+            <p>Le capitaine envoie une note vocale ou appelle. L’agent de quai reformule, confirme et saisit à sa place.</p>
+            <ul>
+              <li>Source : le capitaine</li>
+              <li>Saisie : l’agent de quai</li>
+              <li>Confiance initiale : déclarée</li>
+            </ul>
+          </button>
+        </div>
+
+        <div class="demo-panel">
+          <div class="phone" aria-label="Conversation WhatsApp simulée">
+            <div class="phone-screen">
+              <div class="phone-head">
+                <span class="avatar" id="phone-avatar">AQ</span>
+                <div><strong id="phone-title">Agent de quai · Lompoul</strong><small>WhatsApp · simulation non connectée</small></div>
+              </div>
+              <div class="messages" id="messages"></div>
+            </div>
+          </div>
+
+          <article class="signal-card" aria-live="polite">
+            <span class="signal-id">Signal structuré · SIM-LMP-001</span>
+            <h3>Besoin de balises de géolocalisation</h3>
+            <p>Le contenu métier produit est identique. Seule la provenance de la saisie change — et elle reste visible.</p>
+            <div class="field-grid">
+              <div class="field"><label>Territoire</label><strong>Lompoul-sur-Mer</strong></div>
+              <div class="field"><label>Type</label><strong>Équipement · sécurité en mer</strong></div>
+              <div class="field"><label>Besoin exprimé par</label><strong>Capitaine I. Diop</strong></div>
+              <div class="field"><label>Saisi dans Mbàmbulaan par</label><strong class="dynamic" id="captured-by">Awa Ndiaye · agent de quai</strong></div>
+              <div class="field"><label>Canal brut</label><strong class="dynamic" id="raw-channel">Note vocale WhatsApp simulée</strong></div>
+              <div class="field"><label>Périmètre déclaré</label><strong>25 pirogues · à confirmer</strong></div>
+              <div class="field full"><label>Finalité déclarée</label><strong>Sécurité en mer et réduction des pertes lors de retours prolongés</strong></div>
+            </div>
+            <div class="trust-strip" aria-label="Progression du niveau de confiance">
+              <span class="trust-pill">Reçu · déclarée</span><span class="trust-arrow">→</span>
+              <span class="trust-pill">Confirmé localement · observée</span><span class="trust-arrow">→</span>
+              <span class="trust-pill">Dossier constitué · documentée</span>
+            </div>
+            <div class="micro-warning"><b>Règle de confiance :</b> la note vocale établit l’origine du signal. Elle ne prouve ni le nombre de pirogues, ni l’efficacité d’une technologie, ni l’existence d’un financement.</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="journey" id="traitement">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">2 · Transformer le signal en action</p>
+            <h2>Une boucle complète, sans raccourci</h2>
+          </div>
+          <p>Chaque étape ajoute une décision, une responsabilité ou une preuve. Cliquez pour voir ce que Mbàmbulaan montrerait — et ce qu’il ne conclurait pas.</p>
+        </div>
+
+        <div class="journey-layout">
+          <nav class="steps" id="steps" aria-label="Étapes du traitement"></nav>
+          <article class="journey-detail" id="journey-detail" aria-live="polite"></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="initiative">
+      <div class="shell program-grid">
+        <div class="program-copy">
+          <p class="eyebrow">3 · Présenter un besoin finançable</p>
+          <h2>Le résultat n’est pas une balise. C’est un dossier mieux qualifié.</h2>
+          <p>Une fois le besoin documenté, il devient une initiative dans Programmes &amp; financements. Ce mécanisme réutilise la logique déjà démontrée pour la machine à glace de Joal.</p>
+          <div class="program-list">
+            <div><span class="check">✓</span><span>Liste volontaire des bénéficiaires à consolider</span></div>
+            <div><span class="check">✓</span><span>Critères techniques et responsabilités de maintenance</span></div>
+            <div><span class="check">✓</span><span>Preuves attendues avant achat et après installation</span></div>
+            <div><span class="check">✓</span><span>Aucun partenaire présenté comme engagé sans confirmation</span></div>
+          </div>
+        </div>
+
+        <article class="initiative">
+          <div class="initiative-head">
+            <span class="sim-badge">Initiative simulée</span>
+            <span class="status-funding">Recherche de financement</span>
+          </div>
+          <h3>Balises de géolocalisation — Lompoul-sur-Mer</h3>
+          <p class="small" style="color:#afbdc7">Sécurité en mer · équipement · périmètre pilote</p>
+          <dl>
+            <div><dt>Bénéficiaires</dt><dd>25 pirogues déclarées · à confirmer</dd></div>
+            <div><dt>Budget</dt><dd>À estimer</dd></div>
+            <div><dt>Prestataire</dt><dd>Aucun sélectionné</dd></div>
+            <div><dt>Financeur</dt><dd>Aucun engagement</dd></div>
+            <div><dt>Besoin</dt><dd>Documenté</dd></div>
+            <div><dt>Coût</dt><dd>Statut : estimé</dd></div>
+          </dl>
+          <div class="initiative-foot">Prochaine décision : valider le périmètre, la gouvernance, la maintenance et les critères de sélection avant toute recherche active de financement.</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="guardrails">
+      <div class="shell">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Ce que cette maquette ne prétend pas</p>
+            <h2>Quatre limites visibles, pas cachées</h2>
+          </div>
+        </div>
+        <div class="guard-grid">
+          <article class="guard"><span class="guard-icon">⌖</span><b>Pas de suivi GPS</b><p>Aucune carte, aucune position et aucune donnée de navigation ne sont collectées.</p></article>
+          <article class="guard"><span class="guard-icon">◌</span><b>Pas de WhatsApp connecté</b><p>La conversation sert uniquement à montrer un canal d’entrée plausible.</p></article>
+          <article class="guard"><span class="guard-icon">◇</span><b>Pas de financement acquis</b><p>Une initiative présentable n’est ni une promesse, ni une décision d’achat.</p></article>
+          <article class="guard"><span class="guard-icon">≠</span><b>Pas de preuve d’impact</b><p>Le prototype montre la coordination du besoin, pas une baisse démontrée des accidents.</p></article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-inner">
+      <span>Mbàmbulaan · Prototype R&amp;D jetable · Lot 3 révisé</span>
+      <span>Palette : marine #0b1a2a · terre-cuite #b6522f · crème #f7f3e9</span>
+    </div>
+  </footer>
+
+  <script>
+    const paths = {
+      relay: {
+        avatar: "AQ",
+        title: "Agent de quai · Lompoul",
+        capturedBy: "Awa Ndiaye · agent de quai",
+        rawChannel: "Note vocale WhatsApp simulée",
+        messages: [
+          { kind: "voice", text: "Note vocale · 0:31", time: "08:42" },
+          { kind: "in", text: "Plusieurs équipages veulent pouvoir signaler leur position quand le retour se prolonge. Il nous faudrait des balises simples.", time: "Transcription simulée" },
+          { kind: "out", text: "Je vous rappelle pour confirmer le lieu, le besoin et le nombre de pirogues. Je saisirai votre demande en indiquant que vous en êtes la source.", time: "08:45" },
+          { kind: "meta", text: "Saisie créée par l’agent de quai au nom du capitaine · confiance : déclarée", time: "08:57" }
+        ]
+      },
+      direct: {
+        avatar: "M",
+        title: "Mbàmbulaan · Décrire une situation",
+        capturedBy: "Capitaine I. Diop · saisie autonome",
+        rawChannel: "Message guidé simulé",
+        messages: [
+          { kind: "out", text: "Je veux décrire un besoin d’équipement pour la sécurité en mer.", time: "08:42" },
+          { kind: "in", text: "Sur quel territoire et pour quel usage ?", time: "08:42" },
+          { kind: "out", text: "Lompoul-sur-Mer. Des balises pour pouvoir signaler la position quand un retour se prolonge. Environ 25 pirogues sont intéressées, à confirmer.", time: "08:44" },
+          { kind: "meta", text: "Signal créé par le capitaine · confiance : déclarée", time: "08:45" }
+        ]
+      }
+    };
+
+    const journey = [
+      {
+        title: "Signal",
+        short: "Besoin reçu",
+        status: "Déclarée",
+        summary: "Le besoin de balises est reçu avec son territoire, sa finalité et sa provenance.",
+        action: "Créer SIM-LMP-001 et conserver l’auteur du besoin, le saisisseur et le canal brut.",
+        proof: "Référence du message ou de la note vocale, date et consentement de rappel.",
+        limit: "25 pirogues est un périmètre déclaré. Il reste à confirmer."
+      },
+      {
+        title: "Qualification",
+        short: "Périmètre clarifié",
+        status: "Observée",
+        summary: "L’opérateur distingue un besoin d’équipement d’une alerte en cours et vérifie l’usage attendu.",
+        action: "Confirmer le besoin auprès de trois capitaines et du responsable du quai ; lister autonomie, étanchéité, formation et maintenance.",
+        proof: "Compte rendu des confirmations et fiche d’exigences initiale.",
+        limit: "Aucune technologie ni efficacité ne sont encore validées."
+      },
+      {
+        title: "Situation",
+        short: "Dossier ouvert",
+        status: "Qualification",
+        summary: "Une situation prioritaire est ouverte : équipement de géolocalisation insuffisant pour organiser le suivi des retours.",
+        action: "Nommer un responsable, une échéance et le prochain contrôle nécessaire.",
+        proof: "Historique de la situation, responsable et prochaine revue horodatée.",
+        limit: "La situation ne dit pas que l’absence de balise a causé un accident."
+      },
+      {
+        title: "Décision",
+        short: "Voie retenue",
+        status: "Décidée",
+        summary: "La décision est de documenter un périmètre volontaire puis d’ouvrir une initiative de recherche de financement.",
+        action: "Demander vérification et ouvrir une coordination technique, sans lancer d’achat.",
+        proof: "Décision humaine, auteur, date, motif et conditions de réexamen.",
+        limit: "Aucun fournisseur n’est choisi et aucun achat n’est autorisé."
+      },
+      {
+        title: "Engagement",
+        short: "Responsabilités prises",
+        status: "En cours",
+        summary: "Terrain, opérateur, prestataire consultatif et coordinateur prennent chacun un engagement borné.",
+        action: "Confirmer les bénéficiaires, produire une note d’options, définir gouvernance et preuves attendues.",
+        proof: "Engagements nominatifs, échéances et statuts séparés.",
+        limit: "Une note technique n’est pas une offre commerciale ni un engagement financier."
+      },
+      {
+        title: "Exécution",
+        short: "Dossier constitué",
+        status: "En cours",
+        summary: "Deux séances au quai consolident les usages, les responsabilités de maintenance et le périmètre pilote.",
+        action: "Préparer la fiche initiative et documenter la procédure d’alerte associée.",
+        proof: "Présences, compte rendu, liste volontaire et note technique.",
+        limit: "Aucune position GPS réelle n’est collectée pendant cette étape."
+      },
+      {
+        title: "Preuve",
+        short: "Traces reliées",
+        status: "Documentée",
+        summary: "Les pièces utiles sont reliées au même dossier et gardent chacune leur source et leur niveau de confiance.",
+        action: "Contrôler la complétude et distinguer faits observés, besoins déclarés et coûts estimés.",
+        proof: "Message d’origine, confirmations, fiche d’exigences, liste et note technique.",
+        limit: "Ces pièces documentent un besoin ; elles ne prouvent pas encore un impact sécurité."
+      },
+      {
+        title: "Résultat",
+        short: "Initiative visible",
+        status: "À financer",
+        summary: "L’initiative apparaît dans Programmes & financements au statut Recherche de financement.",
+        action: "Présenter le problème, les bénéficiaires à confirmer, les conditions de gouvernance et les preuves attendues.",
+        proof: "Fiche initiative versionnée et décision de la rendre visible aux partenaires autorisés.",
+        limit: "Le résultat n’est ni l’installation de balises, ni l’obtention d’un financement."
+      },
+      {
+        title: "Apprentissage",
+        short: "Méthode réutilisable",
+        status: "Capitalisée",
+        summary: "Un message vocal peut devenir un dossier exploitable si l’auteur, le relais, les confirmations et les limites restent visibles.",
+        action: "Réutiliser la méthode pour d’autres besoins d’équipement à Fass Boye, Kayar ou Elinkine.",
+        proof: "Règle de processus reliée au dossier et validée par l’opérateur.",
+        limit: "L’apprentissage porte sur la coordination, pas sur l’efficacité d’un modèle de balise."
+      }
+    ];
+
+    const messageContainer = document.getElementById("messages");
+    const capturedBy = document.getElementById("captured-by");
+    const rawChannel = document.getElementById("raw-channel");
+    const phoneAvatar = document.getElementById("phone-avatar");
+    const phoneTitle = document.getElementById("phone-title");
+
+    function voiceMarkup() {
+      return '<div class="voice"><span class="play">▶</span><span class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>0:31</span></div>';
+    }
+
+    function renderPath(name) {
+      const path = paths[name];
+      document.querySelectorAll(".access-card").forEach(card => {
+        const active = card.dataset.path === name;
+        card.classList.toggle("active", active);
+        card.setAttribute("aria-selected", String(active));
+      });
+      phoneAvatar.textContent = path.avatar;
+      phoneTitle.textContent = path.title;
+      capturedBy.textContent = path.capturedBy;
+      rawChannel.textContent = path.rawChannel;
+      messageContainer.innerHTML = path.messages.map(message => {
+        const body = message.kind === "voice" ? voiceMarkup() : message.text;
+        const klass = message.kind === "voice" ? "msg" : `msg ${message.kind}`;
+        return `<div class="${klass}">${body}<time>${message.time}</time></div>`;
+      }).join("");
+    }
+
+    document.querySelectorAll(".access-card").forEach(card => {
+      card.addEventListener("click", () => renderPath(card.dataset.path));
+    });
+
+    const steps = document.getElementById("steps");
+    const detail = document.getElementById("journey-detail");
+
+    function renderJourney(index) {
+      const item = journey[index];
+      document.querySelectorAll(".step").forEach((button, buttonIndex) => {
+        button.classList.toggle("active", buttonIndex === index);
+        button.setAttribute("aria-current", buttonIndex === index ? "step" : "false");
+      });
+      detail.innerHTML = `
+        <div class="detail-top">
+          <div><span class="detail-count">Étape ${index + 1} sur ${journey.length}</span><h3>${item.title}</h3></div>
+          <span class="detail-status">${item.status}</span>
+        </div>
+        <p class="detail-summary">${item.summary}</p>
+        <div class="detail-grid">
+          <div class="detail-box"><label>Action coordonnée</label><p>${item.action}</p></div>
+          <div class="detail-box"><label>Trace attendue</label><p>${item.proof}</p></div>
+        </div>
+        <div class="detail-limit"><b>Limite à afficher :</b> ${item.limit}</div>
+      `;
+    }
+
+    steps.innerHTML = journey.map((item, index) => `
+      <button class="step${index === 0 ? " active" : ""}" data-index="${index}">
+        <span class="step-index">${String(index + 1).padStart(2, "0")}</span>
+        <span><b>${item.title}</b><small>${item.short}</small></span>
+        <span class="step-arrow">›</span>
+      </button>
+    `).join("");
+
+    steps.addEventListener("click", event => {
+      const button = event.target.closest(".step");
+      if (button) renderJourney(Number(button.dataset.index));
+    });
+
+    renderPath("relay");
+    renderJourney(0);
+  </script>
+</body>
+</html>
