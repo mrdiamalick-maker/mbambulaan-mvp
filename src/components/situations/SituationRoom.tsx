@@ -83,6 +83,7 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
   const [communicationDrawerOpen, setCommunicationDrawerOpen] = useState(false);
   const territory = state.territories.find((item) => item.id === situation.territoryId);
   const signal = state.signals.find((item) => situation.signalIds.includes(item.id));
+  const signalCapturedBy = state.actors.find((item) => item.id === signal?.actorId);
   const coordination = state.coordinationSpaces.find((item) => item.id === situation.coordinationId);
   const responsible = state.actors.find((item) => item.id === situation.responsibleId);
   const tag = priorityToTag[situation.priority];
@@ -151,6 +152,9 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
           <CardContent className="p-5">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Origine du signal</p>
             <h2 className="mt-2 text-lg font-semibold">{signal?.source ?? "Source inconnue"}</h2>
+            {signal?.reportedBy && (
+              <p className="mt-1.5 text-xs font-semibold text-muted-foreground">Rapporté par {signal.reportedBy}{signalCapturedBy ? ` · Saisi par ${signalCapturedBy.name}` : ""}</p>
+            )}
             <p className="mt-2 text-sm text-muted-foreground">{signal?.description}</p>
           </CardContent>
         </Card>

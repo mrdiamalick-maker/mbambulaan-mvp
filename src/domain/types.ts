@@ -274,11 +274,19 @@ export interface Signal {
   actorId: string;
   createdAt: string;
   channel: "terrain" | "telephone" | "whatsapp_structure" | "poste_quai";
-  category: "infrastructure" | "production" | "marche" | "qualite" | "securite";
+  category: "infrastructure" | "production" | "marche" | "qualite" | "securite" | "conformite";
   title: string;
   description: string;
   trust: TrustLevel;
   source: string;
+  // Optionnel (R&D relais terrain, arbitrage CEO 13/08/2026) : nom de la
+  // personne à l'origine du besoin quand elle diffère de l'acteur qui
+  // saisit (`actorId`) — ex. un capitaine dont la note vocale est saisie
+  // par un agent de quai. `actorId` reste l'acteur qui agit dans le
+  // système (celui qui a un compte) ; `source` continue de décrire le
+  // canal brut. Absent : le déclarant et le saisisseur sont la même
+  // personne (cas majoritaire, aucune migration requise).
+  reportedBy?: string;
 }
 
 export interface Situation {
@@ -513,7 +521,14 @@ export interface Initiative {
   objective: string;
   status: "cadrage" | "financee" | "execution" | "terminee";
   ownerId: string;
-  budgetFcfa: number;
+  // budgetFcfa optionnel + budgetStatus explicite (arbitrage CEO 13/08/2026) :
+  // un montant "0" ne peut jamais représenter honnêtement un budget non
+  // encore chiffré (scénario Lompoul), donc le montant est absent tant
+  // qu'aucune estimation n'existe plutôt que stocké comme un faux zéro.
+  // "a_estimer" implique budgetFcfa absent ; "estime"/"valide" impliquent
+  // budgetFcfa présent. Les 6 initiatives existantes migrent en "valide".
+  budgetFcfa?: number;
+  budgetStatus: "a_estimer" | "estime" | "valide";
   funding: Funding[];
   indicators: Array<{ label: string; baseline: number; target: number; current: number; unit: string }>;
 }

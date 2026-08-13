@@ -42,6 +42,11 @@ const fundingStatusVariant: Record<Funding["status"], "marine" | "amber" | "succ
   en_instruction: "amber",
   confirme: "success"
 };
+const budgetStatusCaption: Record<Initiative["budgetStatus"], string> = {
+  a_estimer: "budget non encore chiffré",
+  estime: "budget estimé, à confirmer",
+  valide: "budget simulé à titre indicatif"
+};
 
 export default function InitiativesPage() {
   const { state } = useProduct();
@@ -49,13 +54,18 @@ export default function InitiativesPage() {
   const portfolioRows = state.initiatives.flatMap((initiative) => initiative.funding.map((fund) => ({
     Initiative: initiative.title,
     Territoires: initiative.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id).join(", "),
-    "Budget FCFA": initiative.budgetFcfa,
+    "Budget FCFA": initiative.budgetFcfa ?? "À estimer",
     "Financement FCFA": fund.amountFcfa,
     Statut: fund.status.replaceAll("_", " "),
     Partenaire: state.actors.find((item) => item.id === fund.partnerId)?.name ?? fund.partnerId,
     Condition: fund.condition
   })));
-  const totalBudget = state.initiatives.reduce((sum, item) => sum + item.budgetFcfa, 0);
+  // Un programme "à estimer" (budgetFcfa absent) n'entre pas dans le total
+  // chiffré : l'additionner comme 0 laisserait croire que son besoin est
+  // nul plutôt que non encore évalué.
+  const chiffredInitiatives = state.initiatives.filter((item) => item.budgetFcfa !== undefined);
+  const totalBudget = chiffredInitiatives.reduce((sum, item) => sum + (item.budgetFcfa ?? 0), 0);
+  const toEstimateCount = state.initiatives.length - chiffredInitiatives.length;
 
   return (
     <div className="shadcn-scope space-y-8 bg-background p-5 pb-16 lg:p-8">
@@ -72,7 +82,7 @@ export default function InitiativesPage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Portefeuille présenté en mode démonstration</p>
             <h2 className="mt-2 text-xl font-bold">{state.initiatives.length} programmes · {money.format(totalBudget)}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Besoins, conditions et statuts restent distincts des engagements fermes.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Besoins, conditions et statuts restent distincts des engagements fermes.{toEstimateCount > 0 ? ` Total chiffré hors ${toEstimateCount} programme(s) au budget encore à estimer.` : ""}</p>
           </div>
           <ExportActions filename="mbambulaan-programmes-financements" rows={portfolioRows} compact />
         </CardContent>
@@ -95,7 +105,7 @@ export default function InitiativesPage() {
               </div>
             </div>
             <div className="grid gap-px bg-border sm:grid-cols-2 xl:grid-cols-4">
-              <div className="bg-card p-5"><Banknote size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{money.format(initiative.budgetFcfa)}</p><p className="text-xs text-muted-foreground">budget simulé à titre indicatif</p></div>
+              <div className="bg-card p-5"><Banknote size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{initiative.budgetFcfa !== undefined ? money.format(initiative.budgetFcfa) : "À estimer"}</p><p className="text-xs text-muted-foreground">{budgetStatusCaption[initiative.budgetStatus]}</p></div>
               <div className="bg-card p-5"><CircleDollarSign size={19} className="text-[#1d8a5f]" /><p className="mt-3 text-2xl font-bold">{money.format(secured + instructed)}</p><p className="text-xs text-muted-foreground">confirmé ou en instruction</p></div>
               <div className="bg-card p-5"><Flag size={19} className="text-[#c68a2c]" /><p className="mt-3 text-2xl font-bold">{initiative.territoryIds.length}</p><p className="text-xs text-muted-foreground">territoires reliés</p></div>
               <div className="bg-card p-5"><UsersRound size={19} className="text-[#1d4468]" /><p className="mt-3 font-bold">{owner?.name}</p><p className="text-xs text-muted-foreground">responsable de l’initiative</p></div>

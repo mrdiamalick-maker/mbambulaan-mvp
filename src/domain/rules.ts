@@ -578,7 +578,12 @@ function applyInitiativeCommand(state: ProductState, command: Extract<Command, {
     objective: command.objective.trim(),
     status: "cadrage",
     ownerId: command.actorId,
+    // Ce chemin de création (regroupement de demandes déjà ouvertes) exige
+    // toujours un budget chiffré (cf. validation ci-dessus) — le statut
+    // "a_estimer" ne concerne que les programmes en phase de cadrage pur,
+    // représentés pour l'instant côté données de démonstration.
     budgetFcfa: command.budgetFcfa,
+    budgetStatus: "valide",
     funding: [],
     indicators: []
   };

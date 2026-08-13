@@ -505,6 +505,7 @@ export function createDemoState(): ProductState {
     status: program.status,
     ownerId: index === 1 ? "act-institution" : "act-coordinateur",
     budgetFcfa: program.budget,
+    budgetStatus: "valide" as const,
     funding: [
       { id: `fund-${program.id}-partner`, partnerId: "act-partenaire", amountFcfa: Math.round(program.budget * 0.42), status: index % 2 === 0 ? "en_instruction" : "confirme", condition: "Ciblage territorial, gouvernance et indicateurs validés" },
       { id: `fund-${program.id}-public`, partnerId: "act-institution", amountFcfa: Math.round(program.budget * 0.18), status: index < 2 ? "confirme" : "a_mobiliser", condition: "Mandat public et contrepartie documentés" }
@@ -889,6 +890,7 @@ export function createDemoState(): ProductState {
         status: "cadrage",
         ownerId: "act-gestionnaire",
         budgetFcfa: 185000000,
+        budgetStatus: "valide" as const,
         funding: [{ id: "fund-1", partnerId: "act-partenaire", amountFcfa: 80000000, status: "en_instruction", condition: "Plan de maintenance et cofinancement territorial" }],
         indicators: [
           { label: "Lots orientés vers une capacité froide", baseline: 34, target: 85, current: 58, unit: "%" },
@@ -904,6 +906,7 @@ export function createDemoState(): ProductState {
         status: "cadrage",
         ownerId: "act-coordinateur",
         budgetFcfa: 95000000,
+        budgetStatus: "valide" as const,
         funding: [
           { id: "fund-securite-1", partnerId: "act-partenaire", amountFcfa: 40000000, status: "a_mobiliser", condition: "Protocole partagé et responsables territoriaux désignés" },
           { id: "fund-securite-2", partnerId: "act-institution", amountFcfa: 15000000, status: "confirme", condition: "Phase de cadrage et formation des relais" }
@@ -922,6 +925,7 @@ export function createDemoState(): ProductState {
         status: "execution",
         ownerId: "act-institution",
         budgetFcfa: 60000000,
+        budgetStatus: "valide" as const,
         funding: [{ id: "fund-imm-1", partnerId: "act-partenaire", amountFcfa: 25000000, status: "confirme", condition: "Audit des droits d’accès et conservation des sources" }],
         indicators: [
           { label: "Pirogues avec immatriculation vérifiée", baseline: 18, target: 75, current: 43, unit: "%" },

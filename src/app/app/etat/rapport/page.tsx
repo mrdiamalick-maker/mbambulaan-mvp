@@ -51,7 +51,10 @@ function buildMarkdown(state: NonNullable<ReturnType<typeof useProduct>["state"]
   lines.push("");
   for (const initiative of state.initiatives) {
     const confirmed = initiative.funding.filter((f) => f.status === "confirme").reduce((sum, f) => sum + f.amountFcfa, 0);
-    lines.push(`- **${initiative.title}** — ${initiative.objective}. Budget : ${new Intl.NumberFormat("fr-FR").format(initiative.budgetFcfa)} FCFA, dont ${new Intl.NumberFormat("fr-FR").format(confirmed)} FCFA confirmés.`);
+    const budgetText = initiative.budgetFcfa !== undefined
+      ? `${new Intl.NumberFormat("fr-FR").format(initiative.budgetFcfa)} FCFA`
+      : "à estimer";
+    lines.push(`- **${initiative.title}** — ${initiative.objective}. Budget : ${budgetText}, dont ${new Intl.NumberFormat("fr-FR").format(confirmed)} FCFA confirmés.`);
   }
   return lines.join("\n");
 }
@@ -121,7 +124,7 @@ export default function EtatReportPage() {
                 <div key={initiative.id} className="py-3.5 first:pt-0 last:pb-0">
                   <p className="text-sm font-bold text-[var(--etat-navy-950)]">{initiative.title}</p>
                   <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{initiative.objective}</p>
-                  <p className="mt-1.5 text-xs font-semibold text-[var(--etat-navy-600)]">{new Intl.NumberFormat("fr-FR").format(initiative.budgetFcfa)} FCFA de budget, dont {new Intl.NumberFormat("fr-FR").format(confirmed)} FCFA confirmés.</p>
+                  <p className="mt-1.5 text-xs font-semibold text-[var(--etat-navy-600)]">{initiative.budgetFcfa !== undefined ? `${new Intl.NumberFormat("fr-FR").format(initiative.budgetFcfa)} FCFA de budget` : "Budget à estimer"}, dont {new Intl.NumberFormat("fr-FR").format(confirmed)} FCFA confirmés.</p>
                 </div>
               );
             })}
