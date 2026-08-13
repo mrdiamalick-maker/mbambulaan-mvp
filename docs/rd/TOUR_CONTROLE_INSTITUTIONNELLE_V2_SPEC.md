@@ -394,3 +394,175 @@ La légitimité de la Tour de contrôle ne dépend pas d'un partenariat de donn�
 Chaque canal conserve son niveau de preuve ; une remontée Terrain ne devient pas une statistique officielle par accumulation. La valeur vient de la capacité à documenter l'origine, la fraîcheur, la couverture, les contradictions et les validations successives, puis à renforcer progressivement les observations par recoupement.
 
 La trajectoire de fond est de faire de Mbàmbulaan une **infrastructure de confiance et un digital twin progressif de l'économie maritime**, en commençant par la filière halieutique. Cette ambition ne justifie toutefois aucun raccourci méthodologique : le niveau de promesse affiché doit toujours rester inférieur ou égal au niveau de preuve réellement acquis.
+
+## 10. Vision KPI — indicateurs illustratifs et financement des programmes
+
+### 10.1 Décision de conception
+
+La Vision KPI ne doit pas transformer la Tour de contrôle en catalogue de chiffres. Elle doit montrer, dans cet ordre :
+
+1. ce qui nécessite une décision ;
+2. ce qui est effectivement exécuté ;
+3. ce qui est prouvé ;
+4. quels besoins peuvent devenir des programmes ;
+5. quels financements restent à structurer, instruire ou suivre.
+
+Les KPI sont donc des **portes d'entrée vers des dossiers traçables**, jamais une fin en soi. Un clic doit toujours conduire aux situations, engagements, preuves, programmes ou financements qui composent l'indicateur.
+
+### 10.2 Périmètre de démonstration
+
+Les valeurs proposées ci-dessous sont exclusivement des **valeurs illustratives de maquette**. Elles ne proviennent ni d'une collecte réelle, ni d'une consolidation nationale, ni d'un ministère ou d'un partenaire financier.
+
+Le futur rendu visuel devra afficher en permanence :
+
+> Données simulées — exemple de fonctionnement, pas bilan réel de la filière.
+
+Chaque carte conserve quatre informations : période, périmètre, source et niveau de confiance. Une valeur sans dénominateur ou sans dossier sous-jacent ne doit pas être affichée.
+
+### 10.3 Six indicateurs de tête maximum
+
+Exemple de photographie de démonstration sur six territoires et trente jours :
+
+| Indicateur affiché | Valeur illustrative | Construction attendue | Décision rendue possible | Limite visible |
+|---|---:|---|---|---|
+| **Situations nécessitant une décision** | `4` | situations de priorité haute ou critique sans décision exécutée | arbitrer, affecter un responsable ou escalader | ne mesure pas la gravité nationale de la filière |
+| **Engagements à risque d'échéance** | `3 sur 14` | engagements ouverts dont l'échéance est dépassée ou proche | relancer, réaffecter ou lever un blocage | le taux dépend du périmètre de démonstration |
+| **Résultats accompagnés d'une preuve** | `5 sur 8` | résultats reliés à au moins une preuve recevable | demander un complément ou valider un résultat | présence d'une pièce ne signifie pas validation de son contenu |
+| **Données suffisamment fiables pour décider** | `13 sur 19 (68 %)` | objets utiles à la décision en `rapprochee`, `documentee`, `verifiee` ou `officielle` / objets évalués | cibler les vérifications avant arbitrage | formule et dénominateur obligatoires ; valeur simulée |
+| **Besoins transformés en programme** | `1 sur 4` | besoins qualifiés reliés à une initiative en `cadrage` | constituer le dossier, regrouper ou différer | un programme créé n'est pas encore finançable |
+| **Financements confirmés** | `0` | financements avec engagement explicite d'un partenaire habilité | ne rien annoncer ; poursuivre le cadrage | zéro est volontaire : aucun bailleur fictif dans la démonstration |
+
+Ces six cartes suffisent pour l'ouverture. Les prix, espèces, immatriculations, incidents ou capacités apparaissent ensuite comme **lectures explicatives** et non comme une deuxième rangée de KPI concurrents.
+
+### 10.4 Indicateurs détaillés par famille
+
+#### Coordination et exécution
+
+- signaux reçus par territoire et canal, avec part issue d'un relais humain ;
+- délai médian entre signal et qualification ;
+- situations par priorité et statut ;
+- décisions prises, en attente et réexaminées ;
+- engagements à faire, en cours, bloqués et terminés ;
+- délai entre décision et première action ;
+- résultats confirmés par l'acteur bénéficiaire.
+
+#### Preuve et confiance
+
+- engagements disposant d'une preuve reliée ;
+- résultats avec preuve `documentee` ou `verifiee` ;
+- répartition des objets par niveau de confiance ;
+- données à actualiser ou expirées ;
+- contradictions ouvertes entre déclaratif, terrain, partenaire et source officielle ;
+- apprentissages réutilisés dans un autre territoire.
+
+#### Territoires et services essentiels
+
+- territoires couverts par une remontée récente ;
+- incidents ouverts et délai de traitement ;
+- infrastructures disponibles, fragiles ou indisponibles ;
+- capacités réellement mobilisables, sans confondre capacité théorique et disponibilité ;
+- dossiers administratifs déclarés, rapprochés et officiellement confirmés.
+
+Ces indicateurs restent subordonnés aux règles de la section 6 : Mbàmbulaan peut agréger ce qu'il observe, mais ne doit pas extrapoler une couverture nationale qu'il ne possède pas.
+
+### 10.5 Lecture Programme → Financement
+
+Pour un ministère ou un partenaire technique et financier, la valeur n'est pas « voir un montant total ». Elle est de comprendre **où se trouve chaque dossier, pourquoi il est bloqué et quelles preuves manquent**.
+
+Le parcours recommandé est :
+
+```text
+Besoin remonté
+  → besoin qualifié
+  → programme en cadrage
+  → dossier techniquement complet
+  → financement à rechercher
+  → financement en instruction
+  → financement confirmé
+  → décaissement suivi
+  → exécution et résultats prouvés
+```
+
+Les statuts du besoin, du programme et du financement restent distincts. « Besoin prioritaire », « programme structuré » et « financement confirmé » ne sont jamais interchangeables.
+
+#### Indicateurs de portefeuille finançable
+
+| Indicateur | Question métier | Règle de calcul / prudence |
+|---|---|---|
+| Besoins qualifiés sans programme | quels besoins restent à structurer ? | compter uniquement les besoins ayant passé la qualification |
+| Programmes en cadrage | quels dossiers ont un responsable et un objectif ? | ne pas les appeler « financés » ou « éligibles » |
+| Dossiers techniquement complets | quels dossiers peuvent être présentés pour instruction ? | exiger périmètre, bénéficiaires, gouvernance, maintenance, budget et preuves attendues |
+| Budget à estimer | quels programmes ne peuvent pas encore exprimer un besoin financier fiable ? | afficher « à estimer », jamais `0 FCFA` comme montant réel |
+| Montant demandé | quelle enveloppe a été formellement sollicitée ? | séparer demande, validation, engagement et décaissement |
+| Montant confirmé | quel financement possède un engagement explicite ? | aucun partenaire ou montant fictif |
+| Écart de financement | que reste-t-il à mobiliser ? | calculer uniquement si budget validé et financement confirmé sont comparables |
+| Décaissement lié aux jalons | les fonds suivent-ils l'exécution prévue ? | relier chaque tranche à un jalon et à ses preuves |
+| Exécution physique / financière | l'activité et la dépense progressent-elles ensemble ? | ne pas déduire l'impact du seul taux de consommation budgétaire |
+| Bénéficiaires vérifiés | qui bénéficie réellement du programme ? | distinguer déclarés, confirmés et servis |
+| Résultats prouvés | quels effets sont documentés ? | résultat, source, période, confiance et limite obligatoires |
+
+### 10.6 Exemple Lompoul — balises de géolocalisation
+
+Le cas Lompoul illustre la discipline attendue :
+
+| Élément | Valeur de démonstration | Statut honnête |
+|---|---|---|
+| Besoin | balises de géolocalisation pour la sécurité en mer | `documentee` après confirmations et fiche d'exigences |
+| Bénéficiaires | 25 pirogues déclarées | à confirmer nominativement |
+| Programme | périmètre pilote Lompoul | `cadrage` |
+| Budget | non chiffré | à estimer |
+| Prestataire | aucun | non sélectionné |
+| Financement | aucun | à rechercher |
+| Preuves préalables | liste volontaire, gouvernance, note technique, maintenance | dossier en constitution |
+| Impact sécurité | non mesuré | aucune promesse de réduction d'accidents |
+
+La carte de synthèse peut donc dire **« 1 programme en cadrage — financement à rechercher »**. Elle ne peut pas dire « 25 pirogues bientôt équipées ».
+
+### 10.7 Valeur pour les partenaires techniques et financiers
+
+Mbàmbulaan peut rendre un programme plus lisible et plus gouvernable pour un partenaire en apportant :
+
+- une remontée structurée des besoins depuis les quais, y compris par relais humain ;
+- une provenance et un niveau de confiance visibles ;
+- un pipeline comparable de besoins, programmes et financements ;
+- des responsabilités, échéances et blocages explicites ;
+- des preuves reliées aux engagements et aux jalons ;
+- un suivi territorial des bénéficiaires, de l'exécution et des résultats ;
+- des exports de reporting construits depuis les mêmes dossiers, sans ressaisie parallèle.
+
+Cette valeur peut faciliter l'instruction, le suivi et la redevabilité. Elle ne garantit ni l'éligibilité d'un programme, ni l'accord d'un bailleur, ni l'impact du financement.
+
+### 10.8 Angle économique pour Mbàmbulaan
+
+L'angle bailleurs ne doit pas transformer Mbàmbulaan en cabinet produisant des tableaux sur mesure. Le produit reste une infrastructure commune de coordination et de preuve.
+
+Trois revenus futurs sont cohérents :
+
+1. abonnement institutionnel pour piloter territoires, programmes et preuves ;
+2. financement de la mise en place et de la collecte Terrain dans le budget d'un programme ;
+3. service de suivi et reporting destiné à l'autorité porteuse et à ses partenaires, adossé aux données réellement collectées.
+
+La dépendance à un partenaire unique serait un risque. La plateforme doit pouvoir accueillir progressivement plusieurs programmes et partenaires avec la même méthode, les mêmes règles de confiance et des droits d'accès séparés.
+
+### 10.9 Règles de présentation pour la suite visuelle
+
+- six KPI maximum au premier écran ;
+- une phrase de situation avant les cartes ;
+- chaque carte ouvre les dossiers qui expliquent sa valeur ;
+- afficher numérateur et dénominateur pour tout taux ;
+- séparer budget estimé, demandé, confirmé, décaissé et dépensé ;
+- afficher « non calculable » plutôt qu'un faux zéro ;
+- utiliser le libellé **illustratif / simulé** sur chaque vue de démonstration ;
+- ne citer aucun partenaire comme intéressé ou engagé sans preuve explicite ;
+- ne jamais déduire un impact d'un financement consommé ;
+- conserver la hiérarchie : décision → exécution → preuve → financement.
+
+### 10.10 Avis final
+
+Cette Vision KPI a une vraie valeur à court terme **comme langage de démonstration et cadre de futurs programmes**, parce qu'elle relie le terrain, l'action publique, les preuves et le financement. Elle serait prématurée comme tableau national de performance réelle tant que la collecte, les référentiels et les règles de calcul ne sont pas déployés.
+
+La promesse défendable est donc :
+
+> Mbàmbulaan aide à transformer des besoins territoriaux documentés en décisions, programmes et dossiers de financement suivis jusqu'aux preuves de résultat.
+
+Ce cadrage clôt l'exploration R&D. Toute intégration au Produit réel doit désormais être reprise par Claude Code après validation ; toute poursuite graphique ou éditoriale relève du chantier visuel séparé.
