@@ -123,7 +123,11 @@ export function createDemoState(): ProductState {
     actor("act-gestionnaire", "Cheikh Bâ", "gestionnaire_organisation", "org-capitaines", ["joal", "mbour"]),
     actor("act-coordinateur", "Mamadou Fall", "coordinateur", "org-coordination", territoryRows.map(([id]) => id)),
     actor("act-institution", "Fatou Ndiaye", "institution", "org-coordination", territoryRows.map(([id]) => id)),
-    actor("act-partenaire", "Sophie Martin", "partenaire", "org-partner", territoryRows.map(([id]) => id))
+    actor("act-partenaire", "Sophie Martin", "partenaire", "org-partner", territoryRows.map(([id]) => id)),
+    // Lot 1 (R&D, arbitrage CEO 13/08/2026) : Yoff et Foundiougne n'étaient
+    // couverts par aucun acteur mareyeur/transformateur dédié.
+    actor("act-mareyeuse-yoff", "Ndèye Fatou Diagne", "mareyeur", "org-mareyeurs", ["yoff"]),
+    actor("act-transform-foundiougne", "Coumba Sarr", "transformateur", "org-saloum", ["foundiougne"])
   ];
 
   const captainNames = ["Abdoulaye Diatta", "Moussa Seck", "Pape Ndiaye", "Samba Sarr", "Ibrahima Cissé", "Alioune Ba", "Omar Mané", "Cheikh Thiam", "Youssoupha Diallo"];
@@ -437,7 +441,7 @@ export function createDemoState(): ProductState {
 
   opportunities.push(...generatedOpportunities);
 
-  const situations = [
+  const situations: Situation[] = [
     situation("sit-glace", "joal", "Machine à glace indisponible au quai de Joal", "recue", "declaree", "Qualifier le signal avec le poste de quai", "critique"),
     situation("sit-mbour", "mbour", "Capacité froide sous tension après deux débarquements", "qualification", "declaree", "Confirmer la priorité territoriale"),
     situation("sit-kayar", "kayar", "Thiof rare et besoin mareyeur non couvert", "priorisee", "verifiee", "Rechercher une substitution et alerter le territoire"),
@@ -447,7 +451,124 @@ export function createDemoState(): ProductState {
     situation("sit-rufisque", "rufisque", "Capacité de transport froid insuffisante pour le prochain enlèvement", "priorisee", "observee", "Confirmer un véhicule alternatif avant 12 h", "haute"),
     situation("sit-djiffer", "djiffer", "Balance de quai à recalibrer avant la prochaine pesée", "intervention", "verifiee", "Enregistrer le contrôle métrologique", "haute"),
     situation("sit-kafountine", "kafountine", "Transport groupé vers le marché régional", "reglee", "consolidee", "Partager l’apprentissage dans Community", "faible"),
-    situation("sit-cap-skirring", "cap-skirring", "Chambre froide à 35 % de capacité disponible", "coordination", "observee", "Arbitrer les lots prioritaires et réserver un délestage", "haute")
+    situation("sit-cap-skirring", "cap-skirring", "Chambre froide à 35 % de capacité disponible", "coordination", "observee", "Arbitrer les lots prioritaires et réserver un délestage", "haute"),
+    // Lot 1 (R&D, validation CEO 13/08/2026) : six scénarios élargissant la
+    // couverture démontrable au nord, au centre et au sud du littoral, sans
+    // remplacer les parcours déjà profonds ci-dessus. Objets hand-authored
+    // (pas via le helper situation()) pour porter le récit complet — voir
+    // docs/rd/LOT1_COUVERTURE_DEMONTRABLE_ELARGIE_SCENARIOS.md sur
+    // codex/rd-exploration (commit 93def7d) pour la boucle détaillée.
+    {
+      id: "sit-lompoul-balises",
+      reference: "MBA-SIT-LMPB",
+      signalIds: ["obs-sit-lompoul-balises"],
+      territoryId: "lompoul",
+      title: "Équipement de géolocalisation insuffisant pour le suivi des retours",
+      description: "Un premier groupe de pirogues souhaite pouvoir signaler sa position quand un retour se prolonge ; les exigences (autonomie, étanchéité, déclenchement, formation, maintenance, responsabilité de suivi) restent à documenter avant tout choix technique.",
+      status: "coordination",
+      priority: "haute",
+      trust: "documentee",
+      visibility: "partenaires",
+      responsibleId: "act-coordinateur",
+      dueAt: tomorrow,
+      nextStep: "Confirmer les pirogues volontaires et suivre l’instruction du dossier auprès du responsable de quai.",
+      coordinationId: "coord-lompoul-balises",
+      history: [{ id: "hist-sit-lompoul-balises", at: now, actor: "act-relais-lompoul", label: "Signal saisi depuis une note vocale", detail: "Besoin de balises de géolocalisation rapporté par un capitaine, confirmé par trois capitaines et le responsable du quai." }]
+    },
+    {
+      id: "sit-fass-boye-conformite",
+      reference: "MBA-SIT-FBCF",
+      signalIds: ["obs-sit-fass-boye-conformite"],
+      territoryId: "fass-boye",
+      title: "Rattachement administratif d’une pirogue à vérifier",
+      description: "Écart de dénomination détecté entre la pièce d’immatriculation présentée et le profil déclaré de la pirogue ; pièce complémentaire demandée avant tout statut définitif.",
+      status: "attente",
+      priority: "moyenne",
+      trust: "rapprochee",
+      visibility: "partenaires",
+      responsibleId: "act-operateur",
+      dueAt: tomorrow,
+      waitingReason: "Réponse du service compétent sur le rattachement administratif",
+      nextStep: "Consigner la réponse du point administratif mandaté dès réception.",
+      coordinationId: "coord-fass-boye-conformite",
+      history: [{ id: "hist-sit-fass-boye-conformite", at: now, actor: "act-capitaine-fass-boye-demo", label: "Pièce déposée directement", detail: "Immatriculation photographiée et déposée via le formulaire structuré." }]
+    },
+    {
+      id: "sit-yoff-marche",
+      reference: "MBA-SIT-YFMC",
+      signalIds: ["obs-sit-yoff-marche"],
+      territoryId: "yoff",
+      title: "Écart local entre prix proposés et débouché disponible",
+      description: "Trois observations de prix restent comparables après exclusion d’une offre non comparable ; un volume de sardinelle reste sans débouché confirmé.",
+      status: "resultat",
+      priority: "haute",
+      trust: "observee",
+      visibility: "partenaires",
+      responsibleId: "act-operateur",
+      dueAt: tomorrow,
+      nextStep: "Confirmer le poids à l’enlèvement pour faire passer le résultat de documentée à vérifiée.",
+      result: "Volume orienté vers un transformateur ; délai d’enlèvement confirmé, poids en cours de confirmation.",
+      confirmation: "Offre acceptée par le transformateur et bordereau simulé d’enlèvement.",
+      coordinationId: "coord-yoff-marche",
+      history: [{ id: "hist-sit-yoff-marche", at: now, actor: "act-mareyeuse-yoff", label: "Écart de prix déclaré", detail: "Quatre prix déclarés pour la sardinelle, un volume sans débouché confirmé." }]
+    },
+    {
+      id: "sit-foundiougne-claies",
+      reference: "MBA-SIT-FDCL",
+      signalIds: ["obs-sit-foundiougne-claies"],
+      territoryId: "foundiougne",
+      title: "Capacité de fumage réduite avant la prochaine préparation",
+      description: "Deux claies de fumage hors service ; constat visuel réalisé et réparation locale jugée possible par le relais.",
+      status: "resultat",
+      priority: "haute",
+      trust: "verifiee",
+      visibility: "partenaires",
+      responsibleId: "act-coordinateur",
+      dueAt: tomorrow,
+      nextStep: "Confirmer la disponibilité des claies restantes avant la prochaine fenêtre de préparation.",
+      result: "Une claie de fumage remise en service ; capacité restante encore réduite tant que la seconde n’est pas réparée.",
+      confirmation: "Photos avant/après, fiche d’intervention et confirmation de la responsable du groupement.",
+      coordinationId: "coord-foundiougne-claies",
+      history: [{ id: "hist-sit-foundiougne-claies", at: now, actor: "act-relais-foundiougne", label: "Appel reçu et consigné", detail: "Deux claies de fumage inutilisables signalées par appel." }]
+    },
+    {
+      id: "sit-elinkine-retour",
+      reference: "MBA-SIT-ELKR",
+      signalIds: ["obs-sit-elinkine-retour"],
+      territoryId: "elinkine",
+      title: "Retour retardé à qualifier",
+      description: "Heure de départ, heure attendue et dernier contact confirmés par deux recoupements ; position toujours inconnue au moment de l’escalade.",
+      status: "reglee",
+      priority: "critique",
+      trust: "verifiee",
+      visibility: "partenaires",
+      responsibleId: "act-coordinateur",
+      dueAt: tomorrow,
+      nextStep: "Partager l’apprentissage dans Community.",
+      result: "Équipage revenu au quai ; chaîne d’alerte clôturée et responsables informés.",
+      confirmation: "Heure d’arrivée observée et validée par l’agent de quai.",
+      coordinationId: "coord-elinkine-retour",
+      history: [{ id: "hist-sit-elinkine-retour", at: now, actor: "act-relais-elinkine", label: "Appel consigné", detail: "Retour retardé signalé par un proche habilité, position non confirmée." }]
+    },
+    {
+      id: "sit-cap-skirring-debouche",
+      reference: "MBA-SIT-CSDB",
+      signalIds: ["obs-sit-cap-skirring-debouche"],
+      territoryId: "cap-skirring",
+      title: "Lot préparé sans débouché confirmé",
+      description: "Lot vérifié et fenêtre de conservation confirmée après qualification ; aucun engagement actif au moment du signal.",
+      status: "resultat",
+      priority: "haute",
+      trust: "verifiee",
+      visibility: "partenaires",
+      responsibleId: "act-operateur",
+      dueAt: tomorrow,
+      nextStep: "Confirmer la réception à destination pour clore le dossier.",
+      result: "Lot orienté vers un débouché alternatif dans la fenêtre de conservation documentée.",
+      confirmation: "Bordereau d’enlèvement et confirmation de réception simulés.",
+      coordinationId: "coord-cap-skirring-debouche",
+      history: [{ id: "hist-sit-cap-skirring-debouche", at: now, actor: "act-transform-sud", label: "Annulation saisie directement", detail: "Acheteur ayant annulé l’enlèvement d’un lot déjà préparé." }]
+    }
   ];
 
   const situationTemplates = [
@@ -472,6 +593,62 @@ export function createDemoState(): ProductState {
   });
 
   situations.push(...generatedSituations);
+
+  // Dérogations ponctuelles à la dérivation générique signal ← situation
+  // ci-dessous (channel/category/trust/source/actorId/reportedBy propres à
+  // un scénario). sit-glace et sit-saint-louis portaient déjà ces
+  // dérogations sous forme de ternaires en ligne ; Lot 1 (R&D, 13/08/2026)
+  // en ajoute six, avec la distinction auteur/saisisseur (Signal.reportedBy)
+  // pour les trois scénarios de relais (Lompoul, Foundiougne, Elinkine).
+  const signalOverridesById: Record<string, Partial<ProductState["signals"][number]>> = {
+    "sit-glace": { channel: "poste_quai", category: "infrastructure", source: "Poste de quai de Joal" },
+    "sit-saint-louis": { channel: "telephone", category: "securite", trust: "declaree", source: "Appel d’un proche habilité" },
+    "sit-lompoul-balises": {
+      actorId: "act-relais-lompoul",
+      channel: "poste_quai",
+      category: "securite",
+      trust: "declaree",
+      source: "Note vocale d’un capitaine, saisie par le relais territorial",
+      reportedBy: "Un capitaine de pirogue (note vocale)"
+    },
+    "sit-fass-boye-conformite": {
+      actorId: "act-capitaine-fass-boye-demo",
+      channel: "terrain",
+      category: "conformite",
+      trust: "declaree",
+      source: "Formulaire structuré rempli directement par le capitaine"
+    },
+    "sit-yoff-marche": {
+      actorId: "act-mareyeuse-yoff",
+      channel: "whatsapp_structure",
+      category: "marche",
+      trust: "declaree",
+      source: "Déclaration directe via WhatsApp structuré"
+    },
+    "sit-foundiougne-claies": {
+      actorId: "act-relais-foundiougne",
+      channel: "poste_quai",
+      category: "infrastructure",
+      trust: "declaree",
+      source: "Appel reçu et saisi par le relais territorial",
+      reportedBy: "Responsable d’un groupement de transformatrices (appel)"
+    },
+    "sit-elinkine-retour": {
+      actorId: "act-relais-elinkine",
+      channel: "telephone",
+      category: "securite",
+      trust: "declaree",
+      source: "Appel radio/téléphone consigné par l’agent de quai",
+      reportedBy: "Un proche habilité de l’équipage (appel)"
+    },
+    "sit-cap-skirring-debouche": {
+      actorId: "act-transform-sud",
+      channel: "terrain",
+      category: "marche",
+      trust: "declaree",
+      source: "Annulation saisie directement par la transformatrice"
+    }
+  };
 
   const generatedCoordinationSpaces: ProductState["coordinationSpaces"] = generatedSituations.map((item, index) => ({
     id: `coord-${item.territoryId}-veille`,
@@ -643,12 +820,13 @@ export function createDemoState(): ProductState {
       territoryId: item.territoryId,
       actorId: "act-operateur",
       createdAt: now,
-      channel: item.id === "sit-glace" ? "poste_quai" : item.id === "sit-saint-louis" ? "telephone" : "terrain",
-      category: item.id === "sit-glace" ? "infrastructure" : item.id === "sit-saint-louis" ? "securite" : "production",
+      channel: "terrain",
+      category: "production",
       title: item.title,
       description: item.description,
-      trust: item.id === "sit-saint-louis" ? "declaree" : item.trust,
-      source: item.id === "sit-glace" ? "Poste de quai de Joal" : item.id === "sit-saint-louis" ? "Appel d’un proche habilité" : "Relais territorial"
+      trust: item.trust,
+      source: "Relais territorial",
+      ...signalOverridesById[item.id]
     })),
     situations,
     coordinationSpaces: [
@@ -727,6 +905,94 @@ export function createDemoState(): ProductState {
         risks: ["Débarquement avant fin du contrôle"],
         nextReviewAt: "2026-07-29T11:30:00.000Z"
       },
+      {
+        id: "coord-lompoul-balises",
+        situationId: "sit-lompoul-balises",
+        title: "Équipement de sécurité en mer · Lompoul-sur-Mer",
+        participantIds: ["act-relais-lompoul", "act-capitaine-lompoul-demo", "act-coordinateur", "act-prestataire"],
+        objective: "Documenter un besoin d’équipement de géolocalisation exploitable pour instruction de financement, sans engager de fournisseur.",
+        decision: "Dresser la liste volontaire des pirogues, produire une note d’options techniques puis ouvrir le dossier initiative.",
+        commitments: [
+          { id: "eng-lompoul-relais", actorId: "act-relais-lompoul", label: "Confirmer les pirogues candidates et leurs contacts", dueAt: tomorrow, status: "terminee", result: "Liste volontaire de 25 pirogues rapprochée" },
+          { id: "eng-lompoul-prestataire", actorId: "act-prestataire", label: "Produire une note d’options techniques sans proposition commerciale engageante", dueAt: tomorrow, status: "en_cours" },
+          { id: "eng-lompoul-coord", actorId: "act-coordinateur", label: "Définir les critères de financement et de gouvernance", dueAt: tomorrow, status: "a_faire" }
+        ],
+        risks: ["Technologie et coût encore non validés", "Responsabilité de maintenance à clarifier"],
+        nextReviewAt: tomorrow
+      },
+      {
+        id: "coord-fass-boye-conformite",
+        situationId: "sit-fass-boye-conformite",
+        title: "Rapprochement administratif · Fass Boye",
+        participantIds: ["act-capitaine-fass-boye-demo", "act-relais-fass-boye", "act-operateur", "act-institution"],
+        objective: "Rapprocher les pièces présentées sans effacer le dossier ni le présenter comme conforme avant réponse officielle.",
+        decision: "Afficher « conformité en vérification » et transmettre la demande de contrôle au service compétent.",
+        commitments: [
+          { id: "eng-fass-boye-capitaine", actorId: "act-capitaine-fass-boye-demo", label: "Déposer la pièce complémentaire", dueAt: tomorrow, status: "terminee", result: "Deuxième pièce déposée et rapprochée" },
+          { id: "eng-fass-boye-terrain", actorId: "act-relais-fass-boye", label: "Vérifier l’identité du dossier présenté au quai", dueAt: tomorrow, status: "terminee", result: "Dossier identifié et rattaché" },
+          { id: "eng-fass-boye-institution", actorId: "act-institution", label: "Confirmer ou corriger le statut administratif", dueAt: tomorrow, status: "a_faire" }
+        ],
+        risks: ["Réponse du service compétent non garantie dans le délai", "Confusion possible entre dossier incomplet et irrégularité"],
+        nextReviewAt: tomorrow
+      },
+      {
+        id: "coord-yoff-marche",
+        situationId: "sit-yoff-marche",
+        title: "Débouché sardinelle · Yoff",
+        participantIds: ["act-mareyeuse-yoff", "act-transform", "act-operateur"],
+        objective: "Orienter le volume disponible vers un débouché compatible avant dégradation, sans revendiquer d’effet sur le prix du marché.",
+        decision: "Réserver le volume auprès du transformateur après confirmation de la capacité et du prix de reprise.",
+        commitments: [
+          { id: "eng-yoff-mareyeuse", actorId: "act-mareyeuse-yoff", label: "Confirmer quantité, qualité et délai", dueAt: tomorrow, status: "terminee", result: "Volume et qualité confirmés" },
+          { id: "eng-yoff-transform", actorId: "act-transform", label: "Confirmer capacité et prix de reprise", dueAt: tomorrow, status: "terminee", result: "Capacité et prix de reprise acceptés" }
+        ],
+        risks: ["Fenêtre de conservation courte", "Prix de reprise encore déclaratif"],
+        nextReviewAt: tomorrow
+      },
+      {
+        id: "coord-foundiougne-claies",
+        situationId: "sit-foundiougne-claies",
+        title: "Remise en service des claies de fumage · Foundiougne",
+        participantIds: ["act-relais-foundiougne", "act-transform-foundiougne", "act-prestataire", "act-coordinateur"],
+        objective: "Rétablir une capacité de fumage suffisante avant la prochaine préparation, sans avancer de volume sauvé non relié à un lot.",
+        decision: "Réparer une claie prioritaire et réorganiser l’ordre des lots en attendant la seconde.",
+        commitments: [
+          { id: "eng-foundiougne-prestataire", actorId: "act-prestataire", label: "Diagnostiquer et réparer une claie prioritaire", dueAt: tomorrow, status: "terminee", result: "Claie remise en service après remplacement d’un élément" },
+          { id: "eng-foundiougne-transform", actorId: "act-transform-foundiougne", label: "Libérer la zone et confirmer l’ordre des lots", dueAt: tomorrow, status: "terminee", result: "Zone libérée, ordre des lots confirmé" },
+          { id: "eng-foundiougne-relais", actorId: "act-relais-foundiougne", label: "Suivre l’arrivée et déposer le constat final", dueAt: tomorrow, status: "en_cours" }
+        ],
+        risks: ["Seconde claie encore indisponible", "Retard possible avant la prochaine préparation"],
+        nextReviewAt: tomorrow
+      },
+      {
+        id: "coord-elinkine-retour",
+        situationId: "sit-elinkine-retour",
+        title: "Suivi du retour retardé · Elinkine",
+        participantIds: ["act-relais-elinkine", "act-capitaine-elinkine-demo", "act-operateur", "act-coordinateur"],
+        objective: "Confirmer la situation de l’équipage et informer le responsable mandaté sans transformer un retard déclaré en détresse certaine.",
+        decision: "Maintenir un point de contact unique et consigner chaque tentative jusqu’à confirmation de l’arrivée.",
+        commitments: [
+          { id: "eng-elinkine-relais", actorId: "act-relais-elinkine", label: "Relancer le contact convenu", dueAt: tomorrow, status: "terminee", result: "Deuxième contact radio confirme le retour vers la côte" },
+          { id: "eng-elinkine-operateur", actorId: "act-operateur", label: "Consigner chaque appel", dueAt: tomorrow, status: "terminee", result: "Trois tentatives consignées" },
+          { id: "eng-elinkine-coord", actorId: "act-coordinateur", label: "Informer le responsable mandaté", dueAt: tomorrow, status: "terminee", result: "Dispositif territorial informé" }
+        ],
+        risks: ["Information de position non confirmée avant contact", "Messages contradictoires si plusieurs canaux sont utilisés"],
+        nextReviewAt: tomorrow
+      },
+      {
+        id: "coord-cap-skirring-debouche",
+        situationId: "sit-cap-skirring-debouche",
+        title: "Débouché alternatif · Cap Skirring",
+        participantIds: ["act-transform-sud", "act-mareyeur-sud", "act-operateur"],
+        objective: "Orienter le lot annulé vers un débouché alternatif avant la fin de la fenêtre de conservation.",
+        decision: "Réserver le transport auprès du mareyeur après acceptation explicite de l’acheteur alternatif.",
+        commitments: [
+          { id: "eng-cap-skirring-transform", actorId: "act-transform-sud", label: "Maintenir le lot dans les conditions annoncées", dueAt: tomorrow, status: "terminee", result: "Lot maintenu et conditions confirmées" },
+          { id: "eng-cap-skirring-mareyeur", actorId: "act-mareyeur-sud", label: "Confirmer véhicule et débouché alternatif", dueAt: tomorrow, status: "terminee", result: "Véhicule et débouché confirmés" }
+        ],
+        risks: ["Fenêtre de conservation courte", "Acceptation de l’acheteur alternatif non garantie"],
+        nextReviewAt: tomorrow
+      },
       ...generatedCoordinationSpaces
     ],
     decisions: [
@@ -755,6 +1021,68 @@ export function createDemoState(): ProductState {
         decidedByActorId: "act-coordinateur",
         decidedAt: now,
         coordinationId: "coord-securite"
+      },
+      {
+        id: "dec-lompoul-1",
+        situationId: "sit-lompoul-balises",
+        type: "demander_verification",
+        rationale: "Dresser une liste nominative volontaire des pirogues candidates et qualifier l’usage avant tout choix technique.",
+        decidedByActorId: "act-coordinateur",
+        decidedAt: now
+      },
+      {
+        id: "dec-lompoul-2",
+        situationId: "sit-lompoul-balises",
+        type: "constituer_programme",
+        rationale: "Besoin documenté et confirmé par plusieurs capitaines : transformer le signal en dossier de programme pour instruire un financement.",
+        decidedByActorId: "act-coordinateur",
+        decidedAt: now,
+        coordinationId: "coord-lompoul-balises"
+      },
+      {
+        id: "dec-fass-boye-1",
+        situationId: "sit-fass-boye-conformite",
+        type: "demander_verification",
+        rationale: "Écart de dénomination détecté entre les deux pièces : demander le rapprochement auprès du point administratif mandaté sans bloquer la trace d’activité.",
+        decidedByActorId: "act-operateur",
+        decidedAt: now,
+        coordinationId: "coord-fass-boye-conformite"
+      },
+      {
+        id: "dec-yoff-1",
+        situationId: "sit-yoff-marche",
+        type: "ouvrir_coordination",
+        rationale: "Chercher un débouché compatible pour le volume disponible plutôt que d’intervenir sur le prix du marché.",
+        decidedByActorId: "act-operateur",
+        decidedAt: now,
+        coordinationId: "coord-yoff-marche"
+      },
+      {
+        id: "dec-foundiougne-1",
+        situationId: "sit-foundiougne-claies",
+        type: "mobiliser_capacite",
+        rationale: "Activer un prestataire référencé pour une réparation courte et réorganiser la file de préparation en attendant.",
+        decidedByActorId: "act-coordinateur",
+        decidedAt: now,
+        coordinationId: "coord-foundiougne-claies"
+      },
+      {
+        id: "dec-elinkine-1",
+        situationId: "sit-elinkine-retour",
+        type: "escalader",
+        rationale: "Retard non expliqué : escalader selon la procédure territoriale et maintenir un point de contact unique.",
+        decidedByActorId: "act-coordinateur",
+        decidedAt: now,
+        coordinationId: "coord-elinkine-retour"
+      },
+      {
+        id: "dec-cap-skirring-debouche-1",
+        situationId: "sit-cap-skirring-debouche",
+        type: "ouvrir_coordination",
+        rationale: "Proposer une solution avant l’échéance de conservation, avec un mareyeur et un second transformateur, sans modifier automatiquement le prix.",
+        decidedByActorId: "act-operateur",
+        decidedAt: now,
+        coordinationId: "coord-cap-skirring-debouche"
       }
     ],
     evidences: [
@@ -790,6 +1118,82 @@ export function createDemoState(): ProductState {
         recordedByActorId: "act-operateur",
         recordedAt: now,
         trust: "declaree"
+      },
+      {
+        id: "ev-lompoul-1",
+        situationId: "sit-lompoul-balises",
+        commitmentId: "eng-lompoul-relais",
+        type: "confirmation",
+        label: "Liste volontaire des pirogues candidates",
+        detail: "Trois capitaines et le responsable du quai confirment l’existence du besoin ; 25 pirogues volontaires recensées.",
+        recordedByActorId: "act-relais-lompoul",
+        recordedAt: now,
+        trust: "rapprochee"
+      },
+      {
+        id: "ev-lompoul-2",
+        situationId: "sit-lompoul-balises",
+        type: "document",
+        label: "Fiche d’exigences du besoin",
+        detail: "Autonomie, étanchéité, déclenchement, formation, maintenance et responsabilité de suivi listés avant tout choix technique.",
+        recordedByActorId: "act-coordinateur",
+        recordedAt: now,
+        trust: "documentee"
+      },
+      {
+        id: "ev-fass-boye-1",
+        situationId: "sit-fass-boye-conformite",
+        commitmentId: "eng-fass-boye-capitaine",
+        type: "document",
+        label: "Pièce d’immatriculation complémentaire",
+        detail: "Deuxième pièce déposée par le capitaine ; identifiants rapprochés avec la première.",
+        recordedByActorId: "act-operateur",
+        recordedAt: now,
+        trust: "rapprochee"
+      },
+      {
+        id: "ev-yoff-1",
+        situationId: "sit-yoff-marche",
+        commitmentId: "eng-yoff-transform",
+        type: "bordereau",
+        label: "Bordereau d’enlèvement simulé",
+        detail: "Offre acceptée entre la mareyeuse et le transformateur ; enlèvement programmé dans la fenêtre annoncée.",
+        recordedByActorId: "act-operateur",
+        recordedAt: now,
+        trust: "documentee"
+      },
+      {
+        id: "ev-foundiougne-1",
+        situationId: "sit-foundiougne-claies",
+        commitmentId: "eng-foundiougne-prestataire",
+        type: "photo",
+        label: "Photos avant/après de la claie réparée",
+        detail: "Essai de stabilité effectué avant remise en service.",
+        recordedByActorId: "act-prestataire",
+        recordedAt: now,
+        trust: "verifiee"
+      },
+      {
+        id: "ev-elinkine-1",
+        situationId: "sit-elinkine-retour",
+        commitmentId: "eng-elinkine-relais",
+        type: "appel_consigne",
+        label: "Journal d’appels et confirmation radio",
+        detail: "Trois tentatives consignées ; le deuxième contact radio confirme que l’équipage se dirige vers la côte.",
+        recordedByActorId: "act-relais-elinkine",
+        recordedAt: now,
+        trust: "verifiee"
+      },
+      {
+        id: "ev-cap-skirring-debouche-1",
+        situationId: "sit-cap-skirring-debouche",
+        commitmentId: "eng-cap-skirring-mareyeur",
+        type: "bordereau",
+        label: "Bordereau d’enlèvement et confirmation de réception",
+        detail: "Toutes les pièces (annulation initiale, fiche lot, acceptation alternative, bordereau) sont reliées au dossier.",
+        recordedByActorId: "act-operateur",
+        recordedAt: now,
+        trust: "verifiee"
       }
     ],
     communications: [
@@ -826,6 +1230,80 @@ export function createDemoState(): ProductState {
         situationId: "sit-saint-louis",
         subject: "Suivi retour retardé",
         body: "SMS de relance envoyé au dispositif territorial de sécurité, en attente de réponse.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-lompoul-1",
+        channel: "saisie_terrain",
+        status: "remis",
+        actorId: "act-relais-lompoul",
+        situationId: "sit-lompoul-balises",
+        subject: "Note vocale reçue — besoin de balises",
+        body: "Note vocale d’un capitaine transcrite et confirmée par rappel : plusieurs équipages veulent signaler leur position en cas de retour prolongé.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-fass-boye-1",
+        channel: "notification_produit",
+        status: "envoye",
+        actorId: "act-operateur",
+        situationId: "sit-fass-boye-conformite",
+        subject: "Demande de contrôle transmise",
+        body: "Demande de rapprochement transmise au point administratif mandaté ; statut affiché « vérification en attente ».",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-yoff-1",
+        channel: "whatsapp",
+        status: "repondu",
+        actorId: "act-mareyeuse-yoff",
+        situationId: "sit-yoff-marche",
+        subject: "Volume de sardinelle sans débouché confirmé",
+        body: "Quatre prix déclarés au même stade de marché ; recherche d’un débouché avant dégradation.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-foundiougne-1",
+        channel: "telephone",
+        status: "repondu",
+        actorId: "act-relais-foundiougne",
+        situationId: "sit-foundiougne-claies",
+        commitmentId: "eng-foundiougne-relais",
+        subject: "Suivi de la remise en service",
+        body: "Appel de suivi avec la responsable du groupement pour confirmer l’heure de remise en service.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-elinkine-1",
+        channel: "telephone",
+        status: "repondu",
+        actorId: "act-relais-elinkine",
+        situationId: "sit-elinkine-retour",
+        commitmentId: "eng-elinkine-relais",
+        subject: "Contact radio avec l’équipage",
+        body: "Deuxième contact radio confirmé : l’équipage se dirige vers la côte, le quai prépare l’accueil.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-cap-skirring-debouche-1",
+        channel: "notification_produit",
+        status: "repondu",
+        actorId: "act-transform-sud",
+        situationId: "sit-cap-skirring-debouche",
+        subject: "Débouché alternatif proposé",
+        body: "Proposition transmise à un second transformateur et à un mareyeur pour orienter le lot avant l’échéance.",
         simulated: true,
         createdAt: now,
         updatedAt: now
@@ -937,7 +1415,13 @@ export function createDemoState(): ProductState {
     learnings: [
       { id: "learn-1", situationId: "sit-kafountine", title: "Activer un itinéraire de délestage avant saturation", summary: "Un accord préalable entre quai, transporteurs et chambre froide réduit le temps d’orientation des lots.", reusableIn: ["joal", "mbour", "kayar"] },
       { id: "learn-2", situationId: "sit-soumbedioune", title: "Conserver le statut déclaré jusqu’à la vérification de l’actif", summary: "Une immatriculation saisie peut être utilisée pour le suivi sans être présentée comme vérifiée ; la source et la pièce restent liées au dossier.", reusableIn: ["hann", "rufisque", "saint-louis"] },
-      { id: "learn-3", situationId: "sit-djiffer", title: "Planifier le contrôle de pesée avant la fenêtre de débarquement", summary: "La disponibilité d’une masse étalon et d’un prestataire réduit le risque de retarder toute la chaîne de lots.", reusableIn: ["joal", "mbour", "kafountine"] }
+      { id: "learn-3", situationId: "sit-djiffer", title: "Planifier le contrôle de pesée avant la fenêtre de débarquement", summary: "La disponibilité d’une masse étalon et d’un prestataire réduit le risque de retarder toute la chaîne de lots.", reusableIn: ["joal", "mbour", "kafountine"] },
+      { id: "learn-lompoul-balises", situationId: "sit-lompoul-balises", title: "Un message vocal court peut devenir un dossier d’équipement exploitable", summary: "Si l’auteur, le relais, les confirmations et les limites restent visibles, une note vocale peut être transformée en dossier de programme finançable — sans devenir une preuve d’impact sécurité.", reusableIn: ["fass-boye", "kayar", "elinkine"] },
+      { id: "learn-fass-boye-conformite", situationId: "sit-fass-boye-conformite", title: "Une donnée administrative déclarée peut soutenir le suivi sans être confondue avec une donnée officielle", summary: "Afficher « vérification en attente » plutôt que d’effacer le dossier ou de le présenter comme conforme rend l’incertitude visible et actionnable.", reusableIn: ["soumbedioune", "hann", "rufisque"] },
+      { id: "learn-yoff-marche", situationId: "sit-yoff-marche", title: "Un signal de prix devient utile s’il déclenche une coordination documentée", summary: "Comparer des offres réellement comparables puis orienter le volume évite de transformer un signal de prix en indice d’inflation non vérifié.", reusableIn: ["kayar", "soumbedioune", "mbour"] },
+      { id: "learn-foundiougne-claies", situationId: "sit-foundiougne-claies", title: "Distinguer équipement réparé, capacité disponible et volume traité", summary: "Séparer ces trois niveaux évite de gonfler le résultat d’une réparation d’équipement de transformation.", reusableIn: ["djiffer", "missirah", "kafountine"] },
+      { id: "learn-elinkine-retour", situationId: "sit-elinkine-retour", title: "Escalader l’incertitude sans transformer un retard déclaré en détresse certaine", summary: "Un point de contact unique et un journal d’appels évitent les informations contradictoires pendant l’attente.", reusableIn: ["lompoul", "saint-louis"] },
+      { id: "learn-cap-skirring-debouche", situationId: "sit-cap-skirring-debouche", title: "Une annulation devient coordonnable si lot, délai et engagements sont reliés", summary: "Relier le lot, le délai et les engagements dans un même dossier évite de perdre la traçabilité d’une annulation de dernière minute.", reusableIn: ["yoff", "kafountine"] }
     ],
     reports: [
       {
@@ -1005,6 +1489,12 @@ export function createDemoState(): ProductState {
       { id: "not-4", role: "institution", title: "Référentiel pirogues : dossier à vérifier à Soumbédioune", href: "/app/situations/sit-soumbedioune", read: false },
       { id: "not-5", role: "prestataire", title: "Djiffer : contrôle de balance attendu avant 11:45", href: "/app/situations/sit-djiffer", read: false },
       { id: "not-6", role: "mareyeur", title: "Cap Skirring : lot de sole et transport à confirmer", href: "/app/coordination", read: false },
+      { id: "not-lompoul-balises", role: "prestataire", title: "Lompoul-sur-Mer : note technique attendue pour le dossier balises", href: "/app/situations/sit-lompoul-balises", read: false },
+      { id: "not-fass-boye-conformite", role: "institution", title: "Fass Boye : rattachement administratif en attente de réponse", href: "/app/situations/sit-fass-boye-conformite", read: false },
+      { id: "not-yoff-marche", role: "mareyeur", title: "Yoff : débouché à confirmer avant dégradation", href: "/app/situations/sit-yoff-marche", read: false },
+      { id: "not-foundiougne-claies", role: "prestataire", title: "Foundiougne : seconde claie encore à réparer", href: "/app/situations/sit-foundiougne-claies", read: false },
+      { id: "not-elinkine-retour", role: "coordinateur", title: "Elinkine : chaîne d’alerte clôturée, équipage revenu", href: "/app/situations/sit-elinkine-retour", read: false },
+      { id: "not-cap-skirring-debouche", role: "mareyeur", title: "Cap Skirring : débouché alternatif à confirmer avant échéance", href: "/app/situations/sit-cap-skirring-debouche", read: false },
       ...generatedNotifications
     ],
     audit: []
