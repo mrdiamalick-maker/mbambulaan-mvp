@@ -48,7 +48,7 @@ export function PublicAtlasWorkspace() {
   };
 
   return (
-    <section className="overflow-hidden rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)] shadow-[var(--pub-shadow)]">
+    <section className="overflow-hidden rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-surface)] shadow-[var(--pub-shadow)]">
       <div className="grid gap-5 border-b border-[var(--pub-stone-150)] bg-white p-5 md:p-6 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
           <p className="pub-eyebrow">Explorer le littoral</p>
@@ -67,7 +67,7 @@ export function PublicAtlasWorkspace() {
         </div>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto border-b border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)] p-2" role="group" aria-label="Choisir une lecture publique">
+      <div className="flex gap-1 overflow-x-auto border-b border-[var(--pub-stone-150)] bg-[var(--pub-surface)] p-2" role="group" aria-label="Choisir une lecture publique">
         {views.map(({ id, label, icon: Icon }) => (
           <button key={id} type="button" onClick={() => setView(id)} aria-pressed={view === id} className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-bold transition ${view === id ? "bg-[var(--pub-deep-800)] text-white shadow-sm" : "text-[var(--pub-stone-700)] hover:bg-white"}`}>
             <Icon size={16}/><span>{label}</span>
@@ -113,7 +113,7 @@ export function PublicAtlasWorkspace() {
             <p className="mt-7 flex items-start gap-2 border-t border-[var(--pub-stone-150)] pt-5 text-xs leading-5 text-[var(--pub-stone-500)]"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-[var(--pub-turquoise-500)]"/> Source : {territory.source} · mise à jour {territory.updatedAt}. Les données opérationnelles individuelles restent hors de l’Atlas public.</p>
           </div>
 
-          <div className="flex flex-wrap gap-3 border-t border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)] p-5 md:px-8">
+          <div className="flex flex-wrap gap-3 border-t border-[var(--pub-stone-150)] bg-[var(--pub-surface)] p-5 md:px-8">
             <Link href={`/atlas/${territory.slug}`} className="pub-btn pub-btn-dark">Voir la fiche territoire <ArrowRight size={15}/></Link>
             <Link href={`/solutions?source=atlas&territory=${encodeURIComponent(territory.name)}`} className="pub-btn pub-btn-outline">Décrire une situation ici</Link>
           </div>
