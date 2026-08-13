@@ -289,6 +289,29 @@ export interface Signal {
   reportedBy?: string;
 }
 
+// IncomingMessage — file de messages entrants simulés (arbitrage CEO
+// 13/08/2026, gap analysis "Messages entrants"), pas une intégration
+// WhatsApp/SMS/téléphonie réelle : rend visible dans le vrai Produit la
+// provenance des signaux avant qu'un coordinateur les convertisse. Vit
+// dans ProductState (contenu 100% simulé) plutôt que dans un repository
+// séparé façon PublicRequest — cette isolation-là répond à un besoin
+// précis (source externe réelle sur /solutions, /contact) qui ne
+// s'applique pas ici. `reportedBy` reprend le champ déjà utilisé par
+// Signal pour distinguer l'auteur apparent du message du coordinateur
+// qui le convertit.
+export interface IncomingMessage {
+  id: string;
+  channel: Signal["channel"];
+  // Texte libre tel que mentionné dans le message, jamais garanti
+  // correspondre à un territoire réel (même principe que
+  // PublicRequest.territory) — la conversion exige un choix explicite.
+  territoryHint?: string;
+  reportedBy: string;
+  body: string;
+  receivedAt: string;
+  status: "nouveau" | "converti";
+}
+
 export interface Situation {
   id: string;
   reference: string;
@@ -610,6 +633,7 @@ export interface ProductState {
   capacities: Capacity[];
   opportunities: Opportunity[];
   signals: Signal[];
+  incomingMessages: IncomingMessage[];
   situations: Situation[];
   coordinationSpaces: CoordinationSpace[];
   decisions: Decision[];
@@ -631,6 +655,7 @@ export interface ProductState {
 
 export type Command =
   | { type: "create_signal"; actorId: string; territoryId: string; title: string; description: string; channel: Signal["channel"] }
+  | { type: "convert_message_to_signal"; actorId: string; messageId: string; territoryId: string; category: Signal["category"]; title: string; description: string }
   | { type: "qualify"; situationId: string; actorId: string }
   | { type: "prioritize"; situationId: string; actorId: string }
   | { type: "coordinate"; situationId: string; actorId: string }

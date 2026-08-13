@@ -13,6 +13,7 @@ import {
   Handshake,
   Inbox,
   MapPin,
+  MessageSquare,
   Network,
   Route,
   Search,
@@ -22,17 +23,39 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { CommandButton } from "@/components/ui/CommandButton";
 import { TrustBadge } from "@/components/ui/Badges";
 import type { PublicRequest, PublicRequestIntent } from "@/domain/public/request";
-import { serviceRequestIntentLabels, type CatchLine, type ProductState, type ServiceRequestIntent } from "@/domain/types";
+import { serviceRequestIntentLabels, type CatchLine, type IncomingMessage, type ProductState, type ServiceRequestIntent, type Signal } from "@/domain/types";
 
-type View = "besoins" | "capacites" | "rapprochements" | "missions" | "demandes_publiques";
+type View = "besoins" | "capacites" | "rapprochements" | "missions" | "demandes_publiques" | "messages_entrants";
 
 const views: Array<{ id: View; label: string; icon: typeof Boxes }> = [
   { id: "besoins", label: "Besoins à couvrir", icon: Boxes },
   { id: "capacites", label: "Capacités mobilisables", icon: Factory },
   { id: "rapprochements", label: "Rapprochements", icon: Network },
   { id: "missions", label: "Missions en cours", icon: ClipboardCheck },
-  { id: "demandes_publiques", label: "Demandes publiques", icon: Inbox }
+  { id: "demandes_publiques", label: "Demandes publiques", icon: Inbox },
+  { id: "messages_entrants", label: "Messages entrants", icon: MessageSquare }
 ];
+
+// Canal → libellé lisible, pour l'affichage de la file de messages
+// entrants (simulés — aucune connexion WhatsApp/SMS/téléphonie réelle).
+const messageChannelLabel: Record<IncomingMessage["channel"], string> = {
+  terrain: "Terrain",
+  telephone: "Téléphone",
+  whatsapp_structure: "WhatsApp",
+  poste_quai: "Poste de quai"
+};
+
+// Catégories Signal, y compris "conformite" (arbitrage CEO 13/08/2026) —
+// pas de choix pré-rempli automatique : un message brut n'est jamais
+// pré-catégorisé, c'est un choix explicite du coordinateur à la conversion.
+const signalCategoryLabel: Record<Signal["category"], string> = {
+  infrastructure: "Infrastructure",
+  production: "Production",
+  marche: "Marché",
+  qualite: "Qualité",
+  securite: "Sécurité",
+  conformite: "Conformité"
+};
 
 // Étiquettes lisibles pour PublicRequestIntent — n'existaient nulle part
 // sous forme réutilisable (SolutionWizard.tsx a ses propres libellés
@@ -123,6 +146,10 @@ export function CoordinationWorkspace() {
 
   if (!state) return null;
 
+  // Contrairement à pendingPublicRequests (repository séparé, fetch
+  // dédié), incomingMessages vit dans ProductState comme le reste des
+  // données de démonstration : pas de chargement/erreur à suivre ici.
+  const pendingIncomingMessages = state.incomingMessages.filter((item) => item.status === "nouveau");
   const openNeeds = state.serviceRequests.filter((item) => item.status === "ouvert");
   const availableCapacities = state.capacities.filter((item) => item.status === "disponible");
   const activeMissions = state.coordinationSpaces.filter((item) => item.commitments.some((commitment) => commitment.status !== "terminee") || item.commitments.length === 0);
@@ -266,6 +293,12 @@ export function CoordinationWorkspace() {
               />
             )) : <Empty label="Aucune demande publique en attente pour le moment." />}</div>
           )
+        )}
+
+        {view === "messages_entrants" && (
+          <div className="divide-y divide-[#e1e9e9]">{pendingIncomingMessages.length ? pendingIncomingMessages.map((message) => (
+            <IncomingMessageRow key={message.id} message={message} state={state} />
+          )) : <Empty label="Aucun message entrant en attente pour le moment." />}</div>
         )}
       </section>
 
@@ -415,6 +448,118 @@ function PublicRequestRow({
           {error && <p className="text-xs font-bold text-[#c65242]">{error}</p>}
           <div className="flex flex-wrap gap-2">
             <button type="submit" disabled={pending} className="btn-primary whitespace-nowrap">{pending ? "Conversion…" : "Créer la demande"} <ArrowRight size={14} /></button>
+            <button type="button" onClick={() => setOpen(false)} className="btn-secondary whitespace-nowrap">Annuler</button>
+          </div>
+        </form>
+      )}
+    </article>
+  );
+}
+
+// Ligne + action de conversion — file "Messages entrants" (simulée, gap
+// analysis "Messages entrants", arbitrage CEO 13/08/2026). Contrairement à
+// PublicRequestRow, pas de callback onConverted : incomingMessages vit
+// dans ProductState, la file se met à jour au prochain rendu via run()
+// (setState global côté ProductProvider), pas de fetch/PATCH séparé à
+// orchestrer — c'est précisément la différence actée par le gap analysis
+// entre un contenu 100% simulé et une vraie source externe (PublicRequest).
+function IncomingMessageRow({
+  message,
+  state
+}: {
+  message: IncomingMessage;
+  state: ProductState;
+}) {
+  const { run } = useProduct();
+  const [open, setOpen] = useState(false);
+  const [territoryId, setTerritoryId] = useState(() => {
+    const needle = (message.territoryHint ?? "").toLowerCase().trim();
+    if (!needle) return "";
+    const matches = state.territories.filter((item) => item.name.toLowerCase().includes(needle) || needle.includes(item.name.toLowerCase()));
+    return matches.length === 1 ? matches[0].id : "";
+  });
+  const [category, setCategory] = useState<Signal["category"]>("production");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState(message.body);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!territoryId || !title.trim() || !description.trim()) {
+      setError("Territoire, titre et description sont requis.");
+      return;
+    }
+    setError("");
+    setPending(true);
+    try {
+      const ok = await run({
+        type: "convert_message_to_signal",
+        messageId: message.id,
+        territoryId,
+        category,
+        title,
+        description
+      });
+      if (!ok) {
+        setError("La conversion en signal a échoué.");
+        return;
+      }
+      setOpen(false);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <article className="p-4 lg:p-5">
+      <div className="grid gap-4 lg:grid-cols-[1fr_170px_auto] lg:items-start">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="size-2 rounded-full bg-[#d8951a]" />
+            <p className="text-[10px] font-black uppercase tracking-[.08em] text-[#7a8e94]">{messageChannelLabel[message.channel]} · {message.territoryHint ?? "Territoire non précisé"}</p>
+          </div>
+          <p className="mt-1.5 font-black">{message.reportedBy}</p>
+          <p className="mt-1 text-sm leading-6 text-[#526970]">{message.body}</p>
+        </div>
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Reçu le</p>
+          <p className="mt-1 text-sm font-bold">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(message.receivedAt))}</p>
+          <p className="mt-2 text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Canal</p>
+          <p className="mt-1 text-sm font-bold text-[#075568]">{messageChannelLabel[message.channel]}</p>
+        </div>
+        {!open && <button type="button" onClick={() => setOpen(true)} className="btn-secondary whitespace-nowrap">Convertir en signal <ArrowRight size={14} /></button>}
+      </div>
+
+      {open && (
+        <form onSubmit={submit} className="mt-4 space-y-3 rounded-xl border border-[#d0ddde] bg-[#f8fbfa] p-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <label className="block text-xs font-bold text-[#526970]">
+              Territoire
+              <select required value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold">
+                <option value="">À choisir…</option>
+                {state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </label>
+            <label className="block text-xs font-bold text-[#526970]">
+              Catégorie
+              <select value={category} onChange={(event) => setCategory(event.target.value as Signal["category"])} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold">
+                {Object.entries(signalCategoryLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label className="block text-xs font-bold text-[#526970]">
+              Titre du signal
+              <input required value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold" placeholder="Ex. Production de glace ralentie au quai" />
+            </label>
+          </div>
+          <label className="block text-xs font-bold text-[#526970]">
+            Description
+            <textarea required rows={3} value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1.5 w-full rounded-lg border border-[#d0ddde] bg-white px-3 py-2 text-sm font-semibold" />
+          </label>
+          <p className="text-[11px] text-[#8a9a9e]">Description pré-remplie à partir du message — à ajuster si besoin. Aucune catégorie n’est déduite automatiquement : c’est un choix du coordinateur à la conversion.</p>
+          {error && <p className="text-xs font-bold text-[#c65242]">{error}</p>}
+          <div className="flex flex-wrap gap-2">
+            <button type="submit" disabled={pending} className="btn-primary whitespace-nowrap">{pending ? "Conversion…" : "Créer le signal"} <ArrowRight size={14} /></button>
             <button type="button" onClick={() => setOpen(false)} className="btn-secondary whitespace-nowrap">Annuler</button>
           </div>
         </form>

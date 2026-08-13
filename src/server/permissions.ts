@@ -2,6 +2,7 @@ import type { Command, Role } from "@/domain/types";
 
 const all: Command["type"][] = [
   "create_signal",
+  "convert_message_to_signal",
   "qualify",
   "prioritize",
   "coordinate",
@@ -33,6 +34,7 @@ const allowed: Record<Role, Command["type"][]> = {
   administrateur: all,
   operateur: [
     "create_signal",
+    "convert_message_to_signal",
     "qualify",
     "confirm_arrival",
     "record_landing",

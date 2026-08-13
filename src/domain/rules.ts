@@ -13,6 +13,7 @@ import type {
   ProductState,
   ServiceRequest,
   ServiceRequestIntent,
+  Signal,
   Situation,
   SituationStatus
 } from "./types";
@@ -37,6 +38,7 @@ const transitions: Record<
     Command["type"],
     | "reset_demo"
     | "create_signal"
+    | "convert_message_to_signal"
     | "wait"
     | "resume"
     | "announce_return"
@@ -728,6 +730,69 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
     return withAudit(next, command.actorId, "situation", situationId, command.type, command.title.trim());
   }
 
+  // convert_message_to_signal — même boucle que create_signal (Signal +
+  // Situation créés d'un même geste), source différente : un message de
+  // la file IncomingMessage plutôt qu'une saisie directe. reportedBy est
+  // repris du message (l'auteur apparent), actorId reste le coordinateur
+  // qui convertit — même distinction auteur/saisisseur qu'ailleurs
+  // (Lot 1, arbitrage CEO 13/08/2026). Contrairement à create_signal, la
+  // catégorie est un choix explicite du coordinateur : un message brut
+  // n'est jamais pré-catégorisé.
+  if (command.type === "convert_message_to_signal") {
+    if (!command.title.trim() || !command.description.trim()) throw new Error("Le titre et la description sont obligatoires.");
+    if (!state.territories.some((item) => item.id === command.territoryId)) throw new Error("Territoire inconnu.");
+    const message = state.incomingMessages.find((item) => item.id === command.messageId);
+    if (!message) throw new Error("Message introuvable.");
+    if (message.status === "converti") throw new Error("Ce message a déjà été converti.");
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const signalId = `obs-${suffix}`;
+    const situationId = `sit-${suffix}`;
+    const createdAt = timestamp();
+    const channelLabels: Record<Signal["channel"], string> = {
+      terrain: "Terrain",
+      telephone: "Téléphone",
+      whatsapp_structure: "WhatsApp",
+      poste_quai: "Poste de quai"
+    };
+    const newSituation: Situation = {
+      id: situationId,
+      reference: `MBA-SIT-${suffix.toUpperCase()}`,
+      signalIds: [signalId],
+      territoryId: command.territoryId,
+      title: command.title.trim(),
+      description: command.description.trim(),
+      status: "recue",
+      priority: "moyenne",
+      trust: "declaree",
+      visibility: "organisation",
+      nextStep: "Qualifier le signal avec un relais territorial",
+      history: [history(command.actorId, "Message entrant converti en signal", command.description.trim())]
+    };
+    validateSituation(newSituation);
+    const next: ProductState = {
+      ...state,
+      signals: [
+        {
+          id: signalId,
+          territoryId: command.territoryId,
+          actorId: command.actorId,
+          createdAt,
+          channel: message.channel,
+          category: command.category,
+          title: command.title.trim(),
+          description: command.description.trim(),
+          trust: "declaree",
+          source: `Message entrant (${channelLabels[message.channel]}) converti par le coordinateur`,
+          reportedBy: message.reportedBy
+        },
+        ...state.signals
+      ],
+      situations: [newSituation, ...state.situations],
+      incomingMessages: state.incomingMessages.map((item) => (item.id === message.id ? { ...item, status: "converti" as const } : item))
+    };
+    return withAudit(next, command.actorId, "situation", situationId, command.type, command.title.trim());
+  }
+
   const situationItem = state.situations.find((item) => item.id === command.situationId);
   if (!situationItem) throw new Error("Situation introuvable.");
   const updated: Situation = structuredClone(situationItem);
@@ -817,6 +882,7 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
 export type WorkflowAction = Exclude<
   Command["type"],
   | "create_signal"
+  | "convert_message_to_signal"
   | "reset_demo"
   | "wait"
   | "announce_return"

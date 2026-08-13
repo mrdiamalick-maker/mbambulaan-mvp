@@ -20,6 +20,21 @@ test("les permissions suivent le mandat sans créer de produit séparé", () => 
   );
 });
 
+test("la conversion d'un message entrant en signal suit le même mandat que create_signal", () => {
+  const command = {
+    type: "convert_message_to_signal" as const,
+    actorId: "act-operateur",
+    messageId: "msg-terrain-1",
+    territoryId: "mbour",
+    category: "production" as const,
+    title: "Signal",
+    description: "Description"
+  };
+  assert.doesNotThrow(() => assertCan("operateur", command));
+  assert.doesNotThrow(() => assertCan("coordinateur", command));
+  assert.throws(() => assertCan("partenaire", command), /mandat/);
+});
+
 test("créer un programme (besoin collectif) reste réservé aux mandats de coordination (Lot 5)", () => {
   const command = {
     type: "create_initiative" as const,

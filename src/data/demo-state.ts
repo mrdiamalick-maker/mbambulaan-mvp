@@ -812,6 +812,17 @@ export function createDemoState(): ProductState {
     // retardé / sécurité » — « Signal par quai ou proche habilité ») :
     // un appel d'un proche, moins certain à réception qu'une fois la
     // situation qualifiée — d'où un trust de signal ("declaree")
+    // Messages entrants simulés (arbitrage CEO 13/08/2026, gap analysis
+    // "Messages entrants") : un message non converti par canal existant,
+    // pour que la file présentée dans CoordinationWorkspace.tsx ne soit
+    // jamais vide à la démonstration. Aucune connexion réelle
+    // WhatsApp/SMS/téléphonie — tout est simulé et étiqueté comme tel (D5).
+    incomingMessages: [
+      { id: "msg-whatsapp-1", channel: "whatsapp_structure", territoryHint: "Kayar", reportedBy: "Aïda Fall (mareyeuse, message vocal WhatsApp)", body: "Le thiof se vend cher aujourd’hui à Kayar, plusieurs acheteurs en même temps mais je ne sais pas si c’est partout pareil. Vous pouvez regarder ?", receivedAt: now, status: "nouveau" },
+      { id: "msg-telephone-1", channel: "telephone", territoryHint: "Djiffer", reportedBy: "Responsable du site de pesée de Djiffer (appel)", body: "La balance du quai donne des résultats différents depuis ce matin pour un même lot pesé deux fois. On continue à peser ou on attend un contrôle ?", receivedAt: now, status: "nouveau" },
+      { id: "msg-poste-quai-1", channel: "poste_quai", territoryHint: "Saint-Louis", reportedBy: "Un capitaine (note vocale relayée par l’agent de quai)", body: "Note vocale transcrite par l’agent : « On a un souci avec la glace ce matin, la production tourne au ralenti et deux pirogues attendent déjà pour charger. »", receivedAt: now, status: "nouveau" },
+      { id: "msg-terrain-1", channel: "terrain", territoryHint: "Mbour", reportedBy: "Un opérateur de quai (constat direct)", body: "Constat direct au quai de Mbour : un des deux véhicules de transport habituels ne s’est pas présenté ce matin, les lots en attente de départ s’accumulent.", receivedAt: now, status: "nouveau" }
+    ],
     // distinct du trust de la situation ("verifiee") une fois vérifiée.
     // Condition Lot 3 (référentiel D9, intake omnicanal) : au moins un
     // signal du scénario canonique reçu par téléphone/WhatsApp, visible

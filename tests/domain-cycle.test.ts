@@ -85,3 +85,43 @@ test("un nouveau signal reçoit des identifiants uniques et reste déclaratif", 
   assert.equal(second.situations[0].trust, "declaree");
   assert.equal(second.situations[0].status, "recue");
 });
+
+test("un message entrant simulé se convertit en signal en conservant l'auteur apparent (reportedBy)", () => {
+  const state = createDemoState();
+  const message = state.incomingMessages.find((item) => item.status === "nouveau");
+  assert.ok(message, "le seed doit contenir au moins un message entrant non converti");
+
+  const next = applyCommand(state, {
+    type: "convert_message_to_signal",
+    actorId: "act-coordinateur",
+    messageId: message!.id,
+    territoryId: "joal",
+    category: "infrastructure",
+    title: "Difficulté rapportée par message entrant",
+    description: "Description qualifiée par le coordinateur à partir du message."
+  });
+
+  const convertedMessage = next.incomingMessages.find((item) => item.id === message!.id);
+  assert.equal(convertedMessage?.status, "converti");
+
+  const createdSignal = next.signals[0];
+  assert.equal(createdSignal.reportedBy, message!.reportedBy);
+  assert.equal(createdSignal.actorId, "act-coordinateur");
+  assert.equal(createdSignal.channel, message!.channel);
+  assert.equal(createdSignal.category, "infrastructure");
+  assert.equal(next.situations[0].status, "recue");
+
+  // Un message déjà converti ne peut pas l'être une seconde fois.
+  assert.throws(
+    () => applyCommand(next, {
+      type: "convert_message_to_signal",
+      actorId: "act-coordinateur",
+      messageId: message!.id,
+      territoryId: "joal",
+      category: "infrastructure",
+      title: "Nouvelle tentative",
+      description: "Ne doit pas être acceptée."
+    }),
+    /déjà été converti/
+  );
+});
