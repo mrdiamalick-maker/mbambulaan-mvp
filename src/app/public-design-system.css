@@ -38,6 +38,12 @@
   --pub-sand-500: #8c7869;
   --pub-gold-300: #d6a089;
 
+  /* Surface des blocs/cartes — hiérarchie fond/bloc (arbitrage CEO
+     13/08/2026) : les blocs doivent se détacher du fond crème plutôt que
+     s'y fondre. Même valeur que --card côté Pro (shadcn-theme.css) pour
+     rester cohérent entre les deux systèmes. */
+  --pub-surface: #ffffff;
+
   /* Neutres dérivés du marine et du crème */
   --pub-stone-900: #172331;
   --pub-stone-700: #3f4b58;
@@ -132,7 +138,10 @@
     overflow: hidden;
     border: 1px solid var(--pub-stone-150);
     border-radius: var(--pub-radius-md);
-    background: linear-gradient(175deg, #fbf8f1, var(--pub-ivory-100));
+    /* Fond distinct du fond de page (arbitrage CEO 13/08/2026) : l'ancien
+       dégradé se terminait sur --pub-ivory-100, soit exactement la
+       couleur du fond — la carte ne se voyait qu'à la bordure/l'ombre. */
+    background: var(--pub-surface);
     box-shadow: var(--pub-shadow-card);
     transition: transform .28s var(--pub-ease), border-color .28s var(--pub-ease), box-shadow .28s var(--pub-ease);
   }
@@ -155,7 +164,9 @@
   .pub-card--quiet {
     border: 1px dashed var(--pub-stone-300);
     border-radius: var(--pub-radius-md);
-    background: rgba(247, 243, 233, .72);
+    /* Même correction que .pub-card : rgba(247, 243, 233, .72) est
+       --pub-ivory-100 en semi-transparent, donc se fond dans le fond. */
+    background: rgba(255, 255, 255, .72);
   }
 
   .pub-card--dark {

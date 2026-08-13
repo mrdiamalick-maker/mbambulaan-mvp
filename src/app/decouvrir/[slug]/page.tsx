@@ -52,7 +52,7 @@ export default async function ContentDetailPage({ params }: { params: Promise<{ 
       </section>
 
       <section className="mx-auto max-w-4xl px-5 py-12 md:px-10 md:py-16">
-        <div className="rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)] p-6 md:p-7">
+        <div className="rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-surface)] p-6 md:p-7">
           <p className="pub-eyebrow">À retenir</p>
           <div className="mt-5 grid gap-4 md:grid-cols-3">{takeaways.map((text, index) => <div key={`${index}-${text}`} className="rounded-2xl border border-[var(--pub-stone-150)] bg-white p-4"><span className="text-xs font-black text-[var(--pub-turquoise-500)]">0{index + 1}</span><p className="mt-2 text-sm font-semibold leading-6 text-[var(--pub-deep-900)]">{text}.</p></div>)}</div>
         </div>
