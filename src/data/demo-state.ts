@@ -473,6 +473,7 @@ export function createDemoState(): ProductState {
       dueAt: tomorrow,
       nextStep: "Confirmer les pirogues volontaires et suivre l’instruction du dossier auprès du responsable de quai.",
       coordinationId: "coord-lompoul-balises",
+      initiativeId: "init-lompoul-balises",
       history: [{ id: "hist-sit-lompoul-balises", at: now, actor: "act-relais-lompoul", label: "Signal saisi depuis une note vocale", detail: "Besoin de balises de géolocalisation rapporté par un capitaine, confirmé par trois capitaines et le responsable du quai." }]
     },
     {
@@ -1409,6 +1410,22 @@ export function createDemoState(): ProductState {
           { label: "Pirogues avec immatriculation vérifiée", baseline: 18, target: 75, current: 43, unit: "%" },
           { label: "Dossiers incomplets requalifiés", baseline: 0, target: 120, current: 36, unit: "dossiers" }
         ]
+      },
+      // Lot 3 (R&D, arbitrage CEO 13/08/2026) : budget non chiffré,
+      // aucun financeur engagé — statut "cadrage" affiché comme
+      // « Recherche de financement », budgetFcfa absent plutôt que 0
+      // (arbitrage 3, Initiative.budgetStatus).
+      {
+        id: "init-lompoul-balises",
+        title: "Équipement de géolocalisation pour pirogues · Lompoul-sur-Mer",
+        territoryIds: ["lompoul"],
+        situationIds: ["sit-lompoul-balises"],
+        objective: "Documenter et instruire le financement d’un dispositif de géolocalisation pour les pirogues volontaires, avant tout choix technique ou fournisseur.",
+        status: "cadrage",
+        ownerId: "act-coordinateur",
+        budgetStatus: "a_estimer",
+        funding: [],
+        indicators: []
       },
       ...generatedInitiatives
     ],
