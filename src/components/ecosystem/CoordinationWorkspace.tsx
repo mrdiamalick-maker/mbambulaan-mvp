@@ -302,7 +302,14 @@ export function CoordinationWorkspace() {
                         <span className="text-xs font-semibold text-muted-foreground">{need.intent} · {territory?.name}</span>
                       </div>
                       <p className="mt-1.5 text-sm font-semibold">{species?.name} · {need.quantityKg.toLocaleString("fr-FR")} kg · Classe {need.quality}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Demandé par {actor?.name} · {need.source} · <span className="capitalize">{need.status}</span></p>
+                      {/* need.actorId identifie l'acteur qui a créé la ServiceRequest —
+                          pour une demande convertie depuis le public, c'est le
+                          coordinateur qui convertit, pas le demandeur d'origine
+                          (cf. commentaire PublicRequestRow). Les vraies coordonnées
+                          du demandeur restent portées par contactName/organization/
+                          phone quand ils existent ; sinon (besoin déclaré directement
+                          par un acteur professionnel) actor?.name reste correct. */}
+                      <p className="mt-1 text-xs text-muted-foreground">Demandé par {need.contactName ?? actor?.name}{need.organization ? ` · ${need.organization}` : ""}{need.phone ? ` · ${need.phone}` : ""} · {need.source} · <span className="capitalize">{need.status}</span></p>
                     </div>
                     <Button size="sm" variant="outline" onClick={() => setView("rapprochements")}>Chercher une réponse <ArrowRight /></Button>
                   </div>
