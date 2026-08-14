@@ -29,8 +29,7 @@ import {
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import type { ProductState, TrustLevel } from "@/domain/types";
+import type { ProductState, SituationStatus, TrustLevel } from "@/domain/types";
 
 type Lens = "situation" | "operations" | "capacites" | "marches" | "durabilite";
 
@@ -219,6 +218,25 @@ export function ProfessionalAtlasWorkspace() {
   const catchLines = landings.flatMap((item) => item.catches).filter((item) => speciesId === "all" || item.speciesId === speciesId);
   const speciesCount = new Set(catchLines.map((item) => item.speciesId)).size;
   const activeActors = state.actors.filter((actor) => actor.territoryIds.includes(territory.id) && actor.verified).length;
+  // A14 — seul accent fort du dossier : terracotta si la situation
+  // prioritaire est critique, ambre sinon (vigilance ou aucune urgence).
+  const actionRequired = primarySituation?.priority === "critique";
+  // A15 — étape active dérivée du statut déjà porté par la situation
+  // prioritaire (aucune nouvelle logique métier) : recue → Signal,
+  // qualification → Qualification, les 4 statuts d'instruction →
+  // Décision, resultat/reglee → Résultat. Sans situation prioritaire,
+  // aucune étape n'est mise en avant artificiellement.
+  const stageForStatus: Record<SituationStatus, number> = {
+    recue: 0,
+    qualification: 1,
+    priorisee: 2,
+    coordination: 2,
+    intervention: 2,
+    attente: 2,
+    resultat: 3,
+    reglee: 3
+  };
+  const activeStage = primarySituation ? stageForStatus[primarySituation.status] : undefined;
 
   const workbench = buildWorkbench(state, territory.id, lens, speciesId)
     .filter((item) => `${item.title} ${item.detail}`.toLowerCase().includes(search.toLowerCase()));
@@ -296,96 +314,152 @@ export function ProfessionalAtlasWorkspace() {
             </div>
           </div>
 
-          <aside className="bg-[#082a34] p-5 text-white lg:p-6">
+          <aside className="bg-[#0b1a2a] p-5 text-white lg:p-6">
             <div className="flex items-start justify-between gap-3">
-              <div><p className="text-[10px] font-black uppercase tracking-[.14em] text-[#70e3d5]">Dossier territorial</p><h2 className="mt-2 text-2xl font-black tracking-[-.035em]">Quai de {territory.name}</h2><p className="mt-1 text-xs text-white/45">{site?.source ?? "Référentiel territorial"} · {territory.region}</p></div>
+              <div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-white/45">Dossier territorial</p><h2 className="mt-2 text-2xl font-black tracking-[-.035em]">Quai de {territory.name}</h2><p className="mt-1 text-xs text-white/45">{site?.source ?? "Référentiel territorial"} · {territory.region}</p></div>
               <span className={`mt-1 size-2.5 rounded-full ${activityStyle[territory.activity].dot}`} />
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/10">
+            {/* A12 — grille typographique (valeur, label, séparateurs
+                fins) : plus de mini-widgets à fond plein. */}
+            <div className="mt-6 grid grid-cols-2 divide-x divide-y divide-white/10 border-y border-white/10">
               {[
                 ["Volume", `${(landedKg / 1000).toFixed(2)} t`],
                 ["Pirogues", String(vessels.length)],
                 ["Espèces", String(speciesCount)],
                 ["Capacité", `${capacityRate}%`]
-              ].map(([label, value]) => <div key={label} className="bg-[#0b3540] p-4"><p className="text-[9px] font-black uppercase tracking-[.12em] text-white/35">{label}</p><p className="mt-1.5 text-2xl font-black tracking-[-.04em]">{value}</p></div>)}
+              ].map(([label, value]) => <div key={label} className="p-4"><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-white/40">{label}</p><p className="mt-1.5 text-2xl font-bold tracking-tight">{value}</p></div>)}
             </div>
 
+            {/* A13 — dé-cardifiée : icône → métrique → détail, aucune
+                surface interne forte. */}
             <div className="mt-6">
-              <div className="flex items-center justify-between"><p className="text-[10px] font-black uppercase tracking-[.12em] text-white/38">Activité opérationnelle</p><span className="text-[10px] font-bold text-[#70e3d5]">{period === "today" ? "Aujourd’hui" : period === "7d" ? "7 jours" : "30 jours"}</span></div>
-              <div className="mt-3 space-y-2">
-                <div className="ops-context-row"><Route size={16} /><div><strong>{trips.filter((item) => item.status !== "debarquee").length} sortie(s) active(s)</strong><span>{trips.length} cycle(s) relié(s) au quai</span></div></div>
-                <div className="ops-context-row"><Scale size={16} /><div><strong>{landings.length} débarquement(s)</strong><span>Pesée et lots reliés aux opérations</span></div></div>
-                <div className="ops-context-row"><UsersRound size={16} /><div><strong>{activeActors} acteur(s) habilité(s)</strong><span>Sur le périmètre de démonstration</span></div></div>
+              <div className="flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[.12em] text-white/38">Activité opérationnelle</p><span className="text-[10px] font-semibold text-white/45">{period === "today" ? "Aujourd’hui" : period === "7d" ? "7 jours" : "30 jours"}</span></div>
+              <div className="mt-3 space-y-3.5">
+                <div className="flex items-start gap-3"><Route size={16} className="mt-0.5 shrink-0 text-white/40" /><div><p className="text-sm font-semibold">{trips.filter((item) => item.status !== "debarquee").length} sortie(s) active(s)</p><p className="mt-0.5 text-xs text-white/45">{trips.length} cycle(s) relié(s) au quai</p></div></div>
+                <div className="flex items-start gap-3"><Scale size={16} className="mt-0.5 shrink-0 text-white/40" /><div><p className="text-sm font-semibold">{landings.length} débarquement(s)</p><p className="mt-0.5 text-xs text-white/45">Pesée et lots reliés aux opérations</p></div></div>
+                <div className="flex items-start gap-3"><UsersRound size={16} className="mt-0.5 shrink-0 text-white/40" /><div><p className="text-sm font-semibold">{activeActors} acteur(s) habilité(s)</p><p className="mt-0.5 text-xs text-white/45">Sur le périmètre de démonstration</p></div></div>
               </div>
             </div>
 
+            {/* A14 — seul contraste fort du dossier : terracotta si
+                action requise (situation critique), ambre en vigilance
+                ou en l'absence de situation prioritaire. */}
             <div className="mt-6 border-t border-white/10 pt-5">
-              <div className="flex items-center gap-2 text-[#f3b84f]"><CircleAlert size={16} /><p className="text-[10px] font-black uppercase tracking-[.12em]">Prochain geste</p></div>
+              <div className={`flex items-center gap-2 ${actionRequired ? "text-[#d97350]" : "text-[#c68a2c]"}`}><CircleAlert size={16} /><p className="text-[10px] font-bold uppercase tracking-[.12em]">Prochain geste</p></div>
               <p className="mt-3 text-sm font-bold leading-6">{primarySituation?.nextStep ?? "Maintenir la veille et la qualité des données du quai."}</p>
               <p className="mt-2 text-xs leading-5 text-white/45">{primarySituation ? `${primarySituation.reference} · ${primarySituation.title}` : "Aucune situation prioritaire ouverte"}</p>
-              {primarySituation ? <Link href={`/app/situations/${primarySituation.id}`} className="btn-accent mt-4 w-full">Ouvrir la situation <ArrowRight size={15} /></Link> : <Link href="/app/operations" className="btn-on-dark mt-4 w-full">Voir les opérations <ArrowRight size={15} /></Link>}
+              {primarySituation ? (
+                <Button asChild className={`mt-4 w-full text-white ${actionRequired ? "bg-[#b6522f] hover:bg-[#b6522f]/90" : "bg-[#c68a2c] hover:bg-[#c68a2c]/90"}`}>
+                  <Link href={`/app/situations/${primarySituation.id}`}>Ouvrir la situation <ArrowRight size={15} /></Link>
+                </Button>
+              ) : (
+                <Button variant="outline" asChild className="mt-4 w-full border-white/15 bg-white/[0.04] text-white hover:bg-white/10 hover:text-white">
+                  <Link href="/app/operations">Voir les opérations <ArrowRight size={15} /></Link>
+                </Button>
+              )}
             </div>
           </aside>
         </div>
 
-        <div className="grid gap-px bg-white/10 sm:grid-cols-4">
+        {/* A15 — bande de progression/lecture calmée : marine, texte,
+            valeur, séparateurs fins ; plus de cellules à fond plein ni
+            de turquoise. Accent sur l'étape active seulement quand elle
+            se déduit du statut déjà porté par la situation prioritaire
+            (activeStage), jamais une étape active inventée. */}
+        <div className="grid divide-y divide-white/10 border-t border-white/10 sm:grid-cols-4 sm:divide-x sm:divide-y-0">
           {[
-            [Radio, "Signal", `${situations.length} ouvert(s)`, "Sources et confiance"],
-            [Boxes, "Qualification", primarySituation?.status.replaceAll("_", " ") ?? "Veille", "Responsabilité connue"],
-            [Gauge, "Décision", primarySituation ? "Action attendue" : "Aucune urgence", "Prochain geste explicite"],
-            [CheckCircle2, "Résultat", String(state.situations.filter((item) => item.territoryId === territory.id && item.status === "reglee").length), "Boucles clôturées"]
-          ].map(([Icon, label, value, detail]) => {
+            [Radio, "Signal", `${situations.length} ouvert(s)`, "Sources et confiance", 0],
+            [Boxes, "Qualification", primarySituation?.status.replaceAll("_", " ") ?? "Veille", "Responsabilité connue", 1],
+            [Gauge, "Décision", primarySituation ? "Action attendue" : "Aucune urgence", "Prochain geste explicite", 2],
+            [CheckCircle2, "Résultat", String(state.situations.filter((item) => item.territoryId === territory.id && item.status === "reglee").length), "Boucles clôturées", 3]
+          ].map(([Icon, label, value, detail, stage]) => {
             const StepIcon = Icon as typeof Radio;
-            return <div key={String(label)} className="bg-[#061f29] p-4 text-white"><div className="flex items-center gap-2 text-[#70e3d5]"><StepIcon size={15} /><p className="text-[9px] font-black uppercase tracking-[.13em]">{String(label)}</p></div><p className="mt-2 text-sm font-black capitalize">{String(value)}</p><p className="mt-1 text-[10px] text-white/38">{String(detail)}</p></div>;
+            const isActive = activeStage === stage;
+            return (
+              <div key={String(label)} className="p-4 text-white">
+                <div className={`flex items-center gap-2 ${isActive ? "text-[#c68a2c]" : "text-white/40"}`}><StepIcon size={15} /><p className="text-[9px] font-semibold uppercase tracking-[.13em]">{String(label)}</p></div>
+                <p className={`mt-2 text-sm font-bold capitalize ${isActive ? "text-white" : "text-white/75"}`}>{String(value)}</p>
+                <p className="mt-1 text-[10px] text-white/35">{String(detail)}</p>
+              </div>
+            );
           })}
         </div>
       </section>
 
-      <Card className="overflow-hidden">
-        <div className="border-b p-4 lg:p-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div><div className="flex items-center gap-2 text-[#1d4468]"><LensIcon size={17} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Poste de travail · {selectedLens.label}</p></div><h2 className="mt-2 text-xl font-semibold tracking-tight">Objets reliés au quai de {territory.name}</h2></div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Changer de lecture professionnelle">
-              {lenses.map(({ id, label, icon: Icon }) => <Button key={id} size="sm" variant={lens === id ? "default" : "outline"} onClick={() => setLens(id)}><Icon size={15} /> {label}</Button>)}
-            </div>
+      {/* A16 — plus de Card englobante : section à même bg-background,
+          même principe que les chapitres déjà migrés (Coordination). */}
+      <section className="space-y-5 border-t pt-7">
+        {/* A17 — les 5 lenses en navigation de lecture discrète, même
+            grammaire que les tabs déjà migrées de CoordinationWorkspace
+            (texte + indicateur actif, défilement horizontal mobile).
+            Grille avec colonne minmax(0,1fr) — pas flex — pour la même
+            raison qu'en coordination : un item flex avec overflow-x-auto
+            refuse de rétrécir sous la largeur de son contenu même avec
+            min-w-0, la largeur remonte via l'ancêtre partagé <main>. */}
+        <div className="grid w-full min-w-0 gap-4 xl:grid-cols-[auto_minmax(0,1fr)] xl:items-end">
+          <div>
+            <div className="flex items-center gap-2 text-[#1d4468]"><LensIcon size={17} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Poste de travail · {selectedLens.label}</p></div>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight">Objets reliés au quai de {territory.name}</h2>
           </div>
-          <label className="relative mt-4 block max-w-md">
-            <Search size={15} className="pointer-events-none absolute left-3 top-3 text-muted-foreground" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Filtrer les objets de cette lecture…" className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm font-semibold outline-none focus:border-primary" />
-          </label>
+          <nav className="-mx-1 flex min-w-0 gap-1 overflow-x-auto px-1 pb-1" aria-label="Changer de lecture professionnelle">
+            {lenses.map(({ id, label, icon: Icon }) => {
+              const active = lens === id;
+              return (
+                <button key={id} onClick={() => setLens(id)} className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-semibold transition ${active ? "border-[#0b1a2a] text-[#0b1a2a]" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+                  <Icon size={15} className={active ? "" : "opacity-70"} /> {label}
+                </button>
+              );
+            })}
+          </nav>
         </div>
 
-        {workbench.length > 0 ? <div className="divide-y">{workbench.map((item) => (
-          <article key={item.id} className="group grid gap-4 p-4 transition hover:bg-muted/40 md:grid-cols-[minmax(0,1.1fr)_minmax(140px,.45fr)_minmax(0,1fr)_auto] md:items-center md:px-5">
-            <div className="min-w-0"><div className="flex items-center gap-2"><span className={`size-1.5 shrink-0 rounded-full ${item.urgency === "critique" ? "bg-[#b6522f]" : item.urgency === "attention" ? "bg-[#c68a2c]" : "bg-[#1d8a5f]"}`} /><p className="truncate text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{item.category}</p></div><h3 className="mt-1.5 truncate font-semibold">{item.title}</h3><div className="mt-2"><TrustBadge trust={item.trust} /></div></div>
-            <div><p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Lecture</p><p className="mt-1.5 text-sm font-bold capitalize text-[#1d4468]">{item.metric}</p></div>
-            <div className="min-w-0"><p className="text-sm leading-5 text-muted-foreground">{item.detail}</p><p className="mt-1 truncate text-[10px] text-muted-foreground">Source : {item.source}</p></div>
+        <label className="relative block max-w-md">
+          <Search size={15} className="pointer-events-none absolute left-3 top-3 text-muted-foreground" />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Filtrer les objets de cette lecture…" className="h-10 w-full rounded-md border bg-card pl-9 pr-3 text-sm font-semibold outline-none focus:border-primary" />
+        </label>
+
+        {/* A18 — ajustements mineurs seulement : "stable" repasse en
+            marine (plus de vert), survol plus discret, typographie
+            alignée sur /app/travail et /app/coordination
+            (text-xs font-semibold plutôt que les micro-capitales
+            text-[10px] tracking-widest). Structure inchangée. */}
+        {workbench.length > 0 ? <div className="divide-y rounded-xl border">{workbench.map((item) => (
+          <article key={item.id} className="group grid gap-4 p-4 transition hover:bg-muted/25 md:grid-cols-[minmax(0,1.1fr)_minmax(140px,.45fr)_minmax(0,1fr)_auto] md:items-center md:px-5">
+            <div className="min-w-0"><div className="flex items-center gap-2"><span className={`size-1.5 shrink-0 rounded-full ${item.urgency === "critique" ? "bg-[#b6522f]" : item.urgency === "attention" ? "bg-[#c68a2c]" : "bg-[#1d4468]"}`} /><p className="truncate text-xs font-semibold text-muted-foreground">{item.category}</p></div><h3 className="mt-1.5 truncate font-semibold">{item.title}</h3><div className="mt-2"><TrustBadge trust={item.trust} /></div></div>
+            <div><p className="text-xs font-semibold text-muted-foreground">Lecture</p><p className="mt-1 text-sm font-semibold capitalize text-[#1d4468]">{item.metric}</p></div>
+            <div className="min-w-0"><p className="text-sm leading-5 text-muted-foreground">{item.detail}</p><p className="mt-1 truncate text-xs text-muted-foreground">Source : {item.source}</p></div>
             {item.href ? <Button size="sm" variant="outline" className="whitespace-nowrap" asChild><Link href={item.href}>Ouvrir <ArrowRight size={14} /></Link></Button> : null}
           </article>
-        ))}</div> : <div className="grid min-h-48 place-items-center p-8 text-center"><div><Layers3 className="mx-auto text-muted-foreground" /><h3 className="mt-3 font-semibold">Aucun objet pour cette combinaison</h3><p className="mt-2 text-sm text-muted-foreground">Modifiez le quai, l’espèce ou la lecture. La lacune reste visible.</p></div></div>}
-      </Card>
+        ))}</div> : <div className="grid min-h-48 place-items-center rounded-xl border border-dashed p-8 text-center"><div><Layers3 className="mx-auto text-muted-foreground" /><h3 className="mt-3 font-semibold">Aucun objet pour cette combinaison</h3><p className="mt-2 text-sm text-muted-foreground">Modifiez le quai, l’espèce ou la lecture. La lacune reste visible.</p></div></div>}
+      </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Capacités et continuité</p><h2 className="mt-1 text-lg font-semibold">Disponibilité opérationnelle du quai</h2></div><Building2 size={21} className="text-[#1d4468]" /></div>
+      {/* A19/A20 — section plate, plus de Card englobante des deux
+          côtés. Séparateur discret (bordure) plutôt que deux blocs
+          concurrents. */}
+      <section className="grid gap-8 border-t pt-7 xl:grid-cols-[1.2fr_.8fr] xl:divide-x xl:divide-border xl:gap-0">
+        <div className="xl:pr-8">
+          <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Capacités et continuité</p><h2 className="mt-1 text-lg font-semibold">Disponibilité opérationnelle du quai</h2></div><Building2 size={21} className="text-[#1d4468]" /></div>
+            {/* A19 — les barres de taux restent (donnée quantitative
+                légitime), même palette que le reste : critique
+                terracotta, vigilance ambre, disponible marine/neutre
+                (plus de vert). */}
             <div className="mt-5 space-y-4">{infrastructures.length ? infrastructures.map((item) => {
               const rate = item.theoreticalCapacity ? Math.round(item.availableCapacity / item.theoreticalCapacity * 100) : 0;
-              return <div key={item.id}><div className="flex items-center justify-between gap-3 text-sm"><div><p className="font-semibold">{item.name}</p><p className="mt-0.5 text-xs capitalize text-muted-foreground">{item.type.replaceAll("_", " ")} · {item.status}</p></div><strong>{rate}%</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full ${rate < 25 ? "bg-[#b6522f]" : rate < 60 ? "bg-[#c68a2c]" : "bg-[#1d8a5f]"}`} style={{ width: `${rate}%` }} /></div></div>;
+              return <div key={item.id}><div className="flex items-center justify-between gap-3 text-sm"><div><p className="font-semibold">{item.name}</p><p className="mt-0.5 text-xs capitalize text-muted-foreground">{item.type.replaceAll("_", " ")} · {item.status}</p></div><strong>{rate}%</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className={`h-full rounded-full ${rate < 25 ? "bg-[#b6522f]" : rate < 60 ? "bg-[#c68a2c]" : "bg-[#1d4468]"}`} style={{ width: `${rate}%` }} /></div></div>;
             }) : <p className="text-sm text-muted-foreground">Aucune capacité documentée pour ce quai.</p>}</div>
-            <Button variant="link" className="mt-5 px-0" asChild><Link href="/app/coordination">Mobiliser une capacité <ArrowRight size={14} /></Link></Button>
-          </CardContent>
-        </Card>
+          <Button variant="link" className="mt-5 px-0" asChild><Link href="/app/coordination">Mobiliser une capacité <ArrowRight size={14} /></Link></Button>
+        </div>
 
-        <Card className={assistantEnabled ? "border-[#1d8a5f]/35 bg-[#1d8a5f]/6" : ""}>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-2 text-[#1d4468]"><Sparkles size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Assistance optionnelle</p></div>
-            <h2 className="mt-3 text-lg font-semibold">{assistantEnabled ? "Synthèse prête à vérifier" : "Contrôle humain par défaut"}</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{assistantEnabled ? `La continuité du quai de ${territory.name} dépend d’abord de ${infrastructures.find((item) => item.status !== "operationnelle")?.name ?? "la disponibilité déclarée des capacités"}. La suggestion reste explicable et doit être validée.` : "L’organisation peut activer l’assistance pour résumer les signaux et préparer une note. Aucune donnée n’est transmise à un service d’IA dans cette démonstration."}</p>
-            <Button variant={assistantEnabled ? "outline" : "default"} className="mt-5 w-full" onClick={() => setAssistantEnabled((value) => !value)}>{assistantEnabled ? "Désactiver l’assistance" : "Activer pour cette session"}</Button>
-          </CardContent>
-        </Card>
+        {/* A20 — fonction secondaire allégée : texte + bouton, surface
+            légère qui ne change plus de couleur à l'activation. Texte
+            honnête conservé mot pour mot. */}
+        <div className="xl:pl-8">
+          <div className="flex items-center gap-2 text-muted-foreground"><Sparkles size={16} /><p className="text-xs font-bold uppercase tracking-widest">Assistance optionnelle</p></div>
+          <h2 className="mt-3 text-lg font-semibold">{assistantEnabled ? "Synthèse prête à vérifier" : "Contrôle humain par défaut"}</h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">{assistantEnabled ? `La continuité du quai de ${territory.name} dépend d’abord de ${infrastructures.find((item) => item.status !== "operationnelle")?.name ?? "la disponibilité déclarée des capacités"}. La suggestion reste explicable et doit être validée.` : "L’organisation peut activer l’assistance pour résumer les signaux et préparer une note. Aucune donnée n’est transmise à un service d’IA dans cette démonstration."}</p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => setAssistantEnabled((value) => !value)}>{assistantEnabled ? "Désactiver l’assistance" : "Activer pour cette session"}</Button>
+        </div>
       </section>
     </div>
   );
