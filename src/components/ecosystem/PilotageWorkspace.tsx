@@ -1,12 +1,5 @@
 "use client";
 
-// Restylé en D9 (Lot 7, étape 2/4 — ajouté au périmètre à la demande du
-// CEO, trouvé hors de la liste initiale pendant l'investigation). Metric/
-// TrustBadge (anciens) remplacés par des Card et le TrustBadge partagé.
-// mission-strip/btn-accent/btn-on-dark (classes utilitaires sarcelle)
-// remplacées par le dégradé marine déjà utilisé pour les héros D9.
-// Palette des graphiques (5 teintes sarcelle) remplacée par la palette
-// verrouillée D9.
 import Link from "next/link";
 import { useState } from "react";
 import {
@@ -24,10 +17,7 @@ import {
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { ExportActions } from "@/components/reporting/ExportActions";
-
-const palette = ["#1d4468", "#1d8a5f", "#c68a2c", "#b6522f", "#7a93a8"];
 
 export function PilotageWorkspace() {
   const { state } = useProduct();
@@ -84,8 +74,8 @@ export function PilotageWorkspace() {
   ];
 
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden border-none bg-sidebar text-sidebar-foreground shadow-lg">
+    <div className="space-y-8">
+      <section className="overflow-hidden rounded-2xl bg-sidebar text-sidebar-foreground">
         <div className="grid lg:grid-cols-[1.25fr_.75fr]">
           <div className="p-6 lg:p-7">
             <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary"><Radio size={15} /> Brief exécutif</div>
@@ -101,106 +91,100 @@ export function PilotageWorkspace() {
             <div className="mt-5 space-y-5">{[["Périmètre", territoryId === "all" ? "Vue nationale" : state.territories.find((item) => item.id === territoryId)?.name ?? "Territoire"], ["Période", period === "today" ? "Aujourd’hui" : period === "7d" ? "7 derniers jours" : "30 derniers jours"], ["Confiance", `${Math.round((situations.filter((item) => ["verifiee", "consolidee"].includes(item.trust)).length / Math.max(situations.length, 1)) * 100)}% qualifié`]].map(([label, value]) => <div key={label} className="border-b border-white/10 pb-4 last:border-0"><p className="text-[9px] font-bold uppercase tracking-widest text-sidebar-foreground/35">{label}</p><p className="mt-1.5 text-sm font-bold">{value}</p></div>)}</div>
           </aside>
         </div>
-      </Card>
-
-      <Card>
-        <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-end md:justify-between">
-          <div><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Périmètre d’analyse</p><p className="mt-1 text-sm text-muted-foreground">Les indicateurs, graphiques et décisions utilisent les mêmes filtres.</p></div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="text-xs font-semibold">Territoire<select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 block min-w-52 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"><option value="all">Vue nationale</option>{state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className="text-xs font-semibold">Période<select value={period} onChange={(event) => setPeriod(event.target.value)} className="mt-1.5 block min-w-44 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"><option value="today">Aujourd’hui</option><option value="7d">7 derniers jours</option><option value="30d">30 derniers jours</option></select></label>
-          </div>
-        </CardContent>
-      </Card>
-
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Card><CardContent className="p-4"><Fish size={18} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{(totalLanded / 1000).toFixed(2)} t</p><p className="text-xs text-muted-foreground">Volume débarqué</p><p className="mt-1 text-[11px] text-muted-foreground">Pesées disponibles sur le périmètre</p></CardContent></Card>
-        <Card><CardContent className="p-4"><ShipWheel size={18} className="text-[#1d8a5f]" /><p className="mt-3 text-2xl font-bold">{vessels.length}</p><p className="text-xs text-muted-foreground">Pirogues suivies</p><p className="mt-1 text-[11px] text-muted-foreground">Unités rattachées aux quais visibles</p></CardContent></Card>
-        <Card><CardContent className="p-4"><BarChart3 size={18} className="text-[#c68a2c]" /><p className="mt-3 text-2xl font-bold">{(estimatedValue / 1_000_000).toFixed(1)} M</p><p className="text-xs text-muted-foreground">Valeur potentielle</p><p className="mt-1 text-[11px] text-muted-foreground">FCFA estimés, non transactionnels</p></CardContent></Card>
-        <Card><CardContent className="p-4"><Factory size={18} className="text-[#b6522f]" /><p className="mt-3 text-2xl font-bold">{infrastructures.filter((item) => item.status !== "operationnelle").length}</p><p className="text-xs text-muted-foreground">Capacités fragiles</p><p className="mt-1 text-[11px] text-muted-foreground">Froid, pesée ou transport à surveiller</p></CardContent></Card>
-        <Card><CardContent className="p-4"><CheckCircle2 size={18} className="text-[#1d8a5f]" /><p className="mt-3 text-2xl font-bold">{(valorized / 1000).toFixed(2)} t</p><p className="text-xs text-muted-foreground">Volume valorisé</p><p className="mt-1 text-[11px] text-muted-foreground">Lots avec résultat logistique</p></CardContent></Card>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.25fr_.75fr]">
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pêche du jour</p><h2 className="mt-1 text-xl font-semibold">Volumes par espèce</h2></div><TrustBadge trust="verifiee" /></div>
-            <div className="mt-7 space-y-5">
-              {speciesTotals.length > 0 ? speciesTotals.map((item, index) => (
-                <div key={item.id} className="grid grid-cols-[96px_1fr_72px] items-center gap-3 text-sm">
-                  <span className="truncate font-semibold">{item.name}</span>
-                  <div className="h-3 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${Math.max(8, item.value / maxSpecies * 100)}%`, background: palette[index % palette.length] }} /></div>
-                  <span className="text-right font-bold">{item.value} kg</span>
-                </div>
-              )) : <p className="text-sm text-muted-foreground">Aucune pesée disponible sur ce périmètre.</p>}
-            </div>
-            <p className="mt-6 border-t pt-4 text-xs leading-5 text-muted-foreground">Lecture issue des débarquements et pesées disponibles. Les absences de données ne valent pas absence d’activité.</p>
-          </CardContent>
-        </Card>
+      <section className="flex flex-col gap-4 border-y py-4 md:flex-row md:items-end md:justify-between">
+        <div><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Périmètre d’analyse</p><p className="mt-1 text-sm text-muted-foreground">Les indicateurs, graphiques et décisions utilisent les mêmes filtres.</p></div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="text-xs font-semibold">Territoire<select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 block min-w-52 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"><option value="all">Vue nationale</option>{state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+          <label className="text-xs font-semibold">Période<select value={period} onChange={(event) => setPeriod(event.target.value)} className="mt-1.5 block min-w-44 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"><option value="today">Aujourd’hui</option><option value="7d">7 derniers jours</option><option value="30d">30 derniers jours</option></select></label>
+        </div>
+      </section>
 
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Résolution des situations</p>
-            <div className="mt-5 flex items-center gap-6">
-              <div className="grid size-36 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#1d8a5f 0 ${progress}%, var(--muted) ${progress}% 100%)` }}>
-                <div className="grid size-24 place-items-center rounded-full bg-card text-center"><div><p className="text-3xl font-bold">{progress}%</p><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">réglées</p></div></div>
+      <section className="grid border-y sm:grid-cols-2 xl:grid-cols-5">
+        {[
+          [Fish, "Volume débarqué", `${(totalLanded / 1000).toFixed(2)} t`, "Pesées disponibles sur le périmètre", "text-[#1d4468]"],
+          [ShipWheel, "Pirogues suivies", String(vessels.length), "Unités rattachées aux quais visibles", "text-[#1d4468]"],
+          [BarChart3, "Valeur potentielle", `${(estimatedValue / 1_000_000).toFixed(1)} M`, "FCFA estimés, non transactionnels", "text-[#1d4468]"],
+          [Factory, "Capacités fragiles", String(infrastructures.filter((item) => item.status !== "operationnelle").length), "Froid, pesée ou transport à surveiller", "text-[#b6522f]"],
+          [CheckCircle2, "Volume valorisé", `${(valorized / 1000).toFixed(2)} t`, "Lots avec résultat logistique", "text-[#1d4468]"]
+        ].map(([Icon, label, value, detail, tone], index) => {
+          const ItemIcon = Icon as typeof Fish;
+          return <div key={String(label)} className={`py-4 ${index > 0 ? "sm:border-l sm:pl-4" : ""}`}><ItemIcon size={18} className={String(tone)} /><p className="mt-3 text-2xl font-bold">{String(value)}</p><p className="text-xs text-muted-foreground">{String(label)}</p><p className="mt-1 text-[11px] text-muted-foreground">{String(detail)}</p></div>;
+        })}
+      </section>
+
+      <section className="grid gap-8 xl:grid-cols-[1.25fr_.75fr]">
+        <section>
+          <div className="flex items-start justify-between gap-4 border-b pb-3"><div><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pêche du jour</p><h2 className="mt-1 text-xl font-semibold">Volumes par espèce</h2></div><TrustBadge trust="verifiee" /></div>
+          <div className="mt-7 space-y-5">
+            {speciesTotals.length > 0 ? speciesTotals.map((item) => (
+              <div key={item.id} className="grid grid-cols-[96px_1fr_72px] items-center gap-3 text-sm">
+                <span className="truncate font-semibold">{item.name}</span>
+                <div className="h-3 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-[#1d4468]" style={{ width: `${Math.max(8, item.value / maxSpecies * 100)}%` }} /></div>
+                <span className="text-right font-bold">{item.value} kg</span>
               </div>
-              <div className="space-y-3 text-sm"><p><strong>{resolved}</strong> situation(s) réglée(s)</p><p><strong>{situations.length - resolved}</strong> encore ouverte(s)</p><p><strong className="text-[#b6522f]">{critical.length}</strong> critique(s)</p></div>
+            )) : <p className="text-sm text-muted-foreground">Aucune pesée disponible sur ce périmètre.</p>}
+          </div>
+          <p className="mt-6 border-t pt-4 text-xs leading-5 text-muted-foreground">Lecture issue des débarquements et pesées disponibles. Les absences de données ne valent pas absence d’activité.</p>
+        </section>
+
+        <section className="border-l-0 xl:border-l xl:pl-8">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Résolution des situations</p>
+          <div className="mt-5 flex flex-col gap-6 sm:flex-row sm:items-center">
+            <div className="grid size-36 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#1d8a5f 0 ${progress}%, var(--muted) ${progress}% 100%)` }}>
+              <div className="grid size-24 place-items-center rounded-full bg-background text-center"><div><p className="text-3xl font-bold">{progress}%</p><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">réglées</p></div></div>
             </div>
-            <div className="mt-6 rounded-md bg-muted p-4"><p className="text-xs font-bold uppercase tracking-widest text-[#1d8a5f]">Lecture métier</p><p className="mt-2 text-sm leading-6 text-muted-foreground">Le taux mesure la boucle complète jusqu’au résultat, pas seulement un changement de statut.</p></div>
-          </CardContent>
-        </Card>
+            <div className="space-y-3 text-sm"><p><strong>{resolved}</strong> situation(s) réglée(s)</p><p><strong>{situations.length - resolved}</strong> encore ouverte(s)</p><p><strong className="text-[#b6522f]">{critical.length}</strong> critique(s)</p></div>
+          </div>
+          <div className="mt-6 border-l-2 border-[#1d8a5f]/40 pl-4"><p className="text-xs font-bold uppercase tracking-widest text-[#1d8a5f]">Lecture métier</p><p className="mt-2 text-sm leading-6 text-muted-foreground">Le taux mesure la boucle complète jusqu’au résultat, pas seulement un changement de statut.</p></div>
+        </section>
       </section>
 
       {territoryId === "all" && (
-        <Card>
-          <CardContent className="p-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Lecture territoriale</p><h2 className="mt-1 text-xl font-semibold">Volumes enregistrés par quai</h2>
-            <div className="mt-7 grid min-h-56 grid-cols-6 items-end gap-3">
-              {territoryVolumes.map((item, index) => (
-                <div key={item.id} className="flex h-full flex-col justify-end text-center">
-                  <p className="mb-2 text-xs font-bold">{item.value ? `${(item.value / 1000).toFixed(1)} t` : "—"}</p>
-                  <div className="mx-auto w-full max-w-20 rounded-t-md" style={{ height: `${Math.max(6, item.value / maxTerritory * 150)}px`, background: item.value ? palette[index % palette.length] : "var(--muted)" }} />
-                  <p className="mt-3 truncate text-xs font-semibold text-muted-foreground">{item.name}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <section className="border-t pt-7">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Lecture territoriale</p><h2 className="mt-1 text-xl font-semibold">Volumes enregistrés par quai</h2>
+          <div className="mt-7 grid min-h-56 grid-cols-6 items-end gap-3">
+            {territoryVolumes.map((item) => (
+              <div key={item.id} className="flex h-full flex-col justify-end text-center">
+                <p className="mb-2 text-xs font-bold">{item.value ? `${(item.value / 1000).toFixed(1)} t` : "—"}</p>
+                <div className="mx-auto w-full max-w-20 rounded-t-md" style={{ height: `${Math.max(6, item.value / maxTerritory * 150)}px`, background: item.value ? "#1d4468" : "var(--muted)" }} />
+                <p className="mt-3 truncate text-xs font-semibold text-muted-foreground">{item.name}</p>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
-      <section className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
-        <Card className="overflow-hidden">
-          <div className="border-b bg-muted/40 p-5"><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Décisions attendues</p><h2 className="mt-1 text-lg font-semibold">Responsabilités et prochain geste</h2></div>
+      <section className="grid gap-8 border-t pt-8 xl:grid-cols-[1.2fr_.8fr]">
+        <section>
+          <div className="border-b border-[#b6522f]/30 pb-3"><p className="text-xs font-bold uppercase tracking-widest text-[#b6522f]">Décisions attendues</p><h2 className="mt-1 text-lg font-semibold">Responsabilités et prochain geste</h2></div>
           <div className="divide-y">
             {critical.length > 0 ? critical.map((item) => {
               const territory = state.territories.find((territoryItem) => territoryItem.id === item.territoryId);
               return (
-                <article key={item.id} className="grid gap-4 p-4 md:grid-cols-[1fr_auto] md:items-center">
+                <article key={item.id} className="grid gap-4 border-l-2 border-[#b6522f]/50 py-4 pl-4 md:grid-cols-[1fr_auto] md:items-center">
                   <div><div className="flex flex-wrap items-center gap-2"><AlertTriangle size={17} className="text-[#b6522f]" /><h3 className="font-semibold">{item.title}</h3><TrustBadge trust={item.trust} /></div><p className="mt-2 text-xs text-muted-foreground">{territory?.name} · {item.nextStep}</p></div>
                   <span className="text-xs font-bold text-[#b6522f]">Action aujourd’hui</span>
                 </article>
               );
-            }) : <p className="p-5 text-sm text-muted-foreground">Aucune situation critique sur ce périmètre.</p>}
+            }) : <p className="py-5 text-sm text-muted-foreground">Aucune situation critique sur ce périmètre.</p>}
           </div>
-        </Card>
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-2 text-[#1d4468]"><Handshake size={19} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Rapport de valeur</p></div>
-            <h2 className="mt-3 text-lg font-semibold">{report.title}</h2>
-            <p className="mt-2 text-sm text-muted-foreground">{report.period} · données simulées et traçables</p>
-            <div className="mt-5 space-y-4">{report.metrics.map((metric) => <div key={metric.label} className="border-l-2 border-l-[#1d8a5f] pl-3"><p className="text-xs text-muted-foreground">{metric.label}</p><p className="mt-1 text-xl font-bold">{metric.value}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{metric.source} · limite : {metric.limit}</p></div>)}</div>
-            <div className="mt-6"><ExportActions filename={`mbambulaan-pilotage-${territoryId}-${period}`} rows={exportRows} compact /></div>
-          </CardContent>
-        </Card>
+        </section>
+
+        <section>
+          <div className="flex items-center gap-2 text-[#1d4468]"><Handshake size={19} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Rapport de valeur</p></div>
+          <h2 className="mt-3 text-lg font-semibold">{report.title}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{report.period} · données simulées et traçables</p>
+          <div className="mt-5 divide-y border-y">{report.metrics.map((metric) => <div key={metric.label} className="py-4"><p className="text-xs text-muted-foreground">{metric.label}</p><p className="mt-1 text-xl font-bold">{metric.value}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{metric.source} · limite : {metric.limit}</p></div>)}</div>
+          <div className="mt-6"><ExportActions filename={`mbambulaan-pilotage-${territoryId}-${period}`} rows={exportRows} compact /></div>
+        </section>
       </section>
 
-      <Card className="border-l-4 border-l-[#1d4468] bg-muted/40">
-        <CardContent className="flex gap-3 p-5">
-          <Sparkles className="mt-0.5 shrink-0 text-[#1d4468]" size={20} />
-          <div><p className="font-semibold">Assistance à la synthèse · optionnelle</p><p className="mt-2 text-sm leading-6 text-muted-foreground">Mbàmbulaan peut préparer une lecture des tendances, des incohérences et des décisions possibles. L’organisation choisit de l’activer ; aucune recommandation ne remplace la validation humaine.</p></div>
-        </CardContent>
-      </Card>
+      <section className="flex gap-3 border-t pt-6">
+        <Sparkles className="mt-0.5 shrink-0 text-[#1d4468]" size={20} />
+        <div><p className="font-semibold">Assistance à la synthèse · optionnelle</p><p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">Mbàmbulaan peut préparer une lecture des tendances, des incohérences et des décisions possibles. L’organisation choisit de l’activer ; aucune recommandation ne remplace la validation humaine.</p></div>
+      </section>
     </div>
   );
 }
