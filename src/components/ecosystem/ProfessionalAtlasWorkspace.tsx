@@ -24,8 +24,7 @@ import {
   ShipWheel,
   Sparkles,
   Store,
-  UsersRound,
-  Waves
+  UsersRound
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TrustBadge } from "@/components/shared/StatusBadges";
@@ -77,10 +76,18 @@ const positions: Record<string, [number, number]> = {
   "cap-skirring": [36, 95]
 };
 
+// Le dossier territorial reste sur son traitement actuel jusqu'au Livrable 2.
 const activityStyle = {
   critique: { dot: "bg-[#ff755e]", ring: "ring-[#ff755e]/30", label: "Action requise" },
   vigilance: { dot: "bg-[#f3b84f]", ring: "ring-[#f3b84f]/30", label: "Sous vigilance" },
   stable: { dot: "bg-[#57dbc8]", ring: "ring-[#57dbc8]/30", label: "Stable" }
+} as const;
+
+// Palette D9 dédiée à la carte : aucune incidence sur le moteur spatial.
+const mapActivityStyle = {
+  critique: { dot: "bg-[#b6522f]", ring: "ring-[#b6522f]/28" },
+  vigilance: { dot: "bg-[#c68a2c]", ring: "ring-[#c68a2c]/26" },
+  stable: { dot: "bg-[#1d4468]", ring: "ring-[#1d4468]/24" }
 } as const;
 
 type WorkbenchItem = {
@@ -186,20 +193,6 @@ function buildWorkbench(state: ProductState, territoryId: string, lens: Lens, sp
     });
 }
 
-// Restylé en D9 (Lot 7, étape 2/4) — partiellement, par choix assumé :
-// le poste de commande sombre (ops-command-deck, la carte des quais et
-// le panneau « Dossier territorial ») reste tel quel. C'est une console
-// illustrative cohérente en elle-même (navy #041d27/#082a34/#061f29,
-// déjà proche de la famille marine D9 #0b1a2a) et son code de
-// positionnement est le même qui portait le bug des 18 territoires
-// corrigé avant le Lot 5 — le retoucher pour la seule cohérence
-// chromatique ferait courir un risque de régression disproportionné
-// pour ce lot. Même logique que TerritoryMap.tsx (Atlas public),
-// jamais remis en cause dans cet engagement. En dessous du poste de
-// commande — poste de travail (liste d'objets), capacités et
-// assistance — utilisait la palette sarcelle claire (.surface/.label,
-// #08758a) sans lien avec la console : migré en D9 (Card, Badge,
-// TrustBadge partagé) comme les autres pages de ce lot.
 export function ProfessionalAtlasWorkspace() {
   const { state } = useProduct();
   const [selectedId, setSelectedId] = useState("joal");
@@ -234,16 +227,22 @@ export function ProfessionalAtlasWorkspace() {
 
   return (
     <div className="space-y-6">
-      <section className="ops-command-deck overflow-hidden">
+      <section className="overflow-hidden rounded-2xl bg-[#0b1a2a] text-white">
         <div className="border-b border-white/10 px-4 py-4 lg:px-5">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-[#58d6c7]/25 bg-[#58d6c7]/10 text-[#70e3d5]"><Waves size={19} /></span>
-              <div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-[.16em] text-[#70e3d5]">Atlas professionnel · poste d’observation</p><p className="mt-1 truncate text-sm font-bold text-white/84">Littoral sénégalais · lecture opérationnelle multi-source</p></div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[.16em] text-white/58">Atlas professionnel</p>
+              <p className="mt-1 truncate text-sm font-semibold text-white/84">Lecture opérationnelle du littoral sénégalais</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="ops-live-chip"><span className="size-1.5 rounded-full bg-[#58d6c7] shadow-[0_0_0_4px_rgba(88,214,199,.12)]" /> Jeu de démonstration actif</span>
-              <button onClick={() => setAssistantEnabled((value) => !value)} className={`ops-live-chip transition ${assistantEnabled ? "border-[#70e3d5]/45 bg-[#70e3d5]/12 text-white" : ""}`} aria-pressed={assistantEnabled}>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-white/58">
+                <span className="size-1.5 rounded-full bg-white/45" /> Mode démonstration
+              </span>
+              <button
+                onClick={() => setAssistantEnabled((value) => !value)}
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide transition ${assistantEnabled ? "border-[#b6522f]/50 bg-[#b6522f]/14 text-white" : "border-white/10 bg-white/[0.04] text-white/58 hover:text-white"}`}
+                aria-pressed={assistantEnabled}
+              >
                 <Sparkles size={13} /> Assistance {assistantEnabled ? "activée" : "désactivée"}
               </button>
             </div>
@@ -251,24 +250,24 @@ export function ProfessionalAtlasWorkspace() {
         </div>
 
         <div className="grid gap-px bg-white/10 xl:grid-cols-[minmax(0,1fr)_minmax(330px,.36fr)]">
-          <div className="relative min-h-[650px] overflow-hidden bg-[#041d27]">
-            <div className="absolute inset-x-0 top-0 z-30 border-b border-white/10 bg-[#041d27]/88 p-3 backdrop-blur-xl">
+          <div className="relative min-h-[650px] overflow-hidden bg-[#0b1a2a]">
+            <div className="absolute inset-x-0 top-0 z-30 border-b border-white/10 bg-[#0b1a2a]/90 p-3 backdrop-blur-xl">
               <div className="grid gap-2 md:grid-cols-[minmax(210px,1.25fr)_minmax(150px,.7fr)_minmax(180px,.8fr)]">
-                <label className="ops-filter">
+                <label className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 text-white/58">
                   <MapPin size={15} /><span className="sr-only">Territoire</span>
-                  <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} aria-label="Sélectionner un quai">
+                  <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} aria-label="Sélectionner un quai" className="h-10 min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none">
                     {state.territories.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.region}</option>)}
                   </select><ChevronDown size={14} />
                 </label>
-                <label className="ops-filter">
+                <label className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 text-white/58">
                   <CalendarDays size={15} /><span className="sr-only">Période</span>
-                  <select value={period} onChange={(event) => setPeriod(event.target.value)} aria-label="Sélectionner une période">
+                  <select value={period} onChange={(event) => setPeriod(event.target.value)} aria-label="Sélectionner une période" className="h-10 min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none">
                     <option value="today">Aujourd’hui</option><option value="7d">7 jours</option><option value="30d">30 jours</option>
                   </select><ChevronDown size={14} />
                 </label>
-                <label className="ops-filter">
+                <label className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 text-white/58">
                   <Fish size={15} /><span className="sr-only">Espèce</span>
-                  <select value={speciesId} onChange={(event) => setSpeciesId(event.target.value)} aria-label="Filtrer par espèce">
+                  <select value={speciesId} onChange={(event) => setSpeciesId(event.target.value)} aria-label="Filtrer par espèce" className="h-10 min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none">
                     <option value="all">Toutes les espèces</option>{state.species.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select><ChevronDown size={14} />
                 </label>
@@ -277,29 +276,23 @@ export function ProfessionalAtlasWorkspace() {
 
             <div className="ops-map-canvas absolute inset-0 pt-20">
               <div className="ops-landmass" />
-              <div className="absolute bottom-5 left-5 z-20 text-[10px] font-black uppercase tracking-[.2em] text-white/25">Océan Atlantique</div>
-              <div className="absolute left-5 top-24 z-20 rounded-lg border border-white/10 bg-[#041d27]/78 px-3 py-2 text-[10px] font-bold text-white/48 backdrop-blur">Quais uniquement · les objets métier s’ouvrent dans le poste de travail</div>
+              <div className="absolute bottom-5 left-5 z-20 text-[10px] font-bold uppercase tracking-[.2em] text-white/22">Océan Atlantique</div>
+              <div className="absolute left-5 top-24 z-20 rounded-lg border border-white/10 bg-[#0b1a2a]/78 px-3 py-2 text-[10px] font-semibold text-white/46 backdrop-blur">Quais uniquement · les objets métier s’ouvrent dans le poste de travail</div>
               {state.territories.map((item) => {
                 const [left, top] = positions[item.id] ?? [50, 50];
                 const active = item.id === territory.id;
                 const openCount = state.situations.filter((candidate) => candidate.territoryId === item.id && candidate.status !== "reglee").length;
-                const tone = activityStyle[item.activity];
+                const tone = mapActivityStyle[item.activity];
                 return (
                   <button key={item.id} onClick={() => setSelectedId(item.id)} style={{ left: `${left}%`, top: `${top}%` }} className={`group absolute z-20 -translate-x-1/2 -translate-y-1/2 text-left ${active ? "scale-110" : "hover:scale-105"}`} aria-label={`Ouvrir le quai de ${item.name}`}>
-                    <span className={`absolute left-1/2 top-1/2 size-9 -translate-x-1/2 -translate-y-1/2 rounded-full ring-8 ${tone.ring} ${active ? "animate-pulse" : ""}`} />
-                    <span className={`relative block size-3.5 rounded-full border-2 border-white ${tone.dot} shadow-[0_0_18px_rgba(255,255,255,.28)]`} />
-                    <span className={`absolute left-5 top-1/2 w-max -translate-y-1/2 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold shadow-xl backdrop-blur ${active ? "border-[#70e3d5]/40 bg-[#0b3b46] text-white" : "border-white/10 bg-[#041d27]/80 text-white/72"}`}>
-                      {item.name}{openCount > 0 && <span className="ml-2 text-[#f3b84f]">{openCount}</span>}
+                    <span className={`absolute left-1/2 top-1/2 size-7 -translate-x-1/2 -translate-y-1/2 rounded-full ${active ? `ring-4 ${tone.ring}` : openCount > 0 ? `ring-2 ${tone.ring}` : ""}`} />
+                    <span className={`relative block size-3.5 rounded-full border-2 border-white ${tone.dot} shadow-[0_0_0_2px_rgba(255,255,255,.08)]`} />
+                    <span className={`absolute left-5 top-1/2 w-max -translate-y-1/2 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold backdrop-blur ${active ? "border-white/20 bg-[#17283a] text-white shadow-sm" : "border-white/10 bg-[#0b1a2a]/82 text-white/68"}`}>
+                      {item.name}{openCount > 0 && <span className="ml-2 text-[#c68a2c]">{openCount}</span>}
                     </span>
                   </button>
                 );
               })}
-            </div>
-
-            <div className="absolute bottom-5 right-5 z-30 hidden w-72 rounded-xl border border-white/10 bg-[#041d27]/84 p-4 text-white shadow-2xl backdrop-blur-xl md:block">
-              <div className="flex items-center justify-between"><p className="text-[10px] font-black uppercase tracking-[.13em] text-white/40">Lecture sélectionnée</p><span className={`size-2 rounded-full ${activityStyle[territory.activity].dot}`} /></div>
-              <p className="mt-2 text-lg font-black">{territory.name}</p>
-              <p className="mt-1 text-xs text-white/50">{activityStyle[territory.activity].label} · {situations.length} situation{situations.length > 1 ? "s" : ""} ouverte{situations.length > 1 ? "s" : ""}</p>
             </div>
           </div>
 
