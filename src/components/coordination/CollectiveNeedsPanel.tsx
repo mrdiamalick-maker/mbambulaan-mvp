@@ -14,7 +14,6 @@ import type { ProductState, ServiceRequest, ServiceRequestIntent } from "@/domai
 import { serviceRequestIntentLabels } from "@/domain/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { InitiativeForm } from "@/components/coordination/InitiativeForm";
 
@@ -41,31 +40,31 @@ export function CollectiveNeedsPanel({ state }: { state: ProductState }) {
   if (groups.length === 0) return null;
 
   return (
-    <Card>
-      <CardContent className="p-5">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary">
-          <Layers size={14} /> Besoins collectifs
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground">Plusieurs organisations expriment le même besoin — regroupez-les en programme structuré plutôt que de les traiter une à une.</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {groups.map(([intent, requests]) => {
-            const territories = new Set(requests.map((request) => request.territoryId));
-            const organizations = new Set(requests.map((request) => request.actorId));
-            return (
-              <div key={intent} className="rounded-lg border bg-card p-4">
-                <div className="flex items-start justify-between gap-2">
+    <section className="rounded-2xl border border-[#b6522f]/25 bg-[#b6522f]/5 p-5 md:p-6">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#b6522f]">
+        <Layers size={14} /> Besoins collectifs
+      </div>
+      <p className="mt-2 max-w-3xl text-sm text-muted-foreground">Plusieurs organisations expriment le même besoin — regroupez-les en programme structuré plutôt que de les traiter une à une.</p>
+      <div className="mt-5 divide-y border-y border-[#b6522f]/15">
+        {groups.map(([intent, requests]) => {
+          const territories = new Set(requests.map((request) => request.territoryId));
+          const organizations = new Set(requests.map((request) => request.actorId));
+          return (
+            <div key={intent} className="grid gap-4 py-4 md:grid-cols-[1fr_auto] md:items-center">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="marine">{serviceRequestIntentLabels[intent]}</Badge>
                   <span className="text-xs font-bold text-muted-foreground">{requests.length} demandes</span>
                 </div>
-                <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <UsersRound size={13} /> {organizations.size} organisation{organizations.size > 1 ? "s" : ""} · {territories.size} territoire{territories.size > 1 ? "s" : ""}
                 </p>
-                <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => setActiveIntent(intent)}>Regrouper en programme</Button>
               </div>
-            );
-          })}
-        </div>
-      </CardContent>
+              <Button size="sm" onClick={() => setActiveIntent(intent)}>Regrouper en programme</Button>
+            </div>
+          );
+        })}
+      </div>
 
       <Sheet open={activeIntent !== null} onOpenChange={(open) => !open && setActiveIntent(null)}>
         <SheetContent className="overflow-y-auto">
@@ -78,6 +77,6 @@ export function CollectiveNeedsPanel({ state }: { state: ProductState }) {
           )}
         </SheetContent>
       </Sheet>
-    </Card>
+    </section>
   );
 }
