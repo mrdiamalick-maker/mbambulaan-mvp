@@ -21,6 +21,12 @@ import { TrustBadge } from "@/components/shared/StatusBadges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AccessSummary } from "@/components/subscription/AccessSummary";
+import type { Report } from "@/domain/types";
+
+const reportStatusLabel: Record<Report["status"], string> = {
+  pret: "Prêt",
+  a_actualiser: "À actualiser"
+};
 
 const roleNames: Record<string, string> = {
   administrateur: "Administration de la plateforme",
@@ -126,7 +132,7 @@ export function OrganizationWorkspace() {
           <div className="mt-4 divide-y border-y">{state.reports.map((report) => (
             <article key={report.id} className="py-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{report.status} · {report.period}</p><h3 className="mt-1.5 text-sm font-semibold">{report.title}</h3><p className="mt-1 text-xs text-muted-foreground">{report.metrics.length} indicateurs avec sources et limites</p></div>
+                <div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{reportStatusLabel[report.status]} · {report.period}</p><h3 className="mt-1.5 text-sm font-semibold">{report.title}</h3><p className="mt-1 text-xs text-muted-foreground">{report.metrics.length} indicateurs avec sources et limites</p></div>
                 <Button size="sm" variant="outline" className="whitespace-nowrap" asChild><Link href="/app/pilotage">Consulter <ArrowRight size={14} /></Link></Button>
               </div>
             </article>
