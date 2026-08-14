@@ -238,13 +238,21 @@ export function CoordinationWorkspace() {
           chapitre ouvert directement sur le canvas, même principe que
           l'Atlas État. C06/C07 : navigation horizontale calme, filtres
           sur tokens D9. */}
-      <section className="space-y-5 border-t pt-7">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <section className="w-full min-w-0 space-y-5 border-t pt-7">
+        {/* Grille plutôt que flex pour cette ligne : la colonne
+            minmax(0,1fr) est le correctif fiable pour un enfant
+            défilant horizontalement (ici les 6 onglets) qui ne doit
+            jamais forcer son parent à s'élargir — contrairement à un
+            item flex, dont le min-width: auto par défaut résiste au
+            rétrécissement même avec overflow-x-auto + min-w-0 posés
+            dessus (vérifié : sans effet ici, la largeur remonte via
+            l'ancêtre <main> qui utilise un dimensionnement intrinsèque). */}
+        <div className="grid w-full min-w-0 gap-4 xl:grid-cols-[auto_minmax(0,1fr)] xl:items-end">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-primary">Salle de coordination</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">{selectedView.label}</h2>
           </div>
-          <nav className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1" aria-label="Changer de vue de coordination">
+          <nav className="-mx-1 flex min-w-0 gap-1 overflow-x-auto px-1 pb-1" aria-label="Changer de vue de coordination">
             {views.map(({ id, label, icon: Icon }) => {
               const active = view === id;
               return (
