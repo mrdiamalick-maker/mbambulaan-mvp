@@ -21,7 +21,12 @@ import {
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { CommandButton } from "@/components/ui/CommandButton";
-import { TrustBadge } from "@/components/ui/Badges";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { TensionGlyph } from "@/components/etat/TensionGlyph";
+import { TrustBadge } from "@/components/shared/StatusBadges";
+import { channelMeta, glyphBorderColor, priorityLabels, priorityToTag } from "@/lib/status-tokens";
 import type { PublicRequest, PublicRequestIntent } from "@/domain/public/request";
 import { serviceRequestIntentLabels, type CatchLine, type IncomingMessage, type ProductState, type ServiceRequestIntent, type Signal } from "@/domain/types";
 
@@ -107,6 +112,17 @@ const serviceRequestIntentFromPublic: Record<PublicRequestIntent, ServiceRequest
   autre: "autre"
 };
 
+// Âge d'une entrée d'inbox (C12) — relatif plutôt qu'une date absolue,
+// cohérent avec le traitement "à qualifier maintenant" des deux vues
+// d'inbox (Demandes publiques, Messages entrants).
+function formatAge(iso: string) {
+  const diffMinutes = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  if (diffMinutes < 60) return `Il y a ${diffMinutes} min`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `Il y a ${diffHours} h`;
+  return `Il y a ${Math.floor(diffHours / 24)} j`;
+}
+
 export function CoordinationWorkspace() {
   const { state } = useProduct();
   const [view, setView] = useState<View>("besoins");
@@ -157,7 +173,6 @@ export function CoordinationWorkspace() {
   const urgentTerritory = state.territories.find((item) => item.id === urgentNeed?.territoryId);
   const urgentSpecies = state.species.find((item) => item.id === urgentNeed?.speciesId);
   const selectedView = views.find((item) => item.id === view) ?? views[0];
-  const ViewIcon = selectedView.icon;
 
   const filteredNeeds = openNeeds.filter((need) => {
     const species = state.species.find((item) => item.id === need.speciesId)?.name ?? "";
@@ -169,122 +184,243 @@ export function CoordinationWorkspace() {
     return (territoryId === "all" || infrastructure?.territoryId === territoryId) && `${infrastructure?.name ?? ""} ${capacity.type}`.toLowerCase().includes(query.toLowerCase());
   });
 
+  // C06 — indicateur de tension par vue (marine neutre partout ailleurs) :
+  // un point terracotta dans la navigation seulement si la vue contient
+  // une tension ou une attente réelle, jamais une simple décoration.
+  const viewTension: Record<View, boolean> = {
+    besoins: openNeeds.some((item) => item.priority === "critique"),
+    capacites: filteredCapacities.some((item) => {
+      const infra = state.infrastructures.find((entry) => entry.id === item.infrastructureId);
+      return infra?.theoreticalCapacity ? infra.availableCapacity / infra.theoreticalCapacity < 0.3 : false;
+    }),
+    rapprochements: false,
+    missions: activeMissions.some((space) => space.commitments.some((item) => item.status === "bloquee")),
+    demandes_publiques: pendingPublicRequests.length > 0,
+    messages_entrants: pendingIncomingMessages.length > 0
+  };
+
   return (
-    <div className="space-y-6">
-      <section className="mission-strip">
-        <div className="grid lg:grid-cols-[1.25fr_.75fr]">
-          <div className="relative overflow-hidden p-6 lg:p-7">
-            <div className="absolute inset-0 opacity-40 ocean-grid" />
-            <div className="relative">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.15em] text-[#70e3d5]"><Handshake size={15} /> Mission prioritaire</div>
-              <h2 className="mt-4 max-w-3xl text-2xl font-black tracking-[-.035em] lg:text-3xl">
+    <div className="space-y-8">
+      {/* C03 — hero D9 : fond marine, aucun turquoise, accent terracotta
+          réservé au CTA/action. */}
+      <Card className="relative overflow-hidden border-none bg-sidebar text-sidebar-foreground">
+        <div className="pointer-events-none absolute inset-0 opacity-70 [background-image:radial-gradient(circle_at_88%_-10%,rgba(182,82,47,.16),transparent_45%)]" aria-hidden="true" />
+        <CardContent className="relative p-6 md:p-10">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center">
+            <TensionGlyph status={urgentNeed ? priorityToTag[urgentNeed.priority] : "neutral"} size={90} pulse={urgentNeed?.priority === "critique"} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary"><Handshake size={15} /> Mission prioritaire</div>
+              <h2 className="mt-3 max-w-3xl text-2xl font-semibold tracking-tight md:text-3xl">
                 {urgentNeed ? `Couvrir ${urgentNeed.quantityKg} kg de ${urgentSpecies?.name ?? "produit"} à ${urgentTerritory?.name}.` : "Maintenir les capacités et engagements opérationnels."}
               </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/58">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-sidebar-foreground/70">
                 Un besoin n’est jamais un simple signal : Mbàmbulaan identifie la capacité utile, explicite les conditions, désigne les responsables et suit le résultat.
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
-                <button onClick={() => setView("rapprochements")} className="btn-accent">Voir la réponse proposée <ArrowRight size={15} /></button>
-                <Link href="/app/atlas" className="btn-on-dark"><MapPin size={15} /> Lire le territoire</Link>
+                <Button variant="secondary" onClick={() => setView("rapprochements")}>Voir la réponse proposée <ArrowRight /></Button>
+                <Button variant="ghost" className="hover:bg-white/10 hover:text-white" asChild><Link href="/app/atlas"><MapPin /> Lire le territoire</Link></Button>
               </div>
             </div>
           </div>
-          <aside className="border-t border-white/10 bg-white/[.04] p-6 lg:border-l lg:border-t-0">
-            <p className="text-[10px] font-black uppercase tracking-[.13em] text-white/38">Boucle de valeur</p>
-            <div className="mt-4 space-y-4">
-              {[
-                [Boxes, `${openNeeds.length} besoins ouverts`, "Origine et échéance visibles"],
-                [Factory, `${availableCapacities.length} capacités`, "Disponibilité déclarée"],
-                [Network, `${state.opportunities.length} rapprochement`, "Explicable et à valider"],
-                [CheckCircle2, `${state.situations.filter((item) => item.status === "reglee").length} résultat`, "Traçable jusqu’à la clôture"]
-              ].map(([Icon, value, detail]) => {
-                const ItemIcon = Icon as typeof Boxes;
-                return <div key={String(value)} className="flex gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#70e3d5]/10 text-[#70e3d5]"><ItemIcon size={16} /></span><div><p className="text-sm font-black">{String(value)}</p><p className="mt-0.5 text-[10px] text-white/38">{String(detail)}</p></div></div>;
+        </CardContent>
+      </Card>
+
+      {/* C04 — boucle de valeur, bande compacte sous le hero (plus de
+          panneau sombre séparé). */}
+      <div className="grid grid-cols-2 divide-x divide-y rounded-xl border bg-card/40 sm:grid-cols-4 sm:divide-y-0">
+        <div className="px-4 py-4"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">Besoins ouverts</p><p className="mt-1.5 text-2xl font-bold tracking-tight text-[#0b1a2a]">{openNeeds.length}</p></div>
+        <div className="px-4 py-4"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">Capacités mobilisables</p><p className="mt-1.5 text-2xl font-bold tracking-tight text-[#0b1a2a]">{availableCapacities.length}</p></div>
+        <div className="px-4 py-4"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">Rapprochements</p><p className="mt-1.5 text-2xl font-bold tracking-tight text-[#0b1a2a]">{state.opportunities.length}</p></div>
+        <div className="px-4 py-4"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">Résultats</p><p className="mt-1.5 text-2xl font-bold tracking-tight text-[#0b1a2a]">{state.situations.filter((item) => item.status === "reglee").length}</p></div>
+      </div>
+
+      {/* C05 — plus de grande Card qui enferme tout le workspace : un
+          chapitre ouvert directement sur le canvas, même principe que
+          l'Atlas État. C06/C07 : navigation horizontale calme, filtres
+          sur tokens D9. */}
+      <section className="space-y-5 border-t pt-7">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-primary">Salle de coordination</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight">{selectedView.label}</h2>
+          </div>
+          <nav className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1" aria-label="Changer de vue de coordination">
+            {views.map(({ id, label, icon: Icon }) => {
+              const active = view === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setView(id)}
+                  className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-semibold transition ${active ? "border-[#0b1a2a] text-[#0b1a2a]" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                >
+                  <Icon size={15} className={active ? "" : "opacity-70"} />
+                  {label}
+                  {viewTension[id] && <span className="size-1.5 rounded-full bg-[#b6522f]" aria-hidden="true" />}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-[minmax(190px,.55fr)_minmax(230px,1fr)]">
+          <label className="relative block">
+            <MapPin size={15} className="pointer-events-none absolute left-3 top-3 text-muted-foreground" />
+            <select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="h-10 w-full appearance-none rounded-lg border bg-card px-9 text-sm font-semibold" aria-label="Filtrer par territoire">
+              <option value="all">Tous les territoires</option>{state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+            <ChevronDown size={14} className="pointer-events-none absolute right-3 top-3 text-muted-foreground" />
+          </label>
+          <label className="relative block">
+            <Search size={15} className="pointer-events-none absolute left-3 top-3 text-muted-foreground" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-10 w-full rounded-lg border bg-card px-9 text-sm font-semibold" placeholder="Rechercher une espèce, une capacité ou une mission…" />
+          </label>
+        </div>
+
+        {/* C08 — Besoins à couvrir : registre continu, rail de priorité. */}
+        {view === "besoins" && (
+          filteredNeeds.length ? (
+            <div className="divide-y border-y">
+              {filteredNeeds.map((need) => {
+                const species = state.species.find((item) => item.id === need.speciesId);
+                const territory = state.territories.find((item) => item.id === need.territoryId);
+                const actor = state.actors.find((item) => item.id === need.actorId);
+                const tag = priorityToTag[need.priority];
+                return (
+                  <div key={need.id} className="relative flex flex-col gap-3 py-5 pl-5 md:flex-row md:flex-wrap md:items-center md:justify-between">
+                    <span className="absolute inset-y-4 left-0 w-1 rounded-full" style={{ backgroundColor: glyphBorderColor[tag] }} aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={tag === "critique" ? "terracotta" : tag === "vigilance" ? "amber" : "marine"}>{priorityLabels[need.priority]}</Badge>
+                        <span className="text-xs font-semibold text-muted-foreground">{need.intent} · {territory?.name}</span>
+                      </div>
+                      <p className="mt-1.5 text-sm font-semibold">{species?.name} · {need.quantityKg.toLocaleString("fr-FR")} kg · Classe {need.quality}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Demandé par {actor?.name} · {need.source} · <span className="capitalize">{need.status}</span></p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => setView("rapprochements")}>Chercher une réponse <ArrowRight /></Button>
+                  </div>
+                );
               })}
             </div>
-          </aside>
-        </div>
-      </section>
+          ) : <Empty label="Aucun besoin ne correspond aux filtres." />
+        )}
 
-      <section className="surface overflow-hidden">
-        <div className="border-b border-[#d9e3e3] p-4 lg:p-5">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div><div className="flex items-center gap-2 text-[#08758a]"><ViewIcon size={17} /><p className="label">Salle de coordination</p></div><h2 className="mt-2 text-xl font-black tracking-[-.03em]">{selectedView.label}</h2></div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Changer de vue de coordination">
-              {views.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => setView(id)} className={`ops-lens ${view === id ? "ops-lens-active" : ""}`}><Icon size={15} /> {label}</button>)}
+        {/* C09 — Capacités mobilisables : palette de disponibilité
+            corrigée (terracotta/ambre/marine, plus de turquoise). */}
+        {view === "capacites" && (
+          filteredCapacities.length ? (
+            <div className="divide-y border-y">
+              {filteredCapacities.map((capacity) => {
+                const infrastructure = state.infrastructures.find((item) => item.id === capacity.infrastructureId);
+                const territory = state.territories.find((item) => item.id === infrastructure?.territoryId);
+                const rate = infrastructure?.theoreticalCapacity ? Math.round(infrastructure.availableCapacity / infrastructure.theoreticalCapacity * 100) : 0;
+                const barColor = rate < 30 ? "#b6522f" : rate < 65 ? "#c68a2c" : "#0b1a2a";
+                return (
+                  <div key={capacity.id} className="flex flex-col gap-4 py-5 md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-muted-foreground">{capacity.type} · {territory?.name}</p>
+                      <p className="mt-1.5 text-sm font-semibold">{infrastructure?.name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Disponible jusqu’au {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(capacity.validUntil))}</p>
+                    </div>
+                    <div className="w-full md:max-w-xs">
+                      <div className="flex justify-between text-xs font-semibold"><span className="text-muted-foreground">{capacity.availableQuantity} {capacity.unit} disponible(s)</span><strong>{rate}%</strong></div>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${rate}%`, backgroundColor: barColor }} /></div>
+                    </div>
+                    <Button size="sm" variant="outline" asChild><Link href="/app/atlas">Voir sur l’Atlas <ArrowRight /></Link></Button>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-          <div className="mt-4 grid gap-2 md:grid-cols-[minmax(190px,.55fr)_minmax(230px,1fr)]">
-            <label className="relative">
-              <MapPin size={15} className="pointer-events-none absolute left-3 top-3 text-[#71858a]" />
-              <select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="h-10 w-full appearance-none rounded-xl border border-[#d0ddde] bg-[#f8fbfa] pl-9 pr-9 text-sm font-semibold" aria-label="Filtrer par territoire">
-                <option value="all">Tous les territoires</option>{state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-              </select><ChevronDown size={14} className="pointer-events-none absolute right-3 top-3 text-[#71858a]" />
-            </label>
-            <label className="relative">
-              <Search size={15} className="pointer-events-none absolute left-3 top-3 text-[#71858a]" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-10 w-full rounded-xl border border-[#d0ddde] bg-[#f8fbfa] pl-9 pr-3 text-sm font-semibold" placeholder="Rechercher une espèce, une capacité ou une mission…" />
-            </label>
-          </div>
-        </div>
+          ) : <Empty label="Aucune capacité mobilisable ne correspond aux filtres." />
+        )}
 
-        {view === "besoins" && <div className="divide-y divide-[#e1e9e9]">{filteredNeeds.length ? filteredNeeds.map((need) => {
-          const species = state.species.find((item) => item.id === need.speciesId);
-          const territory = state.territories.find((item) => item.id === need.territoryId);
-          const actor = state.actors.find((item) => item.id === need.actorId);
-          return <article key={need.id} className="pro-table-row lg:grid-cols-[1fr_150px_170px_auto] lg:items-center">
-            <div><div className="flex items-center gap-2"><span className={`size-2 rounded-full ${need.priority === "critique" ? "bg-[#c65242]" : "bg-[#d8951a]"}`} /><p className="text-[10px] font-black uppercase tracking-[.08em] text-[#7a8e94]">{need.intent} · {territory?.name}</p></div><h3 className="mt-1.5 font-black">{species?.name} · {need.quantityKg.toLocaleString("fr-FR")} kg</h3><p className="mt-1 text-xs text-[#667b81]">Demandé par {actor?.name} · {need.source}</p></div>
-            <div><p className="text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Qualité</p><p className="mt-1 text-sm font-bold">Classe {need.quality}</p></div>
-            <div><p className="text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">État métier</p><p className="mt-1 text-sm font-bold capitalize text-[#075568]">{need.status}</p></div>
-            <button onClick={() => setView("rapprochements")} className="btn-secondary whitespace-nowrap">Chercher une réponse <ArrowRight size={14} /></button>
-          </article>;
-        }) : <Empty label="Aucun besoin ne correspond aux filtres." />}</div>}
-
-        {view === "capacites" && <div className="divide-y divide-[#e1e9e9]">{filteredCapacities.length ? filteredCapacities.map((capacity) => {
-          const infrastructure = state.infrastructures.find((item) => item.id === capacity.infrastructureId);
-          const territory = state.territories.find((item) => item.id === infrastructure?.territoryId);
-          const rate = infrastructure?.theoreticalCapacity ? Math.round(infrastructure.availableCapacity / infrastructure.theoreticalCapacity * 100) : 0;
-          return <article key={capacity.id} className="pro-table-row lg:grid-cols-[1fr_160px_210px_auto] lg:items-center">
-            <div><p className="text-[10px] font-black uppercase tracking-[.08em] text-[#7a8e94]">{capacity.type} · {territory?.name}</p><h3 className="mt-1.5 font-black">{infrastructure?.name}</h3><p className="mt-1 text-xs text-[#667b81]">Disponible jusqu’au {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(capacity.validUntil))}</p></div>
-            <div><p className="text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Disponible</p><p className="mt-1 text-lg font-black">{capacity.availableQuantity} {capacity.unit}</p></div>
-            <div><div className="flex justify-between text-[10px] font-bold text-[#667b81]"><span>Taux de disponibilité</span><strong>{rate}%</strong></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[#e7eeee]"><div className={`h-full rounded-full ${rate < 30 ? "bg-[#c65242]" : rate < 65 ? "bg-[#d8951a]" : "bg-[#1fb6a4]"}`} style={{ width: `${rate}%` }} /></div></div>
-            <Link href="/app/atlas" className="btn-secondary whitespace-nowrap">Voir sur l’Atlas <ArrowRight size={14} /></Link>
-          </article>;
-        }) : <Empty label="Aucune capacité mobilisable ne correspond aux filtres." />}</div>}
-
-        {view === "rapprochements" && <div className="grid gap-px bg-[#d9e3e3] md:grid-cols-2">{state.opportunities.length ? state.opportunities.map((opportunity) => {
-          const lot = state.lots.find((item) => item.id === opportunity.lotId);
-          const need = state.serviceRequests.find((item) => item.id === opportunity.serviceRequestId);
-          const species = state.species.find((item) => item.id === lot?.speciesId);
-          const territory = state.territories.find((item) => item.id === opportunity.territoryId);
-          return <article key={opportunity.id} className="bg-white p-5 lg:p-6">
-            <div className="flex items-start justify-between gap-4"><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#08758a]">{territory?.name} · à valider</p><h3 className="mt-2 text-lg font-black">{species?.name} · {need?.quantityKg} kg</h3></div><div className="text-right"><p className="text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Correspondance</p><span className="text-3xl font-black tracking-[-.05em] text-[#075568]">{opportunity.score}/100</span></div></div>
-            <div className="mt-5 space-y-2">{opportunity.reasons.map((reason) => <div key={reason} className="flex items-center gap-2 text-xs text-[#536970]"><CheckCircle2 size={14} className="text-[#118f83]" /> {reason}</div>)}</div>
-            <div className="mt-5 rounded-xl border border-[#e2d29e] bg-[#fff9ea] p-3 text-xs leading-5 text-[#76530d]">Le score explique le rapprochement ; il ne décide jamais à la place des acteurs.</div>
-            <div className="mt-5 flex flex-wrap gap-2">{["detectee", "proposee"].includes(opportunity.status) && <CommandButton command={{ type: "accept_opportunity", opportunityId: opportunity.id }}>Valider l’engagement</CommandButton>}{opportunity.status === "engagee" && <CommandButton command={{ type: "complete_logistics", opportunityId: opportunity.id }}>Confirmer le résultat</CommandButton>}{opportunity.status === "executee" && <span className="inline-flex items-center gap-2 rounded-lg bg-[#e9f7f1] px-3 py-2 text-xs font-black text-[#126b58]"><CheckCircle2 size={14} /> Résultat enregistré</span>}</div>
-          </article>;
-        }) : <Empty label="Aucun rapprochement explicable n’est disponible." />}</div>}
-
-        {view === "missions" && <div className="divide-y divide-[#e1e9e9]">{activeMissions.length ? activeMissions.map((space) => {
-          const situation = state.situations.find((item) => item.id === space.situationId);
-          const done = space.commitments.filter((item) => item.status === "terminee").length;
-          const progress = space.commitments.length ? Math.round(done / space.commitments.length * 100) : 0;
-          return <article key={space.id} className="p-5 lg:p-6">
-            <div className="grid gap-5 lg:grid-cols-[1fr_240px_auto] lg:items-center">
-              <div><div className="flex flex-wrap items-center gap-2"><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#08758a]">Mission coordonnée</p>{situation && <TrustBadge trust={situation.trust} />}</div><h3 className="mt-2 text-lg font-black">{space.title}</h3><p className="mt-2 text-sm leading-6 text-[#667b81]">{space.objective}</p></div>
-              <div><div className="flex justify-between text-xs font-bold"><span>{space.participantIds.length} acteurs mobilisés</span><span>{progress}%</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[#e7eeee]"><div className="h-full rounded-full bg-[#1fb6a4]" style={{ width: `${Math.max(progress, 5)}%` }} /></div><p className="mt-2 text-[10px] text-[#71858a]">Prochaine revue : {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(space.nextReviewAt))}</p></div>
-              <Link href={`/app/coordination/${space.id}`} className="btn-primary whitespace-nowrap">Ouvrir la mission <ArrowRight size={14} /></Link>
+        {/* C10 — Rapprochements : les raisons passent devant, le score
+            devient un indice de lecture (petit badge), plus l'objet
+            dominant. */}
+        {view === "rapprochements" && (
+          state.opportunities.length ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {state.opportunities.map((opportunity) => {
+                const lot = state.lots.find((item) => item.id === opportunity.lotId);
+                const need = state.serviceRequests.find((item) => item.id === opportunity.serviceRequestId);
+                const species = state.species.find((item) => item.id === lot?.speciesId);
+                const territory = state.territories.find((item) => item.id === opportunity.territoryId);
+                return (
+                  <Card key={opportunity.id}>
+                    <CardContent className="p-5 lg:p-6">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{territory?.name} · à valider</p>
+                          <h3 className="mt-1.5 text-lg font-semibold">{species?.name} · {need?.quantityKg} kg</h3>
+                        </div>
+                        <Badge variant="marine" title="Indice de correspondance, pas une décision">{opportunity.score}/100</Badge>
+                      </div>
+                      <div className="mt-4 space-y-1.5">
+                        {opportunity.reasons.map((reason) => <p key={reason} className="flex items-start gap-2 text-sm text-muted-foreground"><CheckCircle2 size={14} className="mt-0.5 shrink-0 text-[#1d8a5f]" /> {reason}</p>)}
+                      </div>
+                      <p className="mt-4 text-xs leading-5 text-muted-foreground">Le score explique le rapprochement ; il ne décide jamais à la place des acteurs.</p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {["detectee", "proposee"].includes(opportunity.status) && <CommandButton command={{ type: "accept_opportunity", opportunityId: opportunity.id }}>Valider l’engagement</CommandButton>}
+                        {opportunity.status === "engagee" && <CommandButton command={{ type: "complete_logistics", opportunityId: opportunity.id }}>Confirmer le résultat</CommandButton>}
+                        {opportunity.status === "executee" && <Badge variant="success"><CheckCircle2 size={13} /> Résultat enregistré</Badge>}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
-          </article>;
-        }) : <Empty label="Aucune mission active sur ce périmètre." />}</div>}
+          ) : <Empty label="Aucun rapprochement explicable n’est disponible." />
+        )}
 
+        {/* C11 — Missions en cours : registre continu, progression en
+            marine, terracotta réservé au blocage/retard réel. */}
+        {view === "missions" && (
+          activeMissions.length ? (
+            <div className="divide-y border-y">
+              {activeMissions.map((space) => {
+                const situation = state.situations.find((item) => item.id === space.situationId);
+                const done = space.commitments.filter((item) => item.status === "terminee").length;
+                const progress = space.commitments.length ? Math.round(done / space.commitments.length * 100) : 0;
+                // Pas de comparaison à Date.now() : les dates du jeu de
+                // démonstration sont fixes (2026-07-29/30), donc "en
+                // retard" par rapport à l'horloge réelle n'importe quel
+                // jour où la démo est ouverte — un signal non fiable.
+                // Seul un blocage réel (donnée, pas horloge) déclenche le
+                // terracotta.
+                const blocked = space.commitments.some((item) => item.status === "bloquee");
+                return (
+                  <div key={space.id} className="flex flex-col gap-4 py-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Mission coordonnée</span>
+                        {situation && <TrustBadge trust={situation.trust} />}
+                        {blocked && <Badge variant="terracotta">Blocage à résoudre</Badge>}
+                      </div>
+                      <h3 className="mt-1.5 text-base font-semibold">{space.title}</h3>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">{space.objective}</p>
+                    </div>
+                    <div className="w-full lg:w-56">
+                      <div className="flex justify-between text-xs font-semibold"><span className="text-muted-foreground">{space.participantIds.length} acteurs mobilisés</span><span>{progress}%</span></div>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-[#0b1a2a]" style={{ width: `${Math.max(progress, 5)}%` }} /></div>
+                      <p className="mt-2 text-[11px] text-muted-foreground">Prochaine revue : {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(space.nextReviewAt))}</p>
+                    </div>
+                    <Button size="sm" variant="outline" asChild><Link href={`/app/coordination/${space.id}`}>Ouvrir la mission <ArrowRight /></Link></Button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : <Empty label="Aucune mission active sur ce périmètre." />
+        )}
+
+        {/* C12 — Demandes publiques / Messages entrants : grammaire
+            d'inbox distincte (origine/canal, âge, contenu, action
+            explicite), pas la même identité que les 4 vues précédentes. */}
         {view === "demandes_publiques" && (
           pendingPublicRequestsLoading ? (
-            <div className="grid min-h-44 place-items-center p-8 text-center text-sm text-[#667b81]">Chargement des demandes publiques…</div>
+            <div className="grid min-h-44 place-items-center p-8 text-center text-sm text-muted-foreground">Chargement des demandes publiques…</div>
           ) : pendingPublicRequestsError ? (
-            <div className="grid min-h-44 place-items-center p-8 text-center text-sm font-semibold text-[#c65242]">{pendingPublicRequestsError}</div>
+            <div className="grid min-h-44 place-items-center p-8 text-center text-sm font-semibold text-destructive">{pendingPublicRequestsError}</div>
           ) : (
-            <div className="divide-y divide-[#e1e9e9]">{pendingPublicRequests.length ? pendingPublicRequests.map((request) => (
+            <div className="divide-y">{pendingPublicRequests.length ? pendingPublicRequests.map((request) => (
               <PublicRequestRow
                 key={request.id}
                 request={request}
@@ -296,29 +432,38 @@ export function CoordinationWorkspace() {
         )}
 
         {view === "messages_entrants" && (
-          <div className="divide-y divide-[#e1e9e9]">{pendingIncomingMessages.length ? pendingIncomingMessages.map((message) => (
+          <div className="divide-y">{pendingIncomingMessages.length ? pendingIncomingMessages.map((message) => (
             <IncomingMessageRow key={message.id} message={message} state={state} />
           )) : <Empty label="Aucun message entrant en attente pour le moment." />}</div>
         )}
       </section>
 
-      <section className="signal-path">
+      {/* C13 — bande finale : légende métier calme, plus les 4 blocs à
+          icônes turquoise. */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t pt-6 text-sm">
         {[
-          [CircleAlert, "Besoin qualifié", "Qui demande, quoi, où, quand"],
-          [Factory, "Capacité vérifiée", "Disponibilité et conditions"],
-          [Handshake, "Engagement humain", "Responsable et échéance"],
-          [Route, "Résultat observé", "Preuve, valeur et apprentissage"]
-        ].map(([Icon, title, detail], index) => {
+          [CircleAlert, "Besoin qualifié"],
+          [Factory, "Capacité vérifiée"],
+          [Handshake, "Engagement humain"],
+          [Route, "Résultat observé"]
+        ].map(([Icon, label], index, array) => {
           const StepIcon = Icon as typeof CircleAlert;
-          return <div key={String(title)}><div className="flex items-center justify-between"><span className="grid size-8 place-items-center rounded-lg bg-[#e5f7f3] text-[#08758a]"><StepIcon size={15} /></span><span className="text-[10px] font-black text-[#a1b2b5]">0{index + 1}</span></div><p className="mt-3 text-sm font-black">{String(title)}</p><p className="mt-1 text-[11px] leading-5 text-[#667b81]">{String(detail)}</p></div>;
+          const isLast = index === array.length - 1;
+          return (
+            <div key={String(label)} className="flex items-center gap-2">
+              <span className="grid size-7 place-items-center rounded-full bg-[#0b1a2a]/[.07] text-[#0b1a2a]"><StepIcon size={14} /></span>
+              <span className="font-semibold text-[#0b1a2a]">{String(label)}</span>
+              {!isLast && <ArrowRight size={14} className="ml-1 text-[#b6522f]/55" aria-hidden="true" />}
+            </div>
+          );
         })}
-      </section>
+      </div>
     </div>
   );
 }
 
 function Empty({ label }: { label: string }) {
-  return <div className="col-span-full grid min-h-44 place-items-center bg-white p-8 text-center"><div><Snowflake className="mx-auto text-[#9db0b4]" /><p className="mt-3 text-sm font-bold">{label}</p></div></div>;
+  return <div className="grid min-h-44 place-items-center rounded-xl border border-dashed bg-card/40 p-8 text-center"><div><Snowflake className="mx-auto text-muted-foreground" /><p className="mt-3 text-sm font-semibold text-muted-foreground">{label}</p></div></div>;
 }
 
 // Ligne + action de conversion — pont PublicRequest → Produit, étape 3/3
@@ -390,65 +535,61 @@ function PublicRequestRow({
   };
 
   return (
-    <article className="p-4 lg:p-5">
-      <div className="grid gap-4 lg:grid-cols-[1fr_170px_auto] lg:items-start">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="size-2 rounded-full bg-[#d8951a]" />
-            <p className="text-[10px] font-black uppercase tracking-[.08em] text-[#7a8e94]">{publicIntentLabel[request.intent]} · {request.territory ?? "Territoire non précisé"}</p>
+    <article className="py-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-1 gap-3">
+          <Badge variant="marine" className="mt-0.5 shrink-0">{publicIntentLabel[request.intent]}</Badge>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">{request.territory ?? "Territoire non précisé"} · {request.reference}</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">{request.description}</p>
+            <p className="mt-1.5 text-xs text-muted-foreground">Demandé par {request.contactName}{request.organization ? ` · ${request.organization}` : ""} · {request.phone}{request.email ? ` · ${request.email}` : ""}</p>
           </div>
-          <h3 className="mt-1.5 font-black">{request.reference}</h3>
-          <p className="mt-1 text-sm leading-6 text-[#526970]">{request.description}</p>
-          <p className="mt-2 text-xs text-[#667b81]">Demandé par {request.contactName}{request.organization ? ` · ${request.organization}` : ""} · {request.phone}{request.email ? ` · ${request.email}` : ""}</p>
         </div>
-        <div>
-          <p className="text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Reçue le</p>
-          <p className="mt-1 text-sm font-bold">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(request.createdAt))}</p>
-          <p className="mt-2 text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Canal</p>
-          <p className="mt-1 text-sm font-bold capitalize text-[#075568]">{request.source}</p>
+        <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end">
+          <span className="text-xs font-semibold text-muted-foreground">{formatAge(request.createdAt)}</span>
+          {!open && <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Qualifier <ArrowRight /></Button>}
         </div>
-        {!open && <button type="button" onClick={() => setOpen(true)} className="btn-secondary whitespace-nowrap">Convertir en demande <ArrowRight size={14} /></button>}
       </div>
 
       {open && (
-        <form onSubmit={submit} className="mt-4 space-y-3 rounded-xl border border-[#d0ddde] bg-[#f8fbfa] p-4">
+        <form onSubmit={submit} className="mt-4 space-y-3 rounded-lg border bg-card p-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="block text-xs font-bold text-[#526970]">
+            <label className="block text-xs font-semibold text-muted-foreground">
               Territoire
-              <select required value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold">
+              <select required value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
                 <option value="">À choisir…</option>
                 {state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </label>
-            <label className="block text-xs font-bold text-[#526970]">
+            <label className="block text-xs font-semibold text-muted-foreground">
               Espèce
-              <select required value={speciesId} onChange={(event) => setSpeciesId(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold">
+              <select required value={speciesId} onChange={(event) => setSpeciesId(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
                 <option value="">À choisir…</option>
                 {state.species.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </label>
-            <label className="block text-xs font-bold text-[#526970]">
+            <label className="block text-xs font-semibold text-muted-foreground">
               Quantité (kg)
-              <input required type="number" min={1} step={1} value={quantityKg} onChange={(event) => setQuantityKg(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold" placeholder="Ex. 200" />
+              <input required type="number" min={1} step={1} value={quantityKg} onChange={(event) => setQuantityKg(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground" placeholder="Ex. 200" />
             </label>
-            <label className="block text-xs font-bold text-[#526970]">
+            <label className="block text-xs font-semibold text-muted-foreground">
               Qualité
-              <select value={quality} onChange={(event) => setQuality(event.target.value as CatchLine["quality"])} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold">
+              <select value={quality} onChange={(event) => setQuality(event.target.value as CatchLine["quality"])} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
                 <option value="A">A</option><option value="B">B</option><option value="C">C</option>
               </select>
             </label>
           </div>
-          <label className="block text-xs font-bold text-[#526970]">
+          <label className="block text-xs font-semibold text-muted-foreground">
             Intention
-            <select value={intent} onChange={(event) => setIntent(event.target.value as ServiceRequestIntent)} className="mt-1.5 h-10 w-full max-w-xs rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold">
+            <select value={intent} onChange={(event) => setIntent(event.target.value as ServiceRequestIntent)} className="mt-1.5 h-10 w-full max-w-xs rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
               {Object.entries(serviceRequestIntentLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
-          <p className="text-[11px] text-[#8a9a9e]">Intention pré-remplie à partir de la demande publique ({publicIntentLabel[request.intent]}) — à ajuster si besoin. Coordonnées ({request.contactName}, {request.phone}) reportées automatiquement sur la demande créée.</p>
-          {error && <p className="text-xs font-bold text-[#c65242]">{error}</p>}
+          <p className="text-[11px] text-muted-foreground">Intention pré-remplie à partir de la demande publique ({publicIntentLabel[request.intent]}) — à ajuster si besoin. Coordonnées ({request.contactName}, {request.phone}) reportées automatiquement sur la demande créée.</p>
+          {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
           <div className="flex flex-wrap gap-2">
-            <button type="submit" disabled={pending} className="btn-primary whitespace-nowrap">{pending ? "Conversion…" : "Créer la demande"} <ArrowRight size={14} /></button>
-            <button type="button" onClick={() => setOpen(false)} className="btn-secondary whitespace-nowrap">Annuler</button>
+            <Button type="submit" disabled={pending} size="sm">{pending ? "Conversion…" : "Créer la demande"} <ArrowRight /></Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>Annuler</Button>
           </div>
         </form>
       )}
@@ -483,6 +624,7 @@ function IncomingMessageRow({
   const [description, setDescription] = useState(message.body);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const meta = channelMeta[message.channel];
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -512,55 +654,51 @@ function IncomingMessageRow({
   };
 
   return (
-    <article className="p-4 lg:p-5">
-      <div className="grid gap-4 lg:grid-cols-[1fr_170px_auto] lg:items-start">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="size-2 rounded-full bg-[#d8951a]" />
-            <p className="text-[10px] font-black uppercase tracking-[.08em] text-[#7a8e94]">{messageChannelLabel[message.channel]} · {message.territoryHint ?? "Territoire non précisé"}</p>
+    <article className="py-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-1 gap-3">
+          <Badge variant="marine" className="mt-0.5 shrink-0"><meta.icon size={12} /> {messageChannelLabel[message.channel]}</Badge>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">{message.reportedBy}{message.territoryHint ? ` · ${message.territoryHint}` : ""}</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">{message.body}</p>
           </div>
-          <p className="mt-1.5 font-black">{message.reportedBy}</p>
-          <p className="mt-1 text-sm leading-6 text-[#526970]">{message.body}</p>
         </div>
-        <div>
-          <p className="text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Reçu le</p>
-          <p className="mt-1 text-sm font-bold">{new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(message.receivedAt))}</p>
-          <p className="mt-2 text-[9px] font-black uppercase tracking-[.09em] text-[#8a9a9e]">Canal</p>
-          <p className="mt-1 text-sm font-bold text-[#075568]">{messageChannelLabel[message.channel]}</p>
+        <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end">
+          <span className="text-xs font-semibold text-muted-foreground">{formatAge(message.receivedAt)}</span>
+          {!open && <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Convertir <ArrowRight /></Button>}
         </div>
-        {!open && <button type="button" onClick={() => setOpen(true)} className="btn-secondary whitespace-nowrap">Convertir en signal <ArrowRight size={14} /></button>}
       </div>
 
       {open && (
-        <form onSubmit={submit} className="mt-4 space-y-3 rounded-xl border border-[#d0ddde] bg-[#f8fbfa] p-4">
+        <form onSubmit={submit} className="mt-4 space-y-3 rounded-lg border bg-card p-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <label className="block text-xs font-bold text-[#526970]">
+            <label className="block text-xs font-semibold text-muted-foreground">
               Territoire
-              <select required value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold">
+              <select required value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
                 <option value="">À choisir…</option>
                 {state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </label>
-            <label className="block text-xs font-bold text-[#526970]">
+            <label className="block text-xs font-semibold text-muted-foreground">
               Catégorie
-              <select value={category} onChange={(event) => setCategory(event.target.value as Signal["category"])} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold">
+              <select value={category} onChange={(event) => setCategory(event.target.value as Signal["category"])} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
                 {Object.entries(signalCategoryLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </label>
-            <label className="block text-xs font-bold text-[#526970]">
+            <label className="block text-xs font-semibold text-muted-foreground">
               Titre du signal
-              <input required value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1.5 h-10 w-full rounded-lg border border-[#d0ddde] bg-white px-3 text-sm font-semibold" placeholder="Ex. Production de glace ralentie au quai" />
+              <input required value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground" placeholder="Ex. Production de glace ralentie au quai" />
             </label>
           </div>
-          <label className="block text-xs font-bold text-[#526970]">
+          <label className="block text-xs font-semibold text-muted-foreground">
             Description
-            <textarea required rows={3} value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1.5 w-full rounded-lg border border-[#d0ddde] bg-white px-3 py-2 text-sm font-semibold" />
+            <textarea required rows={3} value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm font-semibold text-foreground" />
           </label>
-          <p className="text-[11px] text-[#8a9a9e]">Description pré-remplie à partir du message — à ajuster si besoin. Aucune catégorie n’est déduite automatiquement : c’est un choix du coordinateur à la conversion.</p>
-          {error && <p className="text-xs font-bold text-[#c65242]">{error}</p>}
+          <p className="text-[11px] text-muted-foreground">Description pré-remplie à partir du message — à ajuster si besoin. Aucune catégorie n’est déduite automatiquement : c’est un choix du coordinateur à la conversion.</p>
+          {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
           <div className="flex flex-wrap gap-2">
-            <button type="submit" disabled={pending} className="btn-primary whitespace-nowrap">{pending ? "Conversion…" : "Créer le signal"} <ArrowRight size={14} /></button>
-            <button type="button" onClick={() => setOpen(false)} className="btn-secondary whitespace-nowrap">Annuler</button>
+            <Button type="submit" disabled={pending} size="sm">{pending ? "Conversion…" : "Créer le signal"} <ArrowRight /></Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>Annuler</Button>
           </div>
         </form>
       )}
