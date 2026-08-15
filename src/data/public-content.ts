@@ -399,6 +399,73 @@ export const publicNews: PublicNewsItem[] = [
     publishedAt: "20 août 2026",
     readingTime: "7 min",
     verification: "Démonstration éditoriale"
+  },
+  {
+    id: "guide-circuit-court",
+    category: "Guide",
+    domain: "Durabilité & environnement",
+    title: "Circuit court : quand rapprocher débarquement, transformation et débouché crée vraiment de la valeur",
+    excerpt: "Un circuit court n'est utile que s'il réduit réellement les délais, les pertes ou les coûts de coordination — pas simplement parce qu'il compte moins d'intermédiaires.",
+    body: [
+      "Un circuit court n'est pas simplement un trajet avec moins de kilomètres ou moins d'intermédiaires.",
+      "Il devient utile lorsque le rapprochement entre débarquement, transformation, conservation et acheteur réduit réellement les délais, les pertes ou les coûts de coordination.",
+      "Avant de vouloir raccourcir un circuit, il faut donc comprendre qui intervient, quelle valeur chaque acteur apporte et où se situent les ruptures actuelles."
+    ],
+    cta: { label: "Décrire mon circuit actuel", href: "/solutions" },
+    territory: "Sénégal",
+    publishedAt: "21 août 2026",
+    readingTime: "5 min",
+    verification: "Démonstration éditoriale"
+  },
+  {
+    id: "analyse-pertes-ressource",
+    category: "Analyse",
+    domain: "Durabilité & environnement",
+    title: "Moins perdre pour moins prélever : relier pertes post-capture et pression sur la ressource",
+    excerpt: "Réduire les pertes post-capture permet d'abord de mieux utiliser ce qui a déjà été capturé, avant même de chercher à augmenter les volumes débarqués.",
+    body: [
+      "Lorsqu'une partie des captures perd de la valeur faute de glace, de débouché, de transport ou de coordination, augmenter les volumes débarqués ne résout pas nécessairement le problème.",
+      "Réduire les pertes permet d'abord de mieux utiliser ce qui a déjà été capturé.",
+      "L'enjeu est donc d'identifier précisément où la valeur disparaît avant de chercher à augmenter la capacité."
+    ],
+    cta: { label: "Décrire une situation de perte", href: "/solutions?intent=conservation" },
+    territory: "Sénégal",
+    publishedAt: "22 août 2026",
+    readingTime: "6 min",
+    verification: "Démonstration éditoriale"
+  },
+  {
+    id: "comprendre-provenance",
+    category: "Comprendre",
+    domain: "Durabilité & environnement",
+    title: "Provenance : quelles informations faut-il réellement conserver du débarquement au débouché ?",
+    excerpt: "Documenter une provenance utile ne veut pas dire afficher une traçabilité parfaite, mais savoir précisément quelles étapes sont suivies et où la continuité se rompt.",
+    body: [
+      "Documenter une provenance utile commence par quelques liens simples : sortie, embarcation, débarquement, lot et destination.",
+      "L'objectif n'est pas d'afficher une traçabilité parfaite lorsque l'information manque, mais de savoir quelles étapes sont documentées, lesquelles ne le sont pas et où la continuité se rompt."
+    ],
+    cta: { label: "Comprendre mon besoin de traçabilité", href: "/solutions" },
+    territory: "Sénégal",
+    publishedAt: "23 août 2026",
+    readingTime: "5 min",
+    verification: "Démonstration éditoriale"
+  },
+  {
+    id: "guide-coproduits",
+    category: "Guide",
+    domain: "Durabilité & environnement",
+    title: "Coproduits de poisson : identifier ce qui peut être valorisé avant de parler de déchet",
+    excerpt: "Têtes, arêtes et peaux ne deviennent une activité viable qu'après avoir cartographié les flux disponibles, leur régularité et leurs débouchés — pas avant.",
+    body: [
+      "Têtes, arêtes, peaux et autres fractions issues de la transformation ne constituent pas automatiquement une nouvelle activité rentable.",
+      "Avant d'investir, il faut identifier les flux réellement disponibles, leur régularité, leurs conditions de collecte et de conservation, puis les débouchés possibles.",
+      "La valorisation commence donc par une cartographie du flux, pas par l'achat d'un équipement."
+    ],
+    cta: { label: "Décrire un besoin de valorisation", href: "/solutions" },
+    territory: "Sénégal",
+    publishedAt: "24 août 2026",
+    readingTime: "6 min",
+    verification: "Démonstration éditoriale"
   }
 ];
 

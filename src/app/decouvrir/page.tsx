@@ -35,6 +35,16 @@ const entryTopics = [
   { title: "Financer une intervention", text: "Commencer par documenter le problème, les bénéficiaires et le résultat attendu.", icon: Handshake, href: "/decouvrir/comprendre-financement" }
 ];
 
+// Bande éditoriale "Durabilité en pratique" (arbitrage CEO, paquet éditorial
+// durabilité/circuit court) : pas une 7e Card dans la grille entryTopics
+// ci-dessus — une bande horizontale sobre distincte, juste après.
+const durabiliteLinks = [
+  { label: "Circuit court", href: "/decouvrir/guide-circuit-court" },
+  { label: "Pertes & ressource", href: "/decouvrir/analyse-pertes-ressource" },
+  { label: "Provenance", href: "/decouvrir/comprendre-provenance" },
+  { label: "Coproduits", href: "/decouvrir/guide-coproduits" }
+];
+
 export default function DiscoverPage() {
   const featured = publicNews.slice(0, 5);
   const lead = featured[0];
@@ -64,6 +74,22 @@ export default function DiscoverPage() {
               <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Explorer <ArrowRight size={14} className="transition group-hover:translate-x-1"/></span>
             </Link>
           ))}
+        </div>
+      </section>
+
+      <section className="border-y border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)] px-5 py-10 md:px-10">
+        <div className="mx-auto flex max-w-[1500px] flex-col gap-6 md:flex-row md:items-start md:justify-between md:gap-12">
+          <div className="max-w-xl">
+            <p className="pub-eyebrow">Durabilité en pratique</p>
+            <h2 className="pub-display mt-3 text-[1.7rem] not-italic leading-[1.08] text-[var(--pub-deep-900)] md:text-[2.1rem]">Agir sur les flux avant de promettre un impact.</h2>
+            <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Circuit court, pertes, provenance et coproduits : quatre lectures concrètes pour identifier où une meilleure organisation peut préserver de la valeur, rendre les flux plus lisibles et éviter les réponses environnementales déconnectées du terrain.</p>
+          </div>
+          <div className="flex flex-col gap-2.5 md:shrink-0 md:pt-1">
+            {durabiliteLinks.map((item) => (
+              <Link key={item.href} href={item.href} className="group inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)] transition hover:text-[var(--pub-turquoise-500)]">{item.label} <ArrowRight size={14} className="transition group-hover:translate-x-1"/></Link>
+            ))}
+            <Link href="/decouvrir/domaine/durabilite-environnement" className="mt-1.5 inline-flex items-center gap-2 text-xs font-semibold text-[var(--pub-stone-500)] transition hover:text-[var(--pub-deep-800)]">Voir tous les contenus Durabilité & environnement <ArrowRight size={12}/></Link>
+          </div>
         </div>
       </section>
 
