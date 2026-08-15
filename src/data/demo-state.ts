@@ -89,21 +89,26 @@ export function createDemoState(): ProductState {
     ["elinkine", "Elinkine", "Ziguinchor", 12.50, -16.67, "stable"]
   ] as const;
 
+  // networkStatus (gap analysis "adhérent / non-adhérent", arbitrage CEO
+  // 2026-08-15) : posé explicitement à "libre" sur toutes les organisations
+  // de démonstration — c'est le comportement actuel (gratuit, sans
+  // distinction), rendu visible dans les données plutôt que laissé implicite
+  // via l'absence du champ. Aucun consommateur de ce champ dans ce lot.
   const organizations: ProductState["organizations"] = [
-    { id: "org-capitaines", name: "Collectif des capitaines de Joal", type: "organisation_professionnelle" },
-    { id: "org-mareyeurs", name: "GIE des mareyeurs de la Petite-Côte", type: "organisation_professionnelle" },
-    { id: "org-transform", name: "Unité de transformation Naatangué", type: "entreprise" },
-    { id: "org-froid", name: "Froid Sénégal Services", type: "entreprise" },
-    { id: "org-site", name: "Gestion des quais pilotes", type: "collectivite" },
-    { id: "org-coordination", name: "Cellule nationale de coordination", type: "service_public" },
-    { id: "org-partner", name: "Partenaire résilience littorale", type: "partenaire" },
-    { id: "org-grande-cote", name: "Union professionnelle de la Grande-Côte", type: "organisation_professionnelle" },
-    { id: "org-cap-vert", name: "Réseau des sites du Cap-Vert", type: "collectivite" },
-    { id: "org-saloum", name: "Plateforme de valorisation du Sine-Saloum", type: "entreprise" },
-    { id: "org-casamance", name: "Alliance halieutique de Casamance", type: "organisation_professionnelle" },
-    { id: "org-finance", name: "Facilité bleue de cofinancement", type: "partenaire" },
-    { id: "org-logistique", name: "Littoral Logistique Froid", type: "entreprise" },
-    { id: "org-mb", name: "Mbàmbulaan Ops", type: "entreprise" }
+    { id: "org-capitaines", name: "Collectif des capitaines de Joal", type: "organisation_professionnelle", networkStatus: "libre" },
+    { id: "org-mareyeurs", name: "GIE des mareyeurs de la Petite-Côte", type: "organisation_professionnelle", networkStatus: "libre" },
+    { id: "org-transform", name: "Unité de transformation Naatangué", type: "entreprise", networkStatus: "libre" },
+    { id: "org-froid", name: "Froid Sénégal Services", type: "entreprise", networkStatus: "libre" },
+    { id: "org-site", name: "Gestion des quais pilotes", type: "collectivite", networkStatus: "libre" },
+    { id: "org-coordination", name: "Cellule nationale de coordination", type: "service_public", networkStatus: "libre" },
+    { id: "org-partner", name: "Partenaire résilience littorale", type: "partenaire", networkStatus: "libre" },
+    { id: "org-grande-cote", name: "Union professionnelle de la Grande-Côte", type: "organisation_professionnelle", networkStatus: "libre" },
+    { id: "org-cap-vert", name: "Réseau des sites du Cap-Vert", type: "collectivite", networkStatus: "libre" },
+    { id: "org-saloum", name: "Plateforme de valorisation du Sine-Saloum", type: "entreprise", networkStatus: "libre" },
+    { id: "org-casamance", name: "Alliance halieutique de Casamance", type: "organisation_professionnelle", networkStatus: "libre" },
+    { id: "org-finance", name: "Facilité bleue de cofinancement", type: "partenaire", networkStatus: "libre" },
+    { id: "org-logistique", name: "Littoral Logistique Froid", type: "entreprise", networkStatus: "libre" },
+    { id: "org-mb", name: "Mbàmbulaan Ops", type: "entreprise", networkStatus: "libre" }
   ];
 
   const actors: ProductState["actors"] = [

@@ -58,6 +58,20 @@ export interface Organization {
     | "organisation_professionnelle"
     | "entreprise"
     | "partenaire";
+  // Gap analysis "adhérent / non-adhérent" (arbitrage CEO 2026-08-15) :
+  // distinction posée dès maintenant dans le modèle pour un futur moteur de
+  // rapprochement qui priorisera/filtrera selon ce statut — aucun moteur de
+  // ce type n'existe aujourd'hui (Opportunity.score/reasons restent des
+  // données de démonstration figées), donc ce champ n'a delibérément aucun
+  // consommateur pour l'instant : pas de badge, pas de filtre, pas d'effet
+  // sur les commandes existantes. Absent = "libre" (comportement actuel,
+  // gratuit) partout où le champ n'est pas renseigné. Niveau Organisation
+  // (réutilise l'ancrage déjà existant de Subscription/Plan) plutôt
+  // qu'Acteur — un éventuel besoin d'exception individuelle (un acteur
+  // isolé au sein d'une organisation par ailleurs libre/adhérente) resterait
+  // à modéliser séparément si un vrai cas apparaît, volontairement pas
+  // anticipé ici.
+  networkStatus?: "libre" | "adherent";
 }
 
 export interface Territory {
