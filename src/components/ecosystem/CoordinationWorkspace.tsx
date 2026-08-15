@@ -124,7 +124,7 @@ function formatAge(iso: string) {
 }
 
 export function CoordinationWorkspace() {
-  const { state } = useProduct();
+  const { state, actorId: sessionActorId, role } = useProduct();
   const [view, setView] = useState<View>("besoins");
   const [territoryId, setTerritoryId] = useState("all");
   const [query, setQuery] = useState("");
@@ -359,6 +359,17 @@ export function CoordinationWorkspace() {
                 const need = state.serviceRequests.find((item) => item.id === opportunity.serviceRequestId);
                 const species = state.species.find((item) => item.id === lot?.speciesId);
                 const territory = state.territories.find((item) => item.id === opportunity.territoryId);
+                // Relais généralisé, tranche 1/N (arbitrage CEO 2026-08-15) :
+                // le bénéficiaire réel n'est jamais ambigu pour ces deux
+                // commandes — c'est toujours l'acteur qui porte le besoin
+                // (need.actorId). Pas de sélecteur : dès qu'un rôle relais
+                // (opérateur/coordinateur/administrateur) valide au nom d'un
+                // acteur autre que lui-même, onBehalfOfActorId se déduit
+                // automatiquement plutôt que de demander un choix qui n'en
+                // est pas un.
+                const canRelay = need && need.actorId !== sessionActorId && (["operateur", "coordinateur", "administrateur"] as const).includes(role as "operateur" | "coordinateur" | "administrateur");
+                const beneficiary = canRelay ? state.actors.find((item) => item.id === need!.actorId) : undefined;
+                const onBehalfOfActorId = beneficiary?.id;
                 return (
                   <Card key={opportunity.id}>
                     <CardContent className="p-5 lg:p-6">
@@ -373,9 +384,10 @@ export function CoordinationWorkspace() {
                         {opportunity.reasons.map((reason) => <p key={reason} className="flex items-start gap-2 text-sm text-muted-foreground"><CheckCircle2 size={14} className="mt-0.5 shrink-0 text-[#1d8a5f]" /> {reason}</p>)}
                       </div>
                       <p className="mt-4 text-xs leading-5 text-muted-foreground">Le score explique le rapprochement ; il ne décide jamais à la place des acteurs.</p>
+                      {beneficiary && <p className="mt-2 text-xs font-semibold text-[#b6522f]">Vous agissez pour le compte de {beneficiary.name}.</p>}
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {["detectee", "proposee"].includes(opportunity.status) && <CommandButton command={{ type: "accept_opportunity", opportunityId: opportunity.id }}>Valider l’engagement</CommandButton>}
-                        {opportunity.status === "engagee" && <CommandButton command={{ type: "complete_logistics", opportunityId: opportunity.id }}>Confirmer le résultat</CommandButton>}
+                        {["detectee", "proposee"].includes(opportunity.status) && <CommandButton command={{ type: "accept_opportunity", opportunityId: opportunity.id, onBehalfOfActorId }}>{beneficiary ? "Valider l’engagement pour lui" : "Valider l’engagement"}</CommandButton>}
+                        {opportunity.status === "engagee" && <CommandButton command={{ type: "complete_logistics", opportunityId: opportunity.id, onBehalfOfActorId }}>{beneficiary ? "Confirmer le résultat pour lui" : "Confirmer le résultat"}</CommandButton>}
                         {opportunity.status === "executee" && <Badge variant="success"><CheckCircle2 size={13} /> Résultat enregistré</Badge>}
                       </div>
                     </CardContent>

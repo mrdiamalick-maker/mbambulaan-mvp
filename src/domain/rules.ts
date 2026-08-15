@@ -242,6 +242,17 @@ function applyOpportunityCommand(state: ProductState, command: Extract<Command, 
   const serviceRequest = state.serviceRequests.find((item) => item.id === opportunity.serviceRequestId);
   if (!lot || !serviceRequest) throw new Error("Les objets liés à l’opportunité sont incomplets.");
 
+  // onBehalfOfActorId (relais, tranche 1/N — voir Command) : quand renseigné,
+  // c'est le bénéficiaire réel (mareyeur/transformateur) qui doit apparaître
+  // partout où l'ancien code supposait à tort que command.actorId EST le
+  // bénéficiaire — participantIds et le commitment de collecte ci-dessous.
+  // command.actorId (le relais) reste seul porté par withAudit : l'audit
+  // trace qui a techniquement exécuté, jamais falsifié.
+  const beneficiaryId = command.onBehalfOfActorId ?? command.actorId;
+  const beneficiary = command.onBehalfOfActorId ? state.actors.find((item) => item.id === command.onBehalfOfActorId) : undefined;
+  if (command.onBehalfOfActorId && !beneficiary) throw new Error("Acteur bénéficiaire introuvable.");
+  const relayDetail = beneficiary ? ` pour le compte de ${beneficiary.name}` : "";
+
   if (command.type === "accept_opportunity") {
     if (!["detectee", "proposee"].includes(opportunity.status)) throw new Error("Cette opportunité est déjà engagée.");
     const coordinationId = `coord-${opportunity.id}`;
@@ -263,11 +274,11 @@ function applyOpportunityCommand(state: ProductState, command: Extract<Command, 
           id: coordinationId,
           opportunityId: opportunity.id,
           title: "Mise en relation qualifiée",
-          participantIds: [serviceRequest.actorId, command.actorId, "act-coordinateur"],
+          participantIds: [...new Set([serviceRequest.actorId, beneficiaryId, "act-coordinateur"])],
           objective: `Orienter ${serviceRequest.quantityKg} kg vers ${serviceRequest.intent}`,
           decision: "Conditions acceptées sous réserve du contrôle final de qualité",
           commitments: [
-            { id: id("eng"), actorId: command.actorId, label: "Organiser la collecte", dueAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), status: "a_faire" as const }
+            { id: id("eng"), actorId: beneficiaryId, label: "Organiser la collecte", dueAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), status: "a_faire" as const }
           ],
           risks: ["Retard logistique", "Évolution de la qualité"],
           nextReviewAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
@@ -275,7 +286,7 @@ function applyOpportunityCommand(state: ProductState, command: Extract<Command, 
         ...state.coordinationSpaces
       ]
     };
-    return withAudit(next, command.actorId, "opportunite", opportunity.id, command.type, "Engagement accepté et coordination créée");
+    return withAudit(next, command.actorId, "opportunite", opportunity.id, command.type, `Engagement accepté${relayDetail} et coordination créée`);
   }
 
   if (opportunity.status !== "engagee") throw new Error("L’opportunité doit être engagée avant l’exécution.");
@@ -300,7 +311,7 @@ function applyOpportunityCommand(state: ProductState, command: Extract<Command, 
         : space
     )
   };
-  return withAudit(next, command.actorId, "opportunite", opportunity.id, command.type, `${serviceRequest.quantityKg} kg orientés et résultat enregistré`);
+  return withAudit(next, command.actorId, "opportunite", opportunity.id, command.type, `${serviceRequest.quantityKg} kg orientés et résultat enregistré${relayDetail}`);
 }
 
 function applyCommunityCommand(state: ProductState, command: Extract<Command, { type: "create_community_post" | "convert_post" }>) {

@@ -35,6 +35,19 @@ test("la conversion d'un message entrant en signal suit le même mandat que crea
   assert.throws(() => assertCan("partenaire", command), /mandat/);
 });
 
+test("relais généralisé (tranche 1/N) : seuls opérateur/coordinateur/administrateur peuvent agir pour le compte d'un autre acteur", () => {
+  const relayed = { type: "accept_opportunity" as const, opportunityId: "opp-1", actorId: "act-operateur", onBehalfOfActorId: "act-mareyeur" };
+  assert.doesNotThrow(() => assertCan("operateur", relayed));
+  assert.doesNotThrow(() => assertCan("coordinateur", { ...relayed, actorId: "act-coordinateur" }));
+  assert.doesNotThrow(() => assertCan("administrateur", { ...relayed, actorId: "act-admin" }));
+  assert.throws(
+    () => assertCan("mareyeur", { ...relayed, actorId: "act-mareyeur-nord" }),
+    /mandat.*pour le compte/
+  );
+  // Sans onBehalfOfActorId, le mandat mareyeur normal (agir en son nom propre) reste inchangé.
+  assert.doesNotThrow(() => assertCan("mareyeur", { type: "accept_opportunity", opportunityId: "opp-1", actorId: "act-mareyeur" }));
+});
+
 test("créer un programme (besoin collectif) reste réservé aux mandats de coordination (Lot 5)", () => {
   const command = {
     type: "create_initiative" as const,

@@ -710,8 +710,16 @@ export type Command =
   | { type: "record_landing"; tripId: string; actorId: string }
   | { type: "confirm_weighing"; landingId: string; actorId: string }
   | { type: "create_lots"; landingId: string; actorId: string }
-  | { type: "accept_opportunity"; opportunityId: string; actorId: string }
-  | { type: "complete_logistics"; opportunityId: string; actorId: string }
+      // onBehalfOfActorId (gap analysis "relais généralisé", arbitrage CEO
+      // 2026-08-15, tranche 1/N — accept_opportunity/complete_logistics
+      // uniquement dans ce lot) : référence réelle vers un Actor déjà doté
+      // d'un compte, mais qui n'utilise pas l'interface à ce moment précis
+      // — distinct de Signal.reportedBy (texte libre, pour un déclarant qui
+      // peut ne pas exister comme Actor). actorId reste épinglé côté
+      // serveur à la session qui exécute (src/app/api/actions/route.ts) et
+      // continue de désigner le relais, jamais le bénéficiaire.
+  | { type: "accept_opportunity"; opportunityId: string; actorId: string; onBehalfOfActorId?: string }
+  | { type: "complete_logistics"; opportunityId: string; actorId: string; onBehalfOfActorId?: string }
   | { type: "create_community_post"; actorId: string; territoryId: string; category: CommunityPost["category"]; title: string; body: string }
   | { type: "convert_post"; postId: string; actorId: string }
   | { type: "flag_price"; priceId: string; actorId: string }

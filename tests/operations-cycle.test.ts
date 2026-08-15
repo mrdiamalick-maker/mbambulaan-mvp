@@ -35,6 +35,45 @@ test("le parcours pirogue produit des lots, une opportunité, un engagement et u
   assert.ok(state.audit.some((item) => item.action === "complete_logistics"));
 });
 
+test("relais généralisé (tranche 1/N) : un opérateur peut accepter/finaliser une opportunité pour le compte du mareyeur bénéficiaire", () => {
+  let state = createDemoState();
+  const opportunity = state.opportunities[0];
+  assert.ok(opportunity);
+  const serviceRequest = state.serviceRequests.find((item) => item.id === opportunity.serviceRequestId);
+  assert.ok(serviceRequest);
+  const beneficiaryId = serviceRequest.actorId;
+
+  // L'opérateur (act-operateur) exécute, jamais le bénéficiaire — actorId
+  // reste le relais, onBehalfOfActorId porte le vrai bénéficiaire.
+  state = applyCommand(state, { type: "accept_opportunity", opportunityId: opportunity.id, actorId: "act-operateur", onBehalfOfActorId: beneficiaryId });
+  assert.equal(state.opportunities.find((item) => item.id === opportunity.id)?.status, "engagee");
+
+  const space = state.coordinationSpaces.find((item) => item.opportunityId === opportunity.id);
+  assert.ok(space);
+  // Le bénéficiaire réel est participant et responsable de l'engagement — pas le relais.
+  assert.ok(space.participantIds.includes(beneficiaryId));
+  assert.equal(space.commitments[0].actorId, beneficiaryId);
+
+  const acceptAudit = state.audit.find((item) => item.action === "accept_opportunity" && item.objectId === opportunity.id);
+  assert.ok(acceptAudit);
+  assert.equal(acceptAudit.actorId, "act-operateur");
+  assert.ok(acceptAudit.detail.includes("pour le compte de"));
+
+  state = applyCommand(state, { type: "complete_logistics", opportunityId: opportunity.id, actorId: "act-operateur", onBehalfOfActorId: beneficiaryId });
+  assert.equal(state.opportunities.find((item) => item.id === opportunity.id)?.status, "executee");
+  const completeAudit = state.audit.find((item) => item.action === "complete_logistics" && item.objectId === opportunity.id);
+  assert.ok(completeAudit?.detail.includes("pour le compte de"));
+});
+
+test("relais généralisé : un bénéficiaire inexistant est rejeté explicitement", () => {
+  const state = createDemoState();
+  const opportunity = state.opportunities[0];
+  assert.throws(
+    () => applyCommand(state, { type: "accept_opportunity", opportunityId: opportunity.id, actorId: "act-operateur", onBehalfOfActorId: "act-inexistant" }),
+    /introuvable/
+  );
+});
+
 test("Community devient une situation sans dupliquer le domaine", () => {
   let state = createDemoState();
   state = applyCommand(state, {
