@@ -6,7 +6,6 @@ import {
   Anchor,
   ArrowRight,
   ChevronDown,
-  Compass,
   Factory,
   Fish,
   MapPin,
@@ -17,19 +16,9 @@ import { publicTerritories } from "@/data/public-atlas";
 import { trackPublicEvent } from "@/lib/public-analytics";
 import { BlurFade } from "@/components/magicui/blur-fade";
 
-type PublicView = "portrait" | "activites" | "capacites" | "produits";
-
-const views = [
-  { id: "portrait" as const, label: "Portrait", icon: Compass },
-  { id: "activites" as const, label: "Activités", icon: Waves },
-  { id: "capacites" as const, label: "Services", icon: Factory },
-  { id: "produits" as const, label: "Espèces & produits", icon: Fish }
-];
-
 export function PublicAtlasWorkspace() {
   const [region, setRegion] = useState("all");
   const [selectedId, setSelectedId] = useState("joal");
-  const [view, setView] = useState<PublicView>("portrait");
 
   const regions = [...new Set(publicTerritories.map((item) => item.region))].sort((a, b) => a.localeCompare(b, "fr"));
   const territories = region === "all" ? publicTerritories : publicTerritories.filter((item) => item.region === region);
@@ -65,14 +54,6 @@ export function PublicAtlasWorkspace() {
             <span className="relative flex min-w-48 items-center rounded-xl border border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)] text-[var(--pub-deep-800)]"><Anchor size={15} className="ml-3 shrink-0"/><select aria-label="Choisir un territoire" value={territory.id} onChange={(event) => selectTerritory(event.target.value)} className="min-h-11 w-full appearance-none bg-transparent px-2 pr-8 text-sm font-semibold outline-none">{territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><ChevronDown size={14} className="pointer-events-none absolute right-3"/></span>
           </label>
         </div>
-      </div>
-
-      <div className="flex gap-1 overflow-x-auto border-b border-[var(--pub-stone-150)] bg-[var(--pub-surface)] p-2" role="group" aria-label="Choisir une lecture publique">
-        {views.map(({ id, label, icon: Icon }) => (
-          <button key={id} type="button" onClick={() => setView(id)} aria-pressed={view === id} className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-bold transition ${view === id ? "bg-[var(--pub-deep-800)] text-white shadow-sm" : "text-[var(--pub-stone-700)] hover:bg-white"}`}>
-            <Icon size={16}/><span>{label}</span>
-          </button>
-        ))}
       </div>
 
       <div className="grid min-h-[620px] lg:grid-cols-[1.08fr_.92fr]">
@@ -168,20 +149,52 @@ export function PublicAtlasWorkspace() {
           <p className="pointer-events-none absolute bottom-4 left-5 z-10 text-[10px] font-semibold uppercase tracking-[.08em] text-white/45">Représentation illustrative · couverture en enrichissement</p>
         </div>
 
-        <BlurFade key={`${territory.id}-${view}`} className="flex min-h-full flex-col bg-white">
+        {/* L4 (mandat CEO, audit L4.1-L4.14) : fiche territoriale verticale
+            continue — plus de tabs Portrait/Activités/Services/Espèces,
+            plus de state view. Hiérarchie de lecture fixe : Identité →
+            En bref → Activités → Services → Espèces & produits → Source
+            & couverture → CTA. */}
+        <BlurFade key={territory.id} className="flex min-h-full flex-col bg-white">
           <div className="border-b border-[var(--pub-stone-150)] p-6 md:p-8">
-            <p className="pub-eyebrow">{views.find((item) => item.id === view)?.label}</p>
-            <h2 className="pub-display mt-3 text-[2.35rem] not-italic leading-none text-[var(--pub-deep-900)] md:text-[3rem]">{territory.name}</h2>
+            <h2 className="pub-display text-[2.35rem] not-italic leading-none text-[var(--pub-deep-900)] md:text-[3rem]">{territory.name}</h2>
             <p className="mt-3 text-sm font-semibold text-[var(--pub-stone-500)]">{territory.region}{territory.department ? ` · ${territory.department}` : ""} · {territory.type}</p>
+            <p className="mt-4 text-base leading-7 text-[var(--pub-stone-700)]">{territory.description}</p>
           </div>
 
           <div className="flex-1 p-6 md:p-8">
-            {view === "portrait" && <><p className="text-base leading-7 text-[var(--pub-stone-700)]">{territory.description}</p><div className="mt-7 grid gap-3"><p className="flex items-center gap-3 rounded-xl bg-[var(--pub-ivory-100)] p-3 text-sm font-semibold text-[var(--pub-deep-800)]"><Anchor size={16}/> Niveau de couverture : {territory.verification}</p><p className="flex items-center gap-3 rounded-xl bg-[var(--pub-ivory-100)] p-3 text-sm font-semibold text-[var(--pub-deep-800)]"><Factory size={16}/> {territory.documentedServices.length} service(s) documenté(s)</p>{territory.species && <p className="flex items-center gap-3 rounded-xl bg-[var(--pub-ivory-100)] p-3 text-sm font-semibold text-[var(--pub-deep-800)]"><Fish size={16}/> {territory.species.length} espèce(s) représentée(s)</p>}</div></>}
-            {view === "activites" && <><p className="text-sm leading-6 text-[var(--pub-stone-700)]">Grandes activités documentées, sans métriques opérationnelles privées.</p><div className="mt-6 flex flex-wrap gap-2">{territory.activities.map((activity) => <span key={activity} className="inline-flex items-center gap-2 rounded-full border border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)] px-3 py-2 text-sm font-semibold text-[var(--pub-deep-800)]"><Waves size={14}/>{activity}</span>)}</div></>}
-            {view === "capacites" && <><p className="text-sm leading-6 text-[var(--pub-stone-700)]">Catégories de services documentés ; elles ne constituent ni une disponibilité instantanée ni une garantie commerciale.</p><div className="mt-6 grid gap-3">{territory.documentedServices.length ? territory.documentedServices.map((item) => <p key={item} className="flex items-center gap-3 rounded-xl bg-[var(--pub-ivory-100)] p-3 text-sm font-semibold text-[var(--pub-deep-800)]"><Factory size={15}/>{item}</p>) : <p className="text-sm">Capacités à documenter</p>}</div></>}
-            {view === "produits" && <><p className="text-sm leading-6 text-[var(--pub-stone-700)]">Espèces ou produits représentés publiquement, sans quantités débarquées.</p><div className="mt-6 flex flex-wrap gap-2">{territory.species?.length ? territory.species.map((item) => <span key={item} className="inline-flex items-center gap-2 rounded-full border border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)] px-3 py-2 text-sm font-semibold text-[var(--pub-deep-800)]"><Fish size={14}/>{item}</span>) : <span className="text-sm">Informations à enrichir</span>}</div></>}
+            {/* En bref — registre compact, pas 3 Cards KPI. */}
+            <div className="divide-y divide-[var(--pub-stone-150)] border-y border-[var(--pub-stone-150)]">
+              <div className="flex items-center justify-between gap-3 py-3 text-sm"><span className="inline-flex items-center gap-2 font-semibold text-[var(--pub-stone-700)]"><Anchor size={15} className="text-[var(--pub-turquoise-500)]"/> Niveau de couverture</span><strong className="text-[var(--pub-deep-900)]">{territory.verification}</strong></div>
+              <div className="flex items-center justify-between gap-3 py-3 text-sm"><span className="inline-flex items-center gap-2 font-semibold text-[var(--pub-stone-700)]"><Factory size={15} className="text-[var(--pub-turquoise-500)]"/> Services documentés</span><strong className="text-[var(--pub-deep-900)]">{territory.documentedServices.length}</strong></div>
+              {territory.species && <div className="flex items-center justify-between gap-3 py-3 text-sm"><span className="inline-flex items-center gap-2 font-semibold text-[var(--pub-stone-700)]"><Fish size={15} className="text-[var(--pub-turquoise-500)]"/> Espèces représentées</span><strong className="text-[var(--pub-deep-900)]">{territory.species.length}</strong></div>}
+            </div>
 
-            <p className="mt-7 flex items-start gap-2 border-t border-[var(--pub-stone-150)] pt-5 text-xs leading-5 text-[var(--pub-stone-500)]"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-[var(--pub-turquoise-500)]"/> Source : {territory.source} · mise à jour {territory.updatedAt}. Les données opérationnelles individuelles restent hors de l’Atlas public.</p>
+            <div className="mt-8">
+              <h3 className="text-xs font-bold uppercase tracking-[.08em] text-[var(--pub-stone-500)]">Activités documentées</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--pub-stone-700)]">Grandes activités documentées, sans métriques opérationnelles privées.</p>
+              <div className="mt-4 flex flex-wrap gap-2">{territory.activities.map((activity) => <span key={activity} className="inline-flex items-center gap-2 rounded-full border border-[var(--pub-stone-150)] px-3 py-1.5 text-sm font-semibold text-[var(--pub-deep-800)]"><Waves size={13} className="text-[var(--pub-turquoise-500)]"/>{activity}</span>)}</div>
+            </div>
+
+            <div className="mt-8 border-t border-[var(--pub-stone-150)] pt-8">
+              <h3 className="text-xs font-bold uppercase tracking-[.08em] text-[var(--pub-stone-500)]">Services</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--pub-stone-700)]">Catégories de services documentés ; elles ne constituent ni une disponibilité instantanée ni une garantie commerciale.</p>
+              {territory.documentedServices.length ? (
+                <div className="mt-4 divide-y divide-[var(--pub-stone-150)] border-y border-[var(--pub-stone-150)]">{territory.documentedServices.map((item) => <div key={item} className="flex items-center gap-3 py-3 text-sm font-semibold text-[var(--pub-deep-800)]"><Factory size={15} className="shrink-0 text-[var(--pub-turquoise-500)]"/>{item}</div>)}</div>
+              ) : <p className="mt-4 text-sm text-[var(--pub-stone-500)]">Capacités à documenter</p>}
+            </div>
+
+            <div className="mt-8 border-t border-[var(--pub-stone-150)] pt-8">
+              <h3 className="text-xs font-bold uppercase tracking-[.08em] text-[var(--pub-stone-500)]">Espèces & produits</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--pub-stone-700)]">Espèces ou produits représentés publiquement, sans quantités débarquées.</p>
+              {territory.species?.length ? (
+                <div className="mt-4 flex flex-wrap gap-2">{territory.species.map((item) => <span key={item} className="inline-flex items-center gap-2 rounded-full border border-[var(--pub-stone-150)] px-3 py-1.5 text-sm font-semibold text-[var(--pub-deep-800)]"><Fish size={13} className="text-[var(--pub-turquoise-500)]"/>{item}</span>)}</div>
+              ) : <p className="mt-4 text-sm text-[var(--pub-stone-500)]">Informations à enrichir</p>}
+            </div>
+
+            <div className="mt-8 border-t border-[var(--pub-stone-150)] pt-8">
+              <h3 className="text-xs font-bold uppercase tracking-[.08em] text-[var(--pub-stone-500)]">Source & couverture</h3>
+              <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-[var(--pub-stone-500)]"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-[var(--pub-turquoise-500)]"/> Source : {territory.source} · mise à jour {territory.updatedAt}. Les données opérationnelles individuelles restent hors de l’Atlas public.</p>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-3 border-t border-[var(--pub-stone-150)] bg-[var(--pub-surface)] p-5 md:px-8">
