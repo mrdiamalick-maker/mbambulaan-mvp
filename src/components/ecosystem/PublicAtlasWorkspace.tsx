@@ -78,23 +78,94 @@ export function PublicAtlasWorkspace() {
       <div className="grid min-h-[620px] lg:grid-cols-[1.08fr_.92fr]">
         <div className="relative min-h-[520px] overflow-hidden border-b border-[var(--pub-stone-150)] bg-[var(--pub-deep-900)] lg:border-b-0 lg:border-r">
           <div className="absolute inset-0 opacity-90 [background-image:radial-gradient(circle_at_18%_18%,rgba(247,243,233,.08)_0_1px,transparent_1.5px)] [background-size:20px_20px]" />
-          <div className="absolute bottom-[-8%] left-[-12%] h-[112%] w-[58%] rounded-[42%_58%_40%_60%/30%_35%_65%_70%] bg-[var(--pub-ivory-200)] shadow-[18px_0_40px_rgba(0,0,0,.16)]" />
-          <div className="absolute left-5 top-5 z-10 rounded-xl border border-white/10 bg-[var(--pub-deep-800)]/90 px-4 py-3 text-white backdrop-blur-sm">
+
+          {/* Livrable 3 (DA, mandat Atlas Public) : silhouette calibrée du
+              littoral (docs/design-reference/senegal-coast-atlas.svg,
+              viewBox 0 0 1000 1400), reproduite ici en SVG natif plutôt
+              qu'en <img>/blob CSS. Les 20 marqueurs vivent dans le même
+              repère SVG que la silhouette (mapPosition, cf. public-atlas.ts)
+              : preserveAspectRatio="xMidYMid meet" garantit un alignement
+              exact quel que soit le ratio du panneau, sans les pièges de
+              synchronisation flex/pourcentage déjà rencontrés ailleurs
+              dans ce produit — pas de fond + overlay HTML séparés à
+              garder synchronisés. */}
+          <svg viewBox="0 0 1000 1400" preserveAspectRatio="xMidYMid meet" className="absolute inset-0 h-full w-full" role="img" aria-label="Carte illustrative du littoral sénégalais et de ses territoires documentés">
+            <title>Littoral du Sénégal — territoires documentés par Mbàmbulaan</title>
+            <defs>
+              <filter id="atlas-landmass-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="16" floodColor="#000" floodOpacity="0.28" /></filter>
+            </defs>
+            <g opacity="0.22" stroke="#f7f3e9" strokeWidth="1.5" fill="none" aria-hidden="true">
+              <path d="M75 210C165 165 245 155 320 175" /><path d="M60 245C155 198 240 190 315 208" /><path d="M52 280C150 232 235 225 310 242" />
+              <path d="M90 1110C185 1068 275 1062 355 1085" /><path d="M78 1145C175 1102 265 1098 348 1120" />
+            </g>
+            {/* Contour reconstruit mécaniquement le 2026-08-15 (cf.
+                docs/design-reference/senegal-coast-atlas.svg pour le
+                détail) : dérivé des 22 marqueurs (18 Pro + Bargny/
+                Ngaparou/Toubacouta/Ziguinchor), chacun décalé de 24
+                unités vers l'ouest. Le tracé DA d'origine passait à
+                l'intérieur des terres par rapport à sa propre ligne de
+                marqueurs (isPointInFill faux pour 15/18 des marqueurs
+                d'origine, y compris Joal) — vérifié à nouveau ici après
+                correction : les 22 marqueurs sont dans le remplissage. */}
+            <path
+              d="M 315 145 L 610 118 L 790 205 L 845 365 L 804 510 L 738 610 L 760 705 L 690 772 L 735 812 L 700 860 L 730 1015 L 680 1095 L 605 1140 L 520 1160 L 376 1135 L 341 1090 L 401 1055 L 311 1040 L 306 965 L 316 900 L 386 868 L 341 855 L 354 792 L 338 758 L 332 739 L 326 720 L 336 696 L 318 684 L 292 642 L 271 610 L 262 575 L 254 528 L 241 450 L 228 372 L 221 292 L 234 205 Z"
+              fill="var(--pub-ivory-200)"
+              stroke="var(--pub-deep-900)"
+              strokeOpacity="0.45"
+              strokeWidth="5"
+              strokeLinejoin="round"
+              filter="url(#atlas-landmass-shadow)"
+              aria-hidden="true"
+            />
+            <path d="M375 806 C450 792 515 800 625 820 C670 828 705 830 742 816" stroke="var(--pub-deep-900)" strokeOpacity="0.5" strokeWidth="22" strokeLinecap="round" aria-hidden="true" />
+            <path d="M234 205 L228 372 L254 528 L292 642 L326 720 L354 792 L316 900 L311 1040 L341 1090 L376 1135" fill="none" stroke="var(--pub-turquoise-500)" strokeOpacity="0.28" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" />
+
+            {territories.map((item) => {
+              const [x, y] = item.mapPosition;
+              const active = item.id === territory.id;
+              const activate = () => selectTerritory(item.id);
+              return (
+                <g
+                  key={item.id}
+                  transform={`translate(${x} ${y})`}
+                  className="group cursor-pointer outline-none"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Découvrir ${item.name}`}
+                  aria-pressed={active}
+                  onClick={activate}
+                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); activate(); } }}
+                >
+                  {/* Zone de clic/tap généreuse, invisible — le marqueur visuel
+                      (7-12 unités) est trop petit pour rester tapable une fois
+                      la carte réduite sur mobile. */}
+                  <circle r="30" fill="transparent" />
+                  {active && <circle r="19" fill="none" stroke="var(--pub-turquoise-500)" strokeOpacity="0.32" strokeWidth="3" className="pointer-events-none" />}
+                  <circle r={active ? 12 : 7} fill={active ? "var(--pub-turquoise-500)" : "var(--pub-deep-800)"} stroke="#fff" strokeWidth={active ? 3 : 2} className="pointer-events-none transition-[fill] group-hover:fill-[var(--pub-turquoise-500)] group-focus-visible:fill-[var(--pub-turquoise-500)]" />
+                  <text
+                    x={active ? 20 : 14}
+                    y="6"
+                    fontSize={active ? 20 : 17}
+                    fontWeight={active ? 700 : 600}
+                    fill={active ? "var(--pub-turquoise-500)" : "var(--pub-deep-900)"}
+                    paintOrder="stroke"
+                    stroke="var(--pub-ivory-200)"
+                    strokeWidth="5"
+                    strokeLinejoin="round"
+                    className={`pointer-events-none transition-opacity ${active ? "" : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"}`}
+                  >
+                    {item.name}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+
+          <div className="pointer-events-none absolute left-5 top-5 z-10 rounded-xl border border-white/10 bg-[var(--pub-deep-800)]/90 px-4 py-3 text-white backdrop-blur-sm">
             <div className="flex items-center gap-2 text-[var(--pub-turquoise-300)]"><Waves size={16}/><span className="text-[10px] font-black uppercase tracking-[.12em]">Océan Atlantique</span></div>
             <strong className="mt-1 block text-sm">Territoires de pêche artisanale</strong>
           </div>
-          <p className="absolute bottom-4 left-5 z-10 text-[10px] font-semibold uppercase tracking-[.08em] text-white/45">Représentation illustrative · couverture en enrichissement</p>
-
-          {territories.map((item) => {
-            const [left, top] = item.mapPosition;
-            const active = item.id === territory.id;
-            return (
-              <button key={item.id} type="button" onClick={() => selectTerritory(item.id)} style={{ left: `${left}%`, top: `${top}%` }} className="group absolute z-20 -translate-x-1/2 -translate-y-1/2" aria-label={`Découvrir ${item.name}`}>
-                <span className={`grid size-8 place-items-center rounded-full border-2 shadow-lg transition ${active ? "scale-110 border-[var(--pub-ivory-100)] bg-[var(--pub-turquoise-500)] text-white" : "border-white/80 bg-[var(--pub-deep-800)] text-white group-hover:bg-[var(--pub-turquoise-500)]"}`}><Anchor size={13}/></span>
-                <span className={`absolute left-9 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-left shadow-md transition ${active ? "bg-[var(--pub-turquoise-500)] text-white" : "bg-white text-[var(--pub-deep-900)] opacity-0 group-hover:opacity-100"}`}><strong className="block text-xs">{item.name}</strong><small className="text-[10px] opacity-65">{item.region}</small></span>
-              </button>
-            );
-          })}
+          <p className="pointer-events-none absolute bottom-4 left-5 z-10 text-[10px] font-semibold uppercase tracking-[.08em] text-white/45">Représentation illustrative · couverture en enrichissement</p>
         </div>
 
         <BlurFade key={`${territory.id}-${view}`} className="flex min-h-full flex-col bg-white">
