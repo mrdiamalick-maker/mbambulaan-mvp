@@ -12,7 +12,12 @@ import type { CommunityPost } from "@/domain/types";
 export function CommunityWorkspace() {
   const { state, run } = useProduct();
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<CommunityPost["category"] | "all">("all");
+  // CO11 (arbitrage CEO 2026-08-15) : filtre du registre et catégorie du
+  // formulaire de création sont deux états distincts — auparavant partagés,
+  // ce qui exigeait un repli category === "all" ? "information" : category
+  // au submit pour éviter d'écrire "all" comme valeur de CommunityPost.
+  const [filterCategory, setFilterCategory] = useState<CommunityPost["category"] | "all">("all");
+  const [formCategory, setFormCategory] = useState<CommunityPost["category"]>("information");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [territoryId, setTerritoryId] = useState("joal");
@@ -21,7 +26,7 @@ export function CommunityWorkspace() {
   if (!state) return null;
 
   const posts = state.communityPosts.filter((item) =>
-    (category === "all" || item.category === category) &&
+    (filterCategory === "all" || item.category === filterCategory) &&
     `${item.title} ${item.body}`.toLowerCase().includes(query.toLowerCase())
   );
   const transformed = state.communityPosts.filter((item) => item.status === "transforme").length;
@@ -29,7 +34,7 @@ export function CommunityWorkspace() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setSending(true);
-    const ok = await run({ type: "create_community_post", territoryId, category: category === "all" ? "information" : category, title, body });
+    const ok = await run({ type: "create_community_post", territoryId, category: formCategory, title, body });
     setSending(false);
     if (ok) {
       setTitle("");
@@ -74,7 +79,7 @@ export function CommunityWorkspace() {
             <p className="mt-2 text-sm leading-6 text-muted-foreground">Décrivez ce qui a été observé. La qualification et la transformation en situation restent visibles et réversibles.</p>
             <form onSubmit={submit} className="mt-5 space-y-4">
               <label className="block"><span className="text-xs font-semibold">Territoire</span><select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-2 w-full rounded-md border bg-background p-2.5 text-sm outline-none focus:border-primary">{state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-              <label className="block"><span className="text-xs font-semibold">Nature</span><select value={category} onChange={(event) => setCategory(event.target.value as typeof category)} className="mt-2 w-full rounded-md border bg-background p-2.5 text-sm outline-none focus:border-primary"><option value="information">Information</option><option value="alerte">Alerte</option><option value="besoin">Besoin</option><option value="capacite">Capacité</option><option value="opportunite">Opportunité</option><option value="question">Question</option><option value="apprentissage">Apprentissage</option></select></label>
+              <label className="block"><span className="text-xs font-semibold">Nature</span><select value={formCategory} onChange={(event) => setFormCategory(event.target.value as CommunityPost["category"])} className="mt-2 w-full rounded-md border bg-background p-2.5 text-sm outline-none focus:border-primary"><option value="information">Information</option><option value="alerte">Alerte</option><option value="besoin">Besoin</option><option value="capacite">Capacité</option><option value="opportunite">Opportunité</option><option value="question">Question</option><option value="apprentissage">Apprentissage</option></select></label>
               <label className="block"><span className="text-xs font-semibold">Titre</span><input required value={title} onChange={(event) => setTitle(event.target.value)} className="mt-2 w-full rounded-md border bg-background p-2.5 text-sm outline-none focus:border-primary" /></label>
               <label className="block"><span className="text-xs font-semibold">Contexte utile</span><textarea required value={body} onChange={(event) => setBody(event.target.value)} className="mt-2 min-h-28 w-full rounded-md border bg-background p-2.5 text-sm outline-none focus:border-primary" /></label>
               <Button type="submit" disabled={sending} className="w-full"><Send size={16} /> {sending ? "Publication…" : "Partager au réseau"}</Button>
@@ -83,9 +88,10 @@ export function CommunityWorkspace() {
         </Card>
 
         <div>
-          <div className="grid gap-3 border-b pb-4 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div className="grid gap-3 border-b pb-4 sm:grid-cols-[1fr_auto_auto] sm:items-center">
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un besoin, une capacité, un apprentissage…" className="rounded-md border bg-background p-2.5 text-sm outline-none focus:border-primary" />
-            <div className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground"><Filter size={15} /> {posts.length} contribution(s)</div>
+            <label className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground"><Filter size={15} /><span className="sr-only">Filtrer par nature</span><select value={filterCategory} onChange={(event) => setFilterCategory(event.target.value as CommunityPost["category"] | "all")} className="rounded-md border bg-background p-2 text-xs font-bold outline-none focus:border-primary"><option value="all">Toutes</option><option value="information">Information</option><option value="alerte">Alerte</option><option value="besoin">Besoin</option><option value="capacite">Capacité</option><option value="opportunite">Opportunité</option><option value="question">Question</option><option value="apprentissage">Apprentissage</option></select></label>
+            <div className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground">{posts.length} contribution(s)</div>
           </div>
           <div className="divide-y">
             {posts.map((post) => {
