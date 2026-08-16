@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import {
+  ArrowRight,
   Building2,
   Handshake,
   Mail,
@@ -26,13 +27,31 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" }
 };
 
-const entryCards = [
-  { title: "J’ai un besoin", text: "Transport, froid, équipement, formation, sourcing, financement ou autre besoin à qualifier.", icon: Search, href: "/solutions" },
-  { title: "Je propose mes services", text: "Faites connaître vos capacités, vos territoires d’intervention et vos conditions à Mbàmbulaan.", icon: UsersRound, href: "/contact?intent=contribution" },
-  { title: "Je représente une organisation", text: "Entreprise, ONG, programme ou institution : étudions une intervention, un partenariat ou un déploiement.", icon: Building2, href: "/contact?intent=organisation" },
-  { title: "Je souhaite devenir partenaire", text: "Proposer une collaboration structurée avec Mbàmbulaan, sur un territoire, un programme ou une capacité.", icon: Handshake, href: "/contact?intent=partenariat" },
-  { title: "Presse, recherche ou information", text: "Demande d’information, échange éditorial, recherche, données publiques ou prise de contact institutionnelle.", icon: Newspaper, href: "/contact?intent=presse" },
-  { title: "Autre demande", text: "Vous ne savez pas quelle entrée choisir ? Décrivez simplement votre besoin à Mbàmbulaan.", icon: MessageCircle, href: "/contact?intent=autre" }
+// PUB-C1 (audit Premium XXL Public, CEO 2026-08-16) : les 6 intentions
+// regroupées par logique plutôt que 6 cards identiques — Agir / Construire
+// avec Mbàmbulaan / Échanger, exactement le regroupement de l'audit.
+const contactGroups = [
+  {
+    label: "Agir",
+    items: [
+      { title: "J’ai un besoin", text: "Transport, froid, équipement, formation, sourcing, financement ou autre besoin à qualifier.", icon: Search, href: "/solutions" },
+      { title: "Je propose mes services", text: "Faites connaître vos capacités, vos territoires d’intervention et vos conditions à Mbàmbulaan.", icon: UsersRound, href: "/contact?intent=contribution" }
+    ]
+  },
+  {
+    label: "Construire avec Mbàmbulaan",
+    items: [
+      { title: "Je représente une organisation", text: "Entreprise, ONG, programme ou institution : étudions une intervention, un partenariat ou un déploiement.", icon: Building2, href: "/contact?intent=organisation" },
+      { title: "Je souhaite devenir partenaire", text: "Proposer une collaboration structurée avec Mbàmbulaan, sur un territoire, un programme ou une capacité.", icon: Handshake, href: "/contact?intent=partenariat" }
+    ]
+  },
+  {
+    label: "Échanger",
+    items: [
+      { title: "Presse, recherche ou information", text: "Demande d’information, échange éditorial, recherche, données publiques ou prise de contact institutionnelle.", icon: Newspaper, href: "/contact?intent=presse" },
+      { title: "Autre demande", text: "Vous ne savez pas quelle entrée choisir ? Décrivez simplement votre besoin à Mbàmbulaan.", icon: MessageCircle, href: "/contact?intent=autre" }
+    ]
+  }
 ] as const;
 
 const formConfigs: Partial<Record<string, { intent: PublicRequestIntent; title: string; description: string; category?: string; descriptionLabel?: string; descriptionPlaceholder?: string; descriptionRequired?: boolean; analyticsEvent?: PublicAnalyticsEvent }>> = {
@@ -104,17 +123,34 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
           </div>
         ) : (
           <>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {entryCards.map(({ title, text, icon: Icon, href }) => (
-                <Link key={title} href={href} className="pub-card group p-6 transition hover:-translate-y-0.5 hover:border-[#8fc3bd]">
-                  <span className="grid size-11 place-items-center rounded-xl bg-[var(--pub-ivory-200)] text-[var(--pub-deep-800)]"><Icon size={20} /></span>
-                  <h2 className="mt-5 text-xl font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{title}</h2>
-                  <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{text}</p>
-                </Link>
+            {/* PUB-C1 : sélecteur de parcours groupé (Agir / Construire avec
+                Mbàmbulaan / Échanger) plutôt que 6 cards identiques — chaque
+                groupe est un panneau blanc avec ses 2 lignes séparées par
+                une bordure légère, même geste que ChoiceList sur
+                SolutionWizard (PUB-S1). */}
+            <div className="grid gap-8 md:grid-cols-3">
+              {contactGroups.map((group) => (
+                <div key={group.label}>
+                  <p className="pub-eyebrow">{group.label}</p>
+                  <div className="mt-4 divide-y divide-[var(--pub-stone-150)] rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-surface)]">
+                    {group.items.map(({ title, text, icon: Icon, href }) => (
+                      <Link key={title} href={href} className="flex items-center gap-3 p-4 transition hover:bg-[var(--pub-ivory-100)]">
+                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--pub-ivory-200)] text-[var(--pub-deep-800)]"><Icon size={16} /></span>
+                        <span className="min-w-0 flex-1">
+                          <strong className="block text-sm font-bold text-[var(--pub-deep-900)]">{title}</strong>
+                          <span className="mt-0.5 block text-xs leading-5 text-[var(--pub-stone-500)]">{text}</span>
+                        </span>
+                        <ArrowRight size={13} className="shrink-0 text-[var(--pub-stone-300)]" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
 
-            <section className="mt-12 overflow-hidden rounded-[28px] bg-[#031a22] text-white shadow-2xl">
+            {/* PUB-C2 : bloc omnicanal conservé tel quel (structure). PUB-C3 :
+                #031a22 (couleur legacy hors palette --pub-*) → --pub-deep-900. */}
+            <section className="mt-12 overflow-hidden rounded-[28px] bg-[var(--pub-deep-900)] text-white shadow-2xl">
               <div className="grid gap-0 lg:grid-cols-[1.1fr_.9fr]">
                 <div className="p-6 md:p-10">
                   <p className="text-xs font-black uppercase tracking-[.14em] text-[var(--pub-turquoise-300)]">Parler à Mbàmbulaan</p>
