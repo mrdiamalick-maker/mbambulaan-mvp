@@ -157,8 +157,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 03 — Ce que Mbàmbulaan organise : Bento Grid */}
-      <section className="px-5 py-16 md:px-10 md:py-24">
+      {/* 03 — Ce que Mbàmbulaan organise : Bento Grid. Pas de SectionWave
+          avant celle-ci (fond continu avec la section 01) : pt-4 au lieu de
+          pt-16/24, même correctif que la frontière 04→05 plus bas
+          (pb-20 pt-4), pour ne pas cumuler le pb-14/20 de la section 01 et
+          un plein py — le vide de ~150-180px signalé par le CEO venait de
+          cette double marge (lot de finitions, 2026-08-16). */}
+      <section className="px-5 pb-16 pt-4 md:px-10 md:pb-24">
         <div className="mx-auto max-w-[1500px]">
           <BlurFade inView>
             <span className="pub-index">02</span>
