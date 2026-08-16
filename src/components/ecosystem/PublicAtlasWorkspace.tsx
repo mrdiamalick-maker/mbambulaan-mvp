@@ -162,8 +162,12 @@ export function PublicAtlasWorkspace() {
           </div>
 
           <div className="flex-1 p-6 md:p-8">
-            {/* En bref — registre compact, pas 3 Cards KPI. */}
-            <div className="divide-y divide-[var(--pub-stone-150)] border-y border-[var(--pub-stone-150)]">
+            {/* En bref — registre compact, pas 3 Cards KPI. Titre ajouté
+                (lot de finitions, 2026-08-16) : n'existait qu'en commentaire,
+                jamais affiché — incohérent avec les eyebrows des chapitres
+                suivants (Activités documentées, Services, etc.). */}
+            <h3 className="text-xs font-bold uppercase tracking-[.08em] text-[var(--pub-stone-500)]">En bref</h3>
+            <div className="mt-4 divide-y divide-[var(--pub-stone-150)] border-y border-[var(--pub-stone-150)]">
               <div className="flex items-center justify-between gap-3 py-3 text-sm"><span className="inline-flex items-center gap-2 font-semibold text-[var(--pub-stone-700)]"><Anchor size={15} className="text-[var(--pub-turquoise-500)]"/> Niveau de couverture</span><strong className="text-[var(--pub-deep-900)]">{territory.verification}</strong></div>
               <div className="flex items-center justify-between gap-3 py-3 text-sm"><span className="inline-flex items-center gap-2 font-semibold text-[var(--pub-stone-700)]"><Factory size={15} className="text-[var(--pub-turquoise-500)]"/> Services documentés</span><strong className="text-[var(--pub-deep-900)]">{territory.documentedServices.length}</strong></div>
               {territory.species && <div className="flex items-center justify-between gap-3 py-3 text-sm"><span className="inline-flex items-center gap-2 font-semibold text-[var(--pub-stone-700)]"><Fish size={15} className="text-[var(--pub-turquoise-500)]"/> Espèces représentées</span><strong className="text-[var(--pub-deep-900)]">{territory.species.length}</strong></div>}
