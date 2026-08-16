@@ -1521,7 +1521,12 @@ export function createDemoState(): ProductState {
       { id: "not-3", role: "capitaine", title: "Jambar II : retour attendu avant 11:30", href: "/app/operations", read: false },
       { id: "not-4", role: "institution", title: "Référentiel pirogues : dossier à vérifier à Soumbédioune", href: "/app/situations/sit-soumbedioune", read: false },
       { id: "not-5", role: "prestataire", title: "Djiffer : contrôle de balance attendu avant 11:45", href: "/app/situations/sit-djiffer", read: false },
-      { id: "not-6", role: "mareyeur", title: "Cap Skirring : lot de sole et transport à confirmer", href: "/app/coordination", read: false },
+      // href corrigé vers /app/travail (Lot 2, refonte navigation par rôle,
+      // CEO 2026-08-16) : /app/coordination n'est plus accessible au
+      // mareyeur (nav retirée + garde serveur) — BuyerTaskView, sur
+      // /app/travail, est désormais l'endroit où ce type de proposition se
+      // traite réellement (accept_opportunity/complete_logistics).
+      { id: "not-6", role: "mareyeur", title: "Cap Skirring : lot de sole et transport à confirmer", href: "/app/travail", read: false },
       { id: "not-lompoul-balises", role: "prestataire", title: "Lompoul-sur-Mer : note technique attendue pour le dossier balises", href: "/app/situations/sit-lompoul-balises", read: false },
       { id: "not-fass-boye-conformite", role: "institution", title: "Fass Boye : rattachement administratif en attente de réponse", href: "/app/situations/sit-fass-boye-conformite", read: false },
       { id: "not-yoff-marche", role: "mareyeur", title: "Yoff : débouché à confirmer avant dégradation", href: "/app/situations/sit-yoff-marche", read: false },

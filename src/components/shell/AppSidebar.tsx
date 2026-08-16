@@ -53,19 +53,40 @@ type NavGroup = { label: string; items: NavItem[] };
 // il n'a jamais atteint cette sidebar en pratique. Code mort, aucun
 // risque de sécurité (la garde serveur reste correcte), retiré par
 // hygiène de lecture uniquement.
+//
+// Lot 2 — refonte navigation par rôle (CEO 2026-08-16) : opérateur,
+// mareyeur/transformateur et prestataire n'avaient jusqu'ici que des entrées
+// de nav "par défaut" (héritées d'un état antérieur du produit), sans lien
+// systématique avec les commandes que permissions.ts leur ouvre réellement.
+// Chaque retrait ci-dessous est justifié par l'absence de commande
+// correspondante ET couvert par une garde serveur équivalente sur la page
+// visée (situations/page.tsx, coordination/page.tsx, marches/page.tsx,
+// durabilite/page.tsx) — la disparition du lien ne suffit pas seule.
+//
+// Écart assumé par rapport au mandat initial : Coordinations reste ouvert à
+// operateur. Le mandat justifiait son retrait par l'absence de
+// coordinate/prioritize/accept_opportunity dans son mandat — mais
+// accept_opportunity et complete_logistics lui SONT ouverts (relais
+// généralisé, arbitrage CEO 2026-08-15, cf. permissions.ts), précisément
+// pour agir sur /app/coordination pour le compte d'un mareyeur/
+// transformateur. Retirer ce lien aurait rendu injoignable une
+// fonctionnalité livrée et vérifiée, sans aucune alternative construite
+// dans ce lot. Signalé au CEO dans le compte-rendu de lot.
 const operationalGroups: NavGroup[] = [
   {
     label: "Travail",
     items: [
       { href: "/app/travail", label: "Aujourd’hui", icon: Home, roles: [] },
-      // Situations : registre séparé conservé uniquement pour les rôles
-      // qui n'ont pas la file fusionnée de CoordinatorHub (Lot 3,
-      // /app/travail). Pour administrateur/gestionnaire_organisation/
-      // coordinateur/partenaire, /app/situations redirige désormais
-      // vers /app/travail — ne pas les lister ici, ce serait une entrée
-      // de nav vers une redirection, pas une destination.
-      { href: "/app/situations", module: "operations", label: "Situations", icon: ClipboardList, roles: ["operateur", "mareyeur", "transformateur", "prestataire"] },
-      { href: "/app/coordination", module: "coordination", label: "Coordinations", icon: Handshake, roles: ["administrateur", "operateur", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur", "partenaire"] }
+      // Situations : registre séparé conservé uniquement pour l'opérateur,
+      // qui n'a pas la file fusionnée de CoordinatorHub (Lot 3,
+      // /app/travail) — scopé à son propre territoire (situations/page.tsx).
+      // Mareyeur/transformateur/prestataire disposent désormais de leur
+      // propre file d'action sur /app/travail (BuyerTaskView/
+      // ProviderTaskView) — ce registre général leur est redondant, comme
+      // il l'était déjà pour administrateur/gestionnaire_organisation/
+      // coordinateur/partenaire.
+      { href: "/app/situations", module: "operations", label: "Situations", icon: ClipboardList, roles: ["operateur"] },
+      { href: "/app/coordination", module: "coordination", label: "Coordinations", icon: Handshake, roles: ["administrateur", "operateur", "gestionnaire_organisation", "coordinateur", "partenaire"] }
     ]
   },
   {
@@ -78,8 +99,18 @@ const operationalGroups: NavGroup[] = [
       // explicable) ne couvre ni flux ni débouchés/logistique ; le libellé
       // de nav est aligné sur le titre de page existant plutôt que
       // l'inverse.
-      { href: "/app/marches", module: "market_intelligence", label: "Prix et marchés", icon: Store, roles: ["administrateur", "operateur", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur"] },
-      { href: "/app/durabilite", label: "Provenance & durabilité", icon: Leaf, roles: ["administrateur", "operateur", "transformateur", "gestionnaire_organisation", "coordinateur", "partenaire"] }
+      // Opérateur/mareyeur/transformateur retirés (Lot 2) : aucun d'eux
+      // n'a flag_price ni de commande de marché, à une exception près —
+      // l'opérateur garde flag_price (permissions.ts) mais perd ce point
+      // d'entrée. Aucun accès contextuel de remplacement construit dans ce
+      // lot (compromis explicitement pré-autorisé par le mandat), signalé
+      // au CEO.
+      { href: "/app/marches", module: "market_intelligence", label: "Prix et marchés", icon: Store, roles: ["administrateur", "gestionnaire_organisation", "coordinateur"] },
+      // Provenance & durabilité — seul operateur retiré (Lot 2, aucune
+      // commande correspondante). L'asymétrie mareyeur/transformateur
+      // (transformateur oui, mareyeur non) est antérieure et intentionnelle
+      // — non touchée par ce lot.
+      { href: "/app/durabilite", label: "Provenance & durabilité", icon: Leaf, roles: ["administrateur", "transformateur", "gestionnaire_organisation", "coordinateur", "partenaire"] }
     ]
   },
   {

@@ -5,25 +5,45 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { SituationRow } from "@/components/situations/SituationRow";
+import type { Role } from "@/domain/types";
 
-const fusedRoles = ["administrateur", "gestionnaire_organisation", "coordinateur", "partenaire"];
+// Lot 2 — refonte navigation par rôle (CEO 2026-08-16) : seul l'opérateur
+// garde une raison de voir ce registre séparé — administrateur/
+// gestionnaire_organisation/coordinateur/partenaire étaient déjà fusionnés
+// vers /app/travail (Lot 3) ; mareyeur/transformateur/prestataire les
+// rejoignent ici, car BuyerTaskView/ProviderTaskView leur donnent désormais
+// leur propre file d'action sur /app/travail — ce registre général leur est
+// redondant. Pour l'opérateur qui reste, la vue est scopée à son propre
+// territoire (Actor.territoryIds), même mécanisme que CoordinatorHub/
+// OperatorTaskView.
+const nonOperatorRoles: Role[] = ["administrateur", "gestionnaire_organisation", "coordinateur", "partenaire", "mareyeur", "transformateur", "prestataire"];
 
 export default function SituationsPage() {
-  const { state, role } = useProduct();
+  const { state, role, actorId, loading } = useProduct();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("toutes");
-  const redirectToHub = fusedRoles.includes(role);
+  const redirectToHub = nonOperatorRoles.includes(role);
+
+  const actor = state?.actors.find((item) => item.id === actorId);
+  const territoryIds = new Set(actor?.territoryIds ?? []);
+  const inScope = (territoryId: string) => territoryIds.size === 0 || territoryIds.has(territoryId);
+
   const filtered = useMemo(() => state?.situations.filter((item) => {
     const territory = state.territories.find((entry) => entry.id === item.territoryId);
-    return (status === "toutes" || item.status === status) && `${item.title} ${item.reference} ${territory?.name}`.toLowerCase().includes(query.toLowerCase());
-  }) ?? [], [state, query, status]);
+    return inScope(item.territoryId) && (status === "toutes" || item.status === status) && `${item.title} ${item.reference} ${territory?.name}`.toLowerCase().includes(query.toLowerCase());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }) ?? [], [state, query, status, actorId]);
 
   useEffect(() => {
-    if (redirectToHub) router.replace("/app/travail");
-  }, [redirectToHub, router]);
+    // N'agir qu'une fois le vrai rôle chargé — le rôle par défaut du
+    // ProductProvider ("coordinateur", le temps que /api/state réponde) est
+    // dans nonOperatorRoles et redirigerait sinon un opérateur avant même
+    // que sa session ne soit résolue.
+    if (!loading && redirectToHub) router.replace("/app/travail");
+  }, [loading, redirectToHub, router]);
 
-  if (!state || redirectToHub) return null;
+  if (!state || loading || redirectToHub) return null;
 
   return (
     <div className="shadcn-scope space-y-7 bg-background p-5 pb-16 lg:p-8">

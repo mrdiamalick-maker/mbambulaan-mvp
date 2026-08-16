@@ -1,10 +1,21 @@
-"use client";
-
-// Restylé en D9 (Lot 7, étape 2/4) : PageHeader (sarcelle) abandonné pour
-// un en-tête inline, comme les autres pages migrées.
+import { redirect } from "next/navigation";
+import { currentSession } from "@/server/session";
+import type { Role } from "@/domain/types";
 import { SustainabilityWorkspace } from "@/components/ecosystem/SustainabilityWorkspace";
 
-export default function SustainabilityPage() {
+// Garde de rôle serveur — Lot 2, refonte navigation par rôle (CEO
+// 2026-08-16) : seul operateur perd l'entrée de nav ici (aucune commande
+// correspondante dans son mandat). Mareyeur reste volontairement hors de
+// cette garde comme hors de la nav — asymétrie déjà existante et
+// explicitement laissée telle quelle par le mandat (transformateur oui,
+// mareyeur non) : ne pas la "corriger" en ajoutant ici une exclusion
+// mareyeur qui n'a pas été demandée.
+const excludedRoles: Role[] = ["operateur"];
+
+export default async function SustainabilityPage() {
+  const session = await currentSession();
+  if (!session) redirect("/connexion?next=/app/durabilite");
+  if (excludedRoles.includes(session.role)) redirect("/app/travail");
   return (
     <div className="shadcn-scope space-y-6 bg-background p-5 pb-16 lg:p-8">
       <div>
