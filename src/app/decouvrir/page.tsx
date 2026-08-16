@@ -77,7 +77,13 @@ export default function DiscoverPage() {
         </div>
       </section>
 
-      <section className="border-y border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)] px-5 py-10 md:px-10">
+      {/* Doctrine surfaces crème/blanc (audit Premium XXL Public, section 8,
+          CEO 2026-08-16) : bg-ivory-100 est le fond de .pub-scope lui-même
+          — cette bande ne se distinguait de la page que par sa bordure 1px.
+          Surface secondaire interne → ivory-200, comme la doctrine l'exige,
+          pour lire réellement comme une bande distincte entre la grille du
+          dessus et la section blanche du dessous. */}
+      <section className="border-y border-[var(--pub-stone-150)] bg-[var(--pub-ivory-200)] px-5 py-10 md:px-10">
         <div className="mx-auto flex max-w-[1500px] flex-col gap-6 md:flex-row md:items-start md:justify-between md:gap-12">
           <div className="max-w-xl">
             <p className="pub-eyebrow">Durabilité en pratique</p>
