@@ -28,7 +28,11 @@ export default function PublicAtlasPage() {
         backgroundAlt="Quai de pêche artisanale sur le littoral sénégalais."
       />
 
-      <div className="mx-auto max-w-[1500px] px-5 py-10 md:px-10 md:py-14">
+      {/* PUB-AT1 (audit Premium XXL Public, CEO 2026-08-16) : py-10/py-14
+          harmonisé vers py-14/py-20, le même rythme vertical que les
+          sections équivalentes sur Découvrir et Opportunités (P4) — aucun
+          changement structurel, uniquement l'espacement extérieur. */}
+      <div className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-20">
         <BlurFade inView className="mb-7 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl">
             <p className="pub-eyebrow">Lecture territoriale</p>
@@ -40,27 +44,35 @@ export default function PublicAtlasPage() {
 
         <PublicAtlasWorkspace />
 
-        <section className="mt-12 grid gap-4 lg:grid-cols-3">
-          <Link href="/decouvrir" className="pub-card group p-6">
-            <MapPinned className="text-[var(--pub-deep-800)]"/>
-            <p className="pub-eyebrow mt-5">Comprendre</p>
-            <h2 className="mt-2 text-2xl font-[740] tracking-[-.035em] text-[var(--pub-deep-900)]">Relier le territoire aux métiers et aux chaînes de valeur.</h2>
-            <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Les contenus publics expliquent les activités, les dépendances et les enjeux qui structurent chaque zone.</p>
-            <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Découvrir <ArrowRight size={15} className="transition group-hover:translate-x-1"/></span>
+        {/* PUB-AT2 (audit Premium XXL Public, CEO 2026-08-16) : bande de
+            navigation éditoriale légère plutôt que trois grosses .pub-card
+            — l'Atlas (PublicAtlasWorkspace ci-dessus) doit rester la
+            vedette de la page, pas partager la scène avec trois cards du
+            même poids visuel juste en dessous. */}
+        <section className="mt-12 divide-y divide-[var(--pub-stone-150)] rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-surface)] md:grid md:grid-cols-3 md:divide-x md:divide-y-0">
+          <Link href="/decouvrir" className="group flex items-start gap-3 p-5 transition hover:bg-[var(--pub-ivory-100)]">
+            <MapPinned size={18} className="mt-0.5 shrink-0 text-[var(--pub-turquoise-500)]"/>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]">Comprendre</p>
+              <p className="mt-1.5 text-sm font-bold leading-5 text-[var(--pub-deep-900)]">Relier le territoire aux métiers et aux chaînes de valeur.</p>
+              <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--pub-deep-800)]">Découvrir <ArrowRight size={12} className="transition group-hover:translate-x-1"/></span>
+            </div>
           </Link>
-          <Link href="/opportunites" className="pub-card group p-6">
-            <Compass className="text-[var(--pub-deep-800)]"/>
-            <p className="pub-eyebrow mt-5">Agir</p>
-            <h2 className="mt-2 text-2xl font-[740] tracking-[-.035em] text-[var(--pub-deep-900)]">Voir les opportunités et programmes reliés au terrain.</h2>
-            <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Formations, programmes, appels et initiatives utiles sont reliés aux territoires quand le contexte le justifie.</p>
-            <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Voir les opportunités <ArrowRight size={15} className="transition group-hover:translate-x-1"/></span>
+          <Link href="/opportunites" className="group flex items-start gap-3 p-5 transition hover:bg-[var(--pub-ivory-100)]">
+            <Compass size={18} className="mt-0.5 shrink-0 text-[var(--pub-turquoise-500)]"/>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]">Agir</p>
+              <p className="mt-1.5 text-sm font-bold leading-5 text-[var(--pub-deep-900)]">Voir les opportunités et programmes reliés au terrain.</p>
+              <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--pub-deep-800)]">Voir les opportunités <ArrowRight size={12} className="transition group-hover:translate-x-1"/></span>
+            </div>
           </Link>
-          <Link href="/contact?intent=correction&source=atlas" className="pub-card group p-6">
-            <ShieldCheck className="text-[var(--pub-deep-800)]"/>
-            <p className="pub-eyebrow mt-5">Fiabiliser</p>
-            <h2 className="mt-2 text-2xl font-[740] tracking-[-.035em] text-[var(--pub-deep-900)]">Signaler une information ou proposer une mise à jour.</h2>
-            <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Toute contribution est examinée avant publication afin de préserver la qualité du référentiel territorial.</p>
-            <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Proposer une correction <ArrowRight size={15} className="transition group-hover:translate-x-1"/></span>
+          <Link href="/contact?intent=correction&source=atlas" className="group flex items-start gap-3 p-5 transition hover:bg-[var(--pub-ivory-100)]">
+            <ShieldCheck size={18} className="mt-0.5 shrink-0 text-[var(--pub-turquoise-500)]"/>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]">Fiabiliser</p>
+              <p className="mt-1.5 text-sm font-bold leading-5 text-[var(--pub-deep-900)]">Signaler une information ou proposer une mise à jour.</p>
+              <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--pub-deep-800)]">Proposer une correction <ArrowRight size={12} className="transition group-hover:translate-x-1"/></span>
+            </div>
           </Link>
         </section>
       </div>

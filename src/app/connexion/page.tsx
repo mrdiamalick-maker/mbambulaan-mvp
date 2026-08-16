@@ -11,50 +11,23 @@
 // professionnel à droite, un seul niveau de surface), pas de split sur
 // mobile (formulaire prioritaire, bande-image courte optionnelle en tête).
 //
-// Image (brief DA "login-maritime.webp") pas encore disponible : le bloc
-// ImagePlaceholder ci-dessous occupe exactement l'espace que la vraie
-// photo occupera (absolute inset-0, object-cover) — le remplacement futur
-// n'impose aucun changement de mise en page, seulement l'ajout d'un <img>.
+// PUB-L1/L2 (audit Premium XXL Public, CEO 2026-08-16) : le placeholder
+// "login-maritime.webp" est remplacé par une composition graphique
+// Mbàmbulaan (LoginIllustration, CoordinationIllustration.tsx) — plus
+// aucune mention "placeholder" en production (PUB-L2, obligatoire). Même
+// slot exact (absolute inset-0, mêmes deux emplacements desktop/mobile) :
+// PUB-L3 conserve le split 55/45 sans y toucher.
 import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, Image as ImageIcon, LockKeyhole, Mail, ShieldCheck, ShipWheel } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, LockKeyhole, Mail, ShieldCheck, ShipWheel } from "lucide-react";
+import { LoginIllustration } from "@/components/public/CoordinationIllustration";
 
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
       <LoginForm />
     </Suspense>
-  );
-}
-
-function ImagePlaceholder({ compact }: { compact?: boolean }) {
-  return (
-    <div className="absolute inset-0 bg-[var(--pub-deep-900)]">
-      <div
-        className="absolute inset-0 opacity-50"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(247,243,233,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(247,243,233,.06) 1px, transparent 1px)",
-          backgroundSize: "40px 40px"
-        }}
-      />
-      <div
-        className="absolute inset-0"
-        style={{ background: "radial-gradient(circle at 30% 20%, rgba(182,82,47,.16), transparent 45%)" }}
-      />
-      <div className={`relative flex h-full flex-col items-center justify-center gap-2 px-8 text-center ${compact ? "gap-1.5" : "gap-3"}`}>
-        <ImageIcon size={compact ? 20 : 28} className="text-white/35" />
-        <p className={`font-bold uppercase tracking-[.14em] text-white/55 ${compact ? "text-[10px]" : "text-xs"}`}>
-          Placeholder — login-maritime.webp
-        </p>
-        {!compact && (
-          <p className="max-w-[26ch] text-[11px] leading-5 text-white/30">
-            Quai de pêche artisanale, Sénégal · 3:2 · remplacé par la photo définitive sans changement de mise en page
-          </p>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -90,14 +63,14 @@ function LoginForm() {
   return (
     <main className="pub-scope min-h-screen">
       <div className="grid min-h-screen lg:grid-cols-[55fr_45fr]">
-        {/* Colonne image — desktop uniquement (≥ lg), plein cadre, comme le sera la vraie photo. */}
+        {/* Colonne image — desktop uniquement (≥ lg), plein cadre. */}
         <div className="relative hidden overflow-hidden lg:block">
-          <ImagePlaceholder />
+          <LoginIllustration />
         </div>
 
         {/* Bande-image courte — mobile/tablette uniquement, hauteur fixe et modeste pour ne pas repousser le formulaire. */}
         <div className="relative block h-28 overflow-hidden lg:hidden">
-          <ImagePlaceholder compact />
+          <LoginIllustration compact />
         </div>
 
         {/* Colonne formulaire — un seul niveau de surface, pas de carte imbriquée. */}

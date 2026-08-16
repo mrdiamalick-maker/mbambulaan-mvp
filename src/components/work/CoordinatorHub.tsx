@@ -45,7 +45,6 @@ function TerritoryTexture() {
         </g>
         <circle cx="1440" cy="440" r="4" fill="#b6522f" opacity="0.13" />
       </svg>
-      <p className="absolute bottom-3 right-3 rounded-md bg-black/25 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white/45 backdrop-blur-sm">Placeholder · coordinator-territory-texture.svg</p>
     </div>
   );
 }
