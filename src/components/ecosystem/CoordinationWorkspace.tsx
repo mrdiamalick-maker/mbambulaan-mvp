@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowRight,
   Boxes,
+  Check,
+  CheckCheck,
   CheckCircle2,
   ChevronDown,
   CircleAlert,
@@ -15,6 +17,7 @@ import {
   MapPin,
   MessageSquare,
   Network,
+  Radio,
   Route,
   Search,
   Snowflake,
@@ -28,7 +31,15 @@ import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { channelMeta, glyphBorderColor, priorityLabels, priorityToTag } from "@/lib/status-tokens";
 import type { PublicRequest, PublicRequestIntent } from "@/domain/public/request";
-import { serviceRequestIntentLabels, type CatchLine, type IncomingMessage, type ProductState, type ServiceRequestIntent, type Signal } from "@/domain/types";
+import { serviceRequestIntentLabels, type AuditEntry, type CatchLine, type IncomingMessage, type ProductState, type ServiceRequestIntent, type Signal } from "@/domain/types";
+
+// Relais généralisé (Lot A, canal simulé) : une entrée d'audit compte comme
+// "relais visible dans le fil" seulement si elle porte la mention que
+// applyOpportunityCommand y ajoute déjà (rules.ts) — aucune nouvelle donnée,
+// on relit ce qui existe.
+function isRelayAuditEntry(entry: AuditEntry) {
+  return (entry.action === "accept_opportunity" || entry.action === "complete_logistics") && entry.detail.includes("pour le compte de");
+}
 
 type View = "besoins" | "capacites" | "rapprochements" | "missions" | "demandes_publiques" | "messages_entrants";
 
@@ -160,12 +171,33 @@ export function CoordinationWorkspace() {
     };
   }, []);
 
+  // Lot A (canal simulé, validation CEO 2026-08-15) : un relais n'anime son
+  // double-coche "envoyé → lu" que s'il vient de se produire pendant cette
+  // visite de l'écran — capturé une seule fois, au tout premier rendu, pas
+  // recalculé ensuite. Une entrée déjà présente à ce moment-là s'affiche
+  // directement "lu" (historique), pas d'animation rejouée à chaque re-rendu.
+  const seenRelayAuditIdsRef = useRef<Set<string> | null>(null);
+
   if (!state) return null;
+
+  if (seenRelayAuditIdsRef.current === null) {
+    seenRelayAuditIdsRef.current = new Set(state.audit.filter(isRelayAuditEntry).map((entry) => entry.id));
+  }
 
   // Contrairement à pendingPublicRequests (repository séparé, fetch
   // dédié), incomingMessages vit dans ProductState comme le reste des
   // données de démonstration : pas de chargement/erreur à suivre ici.
   const pendingIncomingMessages = state.incomingMessages.filter((item) => item.status === "nouveau");
+  // Lot A : un message converti reste visible dans le fil (validation CEO
+  // 2026-08-15, point 1) — ce n'est plus pendingIncomingMessages qui pilote
+  // l'affichage, seulement le badge de tension (viewTension ci-dessous).
+  const incomingMessagesThread = state.incomingMessages
+    .slice()
+    .sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
+  const relayAuditEntries = state.audit
+    .filter(isRelayAuditEntry)
+    .slice()
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
   const openNeeds = state.serviceRequests.filter((item) => item.status === "ouvert");
   const availableCapacities = state.capacities.filter((item) => item.status === "disponible");
   const activeMissions = state.coordinationSpaces.filter((item) => item.commitments.some((commitment) => commitment.status !== "terminee") || item.commitments.length === 0);
@@ -458,10 +490,32 @@ export function CoordinationWorkspace() {
           )
         )}
 
+        {/* Lot A — canal simulé (validation CEO 2026-08-15) : un vrai fil de
+            conversation (bulles, pas un registre), plus un mini-fil dédié
+            au relais généralisé — même grammaire visuelle, jamais fusionné
+            avec les fils de messages (aucun lien de données fabriqué entre
+            les déclarants génériques et les bénéficiaires réels). */}
         {view === "messages_entrants" && (
-          <div className="divide-y">{pendingIncomingMessages.length ? pendingIncomingMessages.map((message) => (
-            <IncomingMessageRow key={message.id} message={message} state={state} />
-          )) : <Empty label="Aucun message entrant en attente pour le moment." />}</div>
+          <div className="space-y-8">
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Radio size={12} className="text-[#1d8a5f]" /> Canal simulé · aucun message WhatsApp/téléphonie réel n’est envoyé ou reçu — le fil est reconstitué pour la démonstration.
+            </p>
+            <div className="space-y-6">
+              {incomingMessagesThread.length ? incomingMessagesThread.map((message) => (
+                <IncomingMessageThread key={message.id} message={message} state={state} />
+              )) : <Empty label="Aucun message entrant pour le moment." />}
+            </div>
+            <div className="space-y-4 border-t pt-6">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Rapprochements relayés</p>
+              {relayAuditEntries.length ? (
+                <div className="space-y-3">
+                  {relayAuditEntries.map((entry) => (
+                    <RelayBubble key={entry.id} entry={entry} state={state} isNew={!seenRelayAuditIdsRef.current!.has(entry.id)} />
+                  ))}
+                </div>
+              ) : <Empty label="Aucun rapprochement relayé pour l’instant." />}
+            </div>
+          </div>
         )}
       </section>
 
@@ -624,14 +678,16 @@ function PublicRequestRow({
   );
 }
 
-// Ligne + action de conversion — file "Messages entrants" (simulée, gap
-// analysis "Messages entrants", arbitrage CEO 13/08/2026). Contrairement à
-// PublicRequestRow, pas de callback onConverted : incomingMessages vit
-// dans ProductState, la file se met à jour au prochain rendu via run()
-// (setState global côté ProductProvider), pas de fetch/PATCH séparé à
-// orchestrer — c'est précisément la différence actée par le gap analysis
-// entre un contenu 100% simulé et une vraie source externe (PublicRequest).
-function IncomingMessageRow({
+// Fil de conversation — "Messages entrants" (simulé, Lot A, validation CEO
+// 2026-08-15). Remplace l'ancien registre en lignes (IncomingMessageRow) :
+// bulle entrante (le message), composeur de conversion présenté dans le fil
+// plutôt qu'en formulaire administratif séparé, bulle sortante une fois
+// converti — le message reste visible (point 1 de la validation), il ne
+// disparaît plus de la liste. Contrairement à PublicRequestRow, pas de
+// callback onConverted : incomingMessages vit dans ProductState, la file se
+// met à jour au prochain rendu via run() (setState global côté
+// ProductProvider), pas de fetch/PATCH séparé à orchestrer.
+function IncomingMessageThread({
   message,
   state
 }: {
@@ -652,6 +708,30 @@ function IncomingMessageRow({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const meta = channelMeta[message.channel];
+  const converted = message.status === "converti";
+
+  // L'indicateur envoyé/lu ne s'anime que pour une conversion qui vient de
+  // se produire pendant cette visite — capturé une seule fois au montage,
+  // jamais recalculé ensuite (même logique que seenRelayAuditIdsRef).
+  const wasAlreadyConvertedAtMountRef = useRef(converted);
+  const justConverted = converted && !wasAlreadyConvertedAtMountRef.current;
+  const [tick, setTick] = useState<"envoye" | "lu">(justConverted ? "envoye" : "lu");
+
+  useEffect(() => {
+    if (!justConverted) return;
+    setTick("envoye");
+    const timer = window.setTimeout(() => setTick("lu"), 1500);
+    return () => window.clearTimeout(timer);
+  }, [justConverted]);
+
+  // Le signal résultant n'est jamais déduit de l'état local du formulaire
+  // (qui n'existe pas si la conversion a eu lieu avant ce montage) : on le
+  // relit dans state.signals via reportedBy + channel, repris à l'identique
+  // du message par convert_message_to_signal (rules.ts) — donnée réelle,
+  // pas un texte fabriqué côté affichage.
+  const resultingSignal = converted
+    ? state.signals.find((item) => item.reportedBy === message.reportedBy && item.channel === message.channel)
+    : undefined;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -681,54 +761,121 @@ function IncomingMessageRow({
   };
 
   return (
-    <article className="py-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 flex-1 gap-3">
-          <Badge variant="marine" className="mt-0.5 shrink-0"><meta.icon size={12} /> {messageChannelLabel[message.channel]}</Badge>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold">{message.reportedBy}{message.territoryHint ? ` · ${message.territoryHint}` : ""}</p>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">{message.body}</p>
+    <article className="space-y-3">
+      {/* Bulle entrante — le message tel qu'il est arrivé par le canal. */}
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-[#0b1a2a]/[.08] text-[#0b1a2a]"><meta.icon size={14} /></span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold">{message.reportedBy}</p>
+            <Badge variant="marine">{messageChannelLabel[message.channel]}</Badge>
+            {message.territoryHint && <span className="text-xs font-semibold text-muted-foreground">{message.territoryHint}</span>}
           </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end">
-          <span className="text-xs font-semibold text-muted-foreground">{formatAge(message.receivedAt)}</span>
-          {!open && <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Convertir <ArrowRight /></Button>}
+          <div className="mt-1.5 inline-block max-w-xl rounded-2xl rounded-tl-sm border bg-card px-4 py-2.5 text-sm leading-6">{message.body}</div>
+          <p className="mt-1 text-xs text-muted-foreground">{formatAge(message.receivedAt)}</p>
         </div>
       </div>
 
-      {open && (
-        <form onSubmit={submit} className="mt-4 space-y-3 rounded-lg border bg-card p-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Composeur de conversion — dans le fil, jamais un bloc administratif
+          détaché : étiqueté explicitement comme le geste du coordinateur. */}
+      {!converted && (
+        open ? (
+          <form onSubmit={submit} className="ml-11 space-y-3 rounded-lg border border-dashed bg-card/60 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Conversion — geste du coordinateur</p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <label className="block text-xs font-semibold text-muted-foreground">
+                Territoire
+                <select required value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
+                  <option value="">À choisir…</option>
+                  {state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </label>
+              <label className="block text-xs font-semibold text-muted-foreground">
+                Catégorie
+                <select value={category} onChange={(event) => setCategory(event.target.value as Signal["category"])} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
+                  {Object.entries(signalCategoryLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+              <label className="block text-xs font-semibold text-muted-foreground">
+                Titre du signal
+                <input required value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground" placeholder="Ex. Production de glace ralentie au quai" />
+              </label>
+            </div>
             <label className="block text-xs font-semibold text-muted-foreground">
-              Territoire
-              <select required value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
-                <option value="">À choisir…</option>
-                {state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-              </select>
+              Description
+              <textarea required rows={3} value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm font-semibold text-foreground" />
             </label>
-            <label className="block text-xs font-semibold text-muted-foreground">
-              Catégorie
-              <select value={category} onChange={(event) => setCategory(event.target.value as Signal["category"])} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
-                {Object.entries(signalCategoryLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-            </label>
-            <label className="block text-xs font-semibold text-muted-foreground">
-              Titre du signal
-              <input required value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground" placeholder="Ex. Production de glace ralentie au quai" />
-            </label>
+            <p className="text-[11px] text-muted-foreground">Description pré-remplie à partir du message — à ajuster si besoin. Aucune catégorie n’est déduite automatiquement : c’est un choix du coordinateur à la conversion.</p>
+            {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" disabled={pending} size="sm">{pending ? "Conversion…" : "Créer le signal"} <ArrowRight /></Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>Annuler</Button>
+            </div>
+          </form>
+        ) : (
+          <div className="ml-11"><Button size="sm" variant="outline" onClick={() => setOpen(true)}>Convertir en signal <ArrowRight /></Button></div>
+        )
+      )}
+
+      {/* Bulle sortante — confirmation simulée du système, une fois
+          converti. Ticks envoyé/lu purement cosmétiques (aucun effet sur
+          les données), animés seulement si justConverted. */}
+      {converted && (
+        <div className="flex justify-end">
+          <div className="inline-flex max-w-xl items-start gap-2 rounded-2xl rounded-tr-sm bg-[#0b1a2a] px-4 py-2.5 text-sm text-white">
+            <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold">Converti en signal{resultingSignal ? ` · « ${resultingSignal.title} »` : ""}</p>
+              <div className="mt-1 flex items-center gap-1.5 text-[11px] text-white/70">
+                <span>{tick === "lu" ? "Lu" : "Envoyé"} · simulé</span>
+                {tick === "lu" ? <CheckCheck size={13} className="text-[#8fd6c4]" /> : <Check size={13} />}
+              </div>
+            </div>
           </div>
-          <label className="block text-xs font-semibold text-muted-foreground">
-            Description
-            <textarea required rows={3} value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm font-semibold text-foreground" />
-          </label>
-          <p className="text-[11px] text-muted-foreground">Description pré-remplie à partir du message — à ajuster si besoin. Aucune catégorie n’est déduite automatiquement : c’est un choix du coordinateur à la conversion.</p>
-          {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={pending} size="sm">{pending ? "Conversion…" : "Créer le signal"} <ArrowRight /></Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>Annuler</Button>
-          </div>
-        </form>
+        </div>
       )}
     </article>
+  );
+}
+
+// Mini-fil "Rapprochements relayés" — même grammaire de bulle que les
+// messages entrants, sourcé de state.audit (isRelayAuditEntry, aucune
+// nouvelle donnée). Volontairement pas fusionné avec les fils de messages
+// ci-dessus : les déclarants d'IncomingMessage (personas génériques) et les
+// bénéficiaires de relais (vrais comptes) n'ont aucune correspondance
+// fiable dans les données — les mélanger fabriquerait un lien qui n'existe
+// pas (validation CEO 2026-08-15, point 2).
+function RelayBubble({
+  entry,
+  state,
+  isNew
+}: {
+  entry: AuditEntry;
+  state: ProductState;
+  isNew: boolean;
+}) {
+  const [tick, setTick] = useState<"envoye" | "lu">(isNew ? "envoye" : "lu");
+  const relay = state.actors.find((item) => item.id === entry.actorId);
+
+  useEffect(() => {
+    if (!isNew) return;
+    setTick("envoye");
+    const timer = window.setTimeout(() => setTick("lu"), 1500);
+    return () => window.clearTimeout(timer);
+  }, [isNew]);
+
+  return (
+    <div className="flex justify-end">
+      <div className="inline-flex max-w-xl items-start gap-2 rounded-2xl rounded-tr-sm bg-[#0b1a2a] px-4 py-2.5 text-sm text-white">
+        <Handshake size={14} className="mt-0.5 shrink-0 text-[#e79a72]" />
+        <div>
+          <p className="font-semibold">{relay ? `${relay.name} · ` : ""}{entry.detail}</p>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-white/70">
+            <span>{formatAge(entry.at)} · {tick === "lu" ? "Lu" : "Envoyé"} · simulé</span>
+            {tick === "lu" ? <CheckCheck size={13} className="text-[#8fd6c4]" /> : <Check size={13} />}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
