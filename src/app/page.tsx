@@ -23,6 +23,7 @@ import { BlurFade } from "@/components/magicui/blur-fade";
 import { DottedMap } from "@/components/magicui/dotted-map";
 import { Marquee } from "@/components/magicui/marquee";
 import { NumberTicker } from "@/components/magicui/number-ticker";
+import { TerrainMotif, ReseauMotif, TechnologieMotif } from "@/components/public/PillarMotifs";
 
 const territories = publicTerritories.slice(0, 8).map((item) => item.name);
 
@@ -35,6 +36,9 @@ const territoryMarkers = [
   { lat: 12.88, lng: -14.95, size: 1.0 }
 ];
 
+// PUB-A1 (audit Premium XXL Public, CEO 2026-08-16) : chaque pilier porte
+// désormais sa propre matière graphique (Motif) plutôt que le même radial
+// terracotta à 9% partagé par les trois cartes.
 const pillars = [
   {
     title: "Terrain",
@@ -42,7 +46,8 @@ const pillars = [
     icon: Route,
     href: "/mbambulaan",
     cta: "Comprendre l’approche",
-    className: "md:col-span-2 lg:col-span-1"
+    className: "md:col-span-2 lg:col-span-1",
+    Motif: TerrainMotif
   },
   {
     title: "Réseau",
@@ -50,7 +55,8 @@ const pillars = [
     icon: Network,
     href: "/contact?intent=contribution",
     cta: "Contribuer au réseau",
-    className: "md:col-span-1"
+    className: "md:col-span-1",
+    Motif: ReseauMotif
   },
   {
     title: "Technologie",
@@ -58,7 +64,8 @@ const pillars = [
     icon: Compass,
     href: "/mbambulaan#valeur-immediate",
     cta: "Voir la valeur apportée",
-    className: "md:col-span-1"
+    className: "md:col-span-1",
+    Motif: TechnologieMotif
   }
 ] as const;
 
@@ -127,8 +134,11 @@ export default function HomePage() {
             <ValueChainDiagram />
           </div>
 
+          {/* PUB-A2 (audit Premium XXL Public, CEO 2026-08-16) : blanc
+              assumé pour les deux tuiles de données, troisième déjà marine
+              — hiérarchie page = crème / objet = blanc / signal = marine. */}
           <div className="mt-10 grid overflow-hidden rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-stone-150)] md:grid-cols-3">
-            <div className="bg-[#fbf8f1] p-6 md:p-7">
+            <div className="bg-[var(--pub-surface)] p-6 md:p-7">
               <p className="pub-index">Repère national</p>
               <div className="mt-3 flex items-baseline gap-1 text-[2.2rem] font-semibold tracking-[-.04em] text-[var(--pub-deep-900)]">
                 <NumberTicker value={3.2} decimalPlaces={1} /> <span>%</span>
@@ -136,7 +146,7 @@ export default function HomePage() {
               <p className="mt-1 text-sm font-bold text-[var(--pub-stone-900)]">du PIB national</p>
               <p className="mt-3 text-xs leading-5 text-[var(--pub-stone-500)]">Contribution directe de la pêche à l’économie sénégalaise.</p>
             </div>
-            <div className="bg-[#fbf8f1] p-6 md:p-7">
+            <div className="bg-[var(--pub-surface)] p-6 md:p-7">
               <p className="pub-index">Emploi</p>
               <div className="mt-3 flex items-baseline gap-1 text-[2.2rem] font-semibold tracking-[-.04em] text-[var(--pub-deep-900)]">
                 <NumberTicker value={600000} /> <span className="text-xl">+</span>
@@ -177,7 +187,7 @@ export default function HomePage() {
           </BlurFade>
 
           <BentoGrid className="mt-10 auto-rows-[20rem] grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {pillars.map(({ title, text, icon: Icon, href, cta, className }) => (
+            {pillars.map(({ title, text, icon: Icon, href, cta, className, Motif }) => (
               <BentoCard
                 key={title}
                 name={title}
@@ -185,8 +195,13 @@ export default function HomePage() {
                 Icon={Icon}
                 href={href}
                 cta={cta}
-                className={`${className} border border-[var(--pub-stone-150)] bg-[#fbf8f1]`}
-                background={<div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_15%,rgba(182,82,47,.09),transparent_38%)]" />}
+                // Doctrine surfaces crème/blanc (P1, section 8) : surface
+                // fonctionnelle/éditoriale → --pub-surface, cohérent avec
+                // .pub-card et .pub-chain-stage — ces trois cartes portent
+                // une vraie information (les trois piliers), pas un fond
+                // décoratif à part.
+                className={`${className} border border-[var(--pub-stone-150)] bg-[var(--pub-surface)]`}
+                background={<Motif className="absolute inset-0 h-full w-full" />}
               />
             ))}
           </BentoGrid>
