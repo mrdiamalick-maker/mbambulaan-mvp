@@ -21,7 +21,12 @@ export function SustainabilityWorkspace() {
     <div className="grid gap-8 xl:grid-cols-[.75fr_1.25fr]">
       <section>
         <div className="border-b pb-3">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Lots évalués</p>
+          {/* "Lots évalués" laissait croire à un score de durabilité —
+              cette page documente provenance/pratiques déclarées, elle
+              n'évalue rien (lot de finitions, 2026-08-16). "Documentés"
+              reprend le vocabulaire déjà établi ailleurs sur la fiche
+              territoire (Activités documentées, Services documentés). */}
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Lots documentés</p>
           <h2 className="mt-1 font-semibold">Complétude et vigilance</h2>
         </div>
         <div className="divide-y">
