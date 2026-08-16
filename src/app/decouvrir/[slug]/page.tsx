@@ -5,9 +5,27 @@ import { ArrowLeft, ArrowRight, BadgeCheck, BookOpenText, Compass, MapPinned } f
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { EventOnMount } from "@/components/public/EventOnMount";
-import { findContentById, publicNews } from "@/data/public-content";
+import { findContentById, publicNews, type PublicContentDomain } from "@/data/public-content";
 import { publicTerritories } from "@/data/public-atlas";
 import { findPublicDomainByTitle } from "@/data/public-domains";
+
+// PUB-D3 (audit Premium XXL Public, CEO 2026-08-16) : une seule respiration
+// visuelle contextuelle par article, entre "À retenir" et le corps — une
+// position dans la chaîne de valeur (mêmes 6 étapes que ValueChainDiagram
+// sur l'Accueil, réutilisées plutôt qu'un nouveau motif par domaine).
+// Volontairement partiel : les domaines transverses (compétences,
+// financement, territoires, durabilité, équipements) n'ont pas de position
+// unique dans la chaîne — pas de correspondance forcée, la respiration
+// reste absente pour ces articles plutôt que d'être un habillage sans sens.
+const chainStages = ["Mer", "Débarquement", "Conservation", "Transformation", "Transport", "Marchés"] as const;
+const domainToChainStage: Partial<Record<PublicContentDomain, (typeof chainStages)[number]>> = {
+  "Pêche & ressources": "Mer",
+  "Débarquement": "Débarquement",
+  "Conservation & froid": "Conservation",
+  "Transformation & valorisation": "Transformation",
+  "Transport & logistique": "Transport",
+  "Commerce & débouchés": "Marchés"
+};
 
 export function generateStaticParams() {
   return publicNews.map((item) => ({ slug: item.id }));
@@ -35,6 +53,7 @@ export default async function ContentDetailPage({ params }: { params: Promise<{ 
   const takeaways = item.body.slice(0, 3).map((paragraph) => paragraph.split(". ")[0].replace(/\.$/, ""));
   const domain = findPublicDomainByTitle(item.domain);
   const domainHref = domain ? `/decouvrir/domaine/${domain.slug}` : "/decouvrir";
+  const activeStage = domainToChainStage[item.domain];
 
   return (
     <main className="pub-scope min-h-screen">
@@ -56,6 +75,18 @@ export default async function ContentDetailPage({ params }: { params: Promise<{ 
           <p className="pub-eyebrow">À retenir</p>
           <div className="mt-5 grid gap-4 md:grid-cols-3">{takeaways.map((text, index) => <div key={`${index}-${text}`} className="rounded-2xl border border-[var(--pub-stone-150)] bg-white p-4"><span className="text-xs font-black text-[var(--pub-turquoise-500)]">0{index + 1}</span><p className="mt-2 text-sm font-semibold leading-6 text-[var(--pub-deep-900)]">{text}.</p></div>)}</div>
         </div>
+
+        {activeStage && (
+          <div className="mt-8 flex items-center gap-1.5 overflow-x-auto rounded-xl border border-[var(--pub-stone-150)] bg-[var(--pub-surface)] px-4 py-3">
+            <span className="shrink-0 pr-1 text-[10px] font-black uppercase tracking-[.08em] text-[var(--pub-stone-500)]">Dans la chaîne</span>
+            {chainStages.map((stageName, index) => (
+              <span key={stageName} className="flex shrink-0 items-center gap-1.5">
+                {index > 0 && <span className="h-px w-3.5 shrink-0 bg-[var(--pub-stone-150)]" aria-hidden />}
+                <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${stageName === activeStage ? "bg-[var(--pub-turquoise-500)] text-white" : "text-[var(--pub-stone-500)]"}`}>{stageName}</span>
+              </span>
+            ))}
+          </div>
+        )}
 
         <article className="mt-12 space-y-8 text-base leading-8 text-[var(--pub-stone-700)]">
           {item.body.map((paragraph, index) => (

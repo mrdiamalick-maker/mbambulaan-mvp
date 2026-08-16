@@ -4,6 +4,7 @@ import { ArrowRight, BookOpenText, Compass, Snowflake, Truck, Factory, Handshake
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicSectionHero } from "@/components/public/PublicSectionHero";
+import { TerrainMotif } from "@/components/public/PillarMotifs";
 import { publicNews, type PublicContentDomain } from "@/data/public-content";
 
 export const metadata: Metadata = {
@@ -26,13 +27,20 @@ const domains: { title: PublicContentDomain; slug: string }[] = [
   { title: "Durabilité & environnement", slug: "durabilite-environnement" }
 ];
 
-const entryTopics = [
+// PUB-D1 (audit Premium XXL Public, CEO 2026-08-16) : grille éditoriale
+// asymétrique — 2 sujets majeurs (le problème le plus large : pertes après
+// capture ; l'entrée territoriale la plus structurante : Atlas), 4 entrées
+// compactes — plutôt que 6 cards égales exprimant la même chose avec la
+// même grammaire rectangle+icône+titre+texte.
+const majorTopics = [
   { title: "Réduire les pertes après capture", text: "Comprendre ce qui se joue entre débarquement, froid, transport et débouchés.", icon: Waves, href: "/decouvrir/analyse-pertes-post-capture" },
-  { title: "Organiser le froid", text: "Qualifier un besoin de glace, de stockage ou de conservation avant de chercher une solution.", icon: Snowflake, href: "/decouvrir/guide-besoin-froid" },
-  { title: "Comprendre un territoire", text: "Relier activités, infrastructures et besoins à un contexte local précis.", icon: MapPinned, href: "/atlas" },
-  { title: "Acheminer les produits", text: "Structurer origine, destination, volume, fréquence et contraintes de transport.", icon: Truck, href: "/decouvrir/guide-transport" },
-  { title: "Valoriser la transformation", text: "Voir où la valeur se crée après le débarquement et ce qui peut la limiter.", icon: Factory, href: "/decouvrir/comprendre-transformation" },
-  { title: "Financer une intervention", text: "Commencer par documenter le problème, les bénéficiaires et le résultat attendu.", icon: Handshake, href: "/decouvrir/comprendre-financement" }
+  { title: "Comprendre un territoire", text: "Relier activités, infrastructures et besoins à un contexte local précis.", icon: MapPinned, href: "/atlas" }
+];
+const compactTopics = [
+  { title: "Organiser le froid", icon: Snowflake, href: "/decouvrir/guide-besoin-froid" },
+  { title: "Acheminer les produits", icon: Truck, href: "/decouvrir/guide-transport" },
+  { title: "Valoriser la transformation", icon: Factory, href: "/decouvrir/comprendre-transformation" },
+  { title: "Financer une intervention", icon: Handshake, href: "/decouvrir/comprendre-financement" }
 ];
 
 // Bande éditoriale "Durabilité en pratique" (arbitrage CEO, paquet éditorial
@@ -65,13 +73,22 @@ export default function DiscoverPage() {
       <section className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-20">
         <p className="pub-eyebrow">Commencer par un sujet</p>
         <h2 className="pub-display mt-3 max-w-3xl text-[2.2rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[3rem]">Partir d’une situation concrète plutôt que d’une catégorie abstraite.</h2>
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {entryTopics.map(({ title, text, icon: Icon, href }) => (
-            <Link key={title} href={href} className="pub-card group p-6">
-              <span className="grid size-11 place-items-center rounded-xl bg-[var(--pub-ivory-200)] text-[var(--pub-deep-800)]"><Icon size={20}/></span>
-              <h3 className="mt-5 text-xl font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{title}</h3>
-              <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{text}</p>
-              <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Explorer <ArrowRight size={14} className="transition group-hover:translate-x-1"/></span>
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          {majorTopics.map(({ title, text, icon: Icon, href }) => (
+            <Link key={title} href={href} className="pub-card group p-7 md:p-8">
+              <span className="grid size-13 place-items-center rounded-xl bg-[var(--pub-ivory-200)] text-[var(--pub-deep-800)]"><Icon size={24}/></span>
+              <h3 className="pub-display mt-6 text-2xl not-italic tracking-[-.03em] text-[var(--pub-deep-900)] md:text-[1.7rem]">{title}</h3>
+              <p className="mt-3 max-w-md text-sm leading-6 text-[var(--pub-stone-700)]">{text}</p>
+              <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Explorer <ArrowRight size={14} className="transition group-hover:translate-x-1"/></span>
+            </Link>
+          ))}
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {compactTopics.map(({ title, icon: Icon, href }) => (
+            <Link key={title} href={href} className="group flex items-center gap-3 rounded-xl border border-[var(--pub-stone-150)] bg-[var(--pub-surface)] p-4 transition hover:border-[var(--pub-turquoise-500)]">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--pub-ivory-200)] text-[var(--pub-deep-800)]"><Icon size={16}/></span>
+              <span className="min-w-0 flex-1 text-sm font-bold text-[var(--pub-deep-900)]">{title}</span>
+              <ArrowRight size={13} className="shrink-0 text-[var(--pub-stone-300)] transition group-hover:translate-x-1"/>
             </Link>
           ))}
         </div>
@@ -114,8 +131,23 @@ export default function DiscoverPage() {
           <div><p className="pub-eyebrow">À lire maintenant</p><h2 className="pub-display mt-3 text-[2.2rem] not-italic text-[var(--pub-deep-900)] md:text-[3rem]">Des contenus utiles, reliés au terrain et à l’action.</h2></div>
           <span className="text-xs font-semibold text-[var(--pub-stone-500)]">Sélection éditoriale</span>
         </div>
+        {/* PUB-D2 (audit Premium XXL Public, CEO 2026-08-16, PRIORITÉ 1) :
+            le lead porte une identité visuelle propre — filet terracotta en
+            tête (même signature que le wizard Solutions, P3), titre en
+            pub-display serif (les secondaires restent en sans-serif bold,
+            registre plus "actualité"), motif territorial en fond très
+            discret plutôt qu'une simple grande .pub-card identique aux
+            secondaires en plus gros. */}
         {lead && <div className="mt-8 grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
-          <Link href={`/decouvrir/${lead.id}`} className="pub-card group min-h-[360px] p-7 md:p-9"><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]"><BookOpenText size={14}/>{lead.category}</div><h3 className="mt-5 max-w-3xl text-3xl font-bold tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">{lead.title}</h3><p className="mt-5 max-w-2xl text-sm leading-7 text-[var(--pub-stone-700)]">{lead.excerpt}</p><div className="mt-8 flex items-center justify-between"><span className="text-xs font-semibold text-[var(--pub-stone-500)]">{lead.territory} · {lead.readingTime}</span><span className="inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Lire <ArrowRight size={15} className="transition group-hover:translate-x-1"/></span></div></Link>
+          <Link href={`/decouvrir/${lead.id}`} className="group relative min-h-[360px] overflow-hidden rounded-[var(--pub-radius-lg)] border border-t-2 border-[var(--pub-stone-150)] border-t-[var(--pub-turquoise-500)] bg-[var(--pub-surface)] p-7 md:p-9">
+            <TerrainMotif className="pointer-events-none absolute inset-0 h-full w-full text-[var(--pub-deep-900)] opacity-[.05]" />
+            <div className="relative">
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]"><BookOpenText size={14}/>{lead.category}</div>
+              <h3 className="pub-display mt-5 max-w-3xl text-[2.1rem] not-italic leading-[1.04] text-[var(--pub-deep-900)] md:text-[2.7rem]">{lead.title}</h3>
+              <p className="mt-5 max-w-2xl text-sm leading-7 text-[var(--pub-stone-700)]">{lead.excerpt}</p>
+              <div className="mt-8 flex items-center justify-between"><span className="text-xs font-semibold text-[var(--pub-stone-500)]">{lead.territory} · {lead.readingTime}</span><span className="inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]">Lire <ArrowRight size={15} className="transition group-hover:translate-x-1"/></span></div>
+            </div>
+          </Link>
           <div className="grid gap-4 sm:grid-cols-2">{secondary.map((item) => <Link key={item.id} href={`/decouvrir/${item.id}`} className="pub-card group flex min-h-44 flex-col p-5"><div className="text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]">{item.category}</div><h3 className="mt-3 text-lg font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{item.title}</h3><span className="mt-auto pt-4 text-xs font-semibold text-[var(--pub-stone-500)]">{item.territory} · {item.readingTime}</span></Link>)}</div>
         </div>}
       </section>

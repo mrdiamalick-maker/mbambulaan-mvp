@@ -60,16 +60,20 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
       <section className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-18">
         <div className="grid gap-8 lg:grid-cols-[1.2fr_.8fr] lg:items-start">
           <div>
-            {item.details?.map((paragraph, index) => <p key={index} className="mt-4 text-base leading-8 text-[#324b4f] first:mt-0">{paragraph}</p>)}
+            {/* Couleurs legacy hors palette --pub-* (#324b4f, #d9e3e3,
+                #08758a, #8a9a9e — même famille teal que celles trouvées et
+                harmonisées sur Contact/Solutions, P3) corrigées au passage
+                vers les tokens actuels. */}
+            {item.details?.map((paragraph, index) => <p key={index} className="mt-4 text-base leading-8 text-[var(--pub-stone-700)] first:mt-0">{paragraph}</p>)}
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              <div className="flex items-center gap-3 rounded-xl border border-[#d9e3e3] bg-white p-4"><MapPinned size={17} className="shrink-0 text-[#08758a]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#8a9a9e]">Territoire</p><p className="text-sm font-bold text-[var(--pub-deep-900)]">{item.territory}</p></div></div>
-              <div className="flex items-center gap-3 rounded-xl border border-[#d9e3e3] bg-white p-4"><UsersRound size={17} className="shrink-0 text-[#08758a]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#8a9a9e]">Public concerné</p><p className="text-sm font-bold text-[var(--pub-deep-900)]">{item.audience}</p></div></div>
-              <div className="flex items-center gap-3 rounded-xl border border-[#d9e3e3] bg-white p-4"><CalendarDays size={17} className="shrink-0 text-[#08758a]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#8a9a9e]">Échéance</p><p className="text-sm font-bold text-[var(--pub-deep-900)]">{item.deadline}</p></div></div>
-              <div className="flex items-center gap-3 rounded-xl border border-[#d9e3e3] bg-white p-4"><Landmark size={17} className="shrink-0 text-[#08758a]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[#8a9a9e]">Organisateur</p><p className="text-sm font-bold text-[var(--pub-deep-900)]">{item.organizer}</p></div></div>
+              <div className="flex items-center gap-3 rounded-xl border border-[var(--pub-stone-150)] bg-white p-4"><MapPinned size={17} className="shrink-0 text-[var(--pub-turquoise-500)]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--pub-stone-500)]">Territoire</p><p className="text-sm font-bold text-[var(--pub-deep-900)]">{item.territory}</p></div></div>
+              <div className="flex items-center gap-3 rounded-xl border border-[var(--pub-stone-150)] bg-white p-4"><UsersRound size={17} className="shrink-0 text-[var(--pub-turquoise-500)]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--pub-stone-500)]">Public concerné</p><p className="text-sm font-bold text-[var(--pub-deep-900)]">{item.audience}</p></div></div>
+              <div className="flex items-center gap-3 rounded-xl border border-[var(--pub-stone-150)] bg-white p-4"><CalendarDays size={17} className="shrink-0 text-[var(--pub-turquoise-500)]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--pub-stone-500)]">Échéance</p><p className="text-sm font-bold text-[var(--pub-deep-900)]">{item.deadline}</p></div></div>
+              <div className="flex items-center gap-3 rounded-xl border border-[var(--pub-stone-150)] bg-white p-4"><Landmark size={17} className="shrink-0 text-[var(--pub-turquoise-500)]" /><div><p className="text-[10px] font-black uppercase tracking-[.1em] text-[var(--pub-stone-500)]">Organisateur</p><p className="text-sm font-bold text-[var(--pub-deep-900)]">{item.organizer}</p></div></div>
             </div>
 
-            <div className="mt-5 flex items-center gap-2 rounded-xl border border-[#d9e3e3] bg-white px-4 py-3 text-xs font-semibold text-[var(--pub-stone-500)]">
+            <div className="mt-5 flex items-center gap-2 rounded-xl border border-[var(--pub-stone-150)] bg-white px-4 py-3 text-xs font-semibold text-[var(--pub-stone-500)]">
               <BadgeCheck size={15} className="shrink-0 text-[var(--pub-turquoise-500)]" /> Niveau d’implication Mbàmbulaan : {item.involvement} · {item.verification}
             </div>
           </div>
@@ -98,7 +102,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
             <p className="pub-eyebrow">Autres opportunités · {item.type}</p>
             <div className="mt-5 grid gap-4 lg:grid-cols-3">
               {related.map((a) => (
-                <Link key={a.id} href={`/opportunites/${a.id}`} className="pub-card group flex min-h-48 flex-col p-5 transition hover:-translate-y-0.5 hover:border-[#8fc3bd]">
+                <Link key={a.id} href={`/opportunites/${a.id}`} className="pub-card group flex min-h-48 flex-col p-5 transition hover:-translate-y-0.5 hover:border-[var(--pub-turquoise-500)]">
                   <h3 className="text-lg font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{a.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-[var(--pub-stone-700)]">{a.territory}</p>
                 </Link>
