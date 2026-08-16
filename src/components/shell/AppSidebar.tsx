@@ -45,6 +45,14 @@ type NavGroup = { label: string; items: NavItem[] };
 // hors groupe, plus Situations/Coordinations qui vivaient dans "Filière")
 // porte la position dominante par sa place, pas par un traitement visuel
 // distinct des deux autres groupes.
+//
+// "capitaine" retiré des roles[] de Situations/Opérations/Prix et
+// marchés/Provenance & durabilité (lot de finitions, 2026-08-16) : le
+// rôle est hard-redirigé vers /app/terrain (TerrainShell) par
+// src/app/app/(coordination)/layout.tsx pour toute route de ce groupe —
+// il n'a jamais atteint cette sidebar en pratique. Code mort, aucun
+// risque de sécurité (la garde serveur reste correcte), retiré par
+// hygiène de lecture uniquement.
 const operationalGroups: NavGroup[] = [
   {
     label: "Travail",
@@ -56,22 +64,22 @@ const operationalGroups: NavGroup[] = [
       // coordinateur/partenaire, /app/situations redirige désormais
       // vers /app/travail — ne pas les lister ici, ce serait une entrée
       // de nav vers une redirection, pas une destination.
-      { href: "/app/situations", module: "operations", label: "Situations", icon: ClipboardList, roles: ["operateur", "capitaine", "mareyeur", "transformateur", "prestataire"] },
+      { href: "/app/situations", module: "operations", label: "Situations", icon: ClipboardList, roles: ["operateur", "mareyeur", "transformateur", "prestataire"] },
       { href: "/app/coordination", module: "coordination", label: "Coordinations", icon: Handshake, roles: ["administrateur", "operateur", "mareyeur", "transformateur", "prestataire", "gestionnaire_organisation", "coordinateur", "partenaire"] }
     ]
   },
   {
     label: "Filière",
     items: [
-      { href: "/app/operations", module: "operations", label: "Opérations", icon: Anchor, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur"] },
+      { href: "/app/operations", module: "operations", label: "Opérations", icon: Anchor, roles: ["administrateur", "operateur", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur"] },
       { href: "/app/atlas", module: "territory_intelligence", label: "Territoires & capacités", icon: Globe2, roles: [] },
       // Prix et marchés — arbitrage Navigation du 2026-08-12 : le contenu
       // réel de MarketWorkspace.tsx (observations de prix + rareté
       // explicable) ne couvre ni flux ni débouchés/logistique ; le libellé
       // de nav est aligné sur le titre de page existant plutôt que
       // l'inverse.
-      { href: "/app/marches", module: "market_intelligence", label: "Prix et marchés", icon: Store, roles: ["administrateur", "operateur", "capitaine", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur"] },
-      { href: "/app/durabilite", label: "Provenance & durabilité", icon: Leaf, roles: ["administrateur", "operateur", "capitaine", "transformateur", "gestionnaire_organisation", "coordinateur", "partenaire"] }
+      { href: "/app/marches", module: "market_intelligence", label: "Prix et marchés", icon: Store, roles: ["administrateur", "operateur", "mareyeur", "transformateur", "gestionnaire_organisation", "coordinateur"] },
+      { href: "/app/durabilite", label: "Provenance & durabilité", icon: Leaf, roles: ["administrateur", "operateur", "transformateur", "gestionnaire_organisation", "coordinateur", "partenaire"] }
     ]
   },
   {
