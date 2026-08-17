@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowRight, ArrowUpRight, FileDown, Radio, Send, ShieldCheck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Factory, FileDown, Radio, Send, ShieldCheck } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
-import { AtlasExecutiveSummary } from "@/components/atlas/AtlasExecutiveSummary";
 import { InstitutionIllustration } from "@/components/public/CoordinationIllustration";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
 import { DecisionIcon, ResultatIcon, SignalIcon, SituationIcon } from "@/components/etat/MotifIcons";
-import { DottedMap } from "@/components/magicui/dotted-map";
+import { CoastlineTerritoryMap } from "@/components/territories/CoastlineTerritoryMap";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { decisionTypeLabels, type Situation, type Territory } from "@/domain/types";
 import { fieldVisitObjectiveLabels, type FieldVisit, type FieldVisitObjective } from "@/domain/ministry/field-visit";
@@ -21,25 +20,38 @@ import {
   type VigilanceSeverity
 } from "@/domain/ministry/vigilance";
 
-// Audit DA Premium XXL v2 (mandat CEO 2026-08-17) — Lot A : fondations
-// visuelles uniquement. Cette page adopte .etat-scope (etat-design-system.css),
-// déjà construit et validé sur la page sœur /app/etat/rapport, plutôt
-// qu'un 4e vocabulaire visuel — même discipline que le composant Drawer
-// ci-dessus, lui aussi déjà construit mais jamais câblé jusqu'ici. Aucune
-// donnée, aucun moteur métier, aucune restructuration de chapitre dans ce
-// lot : même contenu, même ordre de sections qu'avant, uniquement le skin
-// (typographie serif d'affichage, palette --etat-*, cartes KPI → chiffres
-// inline §17 du mandat, retrait du Marquee §5). La recomposition en 6
-// chapitres (carte, résultats, priorités, arbitrage, décisions, programmes)
-// est le Lot B et suivants.
+// Audit DA Premium XXL v2 (mandat CEO 2026-08-17). Cette page adopte
+// .etat-scope (etat-design-system.css), déjà construit et validé sur la
+// page sœur /app/etat/rapport, plutôt qu'un 4e vocabulaire visuel — même
+// discipline que le composant Drawer ci-dessus, lui aussi déjà construit
+// mais jamais câblé avant le Lot A. Aucune donnée, aucun moteur métier
+// touché dans ce lot.
 //
-// AtlasExecutiveSummary (variant="institution") n'est PAS retouché ici :
-// composant partagé avec /app/atlas Pro (variant="coordinateur"), le
-// modifier casserait l'autre surface. Il garde donc son rendu shadcn
-// (cartes blanches) le temps de ce lot — retouché visuellement maintenant
-// serait du travail jeté : le Lot B le retire de cette page au profit des
-// 3 compteurs sous la carte (territoires suivis/vigilance/critique, cf.
-// référence visuelle chapitre 1), sans toucher au fichier partagé.
+// Lot A (fondations visuelles) : typographie serif d'affichage, palette
+// --etat-*, cartes KPI → chiffres inline (§17 du mandat), retrait du
+// Marquee (§5).
+//
+// Lot B (Chapitre 1 — lecture territoriale) : ancien Hero (bande sombre
+// pleine largeur) + section "Atlas territorial" (DottedMap générique)
+// fusionnés en un seul chapitre carte + décision prioritaire unique +
+// compteurs, conformément à la référence visuelle et à l'option 2 tranchée
+// par le CEO pour le point d'attention "carte" (cf. gap analysis). La
+// carte réutilise la géométrie calibrée de PublicAtlasWorkspace.tsx via
+// CoastlineTerritoryMap/territory-map-positions.ts — fichiers neufs, le
+// Public n'est ni modifié ni affecté. AtlasExecutiveSummary
+// (variant="institution") est retiré de cette page : composant partagé
+// avec /app/atlas Pro (variant="coordinateur"), non modifié, seulement
+// plus utilisé ici — ses 2 métriques encore non relogées (situations à
+// arbitrer, capacités fragiles) restent trackées pour le Chapitre 2, pas
+// perdues, juste pas encore leur place définitive. DottedMap n'est plus
+// utilisé sur cette page (remplacé) ; InstitutionIllustration migre du
+// Hero (retiré) vers le bandeau rapport bailleurs, où son usage reste
+// légitime (§18 du mandat) plutôt que de devenir orphelin.
+//
+// Écarts assumés vs la référence, validés par le CEO (2026-08-17) : pas de
+// score de confiance composite fabriqué (§20, doctrine anti-score déjà
+// appliquée ailleurs) ; pas de second acteur "proposé par / validé par"
+// inventé pour le journal de décisions (le modèle n'a qu'un décideur).
 const severityToTag: Record<VigilanceSeverity, "stable" | "vigilance" | "critique"> = { faible: "stable", moyenne: "vigilance", haute: "vigilance", critique: "critique" };
 const priorityLabels: Record<Situation["priority"], string> = { critique: "Critique", haute: "Élevé", moyenne: "Moyen", faible: "Faible" };
 const priorityToTag: Record<Situation["priority"], "stable" | "vigilance" | "critique"> = { critique: "critique", haute: "vigilance", moyenne: "stable", faible: "stable" };
@@ -122,8 +134,19 @@ export default function EtatPage() {
 
   const signauxTraites = cases.filter((item) => item.status === "transmis_autorites" || item.status === "clos").length;
   const territoiresActifs = state.territories.length;
+  const territoiresVigilance = state.territories.filter((item) => item.activity === "vigilance").length;
+  const territoiresCritiques = state.territories.filter((item) => item.activity === "critique").length;
   const territoiresAttention = state.territories.filter((item) => item.activity !== "stable");
   const territoiresStables = state.territories.filter((item) => item.activity === "stable");
+
+  // Chapitre 1 — décision prioritaire unique : bulles réellement dérivables
+  // du territoire/dossier dominant, pas les libellés illustratifs de la
+  // référence (aucun champ "sorties de pêche concernées"/"tonnage
+  // impacté"/"risque de pertes" n'existe dans le modèle — non fabriqués).
+  const dominantTerritoryId = dominant.kind === "territoire" ? dominant.territory.id : dominant.kind === "signal" ? dominant.case.territoryId : undefined;
+  const dominantOpenSituations = dominantTerritoryId ? state.situations.filter((item) => item.territoryId === dominantTerritoryId && item.status !== "reglee") : [];
+  const dominantFragileInfra = dominantTerritoryId ? state.infrastructures.filter((item) => item.territoryId === dominantTerritoryId && item.status !== "operationnelle").length : 0;
+  const dominantPrioritySituation = [...dominantOpenSituations].sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])[0];
   const territoryHealthData = [
     { name: "Stable", value: territoiresStables.length, fill: "var(--etat-navy-600)" },
     { name: "Vigilance", value: state.territories.filter((item) => item.activity === "vigilance").length, fill: "var(--etat-ocre)" },
@@ -158,32 +181,77 @@ export default function EtatPage() {
         <p>Mbàmbulaan <strong>qualifie et signale</strong> les situations remontées du terrain. La décision et l’action relèvent des autorités compétentes.</p>
       </div>
 
-      {/* PUB-X1 (audit Premium XXL Public, CEO 2026-08-16) : le placeholder
-          "institution-territory-hero.webp" est remplacé par
-          InstitutionIllustration — même langage graphique que Login
-          (CoordinationIllustration.tsx) mais plus décisionnel : tensions →
-          réseau → décision publique. Traitement inchangé dans ce lot (Lot A) :
-          le Chapitre 1 (carte territoriale réelle en tête de page) est le
-          Lot B, une fois le moteur cartographique extrait de
-          PublicAtlasWorkspace.tsx comme tranché. */}
-      <section className="etat-canvas-dark relative overflow-hidden rounded-[28px] shadow-lg">
-        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[38%] md:block" aria-hidden="true">
-          <div className="absolute inset-0"><InstitutionIllustration /></div>
-          <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, var(--etat-navy-950) 0%, transparent 60%)" }} />
-        </div>
-        <div className="relative z-10 p-6 md:p-10">
-          <p className="etat-eyebrow etat-eyebrow--on-dark">Espace État · {actor?.name ?? "Ministère"}</p>
-          <div className="mt-5 flex flex-col gap-6 md:flex-row md:items-center">
-            <TensionGlyph status={dominant.glyphStatus} size={100} pulse={dominant.kind !== "calme"} />
-            <div className="min-w-0 flex-1">
-              {dominant.kind === "signal" && <><h1 className="etat-display text-2xl not-italic md:text-3xl">En ce moment : {vigilanceCategoryLabels[dominant.case.category]} à {dominant.case.territoryLabel}.</h1><p className="mt-3 max-w-2xl text-sm text-[var(--etat-offwhite)]/70">{dominant.case.description}</p></>}
-              {dominant.kind === "territoire" && <><h1 className="etat-display text-2xl not-italic md:text-3xl">En ce moment : {dominant.territory.name} concentre l’attention du réseau.</h1><p className="mt-3 max-w-2xl text-sm text-[var(--etat-offwhite)]/70">Territoire classé en activité critique — voir le détail pour comprendre ce qui s’y joue.</p></>}
-              {dominant.kind === "calme" && <><h1 className="etat-display text-2xl not-italic md:text-3xl">Aucune tension prioritaire signalée pour le moment.</h1><p className="mt-3 max-w-2xl text-sm text-[var(--etat-offwhite)]/70">Le réseau reste sous surveillance continue ; les territoires et signaux actifs restent consultables ci-dessous.</p></>}
-              <div className="mt-5 flex flex-wrap gap-3">
-                {dominant.kind === "territoire" && <button className="etat-btn etat-btn-on-dark" onClick={() => setTerritoryDrawer(dominant.territory)}>Voir le territoire <ArrowRight size={15} /></button>}
-                <a className="etat-btn etat-btn-on-dark" href="#arbitrage">Voir les situations à arbitrer <ArrowRight size={15} /></a>
-              </div>
+      {/* Chapitre 1 — Lecture territoriale (mandat §5, Lot B). Carte +
+          décision prioritaire unique côte à côte ; sous les deux,
+          uniquement les 3 compteurs — "rien d'autre dans ce premier
+          chapitre" (mandat). H1 déplacé ici (était dans l'ancien Hero) :
+          reste le titre principal de la page. */}
+      <section id="terrain">
+        <p className="etat-eyebrow">1 · Lecture territoriale</p>
+        <h1 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)] md:text-3xl">Le littoral, territoire par territoire.</h1>
+        <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">Espace État · {actor?.name ?? "Ministère"}. Cliquez un point sur la carte pour ouvrir le détail d’un territoire.</p>
+
+        <div className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_.7fr] lg:items-stretch">
+          <div className="etat-panel overflow-hidden">
+            <div className="aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full lg:min-h-[520px]">
+              <CoastlineTerritoryMap
+                territories={state.territories}
+                selectedId={territoryDrawer?.id}
+                onSelect={(id) => {
+                  const territory = state.territories.find((item) => item.id === id);
+                  if (territory) setTerritoryDrawer(territory);
+                }}
+              />
             </div>
+          </div>
+
+          <aside className="etat-panel flex flex-col p-6" style={{ borderLeftWidth: 4, borderLeftColor: dominant.kind === "calme" ? "var(--etat-navy-600)" : "var(--etat-terracotta)" }}>
+            <div className="flex items-center gap-2.5" style={{ color: dominant.kind === "calme" ? "var(--etat-navy-600)" : "var(--etat-terracotta)" }}>
+              <TensionGlyph status={dominant.glyphStatus} size={26} pulse={dominant.kind !== "calme"} />
+              <p className="text-[11px] font-bold uppercase tracking-widest">{dominant.kind === "calme" ? "Situation calme" : "À décider aujourd’hui"}</p>
+            </div>
+            <h2 className="etat-display mt-3 text-xl not-italic text-[var(--etat-navy-950)]">
+              {dominant.kind === "signal" && `${vigilanceCategoryLabels[dominant.case.category]} à ${dominant.case.territoryLabel}`}
+              {dominant.kind === "territoire" && `${dominant.territory.name} concentre l’attention du réseau`}
+              {dominant.kind === "calme" && "Aucune tension prioritaire signalée"}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--etat-stone-600)]">
+              {dominant.kind === "signal" && dominant.case.description}
+              {dominant.kind === "territoire" && "Territoire classé en activité critique — voir le détail pour comprendre ce qui s’y joue."}
+              {dominant.kind === "calme" && "Le réseau reste sous surveillance continue ; les territoires actifs restent consultables sur la carte."}
+            </p>
+
+            {dominant.kind !== "calme" && (
+              <div className="mt-4 space-y-2.5 border-t border-[var(--etat-line)] pt-4 text-sm text-[var(--etat-navy-950)]">
+                <p className="flex items-center gap-2"><SituationIcon size={15} color="var(--etat-stone-600)" /> {dominantOpenSituations.length} situation(s) ouverte(s) sur ce territoire</p>
+                {dominantFragileInfra > 0 && <p className="flex items-center gap-2"><Factory size={15} color="var(--etat-ocre)" /> {dominantFragileInfra} capacité(s) fragile(s) ou indisponible(s)</p>}
+                {dominantPrioritySituation && <p className="text-xs text-[var(--etat-stone-600)]">Prochaine étape : {dominantPrioritySituation.nextStep}</p>}
+              </div>
+            )}
+
+            <div className="mt-5 flex flex-1 flex-col justify-end gap-2">
+              {dominant.kind === "territoire" && <button className="etat-btn etat-btn-outline justify-center" onClick={() => setTerritoryDrawer(dominant.territory)}>Voir le territoire <ArrowRight size={15} /></button>}
+              {dominantPrioritySituation ? (
+                <Link href={`/app/situations/${dominantPrioritySituation.id}`} className="etat-btn etat-btn-primary justify-center">Ouvrir l’arbitrage <ArrowRight size={15} /></Link>
+              ) : (
+                <a href="#arbitrage" className="etat-btn etat-btn-outline justify-center">Voir les situations à arbitrer <ArrowRight size={15} /></a>
+              )}
+            </div>
+          </aside>
+        </div>
+
+        <div className="mt-6 grid grid-cols-3 gap-6 border-t border-[var(--etat-line)] pt-5">
+          <div>
+            <p className="etat-display text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={territoiresActifs} /></p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Territoires suivis</p>
+          </div>
+          <div>
+            <p className="etat-display text-2xl not-italic" style={{ color: "var(--etat-ocre)" }}><NumberTicker value={territoiresVigilance} /></p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">En vigilance</p>
+          </div>
+          <div>
+            <p className="etat-display text-2xl not-italic" style={{ color: "var(--etat-terracotta)" }}><NumberTicker value={territoiresCritiques} /></p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">En critique</p>
           </div>
         </div>
       </section>
@@ -236,43 +304,29 @@ export default function EtatPage() {
         </div>
       </section>
 
-      <section id="terrain">
-        <p className="etat-eyebrow">Rencontrer les pêcheurs sans déplacement systématique</p>
-        <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Atlas territorial — le littoral, territoire par territoire.</h2>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{territoiresAttention.length} territoire(s) demandent une attention particulière sur {territoiresActifs} suivis par le réseau. Cliquez un point sur la carte ou une fiche pour ouvrir le détail.</p>
-        <div className="mt-6"><AtlasExecutiveSummary state={state} variant="institution" /></div>
-        <div className="mt-6 grid gap-8 lg:grid-cols-[1.2fr_.8fr] lg:items-start">
-          <div>
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-wide text-[var(--etat-stone-400)]">Littoral suivi par le réseau · illustratif</p>
-            <div className="etat-panel--warm aspect-[16/11] w-full p-3">
-              <DottedMap
-                countries={["SEN"]}
-                region={{ lat: { min: 12, max: 17 }, lng: { min: -17.5, max: -11 } }}
-                className="text-[var(--etat-stone-400)]/40"
-                markerColor="var(--etat-terracotta)"
-                dotRadius={0.35}
-                markers={state.territories.map((territory) => ({ lat: territory.latitude, lng: territory.longitude, size: territory.activity === "critique" ? 3.2 : territory.activity === "vigilance" ? 2.2 : 1.4, pulse: territory.activity === "critique", color: glyphBorderColor[territory.activity], territoryId: territory.id, name: territory.name, activity: territory.activity }))}
-                onMarkerClick={(marker) => {
-                  const territory = state.territories.find((item) => item.id === marker.territoryId);
-                  if (territory) setTerritoryDrawer(territory);
-                }}
-                renderMarkerOverlay={({ marker, x, y, r }) => marker.activity === "stable" ? null : <text x={x + r + 1} y={y + 0.9} fontSize={2.5} fontWeight={700} fill={glyphBorderColor[marker.activity]} style={{ pointerEvents: "none" }}>{marker.name}</text>}
-              />
-            </div>
-          </div>
-          <div className="max-h-[460px] overflow-y-auto pr-1">
-            {[...territoiresAttention, ...territoiresStables].map((territory) => {
-              const infraCount = state.infrastructures.filter((item) => item.territoryId === territory.id).length;
-              const situationsOuvertes = state.situations.filter((item) => item.territoryId === territory.id && item.status !== "reglee").length;
-              return (
-                <button key={territory.id} onClick={() => setTerritoryDrawer(territory)} className="flex w-full items-center gap-3 border-b border-[var(--etat-line)] py-3.5 text-left transition hover:bg-white/60" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[territory.activity], backgroundColor: glyphFillColor[territory.activity] }}>
-                  <span className="pl-3"><TensionGlyph status={territory.activity} size={24} /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-[var(--etat-navy-950)]">{territory.name}</span><span className="mt-0.5 block text-xs text-[var(--etat-stone-600)]">{infraCount} infrastructure(s) · {situationsOuvertes} situation(s) ouverte(s)</span></span>
-                  <span className="pr-2"><StatusBadge status={territory.activity} /></span>
-                </button>
-              );
-            })}
-          </div>
+      {/* Registre complet des territoires — fonctionnalité de l'ancienne
+          section "Atlas territorial" conservée (parcourir tous les
+          territoires, pas seulement les 3 prioritaires), volontairement
+          sans "chapitre" ni carte ici pour ne pas dupliquer le Chapitre 1.
+          Provisoire : le Lot C (Chapitre 3, "Où concentrer l'attention ?")
+          doit transformer cette liste plate en priorités qualifiées
+          (tension/impact/acteurs/raison) — cette section disparaîtra ou se
+          réduira à ce moment-là plutôt que d'être retouchée deux fois. */}
+      <section>
+        <p className="etat-eyebrow">Explorer tous les territoires</p>
+        <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">{territoiresAttention.length} territoire(s) demandent une attention particulière sur {territoiresActifs} suivis par le réseau.</h2>
+        <div className="mt-5 max-h-[460px] overflow-y-auto rounded-xl border border-[var(--etat-line)]">
+          {[...territoiresAttention, ...territoiresStables].map((territory) => {
+            const infraCount = state.infrastructures.filter((item) => item.territoryId === territory.id).length;
+            const situationsOuvertes = state.situations.filter((item) => item.territoryId === territory.id && item.status !== "reglee").length;
+            return (
+              <button key={territory.id} onClick={() => setTerritoryDrawer(territory)} className="flex w-full items-center gap-3 border-b border-[var(--etat-line)] py-3.5 pl-3 pr-2 text-left transition last:border-b-0 hover:bg-[var(--etat-offwhite)]" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[territory.activity], backgroundColor: glyphFillColor[territory.activity] }}>
+                <TensionGlyph status={territory.activity} size={24} />
+                <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-[var(--etat-navy-950)]">{territory.name}</span><span className="mt-0.5 block text-xs text-[var(--etat-stone-600)]">{infraCount} infrastructure(s) · {situationsOuvertes} situation(s) ouverte(s)</span></span>
+                <StatusBadge status={territory.activity} />
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -348,13 +402,21 @@ export default function EtatPage() {
         )}
       </section>
 
-      <section className="etat-canvas-dark flex flex-wrap items-center justify-between gap-5 rounded-[28px] p-7 shadow-lg">
-        <div>
+      {/* InstitutionIllustration (P5, audit XXL Public) migre ici depuis
+          l'ancien Hero (retiré au Lot B) — usage légitime au sens du
+          mandat (§18, "couverture de rapport") plutôt que devenir un
+          composant orphelin. */}
+      <section className="etat-canvas-dark relative flex flex-wrap items-center justify-between gap-5 overflow-hidden rounded-[28px] p-7 shadow-lg">
+        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[32%] opacity-70 md:block" aria-hidden="true">
+          <InstitutionIllustration />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, var(--etat-navy-950) 0%, transparent 65%)" }} />
+        </div>
+        <div className="relative z-10">
           <p className="etat-eyebrow etat-eyebrow--on-dark">Capter l’attention des bailleurs</p>
           <h2 className="etat-display mt-2 text-2xl not-italic">Un rapport d’impact prêt à partager.</h2>
           <p className="mt-2 max-w-xl text-sm text-[var(--etat-offwhite)]/65">Structuré par territoire, exportable, pensé pour vos propres échanges avec les bailleurs et programmes.</p>
         </div>
-        <Link href="/app/etat/rapport" className="etat-btn etat-btn-primary"><FileDown size={15} /> Ouvrir le rapport bailleurs</Link>
+        <Link href="/app/etat/rapport" className="etat-btn etat-btn-primary relative z-10"><FileDown size={15} /> Ouvrir le rapport bailleurs</Link>
       </section>
 
       <Drawer open={!!territoryDrawer} onClose={() => setTerritoryDrawer(null)} eyebrow="Territoire" title={territoryDrawer?.name ?? ""}>
