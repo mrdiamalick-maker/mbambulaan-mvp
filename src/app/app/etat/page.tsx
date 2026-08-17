@@ -7,7 +7,7 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { InstitutionIllustration } from "@/components/public/CoordinationIllustration";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
-import { DecisionIcon, ResultatIcon, SignalIcon, SituationIcon } from "@/components/etat/MotifIcons";
+import { DecisionIcon, ResultatIcon, SituationIcon } from "@/components/etat/MotifIcons";
 import { CoastlineTerritoryMap } from "@/components/territories/CoastlineTerritoryMap";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { decisionTypeLabels, type Situation, type Territory } from "@/domain/types";
@@ -133,12 +133,10 @@ export default function EtatPage() {
 
   if (!state) return null;
 
-  const signauxTraites = cases.filter((item) => item.status === "transmis_autorites" || item.status === "clos").length;
   const territoiresActifs = state.territories.length;
   const territoiresVigilance = state.territories.filter((item) => item.activity === "vigilance").length;
   const territoiresCritiques = state.territories.filter((item) => item.activity === "critique").length;
   const territoiresAttention = state.territories.filter((item) => item.activity !== "stable");
-  const territoiresStables = state.territories.filter((item) => item.activity === "stable");
 
   // Chapitre 1 — décision prioritaire unique : bulles réellement dérivables
   // du territoire/dossier dominant, pas les libellés illustratifs de la
@@ -148,11 +146,30 @@ export default function EtatPage() {
   const dominantOpenSituations = dominantTerritoryId ? state.situations.filter((item) => item.territoryId === dominantTerritoryId && item.status !== "reglee") : [];
   const dominantFragileInfra = dominantTerritoryId ? state.infrastructures.filter((item) => item.territoryId === dominantTerritoryId && item.status !== "operationnelle").length : 0;
   const dominantPrioritySituation = [...dominantOpenSituations].sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])[0];
-  const territoryHealthData = [
-    { name: "Stable", value: territoiresStables.length, fill: "var(--etat-navy-600)" },
-    { name: "Vigilance", value: state.territories.filter((item) => item.activity === "vigilance").length, fill: "var(--etat-ocre)" },
-    { name: "Critique", value: state.territories.filter((item) => item.activity === "critique").length, fill: "var(--etat-terracotta)" }
-  ].filter((item) => item.value > 0);
+
+  // Chapitre 2 — Résultats de la coordination (Lot D). 4 mesures maximum
+  // (§17 du mandat), toutes réellement dérivées :
+  // - closedWithResult/closedRatio : situations réglées ET porteuses d'un
+  //   résultat renseigné (Situation.result), pas juste "statut = réglée".
+  // - involvedActors : acteurs distincts engagés dans au moins un
+  //   Commitment, toutes coordinations confondues — pas "acteurs
+  //   vérifiés" (déjà ailleurs), la boucle métier réellement mobilisée.
+  // - availableCapacity : infrastructures opérationnelles / total — le
+  //   pendant positif des "capacités fragiles" déjà utilisées ailleurs.
+  // Histogramme "décisions par semaine" envisagé (alternative honnête à
+  // une courbe de tendance KPI, gap analysis validée par le CEO) puis
+  // écarté pour ce lot : toutes les décisions du jeu de démonstration
+  // partagent le même decidedAt (généré au chargement, cf. demo-state.ts)
+  // — un histogramme serait techniquement honnête (aucune donnée
+  // fabriquée) mais un seul pic sur 8 barres vides n'apporte rien tant que
+  // les données de démonstration n'ont pas de vraie dispersion
+  // temporelle. Le calcul fonctionnerait correctement avec de vraies
+  // décisions étalées dans le temps — non implémenté ici pour éviter une
+  // dataviz vide en pratique (§16 du mandat : pas de viz sans valeur).
+  const closedWithResult = state.situations.filter((item) => item.status === "reglee" && item.result).length;
+  const closedRatio = state.situations.length > 0 ? Math.round((closedWithResult / state.situations.length) * 100) : 0;
+  const involvedActors = new Set(state.coordinationSpaces.flatMap((space) => space.commitments.map((commitment) => commitment.actorId))).size;
+  const availableCapacity = state.infrastructures.filter((item) => item.status === "operationnelle").length;
 
   // Chapitre 3 — territoires prioritaires. Priorisation dérivée de données
   // réelles (critique avant vigilance, puis charge décroissante = situations
@@ -177,7 +194,6 @@ export default function EtatPage() {
 
   const totalValue = executedValue + engagedValue;
   const executedRatio = totalValue > 0 ? Math.round((executedValue / totalValue) * 100) : 0;
-  const tauxTraitement = cases.length > 0 ? Math.round((signauxTraites / cases.length) * 100) : 0;
   const pipelineStages: Array<{ status: Situation["status"]; label: string }> = [
     { status: "recue", label: "Reçue" },
     { status: "qualification", label: "Qualification" },
@@ -286,28 +302,32 @@ export default function EtatPage() {
         <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Ce que la coordination a produit, en un coup d’œil.</h2>
 
         {/* §17 du mandat : un chiffre important vit directement sur la
-            page, pas dans trois cartes complètes à fond plein. */}
-        <div className="mt-6 grid gap-8 border-y border-[var(--etat-line)] py-6 sm:grid-cols-3">
+            page, pas dans des cartes complètes à fond plein. 4 mesures
+            maximum, toutes réellement dérivées (cf. commentaire des
+            constantes ci-dessus pour le détail et ce qui a été écarté). */}
+        <div className="mt-6 grid gap-8 border-y border-[var(--etat-line)] py-6 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <ResultatIcon size={20} color="var(--etat-terracotta)" />
-            <p className="etat-display mt-2 text-3xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={executedValue} /> <span className="text-base font-semibold text-[var(--etat-stone-600)]">FCFA</span></p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Valeur exécutée à date</p>
+            <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={totalValue} /> <span className="text-sm font-semibold text-[var(--etat-stone-600)]">FCFA</span></p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Valeur coordonnée</p>
             <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[var(--etat-line)]"><div className="h-full rounded-full bg-[var(--etat-terracotta)]" style={{ width: `${executedRatio}%` }} /></div>
-            <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{executedRatio}% exécuté · {formatFcfa(engagedValue)} encore engagés, en cours de réalisation.</p>
+            <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{executedRatio}% exécuté · {formatFcfa(engagedValue)} engagés</p>
+          </div>
+          <div>
+            <DecisionIcon size={20} color="var(--etat-navy-600)" />
+            <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={closedRatio} />%</p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Situations clôturées avec résultat</p>
+            <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{closedWithResult} / {state.situations.length} dossier(s)</p>
           </div>
           <div>
             <SituationIcon size={20} color="var(--etat-navy-600)" />
-            <p className="etat-display mt-2 text-3xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={territoiresActifs} /></p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Territoires suivis par le réseau</p>
-            <div className="mt-3 flex h-1 w-full overflow-hidden rounded-full bg-[var(--etat-line)]">{territoryHealthData.map((entry) => <div key={entry.name} className="h-full" style={{ width: `${territoiresActifs > 0 ? (entry.value / territoiresActifs) * 100 : 0}%`, backgroundColor: entry.fill }} />)}</div>
-            <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{territoryHealthData.map((entry) => `${entry.name} ${entry.value}`).join(" · ")}</p>
+            <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={involvedActors} /></p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Acteurs impliqués dans une coordination</p>
           </div>
           <div>
-            <SignalIcon size={20} color="var(--etat-navy-600)" />
-            <p className="etat-display mt-2 text-3xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={signauxTraites} /></p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Signaux traités sur {cases.length} reçu(s)</p>
-            <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[var(--etat-line)]"><div className="h-full rounded-full bg-[var(--etat-ocre)]" style={{ width: `${tauxTraitement}%` }} /></div>
-            <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{tauxTraitement}% de taux de traitement.</p>
+            <Factory size={20} color="var(--etat-navy-600)" />
+            <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={availableCapacity} /> <span className="text-sm font-semibold text-[var(--etat-stone-600)]">/ {state.infrastructures.length}</span></p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Capacités disponibles</p>
           </div>
         </div>
 
@@ -390,29 +410,81 @@ export default function EtatPage() {
         {situationsAArbitrer.length === 0 ? (
           <p className="mt-5 text-sm text-[var(--etat-stone-600)]">Aucune situation de risque élevé ou critique en attente d’arbitrage pour le moment.</p>
         ) : (
-          <div className="mt-5 space-y-3">
-            {situationsAArbitrer.map((situation) => {
-              const territory = state.territories.find((item) => item.id === situation.territoryId);
-              const tag = priorityToTag[situation.priority];
-              const stageLabel = pipelineStages.find((stage) => stage.status === situation.status)?.label ?? situation.status;
-              return (
-                <article key={situation.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--etat-line)] p-4" style={{ borderLeftWidth: 4, borderLeftColor: glyphBorderColor[tag], backgroundColor: arbitrageFillColor[tag] }}>
-                  <div className="flex items-center gap-3">
-                    <TensionGlyph status={tag} size={30} />
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{territory?.name ?? situation.territoryId} · {situation.title}</p><span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : "etat-tag--vigilance"}`}>{priorityLabels[situation.priority]}</span></div>
-                      <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{situation.nextStep}</p>
-                      <p className="mt-1 text-[11px] text-[var(--etat-stone-400)]">Étape {stageLabel.toLowerCase()}</p>
+          <>
+            {/* Desktop : table — la vraie surface décisionnelle (mandat
+                §5, chapitre 4), même grammaire dual desktop/table + mobile
+                cartes déjà établie dans OpportunitiesExplorer.tsx (P4,
+                audit XXL Public) plutôt qu'un nouveau patron inventé.
+                Échéance/Responsable = Situation.dueAt/responsibleId
+                (champs réels, optionnels — "—" si non renseignés, jamais
+                fabriqués). */}
+            <div className="mt-5 hidden overflow-x-auto rounded-xl border border-[var(--etat-line)] md:block">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--etat-line)] text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">
+                    <th className="px-4 py-3 font-bold">Situation</th>
+                    <th className="px-4 py-3 font-bold">Territoire</th>
+                    <th className="px-4 py-3 font-bold">Urgence</th>
+                    <th className="px-4 py-3 font-bold">Étape</th>
+                    <th className="px-4 py-3 font-bold">Échéance</th>
+                    <th className="px-4 py-3 font-bold">Responsable</th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {situationsAArbitrer.map((situation) => {
+                    const territory = state.territories.find((item) => item.id === situation.territoryId);
+                    const tag = priorityToTag[situation.priority];
+                    const stageLabel = pipelineStages.find((stage) => stage.status === situation.status)?.label ?? situation.status;
+                    const responsable = situation.responsibleId ? state.actors.find((item) => item.id === situation.responsibleId) : undefined;
+                    return (
+                      <tr key={situation.id} className="border-b border-[var(--etat-line)] last:border-b-0" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[tag] }}>
+                        <td className="px-4 py-3"><p className="font-semibold text-[var(--etat-navy-950)]">{situation.title}</p><p className="mt-0.5 text-xs text-[var(--etat-stone-600)]">{situation.nextStep}</p></td>
+                        <td className="px-4 py-3 text-[var(--etat-stone-600)]">{territory?.name ?? situation.territoryId}</td>
+                        <td className="px-4 py-3"><span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : "etat-tag--vigilance"}`}>{priorityLabels[situation.priority]}</span></td>
+                        <td className="px-4 py-3 text-[var(--etat-stone-600)]">{stageLabel}</td>
+                        <td className="px-4 py-3 text-[var(--etat-stone-600)]">{situation.dueAt ? new Date(situation.dueAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) : "—"}</td>
+                        <td className="px-4 py-3 text-[var(--etat-stone-600)]">{responsable?.name ?? "—"}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-2">
+                            <button className="etat-btn etat-btn-outline" style={{ minHeight: 32, padding: "5px 10px", fontSize: 12 }} onClick={() => setMissionDrawer({ key: `situation-${situation.id}`, territoryId: situation.territoryId, territoryLabel: territory?.name ?? situation.territoryId, raison: situation.title, action: situation.nextStep, glyphStatus: tag, suggestedObjective: "verification_vigilance" })}>Visite</button>
+                            <Link href={`/app/situations/${situation.id}`} className="etat-btn etat-btn-primary" style={{ minHeight: 32, padding: "5px 10px", fontSize: 12 }}>Arbitrer <ArrowRight size={13} /></Link>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile : cartes empilées (une table serait illisible sous
+                480px) — même contenu, dernière étape "Voir toutes les
+                situations" déjà en tête de section. */}
+            <div className="mt-5 space-y-3 md:hidden">
+              {situationsAArbitrer.map((situation) => {
+                const territory = state.territories.find((item) => item.id === situation.territoryId);
+                const tag = priorityToTag[situation.priority];
+                const stageLabel = pipelineStages.find((stage) => stage.status === situation.status)?.label ?? situation.status;
+                return (
+                  <article key={situation.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--etat-line)] p-4" style={{ borderLeftWidth: 4, borderLeftColor: glyphBorderColor[tag], backgroundColor: arbitrageFillColor[tag] }}>
+                    <div className="flex items-center gap-3">
+                      <TensionGlyph status={tag} size={30} />
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{territory?.name ?? situation.territoryId} · {situation.title}</p><span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : "etat-tag--vigilance"}`}>{priorityLabels[situation.priority]}</span></div>
+                        <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{situation.nextStep}</p>
+                        <p className="mt-1 text-[11px] text-[var(--etat-stone-400)]">Étape {stageLabel.toLowerCase()}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <button className="etat-btn etat-btn-outline" style={{ minHeight: 36, padding: "6px 14px" }} onClick={() => setMissionDrawer({ key: `situation-${situation.id}`, territoryId: situation.territoryId, territoryLabel: territory?.name ?? situation.territoryId, raison: situation.title, action: situation.nextStep, glyphStatus: tag, suggestedObjective: "verification_vigilance" })}>Planifier une visite</button>
-                    <Link href={`/app/situations/${situation.id}`} className="etat-btn etat-btn-primary" style={{ minHeight: 36, padding: "6px 14px" }}>Arbitrer <ArrowRight size={15} /></Link>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button className="etat-btn etat-btn-outline" style={{ minHeight: 36, padding: "6px 14px" }} onClick={() => setMissionDrawer({ key: `situation-${situation.id}`, territoryId: situation.territoryId, territoryLabel: territory?.name ?? situation.territoryId, raison: situation.title, action: situation.nextStep, glyphStatus: tag, suggestedObjective: "verification_vigilance" })}>Planifier une visite</button>
+                      <Link href={`/app/situations/${situation.id}`} className="etat-btn etat-btn-primary" style={{ minHeight: 36, padding: "6px 14px" }}>Arbitrer <ArrowRight size={15} /></Link>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
         )}
         {visits.filter((item) => item.status === "planifiee").length > 0 && <p className="mt-4 text-xs text-[var(--etat-stone-600)]">{visits.filter((item) => item.status === "planifiee").length} visite(s) terrain déjà planifiée(s) par le ministère.</p>}
       </section>
@@ -429,6 +501,16 @@ export default function EtatPage() {
               const situation = state.situations.find((item) => item.id === decision.situationId);
               const territory = situation ? state.territories.find((item) => item.id === situation.territoryId) : undefined;
               const decider = state.actors.find((item) => item.id === decision.decidedByActorId);
+              // "Décision → acteur mobilisé → résultat" (mandat §5,
+              // chapitre 5) : uniquement quand decision.coordinationId
+              // existe et porte des engagements terminés avec un résultat
+              // renseigné — pas de second acteur "proposé par / validé
+              // par" fabriqué (arbitrage CEO 2026-08-17, le modèle n'a
+              // qu'un décideur). Pour les décisions sans coordination
+              // liée, seuls décision → décideur → justification restent
+              // affichés, comme avant.
+              const coordination = decision.coordinationId ? state.coordinationSpaces.find((item) => item.id === decision.coordinationId) : undefined;
+              const completedCommitments = (coordination?.commitments ?? []).filter((item) => item.status === "terminee" && item.result);
               return (
                 <div key={decision.id} className={index === recentDecisions.length - 1 ? "relative pb-1" : "relative border-b border-[var(--etat-line)] pb-6 mb-6"}>
                   <span className="absolute -left-[47px] top-0 grid size-10 place-items-center rounded-full" style={{ backgroundColor: "var(--etat-navy-600)" }}><DecisionIcon size={20} color="var(--etat-offwhite)" /></span>
@@ -437,6 +519,16 @@ export default function EtatPage() {
                       <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{decisionTypeLabels[decision.type]}{situation ? ` · ${territory?.name ?? situation.territoryId}` : ""}</p>
                       <p className="mt-1 text-xs leading-5 text-[var(--etat-stone-600)]">{decision.rationale}</p>
                       <p className="mt-1.5 text-[11px] text-[var(--etat-stone-400)]">{new Date(decision.decidedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}{decider ? ` · ${decider.name}` : ""}</p>
+                      {completedCommitments.length > 0 && (
+                        <div className="mt-2.5 space-y-1 border-t border-[var(--etat-line)] pt-2.5">
+                          {completedCommitments.slice(0, 2).map((commitment) => {
+                            const mobilizedActor = state.actors.find((item) => item.id === commitment.actorId);
+                            return (
+                              <p key={commitment.id} className="text-[11px] leading-4 text-[var(--etat-stone-600)]"><span className="font-bold text-[var(--etat-navy-950)]">Acteur mobilisé · </span>{mobilizedActor?.name ?? commitment.actorId} <span className="font-bold text-[var(--etat-navy-950)]">· Résultat · </span>{commitment.result}</p>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                     {situation && <Link href={`/app/situations/${situation.id}`} className="etat-btn etat-btn-outline" style={{ minHeight: 32, padding: "5px 12px", fontSize: 12 }}>Voir la situation <ArrowRight size={13} /></Link>}
                   </div>
