@@ -60,6 +60,24 @@ const glyphFillColor: Record<"stable" | "vigilance" | "critique", string> = { st
 const arbitrageFillColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "rgba(29,68,104,.08)", vigilance: "rgba(198,138,44,.14)", critique: "rgba(182,82,47,.15)" };
 const statusTagClass: Record<"stable" | "vigilance" | "critique", string> = { stable: "etat-tag--stable", vigilance: "etat-tag--vigilance", critique: "etat-tag--critique" };
 const statusTagLabel: Record<"stable" | "vigilance" | "critique", string> = { stable: "Stable", vigilance: "Vigilance", critique: "Critique" };
+// Correctif 2026-08-17 (audit CTA) : la fiche territoire publique
+// (/atlas/[slug]) est indexée par slug, pas par Territory.id du Produit —
+// les deux coïncident pour 17 des 18 territoires partagés, sauf "joal"
+// (Territory.id="joal", data/public-atlas.ts slug="joal-fadiouth") où le
+// lien produisait une vraie 404, vérifié en conditions réelles. Petite
+// table de correspondance plutôt qu'une dépendance du Produit vers
+// data/public-atlas.ts (fichier 100% éditorial Public, à ne pas coupler).
+const territoryPublicSlug: Partial<Record<string, string>> = { joal: "joal-fadiouth" };
+const pipelineStages: Array<{ status: Situation["status"]; label: string }> = [
+  { status: "recue", label: "Reçue" },
+  { status: "qualification", label: "Qualification" },
+  { status: "priorisee", label: "Priorisée" },
+  { status: "coordination", label: "Coordination" },
+  { status: "intervention", label: "Intervention" },
+  { status: "attente", label: "En attente" },
+  { status: "resultat", label: "Résultat" },
+  { status: "reglee", label: "Réglée" }
+];
 
 function StatusBadge({ status }: { status: "stable" | "vigilance" | "critique" }) {
   return <span className={`etat-tag ${statusTagClass[status]}`}>{statusTagLabel[status]}</span>;
@@ -84,6 +102,7 @@ export default function EtatPage() {
   const [cases, setCases] = useState<VigilanceCase[]>([]);
   const [visits, setVisits] = useState<FieldVisit[]>([]);
   const [territoryDrawer, setTerritoryDrawer] = useState<Territory | null>(null);
+  const [situationDrawer, setSituationDrawer] = useState<Situation | null>(null);
   const [missionDrawer, setMissionDrawer] = useState<Mission | null>(null);
   const [signalDrawerOpen, setSignalDrawerOpen] = useState(false);
   const [prioritiesExpanded, setPrioritiesExpanded] = useState(false);
@@ -194,16 +213,6 @@ export default function EtatPage() {
 
   const totalValue = executedValue + engagedValue;
   const executedRatio = totalValue > 0 ? Math.round((executedValue / totalValue) * 100) : 0;
-  const pipelineStages: Array<{ status: Situation["status"]; label: string }> = [
-    { status: "recue", label: "Reçue" },
-    { status: "qualification", label: "Qualification" },
-    { status: "priorisee", label: "Priorisée" },
-    { status: "coordination", label: "Coordination" },
-    { status: "intervention", label: "Intervention" },
-    { status: "attente", label: "En attente" },
-    { status: "resultat", label: "Résultat" },
-    { status: "reglee", label: "Réglée" }
-  ];
   const situationsAArbitrer = state.situations
     .filter((item) => item.status !== "reglee" && (item.priority === "critique" || item.priority === "haute"))
     .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])
@@ -270,7 +279,7 @@ export default function EtatPage() {
             <div className="mt-5 flex flex-1 flex-col justify-end gap-2">
               {dominant.kind === "territoire" && <button className="etat-btn etat-btn-outline justify-center" onClick={() => setTerritoryDrawer(dominant.territory)}>Voir le territoire <ArrowRight size={15} /></button>}
               {dominantPrioritySituation ? (
-                <Link href={`/app/situations/${dominantPrioritySituation.id}`} className="etat-btn etat-btn-primary justify-center">Ouvrir l’arbitrage <ArrowRight size={15} /></Link>
+                <button onClick={() => setSituationDrawer(dominantPrioritySituation)} className="etat-btn etat-btn-primary justify-center">Ouvrir l’arbitrage <ArrowRight size={15} /></button>
               ) : (
                 <a href="#arbitrage" className="etat-btn etat-btn-outline justify-center">Voir les situations à arbitrer <ArrowRight size={15} /></a>
               )}
@@ -404,7 +413,6 @@ export default function EtatPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <button className="etat-btn etat-btn-outline" onClick={() => setSignalDrawerOpen(true)}><Radio size={15} /> Signaler une situation</button>
-            <Link href="/app/situations" className="etat-btn etat-btn-outline">Voir toutes les situations <ArrowRight size={15} /></Link>
           </div>
         </div>
         {situationsAArbitrer.length === 0 ? (
@@ -448,7 +456,7 @@ export default function EtatPage() {
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-2">
                             <button className="etat-btn etat-btn-outline" style={{ minHeight: 32, padding: "5px 10px", fontSize: 12 }} onClick={() => setMissionDrawer({ key: `situation-${situation.id}`, territoryId: situation.territoryId, territoryLabel: territory?.name ?? situation.territoryId, raison: situation.title, action: situation.nextStep, glyphStatus: tag, suggestedObjective: "verification_vigilance" })}>Visite</button>
-                            <Link href={`/app/situations/${situation.id}`} className="etat-btn etat-btn-primary" style={{ minHeight: 32, padding: "5px 10px", fontSize: 12 }}>Arbitrer <ArrowRight size={13} /></Link>
+                            <button className="etat-btn etat-btn-primary" style={{ minHeight: 32, padding: "5px 10px", fontSize: 12 }} onClick={() => setSituationDrawer(situation)}>Arbitrer <ArrowRight size={13} /></button>
                           </div>
                         </td>
                       </tr>
@@ -459,8 +467,7 @@ export default function EtatPage() {
             </div>
 
             {/* Mobile : cartes empilées (une table serait illisible sous
-                480px) — même contenu, dernière étape "Voir toutes les
-                situations" déjà en tête de section. */}
+                480px) — même contenu que la table desktop. */}
             <div className="mt-5 space-y-3 md:hidden">
               {situationsAArbitrer.map((situation) => {
                 const territory = state.territories.find((item) => item.id === situation.territoryId);
@@ -478,7 +485,7 @@ export default function EtatPage() {
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <button className="etat-btn etat-btn-outline" style={{ minHeight: 36, padding: "6px 14px" }} onClick={() => setMissionDrawer({ key: `situation-${situation.id}`, territoryId: situation.territoryId, territoryLabel: territory?.name ?? situation.territoryId, raison: situation.title, action: situation.nextStep, glyphStatus: tag, suggestedObjective: "verification_vigilance" })}>Planifier une visite</button>
-                      <Link href={`/app/situations/${situation.id}`} className="etat-btn etat-btn-primary" style={{ minHeight: 36, padding: "6px 14px" }}>Arbitrer <ArrowRight size={15} /></Link>
+                      <button className="etat-btn etat-btn-primary" style={{ minHeight: 36, padding: "6px 14px" }} onClick={() => setSituationDrawer(situation)}>Arbitrer <ArrowRight size={15} /></button>
                     </div>
                   </article>
                 );
@@ -530,7 +537,7 @@ export default function EtatPage() {
                         </div>
                       )}
                     </div>
-                    {situation && <Link href={`/app/situations/${situation.id}`} className="etat-btn etat-btn-outline" style={{ minHeight: 32, padding: "5px 12px", fontSize: 12 }}>Voir la situation <ArrowRight size={13} /></Link>}
+                    {situation && <button className="etat-btn etat-btn-outline" style={{ minHeight: 32, padding: "5px 12px", fontSize: 12 }} onClick={() => setSituationDrawer(situation)}>Voir la situation <ArrowRight size={13} /></button>}
                   </div>
                 </div>
               );
@@ -557,7 +564,25 @@ export default function EtatPage() {
       </section>
 
       <Drawer open={!!territoryDrawer} onClose={() => setTerritoryDrawer(null)} eyebrow="Territoire" title={territoryDrawer?.name ?? ""}>
-        {territoryDrawer && <TerritoryDetail territory={territoryDrawer} cases={cases.filter((item) => item.territoryId === territoryDrawer.id)} />}
+        {territoryDrawer && <TerritoryDetail territory={territoryDrawer} cases={cases.filter((item) => item.territoryId === territoryDrawer.id)} onOpenSituation={(situation) => { setTerritoryDrawer(null); setSituationDrawer(situation); }} />}
+      </Drawer>
+      {/* Panneau situation — correctif 2026-08-17 : "Arbitrer"/"Voir la
+          situation"/"Ouvrir l'arbitrage"/"Entrer dans le dossier"
+          pointaient tous vers /app/situations/[id] (groupe de routes
+          (coordination)), dont la garde serveur redirige systématiquement
+          le rôle institution vers /app/etat — retour silencieux, aucune
+          erreur visible, CTA sans destination réelle pour ce rôle (bug
+          signalé par le CEO, vérifié en conditions réelles, présent aux
+          5 endroits ci-dessus). Corrigé en panneau inline plutôt qu'en
+          nouvelle route : même pattern déjà correct pour "Voir le détail"
+          (territoire) sur cette page — l'Institution n'a jamais quitté
+          /app/etat pour explorer un territoire, pas de raison qu'elle le
+          fasse pour une situation. Contenu volontairement en lecture
+          (pas le poste de travail complet de SituationRoom.tsx, pensé
+          pour le Coordinateur) — cohérent avec le rôle décisionnel de
+          l'Institution. */}
+      <Drawer open={!!situationDrawer} onClose={() => setSituationDrawer(null)} eyebrow="Situation" title={situationDrawer?.title ?? ""}>
+        {situationDrawer && <SituationDetail situation={situationDrawer} state={state} onPlanVisit={() => { const territory = state.territories.find((item) => item.id === situationDrawer.territoryId); setSituationDrawer(null); setMissionDrawer({ key: `situation-${situationDrawer.id}`, territoryId: situationDrawer.territoryId, territoryLabel: territory?.name ?? situationDrawer.territoryId, raison: situationDrawer.title, action: situationDrawer.nextStep, glyphStatus: priorityToTag[situationDrawer.priority], suggestedObjective: "verification_vigilance" }); }} />}
       </Drawer>
       <Drawer open={signalDrawerOpen} onClose={() => setSignalDrawerOpen(false)} eyebrow="Vigilance" title="Signaler une situation">
         <SignalForm territories={state.territories} onDone={() => { setSignalDrawerOpen(false); void reload(); }} />
@@ -577,7 +602,7 @@ const situationPriorityRank: Record<Situation["priority"], number> = { critique:
 const infraStatusColor: Record<"operationnelle" | "fragile" | "indisponible", string> = { operationnelle: "#1d8a5f", fragile: "var(--etat-ocre)", indisponible: "var(--etat-terracotta)" };
 const infraStatusLabel: Record<"operationnelle" | "fragile" | "indisponible", string> = { operationnelle: "Opérationnelle", fragile: "Fragile", indisponible: "Indisponible" };
 
-function TerritoryDetail({ territory, cases }: { territory: Territory; cases: VigilanceCase[] }) {
+function TerritoryDetail({ territory, cases, onOpenSituation }: { territory: Territory; cases: VigilanceCase[]; onOpenSituation: (situation: Situation) => void }) {
   const { state } = useProduct();
   if (!state) return null;
   const sites = state.sites.filter((item) => item.territoryId === territory.id);
@@ -598,9 +623,79 @@ function TerritoryDetail({ territory, cases }: { territory: Territory; cases: Vi
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Infrastructures · {sites.length} site(s), {infrastructures.length} infrastructure(s)</p>
         {infrastructures.length === 0 ? <p className="mt-1.5 text-xs text-[var(--etat-stone-400)]">Aucune infrastructure recensée.</p> : <div className="mt-1.5 space-y-1.5">{infrastructures.map((infra) => <div key={infra.id} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--etat-line)] bg-white px-3 py-2"><span className="text-xs font-medium capitalize text-[var(--etat-navy-950)]">{infra.type.replaceAll("_", " ")}</span><span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: infraStatusColor[infra.status] }}><span className="size-1.5 rounded-full" style={{ backgroundColor: infraStatusColor[infra.status] }} aria-hidden="true" />{infraStatusLabel[infra.status]}</span></div>)}</div>}
       </div>
-      {prioritySituation && <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Situation prioritaire</p><div className="mt-2 rounded-lg border border-[var(--etat-line)] bg-white p-3"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{prioritySituation.title}</p><p className="mt-1 text-xs text-[var(--etat-stone-600)]">{prioritySituation.nextStep}</p>{prioritySituation.history.length > 0 && <div className="mt-3 space-y-1.5 border-t border-[var(--etat-line)] pt-3">{prioritySituation.history.slice(0, 2).map((entry) => <div key={entry.id} className="border-l-2 border-[var(--etat-line)] pl-2 text-[11px] leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{entry.label}</span> · {new Date(entry.at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</div>)}</div>}<Link href={`/app/situations/${prioritySituation.id}`} className="etat-btn etat-btn-outline mt-3 w-full justify-center">Entrer dans le dossier <ArrowRight size={15} /></Link></div></div>}
+      {prioritySituation && <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Situation prioritaire</p><div className="mt-2 rounded-lg border border-[var(--etat-line)] bg-white p-3"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{prioritySituation.title}</p><p className="mt-1 text-xs text-[var(--etat-stone-600)]">{prioritySituation.nextStep}</p>{prioritySituation.history.length > 0 && <div className="mt-3 space-y-1.5 border-t border-[var(--etat-line)] pt-3">{prioritySituation.history.slice(0, 2).map((entry) => <div key={entry.id} className="border-l-2 border-[var(--etat-line)] pl-2 text-[11px] leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{entry.label}</span> · {new Date(entry.at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</div>)}</div>}<button onClick={() => onOpenSituation(prioritySituation)} className="etat-btn etat-btn-outline mt-3 w-full justify-center">Entrer dans le dossier <ArrowRight size={15} /></button></div></div>}
       {cases.length > 0 && <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Signaux sur ce territoire</p><div className="mt-2 space-y-2">{cases.map((item) => <div key={item.id} className="rounded-lg bg-[var(--etat-offwhite)] p-3 text-xs text-[var(--etat-navy-950)]">{vigilanceCategoryLabels[item.category]} — {item.description}</div>)}</div></div>}
-      <a href={`/atlas/${territory.id}`} target="_blank" rel="noreferrer" className="etat-btn etat-btn-outline w-full justify-center">Fiche territoire complète (site public) <ArrowUpRight size={15} /></a>
+      <a href={`/atlas/${territoryPublicSlug[territory.id] ?? territory.id}`} target="_blank" rel="noreferrer" className="etat-btn etat-btn-outline w-full justify-center">Fiche territoire complète (site public) <ArrowUpRight size={15} /></a>
+    </div>
+  );
+}
+
+function SituationDetail({ situation, state, onPlanVisit }: { situation: Situation; state: NonNullable<ReturnType<typeof useProduct>["state"]>; onPlanVisit: () => void }) {
+  const territory = state.territories.find((item) => item.id === situation.territoryId);
+  const tag = priorityToTag[situation.priority];
+  const stageLabel = pipelineStages.find((stage) => stage.status === situation.status)?.label ?? situation.status;
+  const responsable = situation.responsibleId ? state.actors.find((item) => item.id === situation.responsibleId) : undefined;
+  const relatedDecisions = state.decisions
+    .filter((item) => item.situationId === situation.id)
+    .sort((a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime());
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : tag === "vigilance" ? "etat-tag--vigilance" : "etat-tag--stable"}`}>{priorityLabels[situation.priority]}</span>
+        <span className="text-xs text-[var(--etat-stone-600)]">{situation.reference} · {territory?.name ?? situation.territoryId}</span>
+      </div>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Description</p>
+        <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.description}</p>
+      </div>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Étape actuelle · {stageLabel}</p>
+        <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.nextStep}</p>
+        {situation.waitingReason && <p className="mt-1 text-xs text-[var(--etat-stone-600)]">Motif d’attente : {situation.waitingReason}</p>}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Échéance</p>
+          <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.dueAt ? new Date(situation.dueAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) : "Non renseignée"}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Responsable</p>
+          <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{responsable?.name ?? "Non désigné"}</p>
+        </div>
+      </div>
+      {(situation.result ?? situation.confirmation) && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Résultat</p>
+          {situation.result && <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.result}</p>}
+          {situation.confirmation && <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{situation.confirmation}</p>}
+        </div>
+      )}
+      {situation.history.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Historique</p>
+          <div className="mt-2 space-y-1.5 border-l border-[var(--etat-line)] pl-3">
+            {situation.history.map((entry) => (
+              <div key={entry.id} className="text-xs leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{entry.label}</span> · {new Date(entry.at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}</div>
+            ))}
+          </div>
+        </div>
+      )}
+      {relatedDecisions.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Décisions liées · {relatedDecisions.length}</p>
+          <div className="mt-2 space-y-2">
+            {relatedDecisions.map((decision) => (
+              <div key={decision.id} className="rounded-lg border border-[var(--etat-line)] bg-white p-3">
+                <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{decisionTypeLabels[decision.type]}</p>
+                <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{decision.rationale}</p>
+                <p className="mt-1 text-[11px] text-[var(--etat-stone-400)]">{new Date(decision.decidedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <button onClick={onPlanVisit} className="etat-btn etat-btn-primary w-full justify-center">Planifier une visite <ArrowRight size={15} /></button>
     </div>
   );
 }
