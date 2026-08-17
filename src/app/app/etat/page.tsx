@@ -86,6 +86,7 @@ export default function EtatPage() {
   const [territoryDrawer, setTerritoryDrawer] = useState<Territory | null>(null);
   const [missionDrawer, setMissionDrawer] = useState<Mission | null>(null);
   const [signalDrawerOpen, setSignalDrawerOpen] = useState(false);
+  const [prioritiesExpanded, setPrioritiesExpanded] = useState(false);
 
   const reload = async () => {
     const [visitsRes, casesRes] = await Promise.all([fetch("/api/ministry/field-visits"), fetch("/api/ministry/vigilance")]);
@@ -152,6 +153,27 @@ export default function EtatPage() {
     { name: "Vigilance", value: state.territories.filter((item) => item.activity === "vigilance").length, fill: "var(--etat-ocre)" },
     { name: "Critique", value: state.territories.filter((item) => item.activity === "critique").length, fill: "var(--etat-terracotta)" }
   ].filter((item) => item.value > 0);
+
+  // Chapitre 3 — territoires prioritaires. Priorisation dérivée de données
+  // réelles (critique avant vigilance, puis charge décroissante = situations
+  // ouvertes + capacités fragiles), pas d'un score fabriqué. "Tension
+  // principale"/"impact" reprennent les mêmes champs réellement disponibles
+  // que le panneau de décision du Chapitre 1 (pas de tonnage ni de "risque
+  // de pertes" — aucun champ correspondant dans le modèle).
+  const prioritized = territoiresAttention
+    .map((territory) => {
+      const openSituations = state.situations.filter((item) => item.territoryId === territory.id && item.status !== "reglee");
+      const prioritySituation = [...openSituations].sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])[0];
+      const fragileInfra = state.infrastructures.filter((item) => item.territoryId === territory.id && item.status !== "operationnelle").length;
+      const acteurs = state.actors.filter((item) => item.territoryIds.includes(territory.id)).length;
+      return { territory, prioritySituation, openSituationsCount: openSituations.length, fragileInfra, acteurs };
+    })
+    .sort((a, b) => {
+      if (a.territory.activity !== b.territory.activity) return a.territory.activity === "critique" ? -1 : b.territory.activity === "critique" ? 1 : 0;
+      return (b.openSituationsCount + b.fragileInfra) - (a.openSituationsCount + a.fragileInfra);
+    });
+  const topPriorities = prioritized.slice(0, 3);
+  const morePriorities = prioritized.slice(3);
 
   const totalValue = executedValue + engagedValue;
   const executedRatio = totalValue > 0 ? Math.round((executedValue / totalValue) * 100) : 0;
@@ -258,7 +280,7 @@ export default function EtatPage() {
 
       <section>
         <div className="flex flex-wrap items-center gap-2.5">
-          <p className="etat-eyebrow">Impact clé</p>
+          <p className="etat-eyebrow">2 · Résultats de la coordination</p>
           <span className="etat-tag etat-tag--demo whitespace-normal text-left">Mode démonstration · données non opérationnelles</span>
         </div>
         <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Ce que la coordination a produit, en un coup d’œil.</h2>
@@ -304,36 +326,59 @@ export default function EtatPage() {
         </div>
       </section>
 
-      {/* Registre complet des territoires — fonctionnalité de l'ancienne
-          section "Atlas territorial" conservée (parcourir tous les
-          territoires, pas seulement les 3 prioritaires), volontairement
-          sans "chapitre" ni carte ici pour ne pas dupliquer le Chapitre 1.
-          Provisoire : le Lot C (Chapitre 3, "Où concentrer l'attention ?")
-          doit transformer cette liste plate en priorités qualifiées
-          (tension/impact/acteurs/raison) — cette section disparaîtra ou se
-          réduira à ce moment-là plutôt que d'être retouchée deux fois. */}
-      <section>
-        <p className="etat-eyebrow">Explorer tous les territoires</p>
-        <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">{territoiresAttention.length} territoire(s) demandent une attention particulière sur {territoiresActifs} suivis par le réseau.</h2>
-        <div className="mt-5 max-h-[460px] overflow-y-auto rounded-xl border border-[var(--etat-line)]">
-          {[...territoiresAttention, ...territoiresStables].map((territory) => {
-            const infraCount = state.infrastructures.filter((item) => item.territoryId === territory.id).length;
-            const situationsOuvertes = state.situations.filter((item) => item.territoryId === territory.id && item.status !== "reglee").length;
-            return (
-              <button key={territory.id} onClick={() => setTerritoryDrawer(territory)} className="flex w-full items-center gap-3 border-b border-[var(--etat-line)] py-3.5 pl-3 pr-2 text-left transition last:border-b-0 hover:bg-[var(--etat-offwhite)]" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[territory.activity], backgroundColor: glyphFillColor[territory.activity] }}>
-                <TensionGlyph status={territory.activity} size={24} />
-                <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-[var(--etat-navy-950)]">{territory.name}</span><span className="mt-0.5 block text-xs text-[var(--etat-stone-600)]">{infraCount} infrastructure(s) · {situationsOuvertes} situation(s) ouverte(s)</span></span>
-                <StatusBadge status={territory.activity} />
+      {/* Chapitre 3 — Où concentrer l'attention ? (mandat §5, Lot C).
+          Remplace l'ancienne liste plate "Explorer tous les territoires" —
+          browse des territoires stables toujours possible via la carte du
+          Chapitre 1 (tous les 18 y sont cliquables), donc rien n'est perdu
+          en retirant cette liste ici. */}
+      {prioritized.length > 0 && (
+        <section>
+          <p className="etat-eyebrow">3 · Où concentrer l’attention ?</p>
+          <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">{prioritized.length} territoire(s) prioritaire(s) sur {territoiresActifs} suivis par le réseau.</h2>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {topPriorities.map((entry, index) => (
+              <article key={entry.territory.id} className="etat-panel flex flex-col p-5" style={{ borderTopWidth: 3, borderTopColor: glyphBorderColor[entry.territory.activity] }}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: glyphBorderColor[entry.territory.activity] }}>{index + 1}</span>
+                  <StatusBadge status={entry.territory.activity} />
+                </div>
+                <h3 className="etat-display mt-3 text-lg not-italic text-[var(--etat-navy-950)]">{entry.territory.name}</h3>
+                <div className="mt-3 space-y-2 text-xs text-[var(--etat-stone-600)]">
+                  <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Tension principale · </span>{entry.prioritySituation ? entry.prioritySituation.title : "Aucune situation ouverte"}</p>
+                  <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Impact · </span>{entry.openSituationsCount} situation(s) ouverte(s){entry.fragileInfra > 0 ? ` · ${entry.fragileInfra} capacité(s) fragile(s)` : ""}</p>
+                  <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Acteurs concernés · </span>{entry.acteurs}</p>
+                </div>
+                <button onClick={() => setTerritoryDrawer(entry.territory)} className="etat-btn etat-btn-outline mt-4 justify-center">Voir le détail <ArrowRight size={15} /></button>
+              </article>
+            ))}
+          </div>
+
+          {morePriorities.length > 0 && (
+            <div className="mt-5">
+              <button onClick={() => setPrioritiesExpanded((value) => !value)} className="etat-btn etat-btn-outline">
+                {prioritiesExpanded ? "Réduire" : `Voir toutes les priorités (${prioritized.length})`} <ArrowRight size={15} className={prioritiesExpanded ? "rotate-90" : undefined} />
               </button>
-            );
-          })}
-        </div>
-      </section>
+              {prioritiesExpanded && (
+                <div className="mt-4 rounded-xl border border-[var(--etat-line)]">
+                  {morePriorities.map((entry) => (
+                    <button key={entry.territory.id} onClick={() => setTerritoryDrawer(entry.territory)} className="flex w-full items-center gap-3 border-b border-[var(--etat-line)] py-3.5 pl-3 pr-2 text-left transition last:border-b-0 hover:bg-[var(--etat-offwhite)]" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[entry.territory.activity], backgroundColor: glyphFillColor[entry.territory.activity] }}>
+                      <TensionGlyph status={entry.territory.activity} size={24} />
+                      <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-[var(--etat-navy-950)]">{entry.territory.name}</span><span className="mt-0.5 block text-xs text-[var(--etat-stone-600)]">{entry.prioritySituation ? entry.prioritySituation.title : `${entry.openSituationsCount} situation(s) ouverte(s)`}</span></span>
+                      <StatusBadge status={entry.territory.activity} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       <section id="arbitrage">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="etat-eyebrow">Lutter contre les fléaux, arbitrer les priorités</p>
+            <p className="etat-eyebrow">4 · Situations à arbitrer</p>
             <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Situations critiques à arbitrer.</h2>
             <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{situationsAArbitrer.length} situation(s) de risque élevé ou critique attendent une décision, sur {state.situations.filter((item) => item.status !== "reglee").length} dossier(s) ouverts.</p>
           </div>
@@ -373,7 +418,7 @@ export default function EtatPage() {
       </section>
 
       <section>
-        <p className="etat-eyebrow">Rendre compte des arbitrages</p>
+        <p className="etat-eyebrow">5 · Décisions et résultats récents</p>
         <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Décisions récentes.</h2>
         <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{state.decisions.length} décision(s) enregistrée(s) au total — chaque arbitrage institutionnel reste tracé et consultable.</p>
         {recentDecisions.length === 0 ? (
@@ -412,7 +457,7 @@ export default function EtatPage() {
           <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, var(--etat-navy-950) 0%, transparent 65%)" }} />
         </div>
         <div className="relative z-10">
-          <p className="etat-eyebrow etat-eyebrow--on-dark">Capter l’attention des bailleurs</p>
+          <p className="etat-eyebrow etat-eyebrow--on-dark">6 · Programmes &amp; rapport</p>
           <h2 className="etat-display mt-2 text-2xl not-italic">Un rapport d’impact prêt à partager.</h2>
           <p className="mt-2 max-w-xl text-sm text-[var(--etat-offwhite)]/65">Structuré par territoire, exportable, pensé pour vos propres échanges avec les bailleurs et programmes.</p>
         </div>
