@@ -259,7 +259,7 @@ export default function EtatPage() {
       <section>
         <div className="flex flex-wrap items-center gap-2.5">
           <p className="etat-eyebrow">Impact clé</p>
-          <span className="etat-tag etat-tag--demo">Mode démonstration · données non opérationnelles</span>
+          <span className="etat-tag etat-tag--demo whitespace-normal text-left">Mode démonstration · données non opérationnelles</span>
         </div>
         <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Ce que la coordination a produit, en un coup d’œil.</h2>
 
