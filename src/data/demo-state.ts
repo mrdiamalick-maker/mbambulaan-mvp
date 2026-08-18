@@ -258,15 +258,18 @@ export function createDemoState(): ProductState {
   const fleetNames = ["Jàmm", "Teranga", "Naatangué"];
   const fleetTrust: TrustLevel[] = ["verifiee", "observee", "declaree"];
   const tripStatuses: ProductState["trips"][number]["status"][] = ["debarquee", "debarquee", "retour_annonce"];
+  const completedTripDates = ["2026-08-07", "2026-08-08"] as const;
   const generatedVessels: ProductState["vessels"] = [];
   const generatedTrips: ProductState["trips"] = [];
 
   territoryRows.forEach(([id, name], territoryIndex) => {
+    let completedTripIndex = 0;
     fleetNames.forEach((fleetName, vesselIndex) => {
       const suffix = `${String(territoryIndex + 1).padStart(2, "0")}${vesselIndex + 1}`;
       const vesselId = `vessel-${id}-${vesselIndex + 1}`;
       const tripId = `trip-${id}-${vesselIndex + 1}`;
       const status = tripStatuses[(territoryIndex + vesselIndex) % tripStatuses.length];
+      const operationDate = status === "debarquee" ? completedTripDates[completedTripIndex++] : "2026-08-08";
       generatedVessels.push({
         id: vesselId,
         name: `${fleetName} ${name}`,
@@ -281,10 +284,10 @@ export function createDemoState(): ProductState {
         id: tripId,
         vesselId,
         captainId: `act-capitaine-${id}-demo`,
-        departureAt: `2026-08-08T0${(territoryIndex + vesselIndex) % 6}:15:00.000Z`,
-        expectedReturnAt: `2026-08-08T${String(8 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:30:00.000Z`,
-        announcedReturnAt: status !== "en_mer" ? `2026-08-08T${String(7 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:55:00.000Z` : undefined,
-        arrivedAt: status === "debarquee" || status === "arrivee_confirmee" ? `2026-08-08T${String(8 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:24:00.000Z` : undefined,
+        departureAt: `${operationDate}T0${(territoryIndex + vesselIndex) % 6}:15:00.000Z`,
+        expectedReturnAt: `${operationDate}T${String(8 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:30:00.000Z`,
+        announcedReturnAt: status !== "en_mer" ? `${operationDate}T${String(7 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:55:00.000Z` : undefined,
+        arrivedAt: status === "debarquee" || status === "arrivee_confirmee" ? `${operationDate}T${String(8 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:24:00.000Z` : undefined,
         status,
         zone: `Zone côtière de ${name}`,
         crewCount: 7 + ((territoryIndex + vesselIndex) % 7),
@@ -293,8 +296,34 @@ export function createDemoState(): ProductState {
     });
   });
 
+  // Profondeur temporelle des débarquements (validation CEO 18/08/2026) :
+  // cette fenêtre des 5 et 6 août est entièrement simulée. Elle ne prolonge
+  // aucune série réelle ou préexistante et ne modifie aucun retour annoncé,
+  // débarquement attendu ou pesée encore incomplète.
+  const historicalLandingDates = ["2026-08-05", "2026-08-06"] as const;
+  const historicalTrips: ProductState["trips"] = territoryRows.flatMap(([territoryId, territoryName], territoryIndex) =>
+    historicalLandingDates.map((date, historyIndex) => {
+      const dateKey = date.replaceAll("-", "");
+      const returnHour = 8 + ((territoryIndex + historyIndex) % 5);
+      const arrivalMinute = 12 + ((territoryIndex * 7 + historyIndex * 11) % 20);
+      return {
+        id: `trip-${territoryId}-history-${dateKey}`,
+        vesselId: `vessel-${territoryId}-${historyIndex + 1}`,
+        captainId: `act-capitaine-${territoryId}-demo`,
+        departureAt: `${date}T0${1 + ((territoryIndex + historyIndex) % 5)}:10:00.000Z`,
+        expectedReturnAt: `${date}T${String(returnHour).padStart(2, "0")}:00:00.000Z`,
+        announcedReturnAt: `${date}T${String(returnHour - 1).padStart(2, "0")}:45:00.000Z`,
+        arrivedAt: `${date}T${String(returnHour).padStart(2, "0")}:${String(arrivalMinute).padStart(2, "0")}:00.000Z`,
+        status: "debarquee" as const,
+        zone: `Zone côtière de ${territoryName}`,
+        crewCount: 7 + ((territoryIndex + historyIndex) % 7),
+        source: "Historique simulé de démonstration — poste de quai"
+      };
+    })
+  );
+
   vessels.push(...generatedVessels);
-  trips.push(...generatedTrips);
+  trips.push(...generatedTrips, ...historicalTrips);
 
   const landings: ProductState["landings"] = [
     {
@@ -344,13 +373,14 @@ export function createDemoState(): ProductState {
     const firstQuantity = 420 + ((territoryIndex * 97 + vesselIndex * 83) % 880);
     const secondQuantity = 180 + ((territoryIndex * 61 + vesselIndex * 47) % 520);
     const weighed = trip.status === "debarquee";
+    const operationDate = trip.arrivedAt?.slice(0, 10);
 
     return {
       id: `landing-${territoryId}-demo-${vesselIndex + 1}`,
       tripId: trip.id,
       siteId: `quai-${territoryId}`,
       arrivedAt: trip.arrivedAt,
-      weighedAt: weighed ? `2026-08-08T${String(9 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:12:00.000Z` : undefined,
+      weighedAt: weighed && operationDate ? `${operationDate}T${String(9 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:12:00.000Z` : undefined,
       status: weighed ? "lots_crees" : "attendu",
       catches: [
         { id: `catch-${territoryId}-${vesselIndex + 1}-a`, speciesId: firstSpecies.id, quantityKg: firstQuantity, quality: vesselIndex === 2 ? "B" : "A", productForm: "entier_frais" },
@@ -362,7 +392,46 @@ export function createDemoState(): ProductState {
     };
   });
 
-  landings.push(...generatedLandings);
+  const historicalLandings: ProductState["landings"] = historicalTrips.map((trip, index) => {
+    const territoryIndex = Math.floor(index / historicalLandingDates.length);
+    const historyIndex = index % historicalLandingDates.length;
+    const [territoryId, territoryName] = territoryRows[territoryIndex];
+    const date = historicalLandingDates[historyIndex];
+    const dateKey = date.replaceAll("-", "");
+    const returnHour = 8 + ((territoryIndex + historyIndex) % 5);
+    const arrivalMinute = 12 + ((territoryIndex * 7 + historyIndex * 11) % 20);
+    const firstSpecies = species[(territoryIndex * 2 + historyIndex) % species.length];
+    const secondSpecies = species[(territoryIndex * 2 + historyIndex + 4) % species.length];
+    // Les volumes restent proches de la moyenne locale déjà simulée : ils
+    // rendent une courbe lisible sans fabriquer une hausse ou une baisse-type.
+    const comparisonLandings = generatedLandings.filter((landing) => landing.siteId === `quai-${territoryId}` && landing.weighedAt);
+    const referenceWeight = Math.round(
+      comparisonLandings.reduce((total, landing) => total + landing.totalWeightKg, 0) / comparisonLandings.length
+    );
+    const weightFactors = [[0.92, 1.04], [1.03, 0.94], [0.96, 1.02], [1.06, 0.91], [0.89, 1.06], [1, 0.97]] as const;
+    const totalWeight = Math.round(referenceWeight * weightFactors[territoryIndex % weightFactors.length][historyIndex]);
+    const firstShare = 0.64 + (((territoryIndex + historyIndex) % 4) * 0.04);
+    const firstQuantity = Math.round(totalWeight * firstShare);
+    const secondQuantity = totalWeight - firstQuantity;
+
+    return {
+      id: `landing-${territoryId}-history-${dateKey}`,
+      tripId: trip.id,
+      siteId: `quai-${territoryId}`,
+      arrivedAt: trip.arrivedAt,
+      weighedAt: `${date}T${String(returnHour).padStart(2, "0")}:${String(arrivalMinute + 22).padStart(2, "0")}:00.000Z`,
+      status: "pese" as const,
+      catches: [
+        { id: `catch-${territoryId}-history-${dateKey}-a`, speciesId: firstSpecies.id, quantityKg: firstQuantity, quality: historyIndex === 0 ? "A" as const : "B" as const, productForm: "entier_frais" as const },
+        { id: `catch-${territoryId}-history-${dateKey}-b`, speciesId: secondSpecies.id, quantityKg: secondQuantity, quality: territoryIndex % 3 === 0 ? "B" as const : "A" as const, productForm: "entier_frais" as const }
+      ],
+      totalWeightKg: totalWeight,
+      weighingSource: `Historique simulé de démonstration — pesée du quai de ${territoryName}`,
+      trust: "observee" as const
+    };
+  });
+
+  landings.push(...generatedLandings, ...historicalLandings);
 
   const lots: ProductState["lots"] = [
     { id: "lot-mbour-sardinelle", landingId: "landing-mbour", speciesId: "sp-sardinelle", siteId: "quai-mbour", quantityKg: 2100, availableKg: 1400, quality: "B", productForm: "entier_frais", conservation: "glace", status: "disponible", trust: "verifiee", traceabilityCompleteness: 88 },
