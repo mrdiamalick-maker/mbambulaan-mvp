@@ -5,12 +5,14 @@ import { useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
+  BarChart3,
   CheckCircle2,
   ChevronDown,
   Factory,
   Fish,
   Handshake,
   Radio,
+  ShipWheel,
   Sparkles
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
@@ -35,12 +37,12 @@ export function PilotageWorkspace() {
   const vessels = state.vessels.filter((item) => siteIds.includes(item.homeSiteId));
   const totalLanded = landings.filter((item) => item.status === "lots_crees").reduce((sum, item) => sum + item.totalWeightKg, 0);
   const valorized = lots.filter((item) => item.status === "valorise").reduce((sum, item) => sum + item.quantityKg, 0);
-  // "Valeur potentielle" (estimatedValue = somme lots.quantityKg × prix
-  // indicatif espèce) différée au Chapitre 2 — Tendances (Lot C, Audit DA
-  // Premium XXL v2) avec "Pirogues suivies" : le Chapitre 1 — Maintenant
-  // ne garde que "quelques mesures" (mandat CEO 2026-08-17). Recalculable
-  // à l'identique depuis lots/state.species, déjà en portée ici — aucune
-  // donnée perdue, seulement différée.
+  // "Valeur potentielle" et "Pirogues suivies" : différées du Chapitre 1 —
+  // Maintenant (Lot B) au Chapitre 2 — Tendances (Lot C, Audit DA Premium
+  // XXL v2, mandat CEO 2026-08-17) — cf. commentaire sur la rangée "3
+  // mesures" du Chapitre 1 plus bas. estimatedValue recalculé ici à
+  // l'identique, aucune donnée fabriquée.
+  const estimatedValue = lots.reduce((sum, lot) => sum + lot.quantityKg * (state.species.find((item) => item.id === lot.speciesId)?.indicativePriceFcfaKg ?? 0), 0);
   const critical = situations.filter((item) => item.priority === "critique" && item.status !== "reglee");
   const resolved = situations.filter((item) => item.status === "reglee").length;
   const progress = situations.length ? Math.round((resolved / situations.length) * 100) : 0;
@@ -142,9 +144,8 @@ export function PilotageWorkspace() {
         {/* "Quelques mesures" (mandat) : 3 des 5 anciennes mesures restent
             ici — le coeur de "maintenant". Pirogues suivies reste visible
             dans la phrase du brief ci-dessus (vessels toujours utilisé,
-            aucune donnée perdue) ; Valeur potentielle est différée au
-            Chapitre 2 — Tendances (Lot C), cf. commentaire sur
-            estimatedValue plus haut dans ce fichier. */}
+            aucune donnée perdue) ; Valeur potentielle rejoint le Chapitre
+            2 — Tendances (Lot C), aux côtés de Pirogues suivies. */}
         <div className="mt-6 grid gap-6 border-t pt-5 sm:grid-cols-3">
           {[
             [Fish, "Volume débarqué", `${(totalLanded / 1000).toFixed(2)} t`, "Pesées disponibles sur le périmètre", "text-[#1d4468]"],
