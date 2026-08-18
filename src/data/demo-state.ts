@@ -83,7 +83,7 @@ export function createDemoState(): ProductState {
     ["fass-boye", "Fass Boye", "Thiès", 15.20, -16.94, "vigilance"],
     ["yoff", "Yoff", "Dakar", 14.76, -17.49, "stable"],
     ["ouakam", "Ouakam", "Dakar", 14.72, -17.50, "stable"],
-    ["popenguine", "Popenguine", "Thiès", 14.56, -17.11, "vigilance"],
+    ["popenguine", "Popenguine", "Thiès", 14.56, -17.11, "stable"],
     ["foundiougne", "Foundiougne", "Fatick", 14.13, -16.47, "stable"],
     ["missirah", "Missirah", "Fatick", 13.73, -16.50, "vigilance"],
     ["elinkine", "Elinkine", "Ziguinchor", 12.50, -16.67, "stable"]
@@ -132,7 +132,17 @@ export function createDemoState(): ProductState {
     // Lot 1 (R&D, arbitrage CEO 13/08/2026) : Yoff et Foundiougne n'étaient
     // couverts par aucun acteur mareyeur/transformateur dédié.
     actor("act-mareyeuse-yoff", "Ndèye Fatou Diagne", "mareyeur", "org-mareyeurs", ["yoff"]),
-    actor("act-transform-foundiougne", "Coumba Sarr", "transformateur", "org-saloum", ["foundiougne"])
+    actor("act-transform-foundiougne", "Coumba Sarr", "transformateur", "org-saloum", ["foundiougne"]),
+    // Élargissement du jeu de démonstration (validation CEO 18/08/2026) :
+    // acteurs opérationnels dédiés aux trois territoires qui ne portaient
+    // jusque-là qu'une veille générique. Aucun rôle ni permission nouvelle.
+    actor("act-mareyeur-popenguine", "Sokhna Cissé", "mareyeur", "org-mareyeurs", ["popenguine"]),
+    actor("act-collectrice-missirah", "Awa Sagna", "transformateur", "org-saloum", ["missirah"]),
+    actor("act-mareyeur-missirah", "Mame Diarra Sarr", "mareyeur", "org-saloum", ["missirah"]),
+    actor("act-mareyeur-ouakam", "Rama Guèye", "mareyeur", "org-mareyeurs", ["ouakam"]),
+    actor("act-mareyeur-rufisque", "Moussa Lô", "mareyeur", "org-mareyeurs", ["rufisque"]),
+    actor("act-transporteur-rufisque", "Boubacar Diallo", "prestataire", "org-logistique", ["rufisque"]),
+    actor("act-metrologue-djiffer", "Ibrahima Thiam", "prestataire", "org-froid", ["djiffer"])
   ];
 
   const captainNames = ["Abdoulaye Diatta", "Moussa Seck", "Pape Ndiaye", "Samba Sarr", "Ibrahima Cissé", "Alioune Ba", "Omar Mané", "Cheikh Thiam", "Youssoupha Diallo"];
@@ -197,9 +207,9 @@ export function createDemoState(): ProductState {
       organizationId: "org-mareyeurs",
       name: `Capacité transport froid ${name}`,
       type: "transport",
-      status: index === 2 ? "fragile" : "operationnelle",
+      status: ["kayar", "rufisque"].includes(id) ? "fragile" : "operationnelle",
       theoreticalCapacity: 8,
-      availableCapacity: index === 2 ? 2 : 5,
+      availableCapacity: id === "kayar" ? 2 : id === "rufisque" ? 1 : 5,
       unit: "tonnes/jour",
       trust: "declaree",
       updatedAt: now
@@ -222,7 +232,7 @@ export function createDemoState(): ProductState {
   const trips: ProductState["trips"] = [
     { id: "trip-joal", vesselId: "vessel-jambar", captainId: "act-capitaine", departureAt: "2026-07-29T02:10:00.000Z", expectedReturnAt: "2026-07-29T11:30:00.000Z", status: "en_mer", zone: "Petite-Côte Ouest", crewCount: 9, source: "Déclaration du capitaine" },
     { id: "trip-mbour", vesselId: "vessel-teranga", captainId: "act-capitaine", departureAt: "2026-07-28T23:40:00.000Z", expectedReturnAt: "2026-07-29T08:00:00.000Z", announcedReturnAt: "2026-07-29T07:20:00.000Z", arrivedAt: "2026-07-29T08:05:00.000Z", status: "debarquee", zone: "Petite-Côte Sud", crewCount: 11, source: "Poste de quai" },
-    { id: "trip-kayar", vesselId: "vessel-ndiambour", captainId: "act-capitaine-kayar", departureAt: "2026-07-29T01:20:00.000Z", expectedReturnAt: "2026-07-29T10:40:00.000Z", announcedReturnAt: "2026-07-29T10:15:00.000Z", status: "retour_annonce", zone: "Grande-Côte Sud", crewCount: 8, source: "Message WhatsApp Business structuré" },
+    { id: "trip-kayar", vesselId: "vessel-ndiambour", captainId: "act-capitaine-kayar", departureAt: "2026-07-29T01:20:00.000Z", expectedReturnAt: "2026-07-29T10:40:00.000Z", announcedReturnAt: "2026-07-29T10:15:00.000Z", arrivedAt: "2026-07-29T10:36:00.000Z", status: "debarquee", zone: "Grande-Côte Sud", crewCount: 8, source: "Message WhatsApp Business structuré puis constat du poste de quai" },
     { id: "trip-saint-louis", vesselId: "vessel-ndaar", captainId: "act-capitaine-saint", departureAt: "2026-07-28T22:15:00.000Z", expectedReturnAt: "2026-07-29T06:30:00.000Z", announcedReturnAt: "2026-07-29T07:35:00.000Z", arrivedAt: "2026-07-29T08:00:00.000Z", status: "debarquee", zone: "Grande-Côte Nord", crewCount: 12, source: "Relais sécurité et poste de quai" },
     { id: "trip-hann", vesselId: "vessel-dakar", captainId: "act-capitaine-dakar", departureAt: "2026-07-29T00:30:00.000Z", expectedReturnAt: "2026-07-29T07:10:00.000Z", arrivedAt: "2026-07-29T07:18:00.000Z", status: "debarquee", zone: "Presqu’île du Cap-Vert", crewCount: 10, source: "Poste de quai de Hann" },
     { id: "trip-soumbedioune", vesselId: "vessel-goree", captainId: "act-capitaine-dakar", departureAt: "2026-07-29T03:05:00.000Z", expectedReturnAt: "2026-07-29T09:20:00.000Z", arrivedAt: "2026-07-29T09:28:00.000Z", status: "debarquee", zone: "Cap-Vert Ouest", crewCount: 7, source: "Opérateur de site" },
@@ -238,7 +248,7 @@ export function createDemoState(): ProductState {
     { id: "vessel-ndiambour", name: "Ndiambour", registration: "DEMO-SN-KAYAR-108", ownerId: "act-gestionnaire", captainId: "act-capitaine-kayar", homeSiteId: "quai-kayar", type: "pirogue_artisanale", trust: "verifiee" },
     { id: "vessel-ndaar", name: "Ndar Ndar", registration: "DEMO-SN-STL-064", ownerId: "act-gestionnaire", captainId: "act-capitaine-saint", homeSiteId: "quai-saint-louis", type: "pirogue_artisanale", trust: "verifiee" },
     { id: "vessel-dakar", name: "Dakar Dem Dikk", registration: "DEMO-SN-HANN-221", ownerId: "act-gestionnaire", captainId: "act-capitaine-dakar", homeSiteId: "quai-hann", type: "pirogue_artisanale", trust: "consolidee" },
-    { id: "vessel-goree", name: "Gorée", registration: "DEMO-SN-SOUMB-031", ownerId: "act-gestionnaire", captainId: "act-capitaine-dakar", homeSiteId: "quai-soumbedioune", type: "pirogue_artisanale", trust: "declaree" },
+    { id: "vessel-goree", name: "Gorée", registration: "DEMO-SN-SOUMB-031", ownerId: "act-gestionnaire", captainId: "act-capitaine-dakar", homeSiteId: "quai-soumbedioune", type: "pirogue_artisanale", trust: "officielle" },
     { id: "vessel-lebu", name: "Lebu Gui", registration: "DEMO-SN-RUF-078", ownerId: "act-gestionnaire", captainId: "act-capitaine-dakar", homeSiteId: "quai-rufisque", type: "pirogue_artisanale", trust: "observee" },
     { id: "vessel-sine", name: "Sine Saloum", registration: "DEMO-SN-DJIF-015", ownerId: "act-gestionnaire", captainId: "act-capitaine-sud", homeSiteId: "quai-djiffer", type: "pirogue_artisanale", trust: "verifiee" },
     { id: "vessel-casamance", name: "Casamance Express", registration: "DEMO-SN-KAF-093", ownerId: "act-gestionnaire", captainId: "act-capitaine-sud", homeSiteId: "quai-kafountine", type: "pirogue_artisanale", trust: "consolidee" },
@@ -248,15 +258,18 @@ export function createDemoState(): ProductState {
   const fleetNames = ["Jàmm", "Teranga", "Naatangué"];
   const fleetTrust: TrustLevel[] = ["verifiee", "observee", "declaree"];
   const tripStatuses: ProductState["trips"][number]["status"][] = ["debarquee", "debarquee", "retour_annonce"];
+  const completedTripDates = ["2026-08-07", "2026-08-08"] as const;
   const generatedVessels: ProductState["vessels"] = [];
   const generatedTrips: ProductState["trips"] = [];
 
   territoryRows.forEach(([id, name], territoryIndex) => {
+    let completedTripIndex = 0;
     fleetNames.forEach((fleetName, vesselIndex) => {
       const suffix = `${String(territoryIndex + 1).padStart(2, "0")}${vesselIndex + 1}`;
       const vesselId = `vessel-${id}-${vesselIndex + 1}`;
       const tripId = `trip-${id}-${vesselIndex + 1}`;
       const status = tripStatuses[(territoryIndex + vesselIndex) % tripStatuses.length];
+      const operationDate = status === "debarquee" ? completedTripDates[completedTripIndex++] : "2026-08-08";
       generatedVessels.push({
         id: vesselId,
         name: `${fleetName} ${name}`,
@@ -271,10 +284,10 @@ export function createDemoState(): ProductState {
         id: tripId,
         vesselId,
         captainId: `act-capitaine-${id}-demo`,
-        departureAt: `2026-08-08T0${(territoryIndex + vesselIndex) % 6}:15:00.000Z`,
-        expectedReturnAt: `2026-08-08T${String(8 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:30:00.000Z`,
-        announcedReturnAt: status !== "en_mer" ? `2026-08-08T${String(7 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:55:00.000Z` : undefined,
-        arrivedAt: status === "debarquee" || status === "arrivee_confirmee" ? `2026-08-08T${String(8 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:24:00.000Z` : undefined,
+        departureAt: `${operationDate}T0${(territoryIndex + vesselIndex) % 6}:15:00.000Z`,
+        expectedReturnAt: `${operationDate}T${String(8 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:30:00.000Z`,
+        announcedReturnAt: status !== "en_mer" ? `${operationDate}T${String(7 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:55:00.000Z` : undefined,
+        arrivedAt: status === "debarquee" || status === "arrivee_confirmee" ? `${operationDate}T${String(8 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:24:00.000Z` : undefined,
         status,
         zone: `Zone côtière de ${name}`,
         crewCount: 7 + ((territoryIndex + vesselIndex) % 7),
@@ -283,8 +296,34 @@ export function createDemoState(): ProductState {
     });
   });
 
+  // Profondeur temporelle des débarquements (validation CEO 18/08/2026) :
+  // cette fenêtre des 5 et 6 août est entièrement simulée. Elle ne prolonge
+  // aucune série réelle ou préexistante et ne modifie aucun retour annoncé,
+  // débarquement attendu ou pesée encore incomplète.
+  const historicalLandingDates = ["2026-08-05", "2026-08-06"] as const;
+  const historicalTrips: ProductState["trips"] = territoryRows.flatMap(([territoryId, territoryName], territoryIndex) =>
+    historicalLandingDates.map((date, historyIndex) => {
+      const dateKey = date.replaceAll("-", "");
+      const returnHour = 8 + ((territoryIndex + historyIndex) % 5);
+      const arrivalMinute = 12 + ((territoryIndex * 7 + historyIndex * 11) % 20);
+      return {
+        id: `trip-${territoryId}-history-${dateKey}`,
+        vesselId: `vessel-${territoryId}-${historyIndex + 1}`,
+        captainId: `act-capitaine-${territoryId}-demo`,
+        departureAt: `${date}T0${1 + ((territoryIndex + historyIndex) % 5)}:10:00.000Z`,
+        expectedReturnAt: `${date}T${String(returnHour).padStart(2, "0")}:00:00.000Z`,
+        announcedReturnAt: `${date}T${String(returnHour - 1).padStart(2, "0")}:45:00.000Z`,
+        arrivedAt: `${date}T${String(returnHour).padStart(2, "0")}:${String(arrivalMinute).padStart(2, "0")}:00.000Z`,
+        status: "debarquee" as const,
+        zone: `Zone côtière de ${territoryName}`,
+        crewCount: 7 + ((territoryIndex + historyIndex) % 7),
+        source: "Historique simulé de démonstration — poste de quai"
+      };
+    })
+  );
+
   vessels.push(...generatedVessels);
-  trips.push(...generatedTrips);
+  trips.push(...generatedTrips, ...historicalTrips);
 
   const landings: ProductState["landings"] = [
     {
@@ -315,7 +354,7 @@ export function createDemoState(): ProductState {
       weighingSource: "Balance du quai de Mbour",
       trust: "verifiee"
     },
-    { id: "landing-kayar", tripId: "trip-kayar", siteId: "quai-kayar", status: "attendu", catches: [{ id: "catch-k1", speciesId: "sp-thiof", quantityKg: 140, quality: "A", productForm: "entier_frais" }, { id: "catch-k2", speciesId: "sp-maquereau", quantityKg: 780, quality: "B", productForm: "entier_frais" }], totalWeightKg: 920, weighingSource: "Quantités annoncées, pesée attendue", trust: "declaree" },
+    { id: "landing-kayar", tripId: "trip-kayar", siteId: "quai-kayar", arrivedAt: "2026-07-29T10:36:00.000Z", weighedAt: "2026-07-29T10:58:00.000Z", status: "lots_crees", catches: [{ id: "catch-k1", speciesId: "sp-thiof", quantityKg: 140, quality: "A", productForm: "entier_frais" }, { id: "catch-k2", speciesId: "sp-maquereau", quantityKg: 780, quality: "B", productForm: "entier_frais" }], totalWeightKg: 920, weighingSource: "Balance du quai de Kayar — pesée de démonstration", trust: "observee" },
     { id: "landing-saint-louis", tripId: "trip-saint-louis", siteId: "quai-saint-louis", arrivedAt: "2026-07-29T08:00:00.000Z", weighedAt: "2026-07-29T08:22:00.000Z", status: "lots_crees", catches: [{ id: "catch-sl1", speciesId: "sp-mulet", quantityKg: 1040, quality: "A", productForm: "entier_frais" }, { id: "catch-sl2", speciesId: "sp-sardinelle", quantityKg: 610, quality: "B", productForm: "entier_frais" }], totalWeightKg: 1650, weighingSource: "Balance du quai de Saint-Louis", trust: "verifiee" },
     { id: "landing-hann", tripId: "trip-hann", siteId: "quai-hann", arrivedAt: "2026-07-29T07:18:00.000Z", weighedAt: "2026-07-29T07:43:00.000Z", status: "lots_crees", catches: [{ id: "catch-h1", speciesId: "sp-maquereau", quantityKg: 1280, quality: "A", productForm: "entier_frais" }, { id: "catch-h2", speciesId: "sp-sole", quantityKg: 360, quality: "A", productForm: "entier_frais" }, { id: "catch-h3", speciesId: "sp-thiof", quantityKg: 260, quality: "B", productForm: "entier_frais" }], totalWeightKg: 1900, weighingSource: "Balance du quai de Hann", trust: "consolidee" },
     { id: "landing-soumbedioune", tripId: "trip-soumbedioune", siteId: "quai-soumbedioune", arrivedAt: "2026-07-29T09:28:00.000Z", weighedAt: "2026-07-29T09:52:00.000Z", status: "lots_crees", catches: [{ id: "catch-so1", speciesId: "sp-sardinelle", quantityKg: 760, quality: "B", productForm: "entier_frais" }, { id: "catch-so2", speciesId: "sp-mulet", quantityKg: 360, quality: "A", productForm: "entier_frais" }], totalWeightKg: 1120, weighingSource: "Pesée opérateur Soumbédioune", trust: "observee" },
@@ -334,13 +373,14 @@ export function createDemoState(): ProductState {
     const firstQuantity = 420 + ((territoryIndex * 97 + vesselIndex * 83) % 880);
     const secondQuantity = 180 + ((territoryIndex * 61 + vesselIndex * 47) % 520);
     const weighed = trip.status === "debarquee";
+    const operationDate = trip.arrivedAt?.slice(0, 10);
 
     return {
       id: `landing-${territoryId}-demo-${vesselIndex + 1}`,
       tripId: trip.id,
       siteId: `quai-${territoryId}`,
       arrivedAt: trip.arrivedAt,
-      weighedAt: weighed ? `2026-08-08T${String(9 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:12:00.000Z` : undefined,
+      weighedAt: weighed && operationDate ? `${operationDate}T${String(9 + ((territoryIndex + vesselIndex) % 5)).padStart(2, "0")}:12:00.000Z` : undefined,
       status: weighed ? "lots_crees" : "attendu",
       catches: [
         { id: `catch-${territoryId}-${vesselIndex + 1}-a`, speciesId: firstSpecies.id, quantityKg: firstQuantity, quality: vesselIndex === 2 ? "B" : "A", productForm: "entier_frais" },
@@ -352,11 +392,51 @@ export function createDemoState(): ProductState {
     };
   });
 
-  landings.push(...generatedLandings);
+  const historicalLandings: ProductState["landings"] = historicalTrips.map((trip, index) => {
+    const territoryIndex = Math.floor(index / historicalLandingDates.length);
+    const historyIndex = index % historicalLandingDates.length;
+    const [territoryId, territoryName] = territoryRows[territoryIndex];
+    const date = historicalLandingDates[historyIndex];
+    const dateKey = date.replaceAll("-", "");
+    const returnHour = 8 + ((territoryIndex + historyIndex) % 5);
+    const arrivalMinute = 12 + ((territoryIndex * 7 + historyIndex * 11) % 20);
+    const firstSpecies = species[(territoryIndex * 2 + historyIndex) % species.length];
+    const secondSpecies = species[(territoryIndex * 2 + historyIndex + 4) % species.length];
+    // Les volumes restent proches de la moyenne locale déjà simulée : ils
+    // rendent une courbe lisible sans fabriquer une hausse ou une baisse-type.
+    const comparisonLandings = generatedLandings.filter((landing) => landing.siteId === `quai-${territoryId}` && landing.weighedAt);
+    const referenceWeight = Math.round(
+      comparisonLandings.reduce((total, landing) => total + landing.totalWeightKg, 0) / comparisonLandings.length
+    );
+    const weightFactors = [[0.92, 1.04], [1.03, 0.94], [0.96, 1.02], [1.06, 0.91], [0.89, 1.06], [1, 0.97]] as const;
+    const totalWeight = Math.round(referenceWeight * weightFactors[territoryIndex % weightFactors.length][historyIndex]);
+    const firstShare = 0.64 + (((territoryIndex + historyIndex) % 4) * 0.04);
+    const firstQuantity = Math.round(totalWeight * firstShare);
+    const secondQuantity = totalWeight - firstQuantity;
+
+    return {
+      id: `landing-${territoryId}-history-${dateKey}`,
+      tripId: trip.id,
+      siteId: `quai-${territoryId}`,
+      arrivedAt: trip.arrivedAt,
+      weighedAt: `${date}T${String(returnHour).padStart(2, "0")}:${String(arrivalMinute + 22).padStart(2, "0")}:00.000Z`,
+      status: "pese" as const,
+      catches: [
+        { id: `catch-${territoryId}-history-${dateKey}-a`, speciesId: firstSpecies.id, quantityKg: firstQuantity, quality: historyIndex === 0 ? "A" as const : "B" as const, productForm: "entier_frais" as const },
+        { id: `catch-${territoryId}-history-${dateKey}-b`, speciesId: secondSpecies.id, quantityKg: secondQuantity, quality: territoryIndex % 3 === 0 ? "B" as const : "A" as const, productForm: "entier_frais" as const }
+      ],
+      totalWeightKg: totalWeight,
+      weighingSource: `Historique simulé de démonstration — pesée du quai de ${territoryName}`,
+      trust: "observee" as const
+    };
+  });
+
+  landings.push(...generatedLandings, ...historicalLandings);
 
   const lots: ProductState["lots"] = [
     { id: "lot-mbour-sardinelle", landingId: "landing-mbour", speciesId: "sp-sardinelle", siteId: "quai-mbour", quantityKg: 2100, availableKg: 1400, quality: "B", productForm: "entier_frais", conservation: "glace", status: "disponible", trust: "verifiee", traceabilityCompleteness: 88 },
     { id: "lot-mbour-sole", landingId: "landing-mbour", speciesId: "sp-sole", siteId: "quai-mbour", quantityKg: 240, availableKg: 240, quality: "A", productForm: "entier_frais", conservation: "froid", status: "disponible", trust: "verifiee", traceabilityCompleteness: 92 },
+    { id: "lot-kayar-thiof", landingId: "landing-kayar", speciesId: "sp-thiof", siteId: "quai-kayar", quantityKg: 140, availableKg: 0, quality: "A", productForm: "entier_frais", conservation: "glace", status: "engage", trust: "observee", traceabilityCompleteness: 84 },
     { id: "lot-saint-mulet", landingId: "landing-saint-louis", speciesId: "sp-mulet", siteId: "quai-saint-louis", quantityKg: 1040, availableKg: 720, quality: "A", productForm: "entier_frais", conservation: "glace", status: "disponible", trust: "verifiee", traceabilityCompleteness: 84 },
     { id: "lot-hann-maquereau", landingId: "landing-hann", speciesId: "sp-maquereau", siteId: "quai-hann", quantityKg: 1280, availableKg: 580, quality: "A", productForm: "entier_frais", conservation: "froid", status: "engage", trust: "consolidee", traceabilityCompleteness: 96 },
     { id: "lot-hann-sole", landingId: "landing-hann", speciesId: "sp-sole", siteId: "quai-hann", quantityKg: 360, availableKg: 360, quality: "A", productForm: "entier_frais", conservation: "froid", status: "disponible", trust: "verifiee", traceabilityCompleteness: 93 },
@@ -410,7 +490,13 @@ export function createDemoState(): ProductState {
     const territoryLots = generatedLots.filter((lot) => lot.siteId === `quai-${territoryId}`);
     const primarySpeciesId = territoryLots[0]?.speciesId ?? species[index % species.length].id;
     const secondarySpeciesId = territoryLots[1]?.speciesId ?? species[(index + 2) % species.length].id;
-    const actorId = index < 6 ? "act-mareyeur-nord" : index < 13 ? "act-mareyeur" : "act-mareyeur-sud";
+    const dedicatedMareyeurByTerritory: Record<string, string> = {
+      ouakam: "act-mareyeur-ouakam",
+      popenguine: "act-mareyeur-popenguine",
+      missirah: "act-mareyeur-missirah",
+      rufisque: "act-mareyeur-rufisque"
+    };
+    const actorId = dedicatedMareyeurByTerritory[territoryId] ?? (index < 6 ? "act-mareyeur-nord" : index < 13 ? "act-mareyeur" : "act-mareyeur-sud");
     return [
       { id: `need-${territoryId}-achat`, reference: `MBA-SR-${territoryId.toUpperCase()}-ACHAT`, channel: "web" as const, actorId, territoryId, speciesId: primarySpeciesId, quantityKg: 320 + ((index * 73) % 540), quality: "A" as const, intent: "achat" as const, status: "ouvert" as const, priority: index % 4 === 0 ? ("haute" as const) : ("moyenne" as const), createdAt: now, source: "Besoin consolidé par le relais territorial" },
       { id: `need-${territoryId}-valorisation`, reference: `MBA-SR-${territoryId.toUpperCase()}-VALORISATION`, channel: index % 2 === 0 ? ("terrain" as const) : ("telephone" as const), actorId: `act-relais-${territoryId}`, territoryId, speciesId: secondarySpeciesId, quantityKg: 180 + ((index * 41) % 360), quality: index % 3 === 0 ? ("B" as const) : ("A" as const), intent: index % 2 === 0 ? ("transformation" as const) : ("transport" as const), status: index % 5 === 0 ? ("couvert" as const) : ("ouvert" as const), priority: "moyenne" as const, createdAt: now, source: index % 2 === 0 ? "Formulaire terrain qualifié" : "Appel téléphonique qualifié" }
@@ -421,6 +507,7 @@ export function createDemoState(): ProductState {
 
   const opportunities: ProductState["opportunities"] = [
     { id: "opp-mbour", lotId: "lot-mbour-sardinelle", serviceRequestId: "need-sardinelle", territoryId: "mbour", score: 91, reasons: ["Espèce identique", "Quantité suffisante", "Même territoire", "Qualité compatible"], status: "proposee", humanValidationRequired: true },
+    { id: "opp-kayar-thiof-partiel", lotId: "lot-kayar-thiof", serviceRequestId: "need-thiof", territoryId: "kayar", score: 87, reasons: ["Espèce et qualité compatibles", "Lot pesé localement", "Couverture partielle explicitement acceptée", "Reliquat du besoin maintenu ouvert"], status: "executee", humanValidationRequired: true },
     { id: "opp-hann", lotId: "lot-hann-maquereau", serviceRequestId: "need-maquereau-hann", territoryId: "hann", score: 96, reasons: ["Lot vérifié", "Besoin couvert", "Enlèvement planifié", "Chaîne froide documentée"], status: "engagee", humanValidationRequired: true },
     { id: "opp-saint", lotId: "lot-saint-mulet", serviceRequestId: "need-mulet-saint", territoryId: "saint-louis", score: 88, reasons: ["Espèce et qualité compatibles", "Volume disponible", "Acheteurs identifiés"], status: "proposee", humanValidationRequired: true },
     { id: "opp-kaf", lotId: "lot-kaf-sardinelle", serviceRequestId: "need-sardinelle-kaf", territoryId: "kafountine", score: 94, reasons: ["Transformation locale", "Quantité exacte", "Engagement confirmé"], status: "executee", humanValidationRequired: true },
@@ -449,14 +536,148 @@ export function createDemoState(): ProductState {
   const situations: Situation[] = [
     situation("sit-glace", "joal", "Machine à glace indisponible au quai de Joal", "recue", "declaree", "Qualifier le signal avec le poste de quai", "critique"),
     situation("sit-mbour", "mbour", "Capacité froide sous tension après deux débarquements", "qualification", "declaree", "Confirmer la priorité territoriale"),
-    situation("sit-kayar", "kayar", "Thiof rare et besoin mareyeur non couvert", "priorisee", "verifiee", "Rechercher une substitution et alerter le territoire"),
+    {
+      id: "sit-kayar",
+      reference: "MBA-SIT-KAYR",
+      signalIds: ["obs-sit-kayar"],
+      territoryId: "kayar",
+      title: "Tension locale entre disponibilité de thiof et besoin ouvert",
+      description: "Un besoin professionnel déclaré de 600 kg est rapproché d’un lot local pesé de 140 kg. Cette tension commerciale locale ne constitue ni une statistique d’inflation ni une conclusion sur l’état biologique de l’espèce.",
+      status: "resultat",
+      priority: "haute",
+      trust: "documentee",
+      visibility: "partenaires",
+      responsibleId: "act-operateur",
+      dueAt: tomorrow,
+      nextStep: "Maintenir le reliquat ouvert et ne publier que les nouveaux lots réellement pesés.",
+      result: "Le lot local de 140 kg a été accepté comme couverture partielle ; le reliquat du besoin reste ouvert et visible.",
+      confirmation: "Pesée du lot, acceptation humaine du mareyeur et maintien du reliquat dans la demande.",
+      coordinationId: "coord-kayar-marche",
+      initiativeId: "init-froid",
+      history: [{ id: "hist-sit-kayar", at: now, actor: "act-mareyeur-nord", label: "Besoin déclaré rapproché d’un lot observé", detail: "La demande de 600 kg et la disponibilité locale de 140 kg restent distinguées par leur source et leur niveau de confiance." }]
+    },
     situation("sit-hann", "hann", "Maintenance préventive de la chambre froide", "coordination", "verifiee", "Démarrer l’intervention planifiée", "moyenne"),
     situation("sit-saint-louis", "saint-louis", "Retour de pirogue retardé de 90 minutes", "attente", "verifiee", "Confirmer le contact avec le poste de sécurité"),
-    situation("sit-soumbedioune", "soumbedioune", "Immatriculation déclarée à vérifier avant rattachement", "qualification", "declaree", "Comparer la pièce présentée au référentiel", "moyenne"),
-    situation("sit-rufisque", "rufisque", "Capacité de transport froid insuffisante pour le prochain enlèvement", "priorisee", "observee", "Confirmer un véhicule alternatif avant 12 h", "haute"),
-    situation("sit-djiffer", "djiffer", "Balance de quai à recalibrer avant la prochaine pesée", "intervention", "verifiee", "Enregistrer le contrôle métrologique", "haute"),
+    {
+      id: "sit-soumbedioune",
+      reference: "MBA-SIT-SOUM",
+      signalIds: ["obs-sit-soumbedioune"],
+      territoryId: "soumbedioune",
+      title: "Immatriculation déclarée puis confirmée par le service compétent",
+      description: "Une photographie transmise au relais de quai a été rapprochée du bateau et soumise au service compétent. Le statut officiel n’est appliqué qu’à la réponse institutionnelle simulée jointe au dossier.",
+      status: "reglee",
+      priority: "moyenne",
+      trust: "officielle",
+      visibility: "partenaires",
+      responsibleId: "act-institution",
+      dueAt: tomorrow,
+      nextStep: "Conserver la pièce, la réponse et l’identité de la source avec le profil de la pirogue.",
+      result: "Le numéro, la pirogue et le titulaire ont été rapprochés ; le rattachement administratif est confirmé dans la démonstration.",
+      confirmation: "Réponse simulée du service compétent, datée et reliée à la copie du document.",
+      coordinationId: "coord-soumbedioune-immatriculation",
+      initiativeId: "init-immatriculation",
+      history: [{ id: "hist-sit-soumbedioune", at: now, actor: "act-relais-soumbedioune", label: "Document reçu par relais", detail: "Photographie transmise par le capitaine puis saisie par l’agent de quai sans augmentation automatique du niveau de confiance." }]
+    },
+    {
+      id: "sit-rufisque",
+      reference: "MBA-SIT-RUFI",
+      signalIds: ["obs-sit-rufisque"],
+      territoryId: "rufisque",
+      title: "Capacité de transport froid insuffisante pour le prochain enlèvement",
+      description: "La capacité immédiatement disponible ne couvre pas l’enlèvement annoncé. Un véhicule alternatif doit être confirmé avant d’être compté comme capacité mobilisable.",
+      status: "resultat",
+      priority: "haute",
+      trust: "documentee",
+      visibility: "partenaires",
+      responsibleId: "act-coordinateur",
+      dueAt: tomorrow,
+      nextStep: "Confirmer le second enlèvement et conserver le relevé de température jusqu’à destination.",
+      result: "Un premier enlèvement a été exécuté dans le créneau confirmé ; le solde est planifié avec le même niveau de preuve attendu.",
+      confirmation: "Acceptation du prestataire, bordereau de prise en charge et relevé de température simulés.",
+      coordinationId: "coord-rufisque",
+      history: [{ id: "hist-sit-rufisque", at: now, actor: "act-relais-rufisque", label: "Capacité insuffisante qualifiée", detail: "Le véhicule habituel ne couvre pas le prochain enlèvement ; aucune perte n’est déclarée au stade du signal." }]
+    },
+    {
+      id: "sit-djiffer",
+      reference: "MBA-SIT-DJIF",
+      signalIds: ["obs-sit-djiffer"],
+      territoryId: "djiffer",
+      title: "Balance de quai recalibrée après lectures incohérentes",
+      description: "Deux lectures différentes pour une même masse ont conduit à suspendre l’usage de la balance pour les pesées faisant foi, puis à lancer un contrôle avec masse étalon.",
+      status: "reglee",
+      priority: "haute",
+      trust: "documentee",
+      visibility: "partenaires",
+      responsibleId: "act-coordinateur",
+      dueAt: tomorrow,
+      nextStep: "Utiliser la balance remise en service et exclure les mesures antérieures contestées des consolidations.",
+      result: "La balance est remise en service après test étalon documenté ; les pesées antérieures douteuses restent exclues.",
+      confirmation: "Relevés avant/après et fiche de contrôle du prestataire.",
+      coordinationId: "coord-djiffer",
+      history: [{ id: "hist-sit-djiffer", at: now, actor: "act-relais-djiffer", label: "Lectures incohérentes signalées", detail: "L’agent de quai a consigné deux résultats différents avant de suspendre les pesées officielles." }]
+    },
     situation("sit-kafountine", "kafountine", "Transport groupé vers le marché régional", "reglee", "consolidee", "Partager l’apprentissage dans Community", "faible"),
     situation("sit-cap-skirring", "cap-skirring", "Chambre froide à 35 % de capacité disponible", "coordination", "observee", "Arbitrer les lots prioritaires et réserver un délestage", "haute"),
+    // Élargissement du jeu de démonstration (validation CEO 18/08/2026) :
+    // les trois territoires ci-dessous remplacent leur veille générique par
+    // une boucle complète, sans introduire de nouvel identifiant territorial.
+    {
+      id: "sit-popenguine-vente-locale",
+      reference: "MBA-SIT-POPV",
+      signalIds: ["obs-sit-popenguine-vente-locale"],
+      territoryId: "popenguine",
+      title: "Vente locale coordonnée sans situation de crise",
+      description: "Un lot pesé est disponible et un acheteur local a confirmé son intérêt. La coordination porte uniquement sur les créneaux de retrait et la preuve de remise.",
+      status: "reglee",
+      priority: "faible",
+      trust: "documentee",
+      visibility: "partenaires",
+      responsibleId: "act-relais-popenguine",
+      dueAt: tomorrow,
+      nextStep: "Conserver ce parcours comme référence d’une opération territoriale stable.",
+      result: "Le lot a été remis dans le créneau convenu, sans intervention d’urgence ni incident déclaré.",
+      confirmation: "Fiche de lot, acceptation de l’acheteur et bordereau de remise simulé.",
+      coordinationId: "coord-popenguine-vente-locale",
+      history: [{ id: "hist-sit-popenguine-vente-locale", at: now, actor: "act-capitaine-popenguine-demo", label: "Lot disponible déclaré", detail: "L’agent de quai a rapproché le lot pesé de l’intérêt confirmé par un acheteur local." }]
+    },
+    {
+      id: "sit-missirah-traceabilite",
+      reference: "MBA-SIT-MSTR",
+      signalIds: ["obs-sit-missirah-traceabilite"],
+      territoryId: "missirah",
+      title: "Traçabilité d’un lot de crevettes complétée avant enlèvement",
+      description: "Un groupe de collecte a annoncé un lot par note vocale, mais le lieu précis et l’heure de collecte manquaient. Le relais a complété la provenance et la chaîne de remise avant diffusion au mareyeur.",
+      status: "reglee",
+      priority: "moyenne",
+      trust: "documentee",
+      visibility: "partenaires",
+      responsibleId: "act-relais-missirah",
+      dueAt: tomorrow,
+      nextStep: "Maintenir la provenance et les preuves de conservation attachées au lot jusqu’à destination.",
+      result: "La provenance et la remise sont documentées ; le lot peut être pris en charge sans revendication de certification environnementale.",
+      confirmation: "Fiche de lot complétée, photographie et bordereau de remise simulé.",
+      coordinationId: "coord-missirah-traceabilite",
+      history: [{ id: "hist-sit-missirah-traceabilite", at: now, actor: "act-relais-missirah", label: "Note vocale saisie par le relais", detail: "La collectrice reste identifiée comme source ; l’agent de quai est le saisisseur du signal structuré." }]
+    },
+    {
+      id: "sit-ouakam-creneau-quai",
+      reference: "MBA-SIT-OUAQ",
+      signalIds: ["obs-sit-ouakam-creneau-quai"],
+      territoryId: "ouakam",
+      title: "Créneau de débarquement réorganisé à Ouakam",
+      description: "Un point de débarquement est temporairement indisponible au moment du retour annoncé d’une pirogue. L’agent de quai organise un autre créneau avant que la contrainte ne devienne critique.",
+      status: "reglee",
+      priority: "moyenne",
+      trust: "documentee",
+      visibility: "partenaires",
+      responsibleId: "act-relais-ouakam",
+      dueAt: tomorrow,
+      nextStep: "Clôturer la vigilance et conserver le parcours comme exemple de coordination préventive.",
+      result: "Le débarquement et la remise au mareyeur sont réalisés sur le créneau confirmé, sans incident déclaré.",
+      confirmation: "Confirmation du créneau, heure d’arrivée et bordereau de remise simulé.",
+      coordinationId: "coord-ouakam-creneau-quai",
+      history: [{ id: "hist-sit-ouakam-creneau-quai", at: now, actor: "act-relais-ouakam", label: "Contrainte d’accès observée", detail: "L’agent de quai a signalé l’indisponibilité temporaire avant le retour de la pirogue." }]
+    },
     // Lot 1 (R&D, validation CEO 13/08/2026) : six scénarios élargissant la
     // couverture démontrable au nord, au centre et au sud du littoral, sans
     // remplacer les parcours déjà profonds ci-dessus. Objets hand-authored
@@ -584,8 +805,20 @@ export function createDemoState(): ProductState {
     ["Besoin de transport groupé à organiser", "Confirmer le volume, l’itinéraire et le responsable"],
     ["Relais sécurité à confirmer", "Tester la chaîne d’appel et consigner le résultat"]
   ] as const;
+  const deepenedSituationIdsByTerritory: Record<string, string> = {
+    kayar: "sit-kayar",
+    soumbedioune: "sit-soumbedioune",
+    rufisque: "sit-rufisque",
+    djiffer: "sit-djiffer",
+    popenguine: "sit-popenguine-vente-locale",
+    missirah: "sit-missirah-traceabilite",
+    ouakam: "sit-ouakam-creneau-quai"
+  };
+  const deepenedTerritoryIds = new Set(Object.keys(deepenedSituationIdsByTerritory));
+  const canonicalSituationIdForTerritory = (territoryId: string) =>
+    deepenedSituationIdsByTerritory[territoryId] ?? `sit-${territoryId}-veille`;
   const situationStatuses: SituationStatus[] = ["qualification", "priorisee", "coordination", "intervention", "attente", "resultat"];
-  const generatedSituations = territoryRows.map(([territoryId, territoryName], index) => {
+  const generatedSituations = territoryRows.filter(([territoryId]) => !deepenedTerritoryIds.has(territoryId)).map(([territoryId, territoryName], index) => {
     const template = situationTemplates[index % situationTemplates.length];
     return situation(
       `sit-${territoryId}-veille`,
@@ -609,6 +842,57 @@ export function createDemoState(): ProductState {
   const signalOverridesById: Record<string, Partial<ProductState["signals"][number]>> = {
     "sit-glace": { channel: "poste_quai", category: "infrastructure", source: "Poste de quai de Joal" },
     "sit-saint-louis": { channel: "telephone", category: "securite", trust: "declaree", source: "Appel d’un proche habilité" },
+    "sit-kayar": {
+      actorId: "act-mareyeur-nord",
+      channel: "whatsapp_structure",
+      category: "marche",
+      trust: "declaree",
+      source: "Besoin professionnel déclaré, rapproché ensuite d’une pesée locale"
+    },
+    "sit-soumbedioune": {
+      actorId: "act-relais-soumbedioune",
+      channel: "telephone",
+      category: "conformite",
+      trust: "declaree",
+      source: "Photographie et appel du capitaine, saisis par le relais de quai",
+      reportedBy: "Capitaine de la pirogue Gorée (appel et photographie)"
+    },
+    "sit-rufisque": {
+      actorId: "act-relais-rufisque",
+      channel: "poste_quai",
+      category: "infrastructure",
+      trust: "observee",
+      source: "Capacité disponible constatée par le relais de quai"
+    },
+    "sit-djiffer": {
+      actorId: "act-relais-djiffer",
+      channel: "poste_quai",
+      category: "qualite",
+      trust: "observee",
+      source: "Deux lectures incohérentes consignées par l’agent de quai"
+    },
+    "sit-popenguine-vente-locale": {
+      actorId: "act-capitaine-popenguine-demo",
+      channel: "terrain",
+      category: "marche",
+      trust: "declaree",
+      source: "Disponibilité annoncée par le capitaine puis rapprochée d’un lot pesé"
+    },
+    "sit-missirah-traceabilite": {
+      actorId: "act-relais-missirah",
+      channel: "poste_quai",
+      category: "qualite",
+      trust: "declaree",
+      source: "Note vocale d’une collectrice, saisie par le relais territorial",
+      reportedBy: "Awa Sagna, collectrice de Missirah (note vocale)"
+    },
+    "sit-ouakam-creneau-quai": {
+      actorId: "act-relais-ouakam",
+      channel: "poste_quai",
+      category: "infrastructure",
+      trust: "observee",
+      source: "Contrainte d’accès constatée directement par l’agent de quai"
+    },
     "sit-lompoul-balises": {
       actorId: "act-relais-lompoul",
       channel: "poste_quai",
@@ -659,7 +943,7 @@ export function createDemoState(): ProductState {
   const generatedCoordinationSpaces: ProductState["coordinationSpaces"] = generatedSituations.map((item, index) => ({
     id: `coord-${item.territoryId}-veille`,
     situationId: item.id,
-    title: `Cellule opérationnelle · ${territoryRows[index][1]}`,
+    title: `Cellule opérationnelle · ${territoryRows.find(([territoryId]) => territoryId === item.territoryId)?.[1] ?? item.territoryId}`,
     participantIds: [`act-relais-${item.territoryId}`, `act-capitaine-${item.territoryId}-demo`, "act-coordinateur", index % 3 === 0 ? "act-prestataire" : "act-gestionnaire"],
     objective: "Partager une lecture commune, décider du prochain pas et conserver les confirmations.",
     decision: index % 3 === 0 ? "Activer le relais territorial et vérifier la capacité disponible." : "Confirmer le besoin, le responsable et l’échéance avant diffusion.",
@@ -683,7 +967,7 @@ export function createDemoState(): ProductState {
     id: `init-${program.id}-xxl`,
     title: program.title,
     territoryIds: program.territoryIds,
-    situationIds: program.territoryIds.map((territoryId) => `sit-${territoryId}-veille`),
+    situationIds: program.territoryIds.map(canonicalSituationIdForTerritory),
     objective: program.objective,
     status: program.status,
     ownerId: index === 1 ? "act-institution" : "act-coordinateur",
@@ -725,7 +1009,7 @@ export function createDemoState(): ProductState {
     body: index % 2 === 0 ? "Le relais territorial consolide les retours, la disponibilité du quai et les besoins à traiter avant la prochaine fenêtre." : "Un point téléphonique a été qualifié puis relié à la situation, au responsable et à l’échéance correspondante.",
     createdAt: now,
     status: index % 3 === 0 ? "transforme" : "publie",
-    convertedObjectId: index % 3 === 0 ? `sit-${territoryId}-veille` : undefined,
+    convertedObjectId: index % 3 === 0 ? canonicalSituationIdForTerritory(territoryId) : undefined,
     comments: index % 4 === 0 ? [{ id: `comment-${territoryId}`, authorId: "act-coordinateur", body: "Source vérifiée ; prochaine revue programmée avec le relais." }] : []
   }));
 
@@ -781,7 +1065,7 @@ export function createDemoState(): ProductState {
       id: `not-${territoryId}-veille`,
       role: roles[index % roles.length],
       title: `${territoryName} : prochaine confirmation attendue`,
-      href: `/app/situations/sit-${territoryId}-veille`,
+      href: `/app/situations/${canonicalSituationIdForTerritory(territoryId)}`,
       read: index % 5 === 0
     };
   });
@@ -901,26 +1185,111 @@ export function createDemoState(): ProductState {
         nextReviewAt: "2026-07-30T08:30:00.000Z"
       },
       {
+        id: "coord-kayar-marche",
+        situationId: "sit-kayar",
+        opportunityId: "opp-kayar-thiof-partiel",
+        title: "Couverture partielle du besoin de thiof · Kayar",
+        participantIds: ["act-capitaine-kayar", "act-mareyeur-nord", "act-relais-kayar", "act-operateur"],
+        objective: "Couvrir la part réellement disponible sans présenter une tension locale comme une raréfaction biologique ou une tendance d’inflation.",
+        decision: "Accepter le lot pesé comme couverture partielle et conserver le reliquat du besoin ouvert.",
+        commitments: [
+          { id: "eng-kayar-capitaine", actorId: "act-capitaine-kayar", label: "Confirmer le lot par une pesée au quai", dueAt: tomorrow, status: "terminee", result: "Lot de 140 kg pesé et relié au débarquement" },
+          { id: "eng-kayar-mareyeur", actorId: "act-mareyeur-nord", label: "Accepter ou refuser explicitement la couverture partielle", dueAt: tomorrow, status: "terminee", result: "Couverture partielle acceptée" },
+          { id: "eng-kayar-operateur", actorId: "act-operateur", label: "Maintenir le reliquat visible dans la demande", dueAt: tomorrow, status: "terminee", result: "Reliquat conservé en statut ouvert" }
+        ],
+        risks: ["Confondre disponibilité commerciale et état biologique", "Déduire une tendance de prix à partir d’un point isolé"],
+        nextReviewAt: tomorrow
+      },
+      {
+        id: "coord-soumbedioune-immatriculation",
+        situationId: "sit-soumbedioune",
+        title: "Vérification d’immatriculation · Soumbédioune",
+        participantIds: ["act-relais-soumbedioune", "act-capitaine-dakar", "act-operateur", "act-institution"],
+        objective: "Fiabiliser le rattachement de la pirogue sans confondre document reçu et statut officiel.",
+        decision: "Transmettre le dossier au service compétent et n’élever le niveau de confiance qu’après sa réponse.",
+        commitments: [
+          { id: "eng-soumb-relais", actorId: "act-relais-soumbedioune", label: "Saisir la pièce en conservant le capitaine comme source", dueAt: tomorrow, status: "terminee", result: "Document et provenance consignés" },
+          { id: "eng-soumb-institution", actorId: "act-institution", label: "Rapprocher le numéro, la pirogue et le titulaire", dueAt: tomorrow, status: "terminee", result: "Rattachement confirmé dans la simulation" },
+          { id: "eng-soumb-operateur", actorId: "act-operateur", label: "Lier la réponse au profil de la pirogue", dueAt: tomorrow, status: "terminee", result: "Réponse institutionnelle jointe au dossier" }
+        ],
+        risks: ["Présenter une photographie comme une preuve officielle", "Perdre la distinction entre auteur et saisisseur"],
+        nextReviewAt: tomorrow
+      },
+      {
         id: "coord-rufisque",
         situationId: "sit-rufisque",
         title: "Continuité du transport froid à Rufisque-Bargny",
-        participantIds: ["act-mareyeur", "act-prestataire", "act-coordinateur"],
+        participantIds: ["act-relais-rufisque", "act-mareyeur-rufisque", "act-transporteur-rufisque", "act-coordinateur"],
         objective: "Trouver une capacité alternative avant la fin de la fenêtre de conservation",
-        decision: "Comparer deux véhicules référencés et confirmer les conditions d’activation",
-        commitments: [{ id: "eng-rufisque-1", actorId: "act-prestataire", label: "Confirmer une capacité de 2 tonnes", dueAt: "2026-07-29T12:00:00.000Z", status: "a_faire" }],
-        risks: ["Capacité déclarée déjà engagée", "Délai d’arrivée du véhicule"],
-        nextReviewAt: "2026-07-29T11:30:00.000Z"
+        decision: "Mobiliser un véhicule alternatif confirmé et organiser les enlèvements successifs si nécessaire.",
+        commitments: [
+          { id: "eng-rufisque-transporteur", actorId: "act-transporteur-rufisque", label: "Confirmer le véhicule, la capacité et le créneau", dueAt: tomorrow, status: "terminee", result: "Premier créneau et capacité confirmés" },
+          { id: "eng-rufisque-mareyeur", actorId: "act-mareyeur-rufisque", label: "Confirmer l’ordre des enlèvements", dueAt: tomorrow, status: "terminee", result: "Premier lot priorisé, solde planifié" },
+          { id: "eng-rufisque-relais", actorId: "act-relais-rufisque", label: "Consigner la prise en charge et la température", dueAt: tomorrow, status: "terminee", result: "Bordereau et relevé joints" }
+        ],
+        risks: ["Capacité déclarée déjà engagée", "Délai d’arrivée du second véhicule", "Revendiquer une perte évitée sans preuve"],
+        nextReviewAt: tomorrow
       },
       {
         id: "coord-djiffer",
         situationId: "sit-djiffer",
         title: "Fiabilisation de la pesée à Djiffer",
-        participantIds: ["act-operateur", "act-prestataire", "act-coordinateur"],
+        participantIds: ["act-relais-djiffer", "act-metrologue-djiffer", "act-operateur", "act-coordinateur"],
         objective: "Rétablir une pesée fiable avant le prochain débarquement attendu",
-        decision: "Effectuer un contrôle avec masse étalon puis consigner le résultat",
-        commitments: [{ id: "eng-djiffer-1", actorId: "act-prestataire", label: "Réaliser le recalibrage", dueAt: "2026-07-29T11:45:00.000Z", status: "en_cours" }],
-        risks: ["Débarquement avant fin du contrôle"],
-        nextReviewAt: "2026-07-29T11:30:00.000Z"
+        decision: "Suspendre les pesées faisant foi, effectuer un contrôle avec masse étalon puis consigner le résultat.",
+        commitments: [
+          { id: "eng-djiffer-relais", actorId: "act-relais-djiffer", label: "Suspendre les pesées officielles et signaler la balance", dueAt: tomorrow, status: "terminee", result: "Balance isolée avant le contrôle" },
+          { id: "eng-djiffer-metrologue", actorId: "act-metrologue-djiffer", label: "Réaliser le recalibrage avec masse étalon", dueAt: tomorrow, status: "terminee", result: "Contrôle avant/après consigné" },
+          { id: "eng-djiffer-operateur", actorId: "act-operateur", label: "Exclure les mesures contestées des consolidations", dueAt: tomorrow, status: "terminee", result: "Mesures antérieures marquées non exploitables" }
+        ],
+        risks: ["Débarquement avant fin du contrôle", "Réutilisation accidentelle des pesées contestées"],
+        nextReviewAt: tomorrow
+      },
+      {
+        id: "coord-popenguine-vente-locale",
+        situationId: "sit-popenguine-vente-locale",
+        opportunityId: "opp-popenguine-demo",
+        title: "Remise locale d’un lot · Popenguine",
+        participantIds: ["act-capitaine-popenguine-demo", "act-mareyeur-popenguine", "act-relais-popenguine"],
+        objective: "Organiser une vente locale ordinaire avec des confirmations simples et vérifiables.",
+        decision: "Réserver le lot et attribuer un créneau de retrait après confirmation de l’acheteur.",
+        commitments: [
+          { id: "eng-popenguine-capitaine", actorId: "act-capitaine-popenguine-demo", label: "Confirmer le lot pesé et sa disponibilité", dueAt: tomorrow, status: "terminee", result: "Lot et fenêtre confirmés" },
+          { id: "eng-popenguine-mareyeur", actorId: "act-mareyeur-popenguine", label: "Confirmer le retrait du lot", dueAt: tomorrow, status: "terminee", result: "Créneau accepté" },
+          { id: "eng-popenguine-relais", actorId: "act-relais-popenguine", label: "Consigner la remise", dueAt: tomorrow, status: "terminee", result: "Bordereau de remise ajouté" }
+        ],
+        risks: ["Rendez-vous non confirmé", "Confondre intérêt déclaré et vente réalisée"],
+        nextReviewAt: tomorrow
+      },
+      {
+        id: "coord-missirah-traceabilite",
+        situationId: "sit-missirah-traceabilite",
+        title: "Complétude d’un lot de crevettes · Missirah",
+        participantIds: ["act-collectrice-missirah", "act-relais-missirah", "act-mareyeur-missirah"],
+        objective: "Compléter la provenance et la chaîne de remise avant diffusion au mareyeur, sans revendiquer de certification écologique.",
+        decision: "Maintenir le lot en information incomplète jusqu’à réception du lieu, de l’heure et de la preuve de remise.",
+        commitments: [
+          { id: "eng-missirah-collectrice", actorId: "act-collectrice-missirah", label: "Confirmer le lieu et l’heure de collecte", dueAt: tomorrow, status: "terminee", result: "Provenance complétée" },
+          { id: "eng-missirah-relais", actorId: "act-relais-missirah", label: "Joindre la photographie et structurer la fiche de lot", dueAt: tomorrow, status: "terminee", result: "Fiche de lot documentée" },
+          { id: "eng-missirah-mareyeur", actorId: "act-mareyeur-missirah", label: "Confirmer la prise en charge après vérification du dossier", dueAt: tomorrow, status: "terminee", result: "Prise en charge confirmée" }
+        ],
+        risks: ["Confondre traçabilité et certification environnementale", "Perdre l’auteur de la note vocale"],
+        nextReviewAt: tomorrow
+      },
+      {
+        id: "coord-ouakam-creneau-quai",
+        situationId: "sit-ouakam-creneau-quai",
+        title: "Réorganisation d’un débarquement · Ouakam",
+        participantIds: ["act-relais-ouakam", "act-capitaine-ouakam-demo", "act-mareyeur-ouakam"],
+        objective: "Absorber une contrainte légère d’accès au quai avant qu’elle ne retarde le débarquement.",
+        decision: "Attribuer un autre créneau et obtenir l’accord du capitaine et du mareyeur.",
+        commitments: [
+          { id: "eng-ouakam-relais", actorId: "act-relais-ouakam", label: "Confirmer le point et le créneau disponibles", dueAt: tomorrow, status: "terminee", result: "Créneau alternatif réservé" },
+          { id: "eng-ouakam-capitaine", actorId: "act-capitaine-ouakam-demo", label: "Confirmer la nouvelle heure d’arrivée", dueAt: tomorrow, status: "terminee", result: "Nouvelle heure confirmée" },
+          { id: "eng-ouakam-mareyeur", actorId: "act-mareyeur-ouakam", label: "Confirmer la présence au retrait", dueAt: tomorrow, status: "terminee", result: "Rendez-vous accepté" }
+        ],
+        risks: ["Information tardive au mareyeur", "Transformer une contrainte légère en fausse alerte critique"],
+        nextReviewAt: tomorrow
       },
       {
         id: "coord-lompoul-balises",
@@ -1040,6 +1409,69 @@ export function createDemoState(): ProductState {
         coordinationId: "coord-securite"
       },
       {
+        id: "dec-kayar-1",
+        situationId: "sit-kayar",
+        type: "ouvrir_coordination",
+        rationale: "Rapprocher le lot réellement pesé du besoin déclaré, accepter une couverture partielle et conserver le reliquat ouvert sans conclure à une raréfaction biologique.",
+        decidedByActorId: "act-operateur",
+        decidedAt: now,
+        coordinationId: "coord-kayar-marche"
+      },
+      {
+        id: "dec-soumbedioune-1",
+        situationId: "sit-soumbedioune",
+        type: "demander_verification",
+        rationale: "Une photographie transmise par le capitaine reste déclarative jusqu’au rapprochement par le service compétent.",
+        decidedByActorId: "act-operateur",
+        decidedAt: now,
+        coordinationId: "coord-soumbedioune-immatriculation"
+      },
+      {
+        id: "dec-rufisque-1",
+        situationId: "sit-rufisque",
+        type: "mobiliser_capacite",
+        rationale: "La capacité immédiatement disponible ne couvre pas l’enlèvement ; un véhicule alternatif doit être confirmé avant d’être compté comme mobilisable.",
+        decidedByActorId: "act-coordinateur",
+        decidedAt: now,
+        coordinationId: "coord-rufisque"
+      },
+      {
+        id: "dec-djiffer-1",
+        situationId: "sit-djiffer",
+        type: "lancer_intervention",
+        rationale: "Deux lectures incohérentes rendent la balance impropre aux pesées faisant foi jusqu’au contrôle avec masse étalon.",
+        decidedByActorId: "act-coordinateur",
+        decidedAt: now,
+        coordinationId: "coord-djiffer"
+      },
+      {
+        id: "dec-popenguine-1",
+        situationId: "sit-popenguine-vente-locale",
+        type: "ouvrir_coordination",
+        rationale: "Un lot pesé et un intérêt local confirmé justifient une coordination légère des créneaux, sans situation de crise.",
+        decidedByActorId: "act-relais-popenguine",
+        decidedAt: now,
+        coordinationId: "coord-popenguine-vente-locale"
+      },
+      {
+        id: "dec-missirah-1",
+        situationId: "sit-missirah-traceabilite",
+        type: "demander_verification",
+        rationale: "Le lieu et l’heure de collecte manquent au signal initial ; le lot ne doit pas être diffusé comme documenté avant leur confirmation.",
+        decidedByActorId: "act-operateur",
+        decidedAt: now,
+        coordinationId: "coord-missirah-traceabilite"
+      },
+      {
+        id: "dec-ouakam-1",
+        situationId: "sit-ouakam-creneau-quai",
+        type: "ouvrir_coordination",
+        rationale: "La contrainte d’accès peut être absorbée par un autre créneau confirmé avant le retour de la pirogue.",
+        decidedByActorId: "act-relais-ouakam",
+        decidedAt: now,
+        coordinationId: "coord-ouakam-creneau-quai"
+      },
+      {
         id: "dec-lompoul-1",
         situationId: "sit-lompoul-balises",
         type: "demander_verification",
@@ -1135,6 +1567,138 @@ export function createDemoState(): ProductState {
         recordedByActorId: "act-operateur",
         recordedAt: now,
         trust: "declaree"
+      },
+      {
+        id: "ev-kayar-pesee",
+        situationId: "sit-kayar",
+        commitmentId: "eng-kayar-capitaine",
+        type: "mesure",
+        label: "Pesée du lot de thiof",
+        detail: "Lot de 140 kg relié au débarquement de Kayar ; cette mesure décrit une disponibilité locale, pas l’état biologique de l’espèce.",
+        recordedByActorId: "act-relais-kayar",
+        recordedAt: now,
+        trust: "observee"
+      },
+      {
+        id: "ev-kayar-acceptation",
+        situationId: "sit-kayar",
+        commitmentId: "eng-kayar-mareyeur",
+        type: "validation",
+        label: "Couverture partielle acceptée",
+        detail: "Le mareyeur accepte le lot pesé et maintient explicitement le reliquat de la demande en statut ouvert.",
+        recordedByActorId: "act-mareyeur-nord",
+        recordedAt: now,
+        trust: "documentee"
+      },
+      {
+        id: "ev-soumb-document",
+        situationId: "sit-soumbedioune",
+        commitmentId: "eng-soumb-relais",
+        type: "document",
+        label: "Copie de l’immatriculation et provenance",
+        detail: "Photographie reçue du capitaine, saisie par le relais avec l’auteur et le canal d’origine conservés.",
+        recordedByActorId: "act-relais-soumbedioune",
+        recordedAt: now,
+        trust: "documentee"
+      },
+      {
+        id: "ev-soumb-validation",
+        situationId: "sit-soumbedioune",
+        commitmentId: "eng-soumb-institution",
+        type: "validation",
+        label: "Rattachement confirmé par le service compétent",
+        detail: "Réponse institutionnelle simulée confirmant le numéro, la pirogue et le titulaire dans le jeu de démonstration.",
+        recordedByActorId: "act-institution",
+        recordedAt: now,
+        trust: "officielle"
+      },
+      {
+        id: "ev-rufisque-capacite",
+        situationId: "sit-rufisque",
+        commitmentId: "eng-rufisque-transporteur",
+        type: "confirmation",
+        label: "Véhicule et créneau confirmés",
+        detail: "Le prestataire confirme le véhicule, la capacité mobilisable et le premier créneau d’enlèvement.",
+        recordedByActorId: "act-transporteur-rufisque",
+        recordedAt: now,
+        trust: "verifiee"
+      },
+      {
+        id: "ev-rufisque-bordereau",
+        situationId: "sit-rufisque",
+        commitmentId: "eng-rufisque-relais",
+        type: "bordereau",
+        label: "Prise en charge du premier enlèvement",
+        detail: "Bordereau et relevé de température simulés ; aucune quantité perdue ou sauvée n’est déduite de cette preuve.",
+        recordedByActorId: "act-relais-rufisque",
+        recordedAt: now,
+        trust: "documentee"
+      },
+      {
+        id: "ev-djiffer-etalon",
+        situationId: "sit-djiffer",
+        commitmentId: "eng-djiffer-metrologue",
+        type: "mesure",
+        label: "Contrôle avec masse étalon",
+        detail: "Lectures avant/après consignées lors du recalibrage de la balance.",
+        recordedByActorId: "act-metrologue-djiffer",
+        recordedAt: now,
+        trust: "documentee"
+      },
+      {
+        id: "ev-djiffer-exclusion",
+        situationId: "sit-djiffer",
+        commitmentId: "eng-djiffer-operateur",
+        type: "validation",
+        label: "Mesures contestées exclues",
+        detail: "L’opérateur confirme que les pesées antérieures au contrôle ne sont pas utilisées dans les consolidations.",
+        recordedByActorId: "act-operateur",
+        recordedAt: now,
+        trust: "documentee"
+      },
+      {
+        id: "ev-popenguine-remise",
+        situationId: "sit-popenguine-vente-locale",
+        commitmentId: "eng-popenguine-relais",
+        type: "bordereau",
+        label: "Remise du lot au créneau convenu",
+        detail: "Fiche de lot, acceptation de l’acheteur et remise sont reliées dans une opération territoriale stable.",
+        recordedByActorId: "act-relais-popenguine",
+        recordedAt: now,
+        trust: "documentee"
+      },
+      {
+        id: "ev-missirah-fiche",
+        situationId: "sit-missirah-traceabilite",
+        commitmentId: "eng-missirah-relais",
+        type: "document",
+        label: "Fiche de provenance complétée",
+        detail: "Lieu, heure, collectrice et chaîne de remise sont renseignés pour le lot de crevettes.",
+        recordedByActorId: "act-relais-missirah",
+        recordedAt: now,
+        trust: "documentee"
+      },
+      {
+        id: "ev-missirah-remise",
+        situationId: "sit-missirah-traceabilite",
+        commitmentId: "eng-missirah-mareyeur",
+        type: "bordereau",
+        label: "Prise en charge du lot",
+        detail: "Le mareyeur confirme la prise en charge après vérification du dossier ; cette preuve n’est pas une certification environnementale.",
+        recordedByActorId: "act-mareyeur-missirah",
+        recordedAt: now,
+        trust: "documentee"
+      },
+      {
+        id: "ev-ouakam-creneau",
+        situationId: "sit-ouakam-creneau-quai",
+        commitmentId: "eng-ouakam-relais",
+        type: "confirmation",
+        label: "Créneau alternatif confirmé",
+        detail: "Le point de débarquement, l’heure et les accords du capitaine et du mareyeur sont consignés avant l’arrivée.",
+        recordedByActorId: "act-relais-ouakam",
+        recordedAt: now,
+        trust: "documentee"
       },
       {
         id: "ev-lompoul-1",
@@ -1252,6 +1816,97 @@ export function createDemoState(): ProductState {
         updatedAt: now
       },
       {
+        id: "com-kayar-partiel",
+        channel: "whatsapp",
+        status: "repondu",
+        actorId: "act-mareyeur-nord",
+        situationId: "sit-kayar",
+        commitmentId: "eng-kayar-mareyeur",
+        subject: "Couverture partielle du besoin de thiof",
+        body: "Le lot pesé est accepté ; le reliquat reste ouvert. Aucune conclusion statistique ou biologique n’est tirée de cette disponibilité locale.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-soumb-verification",
+        channel: "notification_produit",
+        status: "repondu",
+        actorId: "act-institution",
+        situationId: "sit-soumbedioune",
+        commitmentId: "eng-soumb-institution",
+        subject: "Rattachement administratif confirmé",
+        body: "Réponse simulée du service compétent : numéro, pirogue et titulaire rapprochés dans le dossier de démonstration.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-rufisque-transport",
+        channel: "telephone",
+        status: "repondu",
+        actorId: "act-transporteur-rufisque",
+        situationId: "sit-rufisque",
+        commitmentId: "eng-rufisque-transporteur",
+        subject: "Véhicule alternatif confirmé",
+        body: "Le prestataire confirme le véhicule, la capacité et le premier créneau ; le solde reste planifié séparément.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-djiffer-controle",
+        channel: "saisie_terrain",
+        status: "remis",
+        actorId: "act-metrologue-djiffer",
+        situationId: "sit-djiffer",
+        commitmentId: "eng-djiffer-metrologue",
+        subject: "Contrôle métrologique terminé",
+        body: "Les lectures avant/après sont consignées ; la balance peut revenir en service et les anciennes mesures restent exclues.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-popenguine-retrait",
+        channel: "whatsapp",
+        status: "repondu",
+        actorId: "act-mareyeur-popenguine",
+        situationId: "sit-popenguine-vente-locale",
+        commitmentId: "eng-popenguine-mareyeur",
+        subject: "Créneau de retrait accepté",
+        body: "L’acheteur confirme le retrait du lot au créneau proposé par le relais de Popenguine.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-missirah-note-vocale",
+        channel: "saisie_terrain",
+        status: "remis",
+        actorId: "act-relais-missirah",
+        situationId: "sit-missirah-traceabilite",
+        commitmentId: "eng-missirah-relais",
+        subject: "Note vocale transformée en fiche de lot",
+        body: "Le relais conserve Awa Sagna comme source et complète le lieu, l’heure et la chaîne de remise avant diffusion.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "com-ouakam-creneau",
+        channel: "notification_produit",
+        status: "repondu",
+        actorId: "act-capitaine-ouakam-demo",
+        situationId: "sit-ouakam-creneau-quai",
+        commitmentId: "eng-ouakam-capitaine",
+        subject: "Nouveau créneau de débarquement accepté",
+        body: "Le capitaine confirme la nouvelle heure et le mareyeur reçoit le même rendez-vous.",
+        simulated: true,
+        createdAt: now,
+        updatedAt: now
+      },
+      {
         id: "com-lompoul-1",
         channel: "saisie_terrain",
         status: "remis",
@@ -1327,7 +1982,7 @@ export function createDemoState(): ProductState {
       }
     ],
     priceObservations: [
-      { id: "price-thiof-kayar", speciesId: "sp-thiof", territoryId: "kayar", marketName: "Marché de Kayar", priceFcfaKg: 3900, observedAt: now, source: "Relevé déclaratif mareyeur", trust: "declaree", trend: "hausse", flagged: false },
+      { id: "price-thiof-kayar", speciesId: "sp-thiof", territoryId: "kayar", marketName: "Marché de Kayar", priceFcfaKg: 3900, observedAt: now, source: "Point de prix déclaratif isolé — aucune tendance statistique", trust: "declaree", trend: "hausse", flagged: true },
       { id: "price-thiof-joal", speciesId: "sp-thiof", territoryId: "joal", marketName: "Marché de Joal", priceFcfaKg: 3400, observedAt: now, source: "Relais marché", trust: "observee", trend: "hausse", flagged: false },
       { id: "price-sard-mbour", speciesId: "sp-sardinelle", territoryId: "mbour", marketName: "Marché de Mbour", priceFcfaKg: 900, observedAt: now, source: "Relevé de marché", trust: "verifiee", trend: "baisse", flagged: false },
       { id: "price-sole-hann", speciesId: "sp-sole", territoryId: "hann", marketName: "Marché de Hann", priceFcfaKg: 2950, observedAt: now, source: "Déclaration acheteur", trust: "declaree", trend: "stable", flagged: false },
@@ -1339,7 +1994,7 @@ export function createDemoState(): ProductState {
       ...generatedPriceObservations
     ],
     scarcity: [
-      { id: "scar-thiof-kayar", speciesId: "sp-thiof", territoryId: "kayar", status: "rare", availableKg: 140, requestedKg: 600, reasons: ["Besoin quatre fois supérieur au volume observé", "Deux retours sans thiof", "Prix en hausse"], trust: "verifiee" },
+      { id: "scar-thiof-kayar", speciesId: "sp-thiof", territoryId: "kayar", status: "sous_tension", availableKg: 140, requestedKg: 600, reasons: ["Besoin déclaré supérieur au lot local pesé", "Lecture commerciale locale et ponctuelle", "Aucune conclusion sur le stock biologique ni sur l’inflation"], trust: "observee" },
       { id: "scar-sard-mbour", speciesId: "sp-sardinelle", territoryId: "mbour", status: "abondant", availableKg: 2100, requestedKg: 900, reasons: ["Débarquement supérieur au besoin ouvert", "Capacité froide limitée"], trust: "verifiee" },
       { id: "scar-sole-hann", speciesId: "sp-sole", territoryId: "hann", status: "disponible", availableKg: 360, requestedKg: 350, reasons: ["Lot vérifié disponible", "Besoin proche du volume observé"], trust: "verifiee" },
       { id: "scar-mulet-saint", speciesId: "sp-mulet", territoryId: "saint-louis", status: "abondant", availableKg: 1040, requestedKg: 500, reasons: ["Volume disponible supérieur au besoin groupé"], trust: "verifiee" },
@@ -1351,9 +2006,10 @@ export function createDemoState(): ProductState {
       { id: "sust-mbour-sard", lotId: "lot-mbour-sardinelle", provenanceComplete: true, practice: "Filet tournant déclaré", zone: "Petite-Côte Sud", status: "vigilance", reasons: ["Traçabilité complète à 88 %", "Espèce sous surveillance locale"], recommendation: "Conserver la zone et la méthode dans la trace jusqu’à destination", trust: "verifiee" },
       { id: "sust-mbour-sole", lotId: "lot-mbour-sole", provenanceComplete: true, practice: "Filet maillant déclaré", zone: "Petite-Côte Sud", status: "favorable", reasons: ["Provenance renseignée", "Qualité A", "Chaîne froide documentée"], recommendation: "Maintenir les relevés de conservation", trust: "verifiee" },
       { id: "sust-hann-maquereau", lotId: "lot-hann-maquereau", provenanceComplete: true, practice: "Ligne et filet déclarés", zone: "Presqu’île du Cap-Vert", status: "favorable", reasons: ["Trace complète à 96 %", "Conservation documentée"], recommendation: "Associer la preuve de livraison à la trace", trust: "consolidee" },
-      { id: "sust-soumb-sard", lotId: "lot-soumb-sardinelle", provenanceComplete: false, practice: "Méthode à confirmer", zone: "Cap-Vert Ouest", status: "incomplet", reasons: ["Méthode de pêche manquante", "Immatriculation déclarée non vérifiée"], recommendation: "Qualifier l’actif et la méthode avant diffusion partenaire", trust: "declaree" },
+      { id: "sust-soumb-sard", lotId: "lot-soumb-sardinelle", provenanceComplete: false, practice: "Méthode à confirmer", zone: "Cap-Vert Ouest", status: "incomplet", reasons: ["Méthode de pêche manquante", "Immatriculation rapprochée par le service compétent"], recommendation: "Compléter la méthode avant diffusion partenaire ; la vérification administrative ne suffit pas à qualifier la pratique", trust: "documentee" },
       { id: "sust-kaf-sard", lotId: "lot-kaf-sardinelle", provenanceComplete: true, practice: "Filet tournant déclaré", zone: "Casamance Nord", status: "vigilance", reasons: ["Traçabilité complète à 86 %", "Transport groupé documenté"], recommendation: "Confirmer la température à la livraison", trust: "verifiee" },
       { id: "sust-cap-sole", lotId: "lot-cap-sole", provenanceComplete: true, practice: "Filet maillant déclaré", zone: "Casamance Sud", status: "favorable", reasons: ["Zone et pirogue vérifiées", "Qualité A"], recommendation: "Maintenir la continuité froide pendant le transport", trust: "verifiee" },
+      { id: "sust-missirah-crevette", lotId: "lot-missirah-demo-1-2", provenanceComplete: true, practice: "Méthode de collecte déclarée", zone: "Zone estuarienne de Missirah", status: "vigilance", reasons: ["Provenance et chaîne de remise documentées", "Aucune certification environnementale attachée au lot"], recommendation: "Maintenir les preuves de provenance et de conservation sans transformer la traçabilité en allégation de durabilité", trust: "documentee" },
       ...generatedSustainability
     ],
     communityPosts: [
@@ -1361,8 +2017,11 @@ export function createDemoState(): ProductState {
       { id: "post-sard", authorId: "act-mareyeur", territoryId: "mbour", community: "Opportunités territoriales", category: "opportunite", title: "Sardinelle disponible à Mbour", body: "Lot vérifié de qualité B, orientation rapide souhaitée.", createdAt: now, status: "publie", comments: [] },
       { id: "post-learning", authorId: "act-coordinateur", territoryId: "kafountine", community: "Bonnes pratiques", category: "apprentissage", title: "Préparer les itinéraires de délestage", body: "L’accord préalable entre quai et transporteurs réduit le délai d’orientation.", createdAt: now, status: "publie", comments: [] },
       { id: "post-securite", authorId: "act-operateur", territoryId: "saint-louis", community: "Sécurité des sorties", category: "information", title: "Procédure commune pour un retour retardé", body: "Le poste de quai partage un point de contact unique afin d’éviter les messages contradictoires.", createdAt: now, status: "transforme", convertedObjectId: "sit-saint-louis", comments: [] },
-      { id: "post-balance", authorId: "act-prestataire", territoryId: "djiffer", community: "Qualité et pesée", category: "capacite", title: "Contrôle de balance en cours à Djiffer", body: "Une masse étalon est mobilisée avant le prochain débarquement attendu.", createdAt: now, status: "transforme", convertedObjectId: "sit-djiffer", comments: [] },
-      { id: "post-immatriculation", authorId: "act-gestionnaire", territoryId: "soumbedioune", community: "Actifs et conformité", category: "question", title: "Comment vérifier une immatriculation déclarée ?", body: "Le document présenté doit être rapproché du référentiel avant rattachement au profil de la pirogue.", createdAt: now, status: "publie", comments: [{ id: "comment-imm-1", authorId: "act-institution", body: "Conserver la source et le statut non vérifié jusqu’au contrôle." }] },
+      { id: "post-balance", authorId: "act-metrologue-djiffer", territoryId: "djiffer", community: "Qualité et pesée", category: "capacite", title: "Contrôle de balance terminé à Djiffer", body: "Le relevé avant/après est disponible et les pesées antérieures contestées restent exclues.", createdAt: now, status: "transforme", convertedObjectId: "sit-djiffer", comments: [] },
+      { id: "post-immatriculation", authorId: "act-relais-soumbedioune", territoryId: "soumbedioune", community: "Actifs et conformité", category: "information", title: "Rattachement administratif confirmé à Soumbédioune", body: "Le document déclaré, le relais de saisie et la réponse du service compétent restent liés au dossier.", createdAt: now, status: "transforme", convertedObjectId: "sit-soumbedioune", comments: [{ id: "comment-imm-1", authorId: "act-institution", body: "La réponse institutionnelle simulée est jointe à la pièce initiale." }] },
+      { id: "post-popenguine-vente", authorId: "act-relais-popenguine", territoryId: "popenguine", community: "Opérations territoriales", category: "information", title: "Remise locale coordonnée à Popenguine", body: "Le lot, l’acheteur et le créneau ont été confirmés sans intervention d’urgence.", createdAt: now, status: "transforme", convertedObjectId: "sit-popenguine-vente-locale", comments: [] },
+      { id: "post-missirah-traceabilite", authorId: "act-relais-missirah", territoryId: "missirah", community: "Traçabilité des lots", category: "apprentissage", title: "Compléter une provenance reçue par note vocale", body: "La fiche conserve la collectrice comme source et distingue la traçabilité d’une certification environnementale.", createdAt: now, status: "transforme", convertedObjectId: "sit-missirah-traceabilite", comments: [] },
+      { id: "post-ouakam-creneau", authorId: "act-relais-ouakam", territoryId: "ouakam", community: "Organisation des quais", category: "information", title: "Créneau alternatif confirmé à Ouakam", body: "Une contrainte légère d’accès a été résolue avant l’arrivée de la pirogue.", createdAt: now, status: "transforme", convertedObjectId: "sit-ouakam-creneau-quai", comments: [] },
       ...generatedCommunityPosts
     ],
     partnerServices: [
@@ -1373,7 +2032,8 @@ export function createDemoState(): ProductState {
       { id: "service-assurance", organizationId: "org-partner", name: "Couverture pilote des équipements de froid", category: "assurance", territoryIds: ["hann", "soumbedioune", "rufisque"], status: "a_activer", trust: "declaree", activationConditions: "Inventaire vérifié et protocole de maintenance actif" },
       { id: "service-logistique-national", organizationId: "org-logistique", name: "Lignes froides littorales mutualisées", category: "logistique", territoryIds: territoryRows.map(([id]) => id), status: "qualifie", trust: "observee", activationConditions: "Volume consolidé, itinéraire et température cible confirmés" },
       { id: "service-finance-bleue", organizationId: "org-finance", name: "Cofinancement d’équipements productifs", category: "financement", territoryIds: territoryRows.map(([id]) => id), status: "a_activer", trust: "declaree", activationConditions: "Besoin qualifié, gouvernance et plan de maintenance documentés" },
-      { id: "service-saloum", organizationId: "org-saloum", name: "Regroupement et transformation estuarienne", category: "logistique", territoryIds: ["foundiougne", "djiffer", "missirah"], status: "reference", trust: "observee", activationConditions: "Fenêtre de collecte et volumes confirmés par les relais" }
+      { id: "service-saloum", organizationId: "org-saloum", name: "Regroupement et transformation estuarienne", category: "logistique", territoryIds: ["foundiougne", "djiffer", "missirah"], status: "reference", trust: "observee", activationConditions: "Fenêtre de collecte et volumes confirmés par les relais" },
+      { id: "service-metrologie-djiffer", organizationId: "org-froid", name: "Contrôle et recalibrage des équipements de pesée", category: "maintenance", territoryIds: ["djiffer"], status: "qualifie", trust: "documentee", activationConditions: "Équipement isolé, masse étalon disponible et relevé avant/après exigé" }
     ],
     initiatives: [
       {
@@ -1395,8 +2055,8 @@ export function createDemoState(): ProductState {
       {
         id: "init-securite",
         title: "Dispositif territorial de suivi des retours et alertes",
-        territoryIds: ["saint-louis", "kayar", "djiffer"],
-        situationIds: ["sit-saint-louis", "sit-djiffer"],
+        territoryIds: ["saint-louis", "kayar"],
+        situationIds: ["sit-saint-louis"],
         objective: "Réduire les délais de qualification et fiabiliser la chaîne d’alerte entre capitaines, quais et responsables territoriaux",
         status: "cadrage",
         ownerId: "act-coordinateur",
@@ -1447,8 +2107,13 @@ export function createDemoState(): ProductState {
     ],
     learnings: [
       { id: "learn-1", situationId: "sit-kafountine", title: "Activer un itinéraire de délestage avant saturation", summary: "Un accord préalable entre quai, transporteurs et chambre froide réduit le temps d’orientation des lots.", reusableIn: ["joal", "mbour", "kayar"] },
-      { id: "learn-2", situationId: "sit-soumbedioune", title: "Conserver le statut déclaré jusqu’à la vérification de l’actif", summary: "Une immatriculation saisie peut être utilisée pour le suivi sans être présentée comme vérifiée ; la source et la pièce restent liées au dossier.", reusableIn: ["hann", "rufisque", "saint-louis"] },
-      { id: "learn-3", situationId: "sit-djiffer", title: "Planifier le contrôle de pesée avant la fenêtre de débarquement", summary: "La disponibilité d’une masse étalon et d’un prestataire réduit le risque de retarder toute la chaîne de lots.", reusableIn: ["joal", "mbour", "kafountine"] },
+      { id: "learn-kayar-marche", situationId: "sit-kayar", title: "Séparer tension commerciale locale, prix et état biologique", summary: "Un besoin supérieur au lot disponible peut déclencher une coordination sans devenir une statistique d’inflation ni une preuve de raréfaction de l’espèce.", reusableIn: ["yoff", "mbour", "popenguine"] },
+      { id: "learn-2", situationId: "sit-soumbedioune", title: "Une vérification positive doit conserver toute sa chaîne de source", summary: "Le document reste déclaré à réception ; seule la réponse du service compétent permet d’élever son statut, sans effacer le capitaine et le relais à l’origine du dossier.", reusableIn: ["hann", "rufisque", "saint-louis"] },
+      { id: "learn-rufisque-transport", situationId: "sit-rufisque", title: "Une capacité n’existe opérationnellement qu’après confirmation", summary: "Le véhicule, la capacité et le créneau doivent être acceptés par le prestataire avant d’être comptés comme mobilisables.", reusableIn: ["joal", "mbour", "kafountine"] },
+      { id: "learn-3", situationId: "sit-djiffer", title: "La confiance dans les données commence par l’équipement de mesure", summary: "Isoler la balance, documenter le contrôle et exclure les mesures contestées évitent de consolider des volumes artificiellement précis.", reusableIn: ["joal", "mbour", "kafountine"] },
+      { id: "learn-popenguine-vente", situationId: "sit-popenguine-vente-locale", title: "La coordination crée aussi de la valeur quand le territoire va bien", summary: "Un lot, un acheteur et un créneau confirmés suffisent à démontrer une opération utile sans fabriquer une crise.", reusableIn: ["yoff", "mbour", "joal"] },
+      { id: "learn-missirah-traceabilite", situationId: "sit-missirah-traceabilite", title: "Une provenance documentée n’est pas une certification environnementale", summary: "La traçabilité permet de suivre le lot et sa remise ; elle ne prouve ni la durabilité de la pratique ni l’état de la ressource.", reusableIn: ["foundiougne", "djiffer", "elinkine"] },
+      { id: "learn-ouakam-creneau", situationId: "sit-ouakam-creneau-quai", title: "Traiter tôt une petite contrainte évite une fausse urgence", summary: "Un créneau alternatif confirmé par le quai, le capitaine et le mareyeur peut absorber une indisponibilité légère sans escalade inutile.", reusableIn: ["yoff", "soumbedioune", "hann"] },
       { id: "learn-lompoul-balises", situationId: "sit-lompoul-balises", title: "Un message vocal court peut devenir un dossier d’équipement exploitable", summary: "Si l’auteur, le relais, les confirmations et les limites restent visibles, une note vocale peut être transformée en dossier de programme finançable — sans devenir une preuve d’impact sécurité.", reusableIn: ["fass-boye", "kayar", "elinkine"] },
       { id: "learn-fass-boye-conformite", situationId: "sit-fass-boye-conformite", title: "Une donnée administrative déclarée peut soutenir le suivi sans être confondue avec une donnée officielle", summary: "Afficher « vérification en attente » plutôt que d’effacer le dossier ou de le présenter comme conforme rend l’incertitude visible et actionnable.", reusableIn: ["soumbedioune", "hann", "rufisque"] },
       { id: "learn-yoff-marche", situationId: "sit-yoff-marche", title: "Un signal de prix devient utile s’il déclenche une coordination documentée", summary: "Comparer des offres réellement comparables puis orienter le volume évite de transformer un signal de prix en indice d’inflation non vérifié.", reusableIn: ["kayar", "soumbedioune", "mbour"] },
@@ -1519,8 +2184,8 @@ export function createDemoState(): ProductState {
       { id: "not-1", role: "coordinateur", title: "Joal : signal critique à qualifier", href: "/app/situations/sit-glace", read: false },
       { id: "not-2", role: "partenaire", title: "Chaîne du froid : financement en instruction", href: "/app/initiatives", read: false },
       { id: "not-3", role: "capitaine", title: "Jambar II : retour attendu avant 11:30", href: "/app/operations", read: false },
-      { id: "not-4", role: "institution", title: "Référentiel pirogues : dossier à vérifier à Soumbédioune", href: "/app/situations/sit-soumbedioune", read: false },
-      { id: "not-5", role: "prestataire", title: "Djiffer : contrôle de balance attendu avant 11:45", href: "/app/situations/sit-djiffer", read: false },
+      { id: "not-4", role: "institution", title: "Soumbédioune : rattachement administratif confirmé et sourcé", href: "/app/situations/sit-soumbedioune", read: false },
+      { id: "not-5", role: "prestataire", title: "Djiffer : contrôle de balance terminé, relevé disponible", href: "/app/situations/sit-djiffer", read: false },
       // href corrigé vers /app/travail (Lot 2, refonte navigation par rôle,
       // CEO 2026-08-16) : /app/coordination n'est plus accessible au
       // mareyeur (nav retirée + garde serveur) — BuyerTaskView, sur
@@ -1533,6 +2198,9 @@ export function createDemoState(): ProductState {
       { id: "not-foundiougne-claies", role: "prestataire", title: "Foundiougne : seconde claie encore à réparer", href: "/app/situations/sit-foundiougne-claies", read: false },
       { id: "not-elinkine-retour", role: "coordinateur", title: "Elinkine : chaîne d’alerte clôturée, équipage revenu", href: "/app/situations/sit-elinkine-retour", read: false },
       { id: "not-cap-skirring-debouche", role: "mareyeur", title: "Cap Skirring : débouché alternatif à confirmer avant échéance", href: "/app/situations/sit-cap-skirring-debouche", read: false },
+      { id: "not-popenguine-vente", role: "mareyeur", title: "Popenguine : remise locale terminée dans le créneau convenu", href: "/app/situations/sit-popenguine-vente-locale", read: false },
+      { id: "not-missirah-traceabilite", role: "operateur", title: "Missirah : provenance du lot complétée avant enlèvement", href: "/app/situations/sit-missirah-traceabilite", read: false },
+      { id: "not-ouakam-creneau", role: "capitaine", title: "Ouakam : nouveau créneau de débarquement confirmé", href: "/app/situations/sit-ouakam-creneau-quai", read: false },
       ...generatedNotifications
     ],
     audit: []
