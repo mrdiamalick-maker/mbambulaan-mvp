@@ -23,6 +23,7 @@ import {
   Snowflake,
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
+import { canRole, RELAY_ROLES } from "@/server/permissions";
 import { CommandButton } from "@/components/ui/CommandButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -391,15 +392,20 @@ export function CoordinationWorkspace() {
                 const need = state.serviceRequests.find((item) => item.id === opportunity.serviceRequestId);
                 const species = state.species.find((item) => item.id === lot?.speciesId);
                 const territory = state.territories.find((item) => item.id === opportunity.territoryId);
-                // Relais généralisé, tranche 1/N (arbitrage CEO 2026-08-15) :
-                // le bénéficiaire réel n'est jamais ambigu pour ces deux
+                // Relais généralisé, tranche 1/N (arbitrage CEO 2026-08-15,
+                // étendu au gap analysis Coordination 2026-08-18) : le
+                // bénéficiaire réel n'est jamais ambigu pour ces deux
                 // commandes — c'est toujours l'acteur qui porte le besoin
                 // (need.actorId). Pas de sélecteur : dès qu'un rôle relais
-                // (opérateur/coordinateur/administrateur) valide au nom d'un
-                // acteur autre que lui-même, onBehalfOfActorId se déduit
-                // automatiquement plutôt que de demander un choix qui n'en
-                // est pas un.
-                const canRelay = need && need.actorId !== sessionActorId && (["operateur", "coordinateur", "administrateur"] as const).includes(role as "operateur" | "coordinateur" | "administrateur");
+                // valide au nom d'un acteur autre que lui-même,
+                // onBehalfOfActorId se déduit automatiquement plutôt que de
+                // demander un choix qui n'en est pas un. RELAY_ROLES importé
+                // de permissions.ts (source unique) plutôt que dupliqué en
+                // dur ici — c'est exactement la dérive qui avait laissé
+                // gestionnaire_organisation hors de la liste malgré sa
+                // permission accept_opportunity, causant l'attribution
+                // silencieuse corrigée dans ce lot.
+                const canRelay = need && need.actorId !== sessionActorId && RELAY_ROLES.includes(role);
                 const beneficiary = canRelay ? state.actors.find((item) => item.id === need!.actorId) : undefined;
                 const onBehalfOfActorId = beneficiary?.id;
                 return (
@@ -418,8 +424,17 @@ export function CoordinationWorkspace() {
                       <p className="mt-4 text-xs leading-5 text-muted-foreground">Le score explique le rapprochement ; il ne décide jamais à la place des acteurs.</p>
                       {beneficiary && <p className="mt-2 text-xs font-semibold text-[#b6522f]">Vous agissez pour le compte de {beneficiary.name}.</p>}
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {["detectee", "proposee"].includes(opportunity.status) && <CommandButton command={{ type: "accept_opportunity", opportunityId: opportunity.id, onBehalfOfActorId }}>{beneficiary ? "Valider l’engagement pour lui" : "Valider l’engagement"}</CommandButton>}
-                        {opportunity.status === "engagee" && <CommandButton command={{ type: "complete_logistics", opportunityId: opportunity.id, onBehalfOfActorId }}>{beneficiary ? "Confirmer le résultat pour lui" : "Confirmer le résultat"}</CommandButton>}
+                        {/* Gap analysis Coordination, arbitrage CEO
+                            2026-08-18, point 2 : les deux boutons ne
+                            s'affichent que pour un rôle qui a réellement
+                            le mandat derrière (canRole, même source de
+                            vérité que le serveur) — partenaire, qui n'a
+                            ni accept_opportunity ni complete_logistics,
+                            ne voit plus jamais une affordance sans
+                            destination réelle (même principe que le
+                            Lot 2 de refonte navigation). */}
+                        {["detectee", "proposee"].includes(opportunity.status) && canRole(role, "accept_opportunity") && <CommandButton command={{ type: "accept_opportunity", opportunityId: opportunity.id, onBehalfOfActorId }}>{beneficiary ? "Valider l’engagement pour lui" : "Valider l’engagement"}</CommandButton>}
+                        {opportunity.status === "engagee" && canRole(role, "complete_logistics") && <CommandButton command={{ type: "complete_logistics", opportunityId: opportunity.id, onBehalfOfActorId }}>{beneficiary ? "Confirmer le résultat pour lui" : "Confirmer le résultat"}</CommandButton>}
                         {opportunity.status === "executee" && <Badge variant="success"><CheckCircle2 size={13} /> Résultat enregistré</Badge>}
                       </div>
                     </CardContent>
