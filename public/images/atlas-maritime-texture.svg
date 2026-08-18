@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000" viewBox="0 0 1800 1000" fill="none">
+  <title>Mbàmbulaan — texture maritime abstraite</title>
+  <desc>Texture visuelle abstraite d'inspiration maritime. Elle ne constitue pas une représentation géographique du littoral sénégalais.</desc>
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#07131f"/><stop offset=".55" stop-color="#0b1a2a"/><stop offset="1" stop-color="#13283a"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e9e1d2"/><stop offset=".5" stop-color="#c9bba5"/><stop offset="1" stop-color="#8e735f"/>
+    </linearGradient>
+    <filter id="noise" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency=".012 .045" numOctaves="4" seed="23" result="n"/>
+      <feColorMatrix in="n" type="saturate" values="0" result="mono"/>
+      <feBlend in="SourceGraphic" in2="mono" mode="soft-light"/>
+    </filter>
+    <filter id="grain" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="2" seed="11" result="g"/>
+      <feColorMatrix in="g" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .08 0"/>
+      <feBlend in="SourceGraphic" mode="overlay"/>
+    </filter>
+    <filter id="blur"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <rect width="1800" height="1000" fill="url(#sea)"/>
+  <g opacity=".45" filter="url(#noise)">
+    <path d="M0 160C260 90 450 170 625 245C795 318 895 405 1015 480C1140 558 1250 580 1395 575C1540 570 1660 520 1800 445V1000H0V160Z" fill="#102536"/>
+    <path d="M0 735C250 670 420 720 610 785C820 858 1030 880 1260 825C1470 775 1630 695 1800 660V1000H0V735Z" fill="#06111d"/>
+  </g>
+  <path d="M1800 0H1075C1055 78 1018 130 970 178C925 224 892 264 900 322C910 391 962 427 947 486C930 551 860 585 875 645C890 704 964 726 956 788C948 852 876 899 842 1000H1800V0Z" fill="url(#land)" filter="url(#noise)"/>
+  <path d="M1076 0C1055 78 1018 130 970 178C925 224 892 264 900 322C910 391 962 427 947 486C930 551 860 585 875 645C890 704 964 726 956 788C948 852 876 899 842 1000" stroke="#f7f3e9" stroke-opacity=".62" stroke-width="9"/>
+  <g opacity=".26" stroke="#0b1a2a" stroke-width="5" fill="none" filter="url(#blur)">
+    <path d="M1170 160C1110 220 1105 300 1160 345C1215 390 1210 460 1150 505C1090 550 1105 625 1190 665"/>
+    <path d="M1340 520C1240 560 1180 625 1205 700C1235 785 1360 790 1435 855"/>
+    <path d="M1045 760C1120 735 1185 755 1220 810C1260 875 1320 900 1410 910"/>
+  </g>
+  <g opacity=".14" stroke="#f7f3e9" stroke-width="3" fill="none">
+    <path d="M40 245C280 210 500 270 720 385"/><path d="M0 305C245 280 475 345 700 455"/><path d="M55 805C310 760 520 810 760 900"/>
+  </g>
+  <g opacity=".12" fill="#b6522f" filter="url(#blur)">
+    <ellipse cx="1450" cy="285" rx="180" ry="90"/><ellipse cx="1280" cy="745" rx="140" ry="72"/>
+  </g>
+  <rect width="1800" height="1000" fill="#0b1a2a" opacity=".08" filter="url(#grain)"/>
+</svg>

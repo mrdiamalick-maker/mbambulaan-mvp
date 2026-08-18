@@ -1,0 +1,10 @@
+{
+  "name": "Mbàmbulaan",
+  "short_name": "Mbàmbulaan",
+  "description": "Infrastructure de coordination pour la pêche artisanale",
+  "start_url": "/app/travail",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#075466",
+  "lang": "fr"
+}

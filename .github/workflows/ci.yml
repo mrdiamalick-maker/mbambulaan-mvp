@@ -4,11 +4,15 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, feature-etat-control-tower-refonte]
+    branches: [main, feature-etat-control-tower-refonte, codex/xxl-premium]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
-    name: Typecheck and build
+    name: Validate product
     runs-on: ubuntu-latest
 
     steps:
@@ -21,10 +25,19 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Domain and permission tests
+        run: npm test
+
       - name: Build
         run: npm run build
+
+      - name: Product smoke test
+        run: npm run test:e2e

@@ -1,16 +1,174 @@
 import Link from "next/link";
-import { PublicContactForm } from "@/components/public/PublicContactForm";
-import { PublicSiteHeader } from "@/components/public/PublicSiteHeader";
+import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+import {
+  ArrowRight,
+  Building2,
+  Handshake,
+  Mail,
+  MessageCircle,
+  Newspaper,
+  PhoneCall,
+  Search,
+  UsersRound
+} from "lucide-react";
+import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicFooter } from "@/components/public/PublicFooter";
+import { PublicSectionHero } from "@/components/public/PublicSectionHero";
+import { ContactRequestForm } from "@/components/public/ContactRequestForm";
+import { ContributionForm } from "@/components/public/ContributionForm";
+import { EventOnMount } from "@/components/public/EventOnMount";
+import type { PublicRequestIntent } from "@/domain/public/request";
+import type { PublicAnalyticsEvent } from "@/domain/public/analytics";
 
-export default function ContactPage() {
-  return <main className="min-h-screen bg-[var(--mb-offwhite)] text-[var(--mb-neutral-900)]">
-    <PublicSiteHeader />
-    <section className="border-b border-[var(--mb-neutral-200)] bg-white">
-      <div className="mx-auto grid max-w-[84rem] gap-7 px-5 py-9 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,.5fr)] lg:px-10 lg:py-12">
-        <div><p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--mb-ocean-600)]">Participer à Mbàmbulaan</p><h1 className="mt-3 max-w-3xl text-[clamp(2rem,4vw,3.35rem)] font-semibold leading-[1.04] text-[var(--mb-navy-900)]">Partagez, proposez ou rejoignez une initiative</h1><p className="mt-4 max-w-2xl text-[13px] leading-6 text-[var(--mb-neutral-600)]">Cet espace est ouvert aux acteurs de terrain, organisations, partenaires, institutions et particuliers.</p></div>
-        <div className="border-l-2 border-[var(--mb-sand-300)] pl-5"><p className="text-[11px] font-bold text-[var(--mb-navy-900)]">Vous pouvez notamment</p><ul className="mt-4 space-y-2 text-[11px] leading-5 text-[var(--mb-neutral-600)]"><li>Faire connaître une initiative locale</li><li>Signaler une information utile</li><li>Proposer une expertise ou un soutien</li><li>Rejoindre un projet</li></ul><Link href="/projets" className="mt-5 inline-flex text-[11px] font-bold text-[var(--mb-ocean-600)]">Voir les projets ouverts →</Link></div>
-      </div>
-    </section>
-    <section><div className="mx-auto grid max-w-[84rem] gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(15rem,.42fr)_minmax(0,1fr)] lg:px-10 lg:py-14"><div><h2 className="text-[21px] font-semibold text-[var(--mb-navy-900)]">Les informations utiles</h2><ol className="mt-5 grid gap-4 text-[11px] leading-5 text-[var(--mb-neutral-600)]"><li><strong className="block text-[var(--mb-navy-900)]">1. Votre intention</strong>Partager, proposer, rejoindre ou soutenir.</li><li><strong className="block text-[var(--mb-navy-900)]">2. Le territoire concerné</strong>Une localité, un quai ou une communauté.</li><li><strong className="block text-[var(--mb-navy-900)]">3. La suite recherchée</strong>Une mise en relation, une ressource ou un échange.</li></ol></div><PublicContactForm /></div></section>
-  </main>;
+export const metadata: Metadata = {
+  title: "Contact | Mbàmbulaan",
+  description: "Besoin, capacité à proposer, organisation, partenariat ou demande presse : Mbàmbulaan oriente votre demande vers le bon parcours.",
+  alternates: { canonical: "/contact" }
+};
+
+// PUB-C1 (audit Premium XXL Public, CEO 2026-08-16) : les 6 intentions
+// regroupées par logique plutôt que 6 cards identiques — Agir / Construire
+// avec Mbàmbulaan / Échanger, exactement le regroupement de l'audit.
+const contactGroups = [
+  {
+    label: "Agir",
+    items: [
+      { title: "J’ai un besoin", text: "Transport, froid, équipement, formation, sourcing, financement ou autre besoin à qualifier.", icon: Search, href: "/solutions" },
+      { title: "Je propose mes services", text: "Faites connaître vos capacités, vos territoires d’intervention et vos conditions à Mbàmbulaan.", icon: UsersRound, href: "/contact?intent=contribution" }
+    ]
+  },
+  {
+    label: "Construire avec Mbàmbulaan",
+    items: [
+      { title: "Je représente une organisation", text: "Entreprise, ONG, programme ou institution : étudions une intervention, un partenariat ou un déploiement.", icon: Building2, href: "/contact?intent=organisation" },
+      { title: "Je souhaite devenir partenaire", text: "Proposer une collaboration structurée avec Mbàmbulaan, sur un territoire, un programme ou une capacité.", icon: Handshake, href: "/contact?intent=partenariat" }
+    ]
+  },
+  {
+    label: "Échanger",
+    items: [
+      { title: "Presse, recherche ou information", text: "Demande d’information, échange éditorial, recherche, données publiques ou prise de contact institutionnelle.", icon: Newspaper, href: "/contact?intent=presse" },
+      { title: "Autre demande", text: "Vous ne savez pas quelle entrée choisir ? Décrivez simplement votre besoin à Mbàmbulaan.", icon: MessageCircle, href: "/contact?intent=autre" }
+    ]
+  }
+] as const;
+
+const formConfigs: Partial<Record<string, { intent: PublicRequestIntent; title: string; description: string; category?: string; descriptionLabel?: string; descriptionPlaceholder?: string; descriptionRequired?: boolean; analyticsEvent?: PublicAnalyticsEvent }>> = {
+  organisation: { intent: "organisation", title: "Je représente une organisation", description: "Entreprise, ONG, programme ou institution : décrivez votre contexte pour étudier une intervention, un partenariat ou un déploiement." },
+  partenariat: { intent: "partenariat", title: "Devenir partenaire", description: "Proposez une collaboration structurée avec Mbàmbulaan, sur un territoire, un programme ou une capacité.", analyticsEvent: "partnership_submission" },
+  presse: { intent: "presse", title: "Presse, recherche ou information", description: "Demande d’information, échange éditorial, recherche ou prise de contact institutionnelle.", descriptionLabel: "Votre demande" },
+  information: { intent: "presse", title: "Presse, recherche ou information", description: "Demande d’information, échange éditorial, recherche ou prise de contact institutionnelle.", descriptionLabel: "Votre demande" },
+  autre: { intent: "autre", title: "Autre demande", description: "Décrivez simplement votre besoin ou votre question. Mbàmbulaan vous oriente ensuite." },
+  programme: { intent: "programme", title: "Étudier une intervention", description: "Territoire, bénéficiaires, partenaires, déploiement terrain : Mbàmbulaan peut organiser le cadrage d’un projet ou d’un programme." },
+  callback: { intent: "callback", title: "Être rappelé", description: "Laissez vos coordonnées, un membre de l’équipe Mbàmbulaan vous rappelle.", descriptionLabel: "Précisez si besoin (optionnel)", descriptionRequired: false, analyticsEvent: "callback_requested" },
+  correction: { intent: "autre", category: "Correction Atlas", title: "Signaler une information ou proposer une correction", description: "Vos contributions sont examinées par Mbàmbulaan avant toute mise à jour publique de l’Atlas.", descriptionLabel: "Votre signalement", analyticsEvent: "atlas_correction" }
+};
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function ContactPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const params = await searchParams;
+  const intentParam = first(params.intent);
+  const source = first(params.source) ?? "contact";
+  const territory = first(params.territory);
+  const opportunity = first(params.opportunity);
+
+  if (intentParam === "solution") {
+    redirect(`/solutions${territory ? `?territory=${encodeURIComponent(territory)}` : ""}`);
+  }
+
+  const config = intentParam === "contribution" ? undefined : intentParam ? formConfigs[intentParam] : undefined;
+
+  return (
+    <main className="pub-scope min-h-screen">
+      <PublicHeader dark />
+      <PublicSectionHero
+        eyebrow="Contact"
+        title={<>Comment pouvons-nous <span className="text-[var(--pub-turquoise-300)]">vous aider ?</span></>}
+        description="Choisissez l’intention qui correspond le mieux à votre situation. Mbàmbulaan oriente ensuite la demande vers le bon parcours, sans vous imposer un formulaire générique."
+      />
+
+      <section className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-20">
+        {intentParam === "contribution" ? (
+          <div className="mx-auto max-w-3xl">
+            <EventOnMount event="contact_started" properties={{ intent: "contribution" }} />
+            <p className="pub-eyebrow">Proposer mes services</p>
+            <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Faites connaître votre capacité à Mbàmbulaan.</h2>
+            <p className="mt-4 text-sm leading-6 text-[var(--pub-stone-700)]">Entreprise, transporteur, transformateur, ONG, expert ou organisation : cette entrée alimente le réseau Mbàmbulaan, jamais un annuaire public.</p>
+            <div className="mt-8"><ContributionForm /></div>
+          </div>
+        ) : config ? (
+          <div className="mx-auto max-w-3xl">
+            <EventOnMount event="contact_started" properties={{ intent: config.intent, category: config.category }} />
+            <p className="pub-eyebrow">Contact</p>
+            <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">{config.title}</h2>
+            <p className="mt-4 text-sm leading-6 text-[var(--pub-stone-700)]">{config.description}</p>
+            <div className="mt-8">
+              <ContactRequestForm
+                intent={config.intent}
+                category={config.category}
+                descriptionLabel={config.descriptionLabel}
+                descriptionPlaceholder={config.descriptionPlaceholder}
+                descriptionRequired={config.descriptionRequired}
+                source={source}
+                context={{ page: "contact", territory, opportunity }}
+                analyticsEvent={config.analyticsEvent}
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* PUB-C1 : sélecteur de parcours groupé (Agir / Construire avec
+                Mbàmbulaan / Échanger) plutôt que 6 cards identiques — chaque
+                groupe est un panneau blanc avec ses 2 lignes séparées par
+                une bordure légère, même geste que ChoiceList sur
+                SolutionWizard (PUB-S1). */}
+            <div className="grid gap-8 md:grid-cols-3">
+              {contactGroups.map((group) => (
+                <div key={group.label}>
+                  <p className="pub-eyebrow">{group.label}</p>
+                  <div className="mt-4 divide-y divide-[var(--pub-stone-150)] rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-surface)]">
+                    {group.items.map(({ title, text, icon: Icon, href }) => (
+                      <Link key={title} href={href} className="flex items-center gap-3 p-4 transition hover:bg-[var(--pub-ivory-100)]">
+                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--pub-ivory-200)] text-[var(--pub-deep-800)]"><Icon size={16} /></span>
+                        <span className="min-w-0 flex-1">
+                          <strong className="block text-sm font-bold text-[var(--pub-deep-900)]">{title}</strong>
+                          <span className="mt-0.5 block text-xs leading-5 text-[var(--pub-stone-500)]">{text}</span>
+                        </span>
+                        <ArrowRight size={13} className="shrink-0 text-[var(--pub-stone-300)]" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* PUB-C2 : bloc omnicanal conservé tel quel (structure). PUB-C3 :
+                #031a22 (couleur legacy hors palette --pub-*) → --pub-deep-900. */}
+            <section className="mt-12 overflow-hidden rounded-[28px] bg-[var(--pub-deep-900)] text-white shadow-2xl">
+              <div className="grid gap-0 lg:grid-cols-[1.1fr_.9fr]">
+                <div className="p-6 md:p-10">
+                  <p className="text-xs font-black uppercase tracking-[.14em] text-[var(--pub-turquoise-300)]">Parler à Mbàmbulaan</p>
+                  <h2 className="mt-4 text-3xl font-[740] tracking-[-.04em] md:text-4xl">Le bon canal dépend du contexte.</h2>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-white/64">WhatsApp, téléphone et email sont des canaux d’entrée vers Mbàmbulaan. Ils ne remplacent pas la qualification : ils facilitent la relation lorsque le web n’est pas le canal le plus naturel.</p>
+                </div>
+                <div className="grid border-t border-white/10 sm:grid-cols-3 lg:border-l lg:border-t-0 lg:grid-cols-1">
+                  <a href="https://wa.me/221770000000" target="_blank" rel="noopener noreferrer" data-analytics="whatsapp_clicked" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><MessageCircle size={18} className="text-[var(--pub-turquoise-300)]" /> WhatsApp</a>
+                  <Link href="/contact?intent=callback" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><PhoneCall size={18} className="text-[var(--pub-turquoise-300)]" /> Être rappelé</Link>
+                  <a href="mailto:contact@mbambulaan.sn" className="flex items-center gap-3 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><Mail size={18} className="text-[var(--pub-turquoise-300)]" /> Email</a>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+      </section>
+
+      <PublicFooter />
+    </main>
+  );
 }

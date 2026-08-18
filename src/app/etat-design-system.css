@@ -1,0 +1,120 @@
+/* Espace État — module de présentation et de pilotage institutionnel
+   (cahier des charges dédié). Registre distinct du reste du Produit
+   (op-*, console opérationnelle) : plus proche, par le ton et la
+   typographie, du site Public — cohérence délibérée puisque c'est la
+   même infrastructure vue par un public institutionnel. Palette nommée,
+   navy dominant, accent terre-cuite rare réservé aux priorités et
+   actions. Sous @layer components, scopé par .etat-scope. */
+
+@layer components {
+  .etat-scope {
+    --etat-navy-950: #071627;
+    --etat-navy-800: #102944;
+    --etat-navy-600: #1d4468;
+    --etat-offwhite: #f6f1e7;
+    --etat-offwhite-dim: #efe7d6;
+    --etat-terracotta: #b6522f;
+    --etat-terracotta-dim: #f1ded3;
+    --etat-ocre: #c68a2c;
+    --etat-ocre-dim: #f3e6cb;
+    --etat-ink: #16222c;
+    --etat-stone-600: #5c6a74;
+    --etat-stone-400: #8c9aa2;
+    --etat-line: rgba(16, 41, 68, .12);
+    --etat-font-display: ui-serif, Iowan Old Style, Apple Garamond, Baskerville, "Palatino Linotype", "URW Palladio", P052, serif;
+
+    color: var(--etat-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .etat-display {
+    font-family: var(--etat-font-display);
+    font-style: normal;
+    letter-spacing: -.01em;
+  }
+
+  .etat-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--etat-terracotta);
+  }
+  .etat-eyebrow--on-dark { color: var(--etat-ocre-dim); }
+
+  /* Toile de fond institutionnelle : navy profond avec une texture très
+     discrète évoquant une carte marine, jamais un dégradé décoratif. */
+  .etat-canvas-dark {
+    position: relative;
+    background:
+      radial-gradient(120% 100% at 100% 0%, rgba(198, 138, 44, .10), transparent 55%),
+      linear-gradient(165deg, var(--etat-navy-800), var(--etat-navy-950));
+    color: var(--etat-offwhite);
+  }
+
+  .etat-panel {
+    background: #fff;
+    border: 1px solid var(--etat-line);
+    border-radius: 20px;
+  }
+  .etat-panel--warm {
+    background: var(--etat-offwhite);
+    border: 1px solid rgba(16, 41, 68, .08);
+    border-radius: 20px;
+  }
+
+  .etat-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .etat-tag--demo { background: var(--etat-ocre-dim); color: #8a5b17; }
+  .etat-tag--reel { background: #dfeee3; color: #1e6b3d; }
+  .etat-tag--stable { background: #e7edf1; color: var(--etat-navy-600); }
+  .etat-tag--vigilance { background: var(--etat-ocre-dim); color: #8a5b17; }
+  .etat-tag--critique { background: var(--etat-terracotta-dim); color: var(--etat-terracotta); }
+
+  .etat-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    border-radius: 12px;
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    transition: filter .15s ease, background-color .15s ease;
+  }
+  .etat-btn-primary { background: var(--etat-terracotta); color: #fff8f2; }
+  .etat-btn-primary:hover { filter: brightness(1.07); }
+  .etat-btn-outline { border: 1px solid var(--etat-line); color: var(--etat-navy-800); background: #fff; }
+  .etat-btn-outline:hover { background: var(--etat-offwhite); }
+  .etat-btn-on-dark { border: 1px solid rgba(246, 241, 231, .22); color: var(--etat-offwhite); background: rgba(246, 241, 231, .06); }
+  .etat-btn-on-dark:hover { background: rgba(246, 241, 231, .12); }
+
+  .etat-divider { height: 1px; background: var(--etat-line); border: 0; }
+
+  .etat-principle {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    border-radius: 14px;
+    background: var(--etat-offwhite);
+    border: 1px solid rgba(16, 41, 68, .08);
+    padding: 12px 14px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--etat-navy-800);
+  }
+}

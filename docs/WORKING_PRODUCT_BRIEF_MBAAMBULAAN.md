@@ -5,6 +5,7 @@ Ce document est le cahier des charges maître pour Working.
 Objectif : transformer Mbàmbulaan en infrastructure numérique de confiance de la pêche artisanale sénégalaise.
 
 ## Priorités
+
 - Finaliser les parcours Public, Professionnel, Organisation, Institution et Partenaire.
 - UX/UI premium inspirée de Palantir, Stripe et GovTech modernes.
 - Aucun doublon fonctionnel : un objet métier = une source de vérité.
@@ -16,3 +17,12 @@ Objectif : transformer Mbàmbulaan en infrastructure numérique de confiance de 
 - Challenger chaque fonctionnalité selon : coordination, valeur métier, confiance, rentabilité, démontrabilité auprès du Ministère.
 
 Working est autorisé à restructurer les menus, enrichir les contenus, créer les composants manquants et améliorer l'architecture produit tant que la vision reste cohérente.
+
+## Décisions de convergence XXL
+
+- Une seule plateforme privée : le rôle change les droits et le briefing, jamais la réalité métier.
+- Cinq portes d'entrée de démonstration : terrain, organisation, coordination territoriale, institution, partenaire. L'administration reste un accès séparé.
+- Le centre institutionnel est intégré au pilotage ; il ne constitue plus une application parallèle.
+- Le public s'organise autour de la compréhension de la filière, des territoires, des ressources ouvertes, des solutions et de la confiance.
+- Les données de démonstration restent explicitement simulées, sourcées et non officielles.
+- Mbàmbulaan coordonne et documente ; les paiements, assurances et décisions réglementaires restent opérés par des partenaires habilités.
