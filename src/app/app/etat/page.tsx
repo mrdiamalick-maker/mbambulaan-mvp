@@ -68,6 +68,16 @@ const statusTagLabel: Record<"stable" | "vigilance" | "critique", string> = { st
 // table de correspondance plutôt qu'une dépendance du Produit vers
 // data/public-atlas.ts (fichier 100% éditorial Public, à ne pas coupler).
 const territoryPublicSlug: Partial<Record<string, string>> = { joal: "joal-fadiouth" };
+// Correctif 2026-08-18 (CEO) : "Ouakam" n'a jamais eu de fiche Atlas
+// publique (confirmé par grep sur data/public-atlas.ts, préexistant à
+// l'intégration du jeu de données enrichi — pas un des 20 territoires
+// éditoriaux couverts par le site public). Contrairement à Joal, il
+// n'existe aucun slug de correspondance à mapper : le contenu public
+// n'existe simplement pas. Même discipline de découplage que
+// territoryPublicSlug ci-dessus (liste locale plutôt qu'un import
+// depuis data/public-atlas.ts) — liste à tenir à jour si d'autres
+// territoires Produit rejoignent la démonstration sans fiche publique.
+const territoriesWithoutPublicAtlas = new Set(["ouakam"]);
 const pipelineStages: Array<{ status: Situation["status"]; label: string }> = [
   { status: "recue", label: "Reçue" },
   { status: "qualification", label: "Qualification" },
@@ -625,7 +635,18 @@ function TerritoryDetail({ territory, cases, onOpenSituation }: { territory: Ter
       </div>
       {prioritySituation && <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Situation prioritaire</p><div className="mt-2 rounded-lg border border-[var(--etat-line)] bg-white p-3"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{prioritySituation.title}</p><p className="mt-1 text-xs text-[var(--etat-stone-600)]">{prioritySituation.nextStep}</p>{prioritySituation.history.length > 0 && <div className="mt-3 space-y-1.5 border-t border-[var(--etat-line)] pt-3">{prioritySituation.history.slice(0, 2).map((entry) => <div key={entry.id} className="border-l-2 border-[var(--etat-line)] pl-2 text-[11px] leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{entry.label}</span> · {new Date(entry.at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</div>)}</div>}<button onClick={() => onOpenSituation(prioritySituation)} className="etat-btn etat-btn-outline mt-3 w-full justify-center">Entrer dans le dossier <ArrowRight size={15} /></button></div></div>}
       {cases.length > 0 && <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Signaux sur ce territoire</p><div className="mt-2 space-y-2">{cases.map((item) => <div key={item.id} className="rounded-lg bg-[var(--etat-offwhite)] p-3 text-xs text-[var(--etat-navy-950)]">{vigilanceCategoryLabels[item.category]} — {item.description}</div>)}</div></div>}
-      <a href={`/atlas/${territoryPublicSlug[territory.id] ?? territory.id}`} target="_blank" rel="noreferrer" className="etat-btn etat-btn-outline w-full justify-center">Fiche territoire complète (site public) <ArrowUpRight size={15} /></a>
+      {/* Repli honnête plutôt qu'un lien vers un 404 (mandat CEO
+          2026-08-18) : ce territoire n'a pas de fiche publique
+          équivalente à retrouver, contrairement à Joal (où un vrai
+          mapping de slug existait) — le bloc reste visible, dans le
+          même gabarit visuel que le lien actif, pour ne pas laisser un
+          vide en bas du panneau, mais explicitement non cliquable et
+          expliqué plutôt que masqué en silence. */}
+      {territoriesWithoutPublicAtlas.has(territory.id) ? (
+        <div className="etat-btn etat-btn-outline pointer-events-none w-full cursor-not-allowed justify-center opacity-50" aria-disabled="true">Pas encore de fiche publique pour ce territoire</div>
+      ) : (
+        <a href={`/atlas/${territoryPublicSlug[territory.id] ?? territory.id}`} target="_blank" rel="noreferrer" className="etat-btn etat-btn-outline w-full justify-center">Fiche territoire complète (site public) <ArrowUpRight size={15} /></a>
+      )}
     </div>
   );
 }
