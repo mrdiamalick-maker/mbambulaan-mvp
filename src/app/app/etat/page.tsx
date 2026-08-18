@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowRight, ArrowUpRight, Factory, FileDown, Radio, Send, ShieldCheck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Compass, Factory, FileDown, Fish, Radio, Sailboat, Send, ShieldCheck } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { InstitutionIllustration } from "@/components/public/CoordinationIllustration";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
 import { DecisionIcon, ResultatIcon, SituationIcon } from "@/components/etat/MotifIcons";
 import { CoastlineTerritoryMap } from "@/components/territories/CoastlineTerritoryMap";
+import { coastlineViewBox, territoryMapPositions } from "@/domain/territory-map-positions";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { decisionTypeLabels, type Situation, type Territory } from "@/domain/types";
 import { fieldVisitObjectiveLabels, type FieldVisit, type FieldVisitObjective } from "@/domain/ministry/field-visit";
@@ -88,6 +89,32 @@ const pipelineStages: Array<{ status: Situation["status"]; label: string }> = [
   { status: "resultat", label: "Résultat" },
   { status: "reglee", label: "Réglée" }
 ];
+
+// Mini-cartes du Chapitre 3 (maquette validée, arbitrage CEO 2026-08-18) :
+// le littoral national entier, réduit à la hauteur d'une vignette
+// (~110px), est trop long et étroit pour rester lisible — les marqueurs
+// deviendraient de simples pixels. Plutôt que fabriquer une géométrie
+// locale simplifiée, on affiche EXACTEMENT le même rendu calibré
+// (CoastlineTerritoryMap, positions et tracé inchangés) zoomé par
+// transform CSS autour du territoire concerné — un recadrage visuel,
+// pas une nouvelle carte. territoryZoomStyle calcule un couple
+// transform-origin (le point qui ne bouge pas pendant le zoom) +
+// translate (pour ramener ensuite ce point au centre de la vignette —
+// sans cette seconde étape, un territoire proche d'un bord du viewBox
+// national, comme Kayar au nord, reste collé au bord de la vignette
+// au lieu d'être recentré). Les deux valeurs sont en pourcentage de la
+// boîte de l'élément lui-même (w-full/h-full = la vignette), donc
+// robuste à n'importe quelle taille de carte, pas de calcul en pixels
+// fixes.
+const [viewBoxMinX, viewBoxMinY, viewBoxWidth, viewBoxHeight] = coastlineViewBox.split(" ").map(Number);
+function territoryZoomStyle(territoryId: string, scale: number): React.CSSProperties {
+  const position = territoryMapPositions[territoryId];
+  if (!position) return { transform: `scale(${scale})`, transformOrigin: "50% 50%" };
+  const [x, y] = position;
+  const px = ((x - viewBoxMinX) / viewBoxWidth) * 100;
+  const py = ((y - viewBoxMinY) / viewBoxHeight) * 100;
+  return { transform: `translate(${50 - px}%, ${50 - py}%) scale(${scale})`, transformOrigin: `${px}% ${py}%` };
+}
 
 function StatusBadge({ status }: { status: "stable" | "vigilance" | "critique" }) {
   return <span className={`etat-tag ${statusTagClass[status]}`}>{statusTagLabel[status]}</span>;
@@ -238,6 +265,23 @@ export default function EtatPage() {
         <p>Mbàmbulaan <strong>qualifie et signale</strong> les situations remontées du terrain. La décision et l’action relèvent des autorités compétentes.</p>
       </div>
 
+      {/* Raffinement visuel (maquette validée, arbitrage CEO 2026-08-18,
+          point 2) : "Filtres avancés" retiré, Périmètre/Période en
+          lecture seule (étiquettes fixes, pas des <select>) — construire
+          un vrai filtrage des 6 chapitres est un chantier à part
+          entière, hors périmètre de ce raffinement visuel. Jamais un
+          contrôle qui a l'air interactif sans l'être. */}
+      <div className="flex flex-wrap items-center gap-8 border-b border-[var(--etat-line)] pb-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>
+          <p className="mt-1 text-sm font-semibold text-[var(--etat-navy-950)]">Sénégal entier</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Période</p>
+          <p className="mt-1 text-sm font-semibold text-[var(--etat-navy-950)]">30 derniers jours</p>
+        </div>
+      </div>
+
       {/* Chapitre 1 — Lecture territoriale (mandat §5, Lot B). Carte +
           décision prioritaire unique côte à côte ; sous les deux,
           uniquement les 3 compteurs — "rien d'autre dans ce premier
@@ -249,8 +293,38 @@ export default function EtatPage() {
         <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">Espace État · {actor?.name ?? "Ministère"}. Cliquez un point sur la carte pour ouvrir le détail d’un territoire.</p>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_.7fr] lg:items-stretch">
-          <div className="etat-panel overflow-hidden">
-            <div className="aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full lg:min-h-[520px]">
+          {/* Richesse visuelle de la carte (maquette validée, arbitrage
+              CEO 2026-08-18) : texture/boussole/icônes décoratives
+              ajoutées ICI, en habillage autour du composant partagé —
+              CoastlineTerritoryMap.tsx lui-même n'est pas touché, pour ne
+              pas propager cet habillage à /app/pilotage qui réutilise le
+              même composant et dont la composition est déjà close et
+              validée. Aucune nouvelle géométrie : coastlinePath et
+              territoryMapPositions inchangés. Pas de bleu pour l'eau
+              (contrairement à la maquette) : la palette D9 verrouillée
+              n'en a pas — même règle déjà posée dans le commentaire de
+              CoastlineTerritoryMap.tsx pour la même raison, appliquée ici
+              à l'identique plutôt que rouverte pour cette maquette. Les
+              icônes (pirogue, poisson, boussole) sont des éléments
+              purement décoratifs, statiques, aria-hidden — jamais des
+              données réelles (aucune position de pirogue en temps réel). */}
+          <div className="etat-panel relative overflow-hidden">
+            <div
+              className="pointer-events-none absolute inset-0 opacity-70"
+              style={{ backgroundImage: "radial-gradient(circle at 18% 12%, rgba(29,68,104,.12), transparent 50%), radial-gradient(circle at 85% 78%, rgba(182,82,47,.07), transparent 45%), radial-gradient(circle at 90% 15%, rgba(198,138,44,.06), transparent 40%)" }}
+              aria-hidden="true"
+            />
+            <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-[.15]" aria-hidden="true">
+              <pattern id="etat-map-waves" width="46" height="18" patternUnits="userSpaceOnUse">
+                <path d="M0 9 Q11.5 2 23 9 T46 9" fill="none" stroke="var(--etat-navy-600)" strokeWidth="1" />
+              </pattern>
+              <rect width="100%" height="100%" fill="url(#etat-map-waves)" />
+            </svg>
+            <Compass size={38} className="pointer-events-none absolute bottom-5 left-5 text-[var(--etat-navy-600)]/25" aria-hidden="true" />
+            <Sailboat size={22} className="pointer-events-none absolute right-10 top-12 text-[var(--etat-navy-600)]/20" aria-hidden="true" />
+            <Fish size={18} className="pointer-events-none absolute bottom-24 right-8 text-[var(--etat-navy-600)]/20" aria-hidden="true" />
+            <Fish size={14} className="pointer-events-none absolute right-20 top-1/3 rotate-[20deg] text-[var(--etat-navy-600)]/15" aria-hidden="true" />
+            <div className="relative aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full lg:min-h-[520px]">
               <CoastlineTerritoryMap
                 territories={state.territories}
                 selectedId={territoryDrawer?.id}
@@ -383,6 +457,29 @@ export default function EtatPage() {
                   <StatusBadge status={entry.territory.activity} />
                 </div>
                 <h3 className="etat-display mt-3 text-lg not-italic text-[var(--etat-navy-950)]">{entry.territory.name}</h3>
+                {/* Mini-carte (maquette validée, arbitrage CEO 2026-08-18) :
+                    même composant partagé, mêmes positions calibrées —
+                    aucune géométrie simplifiée ou recréée pour la
+                    miniature, seulement un recadrage visuel (zoom CSS
+                    autour du territoire, cf. territoryZoomStyle plus
+                    haut) : le littoral entier réduit à cette hauteur
+                    serait un fil illisible. selectedId met en évidence
+                    ce territoire ; onSelect omis volontairement
+                    (vignette de lecture, pas un second point d'entrée
+                    vers le tiroir — "Voir le détail" plus bas reste le
+                    seul CTA de la carte). */}
+                <div className="mt-3 flex h-28 items-center justify-center overflow-hidden rounded-lg border border-[var(--etat-line)] bg-[var(--etat-offwhite)]">
+                  {/* Le wrapper interne reprend le ratio réel du viewBox
+                      (704/1122) — sans ça, preserveAspectRatio="meet" sur
+                      le <svg> (h-full w-full dans un conteneur beaucoup
+                      plus large que haut) le réduit en lettrebox centré,
+                      et les pourcentages de territoryZoomStyle ne
+                      correspondent plus à la zone réellement dessinée :
+                      c'est ce qui rendait les 3 vignettes vides. */}
+                  <div className="h-full" style={{ aspectRatio: `${viewBoxWidth} / ${viewBoxHeight}`, ...territoryZoomStyle(entry.territory.id, 3.4) }}>
+                    <CoastlineTerritoryMap territories={state.territories} selectedId={entry.territory.id} />
+                  </div>
+                </div>
                 <div className="mt-3 space-y-2 text-xs text-[var(--etat-stone-600)]">
                   <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Tension principale · </span>{entry.prioritySituation ? entry.prioritySituation.title : "Aucune situation ouverte"}</p>
                   <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Impact · </span>{entry.openSituationsCount} situation(s) ouverte(s){entry.fragileInfra > 0 ? ` · ${entry.fragileInfra} capacité(s) fragile(s)` : ""}</p>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, PlayCircle } from "lucide-react";
+import { Bell, Clock, LogOut, PlayCircle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,8 @@ export function InstitutionShell({
   orgName,
   actorName,
   persistence,
+  unread,
+  lastRefreshedAt,
   onLogout,
   error,
   showLoading
@@ -39,6 +41,8 @@ export function InstitutionShell({
   orgName?: string;
   actorName?: string;
   persistence: string;
+  unread: number;
+  lastRefreshedAt: Date | null;
   onLogout: () => void;
   error: string;
   showLoading: boolean;
@@ -55,6 +59,17 @@ export function InstitutionShell({
           {orgName ?? "Ministère de la Pêche et de l’Économie Maritime"}
         </span>
         <div className="ml-auto flex items-center gap-2">
+          {/* Raffinement visuel (maquette validée, arbitrage CEO
+              2026-08-18) : horodatage réel — capturé au premier
+              chargement des données (InstitutionProductShell.tsx), pas
+              une heure fixe recopiée de la maquette. Masqué tant que
+              rien n'est encore chargé plutôt que d'afficher une valeur
+              vide ou inventée. */}
+          {lastRefreshedAt && (
+            <span className="hidden items-center gap-1.5 text-xs text-sidebar-foreground/60 lg:inline-flex">
+              <Clock size={13} /> MAJ aujourd’hui {lastRefreshedAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
           <Button variant="ghost" size="sm" className="hidden gap-1.5 text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground sm:inline-flex" onClick={start}>
             <PlayCircle size={15} /> Présentation guidée
           </Button>
@@ -62,6 +77,14 @@ export function InstitutionShell({
             <span className="size-1.5 rounded-full bg-emerald-400" />
             {persistence === "postgresql" ? "Base de production" : "Mode démonstration · données non opérationnelles"}
           </Badge>
+          {/* Cloche : compte réel de notifications non lues pour le rôle
+              institution (state.notifications, même mécanisme que
+              ProductShell.tsx/SiteHeader.tsx pour le shell Coordinateur/
+              Opérateur) — jamais le "3" illustratif de la maquette. */}
+          <Button variant="ghost" size="icon" className="relative text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground" aria-label={`${unread} notification(s) non lue(s)`}>
+            <Bell />
+            {unread > 0 && <span className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full border-2 border-sidebar bg-destructive text-[9px] font-bold text-white">{unread}</span>}
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2 px-2 text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground">
