@@ -124,6 +124,21 @@ function formatFcfa(amount: number) {
   return `${new Intl.NumberFormat("fr-FR").format(Math.round(amount))} FCFA`;
 }
 
+// Ligne/aire d'évolution — même technique que la courbe Pilotage
+// (PilotageWorkspace.tsx, arbitrage CEO 2026-08-18, "Option 1") : grain
+// jour, aucun point interpolé. N'est appelée que pour ≥2 points — en
+// dessous, le repli textuel (cf. JSX) est honnête sur le manque
+// d'historique plutôt que de forcer un tracé.
+function buildTrendPath(values: number[], width: number, height: number, padding: number) {
+  const maxValue = Math.max(...values, 1);
+  const stepX = (width - padding * 2) / (values.length - 1);
+  const scaleY = (value: number) => height - padding - (value / maxValue) * (height - padding * 2);
+  const coords: [number, number][] = values.map((value, index) => [padding + index * stepX, scaleY(value)]);
+  const line = coords.map(([x, y], index) => `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const area = `${line} L${coords[coords.length - 1][0].toFixed(1)},${(height - padding).toFixed(1)} L${coords[0][0].toFixed(1)},${(height - padding).toFixed(1)} Z`;
+  return { line, area, coords };
+}
+
 type Mission = {
   key: string;
   territoryId: string;
@@ -250,6 +265,28 @@ export default function EtatPage() {
 
   const totalValue = executedValue + engagedValue;
   const executedRatio = totalValue > 0 ? Math.round((executedValue / totalValue) * 100) : 0;
+  // Évolution de la valeur coordonnée (maquette validée, arbitrage CEO
+  // 2026-08-18) — même méthode que la courbe Pilotage (mandat CEO
+  // 2026-08-18, "Option 1") : grain jour, un point par date réellement
+  // pesée. Opportunity ne porte aucun horodatage propre (cf.
+  // domain/types.ts) ; le seul chemin honnête vers une date réelle est
+  // lot → landing.weighedAt/arrivedAt — la même donnée déjà utilisée par
+  // la courbe Pilotage, pas une nouvelle source inventée pour cette page.
+  const coordinatedValueByDate = new Map<string, number>();
+  for (const opportunity of state.opportunities) {
+    if (opportunity.status !== "executee" && opportunity.status !== "engagee") continue;
+    const lot = state.lots.find((item) => item.id === opportunity.lotId);
+    if (!lot) continue;
+    const landing = state.landings.find((item) => item.id === lot.landingId);
+    const timestamp = landing?.weighedAt ?? landing?.arrivedAt;
+    if (!timestamp) continue;
+    const species = state.species.find((item) => item.id === lot.speciesId);
+    const value = lot.quantityKg * (species?.indicativePriceFcfaKg ?? 0);
+    const date = timestamp.slice(0, 10);
+    coordinatedValueByDate.set(date, (coordinatedValueByDate.get(date) ?? 0) + value);
+  }
+  const coordinatedValueTrendPoints = [...coordinatedValueByDate.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ date, value }));
+  const coordinatedValueTrendPath = coordinatedValueTrendPoints.length >= 2 ? buildTrendPath(coordinatedValueTrendPoints.map((point) => point.value), 640, 180, 20) : null;
   const situationsAArbitrer = state.situations
     .filter((item) => item.status !== "reglee" && (item.priority === "critique" || item.priority === "haute"))
     .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])
@@ -294,36 +331,46 @@ export default function EtatPage() {
 
         <div className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_.7fr] lg:items-stretch">
           {/* Richesse visuelle de la carte (maquette validée, arbitrage
-              CEO 2026-08-18) : texture/boussole/icônes décoratives
+              CEO 2026-08-18, corrigé le même jour après vérification par
+              capture réelle) : texture/boussole/icônes décoratives
               ajoutées ICI, en habillage autour du composant partagé —
               CoastlineTerritoryMap.tsx lui-même n'est pas touché, pour ne
               pas propager cet habillage à /app/pilotage qui réutilise le
               même composant et dont la composition est déjà close et
               validée. Aucune nouvelle géométrie : coastlinePath et
-              territoryMapPositions inchangés. Pas de bleu pour l'eau
-              (contrairement à la maquette) : la palette D9 verrouillée
-              n'en a pas — même règle déjà posée dans le commentaire de
-              CoastlineTerritoryMap.tsx pour la même raison, appliquée ici
-              à l'identique plutôt que rouverte pour cette maquette. Les
-              icônes (pirogue, poisson, boussole) sont des éléments
-              purement décoratifs, statiques, aria-hidden — jamais des
-              données réelles (aucune position de pirogue en temps réel). */}
-          <div className="etat-panel relative overflow-hidden">
+              territoryMapPositions inchangés.
+
+              Correctif "pas de bleu" (2026-08-18) : la règle "palette D9
+              verrouillée, pas de bleu" encadre l'habillage produit
+              (cartes, boutons, badges, signalétique) pour éviter
+              l'esthétique SaaS générique — elle ne s'applique pas à un
+              contenu illustratif représentant un phénomène naturel réel.
+              La mer est bleue ; la peindre autrement la rendait
+              illisible (vérifié par capture, pas seulement décrit). Bleu
+              marine désaturé ici (--etat-water-*, propre à cet
+              habillage, pas un nouveau token D9 réutilisé ailleurs) —
+              cohérent avec l'esprit sobre de la page, mais se lit
+              clairement comme de l'eau. Icônes agrandies et assombries
+              pour avoir une vraie présence visuelle, plus un geste
+              symbolique à peine perceptible dans un coin. */}
+          <div className="etat-panel relative overflow-hidden" style={{ "--etat-water-deep": "#2c4f63", "--etat-water-mid": "#4c7691", "--etat-water-light": "#89aec2" } as React.CSSProperties}>
             <div
-              className="pointer-events-none absolute inset-0 opacity-70"
-              style={{ backgroundImage: "radial-gradient(circle at 18% 12%, rgba(29,68,104,.12), transparent 50%), radial-gradient(circle at 85% 78%, rgba(182,82,47,.07), transparent 45%), radial-gradient(circle at 90% 15%, rgba(198,138,44,.06), transparent 40%)" }}
+              className="pointer-events-none absolute inset-0"
+              style={{ backgroundImage: "radial-gradient(circle at 15% 8%, var(--etat-water-light), transparent 42%), radial-gradient(circle at 88% 82%, var(--etat-water-mid), transparent 48%), linear-gradient(165deg, var(--etat-water-light) 0%, var(--etat-water-mid) 55%, var(--etat-water-deep) 100%)", opacity: 0.5 }}
               aria-hidden="true"
             />
-            <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-[.15]" aria-hidden="true">
-              <pattern id="etat-map-waves" width="46" height="18" patternUnits="userSpaceOnUse">
-                <path d="M0 9 Q11.5 2 23 9 T46 9" fill="none" stroke="var(--etat-navy-600)" strokeWidth="1" />
+            <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-40" aria-hidden="true">
+              <pattern id="etat-map-waves" width="52" height="20" patternUnits="userSpaceOnUse">
+                <path d="M0 10 Q13 2 26 10 T52 10" fill="none" stroke="var(--etat-water-deep)" strokeWidth="1.6" />
+                <path d="M0 16 Q13 8 26 16 T52 16" fill="none" stroke="var(--etat-water-mid)" strokeWidth="1.2" />
               </pattern>
               <rect width="100%" height="100%" fill="url(#etat-map-waves)" />
             </svg>
-            <Compass size={38} className="pointer-events-none absolute bottom-5 left-5 text-[var(--etat-navy-600)]/25" aria-hidden="true" />
-            <Sailboat size={22} className="pointer-events-none absolute right-10 top-12 text-[var(--etat-navy-600)]/20" aria-hidden="true" />
-            <Fish size={18} className="pointer-events-none absolute bottom-24 right-8 text-[var(--etat-navy-600)]/20" aria-hidden="true" />
-            <Fish size={14} className="pointer-events-none absolute right-20 top-1/3 rotate-[20deg] text-[var(--etat-navy-600)]/15" aria-hidden="true" />
+            <Compass size={64} strokeWidth={1.4} className="pointer-events-none absolute bottom-5 left-5 text-[var(--etat-water-deep)] opacity-70" aria-hidden="true" />
+            <Sailboat size={44} strokeWidth={1.6} className="pointer-events-none absolute right-12 top-10 text-[var(--etat-water-deep)] opacity-70" aria-hidden="true" />
+            <Fish size={30} strokeWidth={1.6} className="pointer-events-none absolute bottom-28 right-10 text-[var(--etat-water-deep)] opacity-60" aria-hidden="true" />
+            <Fish size={22} strokeWidth={1.6} className="pointer-events-none absolute right-24 top-1/3 rotate-[20deg] text-[var(--etat-water-deep)] opacity-50" aria-hidden="true" />
+            <Fish size={18} strokeWidth={1.6} className="pointer-events-none absolute left-10 top-1/4 -rotate-[15deg] text-[var(--etat-water-deep)] opacity-40" aria-hidden="true" />
             <div className="relative aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full lg:min-h-[520px]">
               <CoastlineTerritoryMap
                 territories={state.territories}
@@ -394,47 +441,95 @@ export default function EtatPage() {
         </div>
         <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Ce que la coordination a produit, en un coup d’œil.</h2>
 
-        {/* §17 du mandat : un chiffre important vit directement sur la
-            page, pas dans des cartes complètes à fond plein. 4 mesures
-            maximum, toutes réellement dérivées (cf. commentaire des
-            constantes ci-dessus pour le détail et ce qui a été écarté). */}
-        <div className="mt-6 grid gap-8 border-y border-[var(--etat-line)] py-6 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <ResultatIcon size={20} color="var(--etat-terracotta)" />
-            <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={totalValue} /> <span className="text-sm font-semibold text-[var(--etat-stone-600)]">FCFA</span></p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Valeur coordonnée</p>
-            <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[var(--etat-line)]"><div className="h-full rounded-full bg-[var(--etat-terracotta)]" style={{ width: `${executedRatio}%` }} /></div>
-            <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{executedRatio}% exécuté · {formatFcfa(engagedValue)} engagés</p>
+        {/* Chapitre enveloppé dans .etat-panel (correctif 2026-08-18,
+            vérification par capture) : le Chapitre 1 était déjà une
+            surface blanche sur fond crème, les Chapitres 2 et 4
+            flottaient directement sur le crème avec de simples filets —
+            même doctrine crème/blanc déjà posée ailleurs (Public,
+            Produit), appliquée ici de façon incomplète jusqu'ici. Ne
+            change rien à la doctrine "chiffres inline" (§17) : les
+            chiffres restent inline, seul le conteneur du chapitre
+            redevient une surface blanche. */}
+        <div className="etat-panel mt-6 p-6 lg:p-7">
+          {/* §17 du mandat : un chiffre important vit directement sur la
+              page, pas dans des cartes complètes à fond plein. 4 mesures
+              maximum, toutes réellement dérivées (cf. commentaire des
+              constantes ci-dessus pour le détail et ce qui a été écarté). */}
+          <div className="grid gap-8 border-b border-[var(--etat-line)] pb-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <ResultatIcon size={20} color="var(--etat-terracotta)" />
+              <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={totalValue} /> <span className="text-sm font-semibold text-[var(--etat-stone-600)]">FCFA</span></p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Valeur coordonnée</p>
+              <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[var(--etat-line)]"><div className="h-full rounded-full bg-[var(--etat-terracotta)]" style={{ width: `${executedRatio}%` }} /></div>
+              <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{executedRatio}% exécuté · {formatFcfa(engagedValue)} engagés</p>
+            </div>
+            <div>
+              <DecisionIcon size={20} color="var(--etat-navy-600)" />
+              <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={closedRatio} />%</p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Situations clôturées avec résultat</p>
+              <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{closedWithResult} / {state.situations.length} dossier(s)</p>
+            </div>
+            <div>
+              <SituationIcon size={20} color="var(--etat-navy-600)" />
+              <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={involvedActors} /></p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Acteurs impliqués dans une coordination</p>
+            </div>
+            <div>
+              <Factory size={20} color="var(--etat-navy-600)" />
+              <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={availableCapacity} /> <span className="text-sm font-semibold text-[var(--etat-stone-600)]">/ {state.infrastructures.length}</span></p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Capacités disponibles</p>
+            </div>
           </div>
-          <div>
-            <DecisionIcon size={20} color="var(--etat-navy-600)" />
-            <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={closedRatio} />%</p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Situations clôturées avec résultat</p>
-            <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{closedWithResult} / {state.situations.length} dossier(s)</p>
-          </div>
-          <div>
-            <SituationIcon size={20} color="var(--etat-navy-600)" />
-            <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={involvedActors} /></p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Acteurs impliqués dans une coordination</p>
-          </div>
-          <div>
-            <Factory size={20} color="var(--etat-navy-600)" />
-            <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={availableCapacity} /> <span className="text-sm font-semibold text-[var(--etat-stone-600)]">/ {state.infrastructures.length}</span></p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Capacités disponibles</p>
-          </div>
-        </div>
 
-        <div className="mt-8">
-          <p className="text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Évolution des programmes en cours</p>
-          <div className="mt-4 grid gap-6 sm:grid-cols-2">
-            {leadIndicators.map(({ title, indicator }) => indicator && (
-              <div key={title} className="border-t border-[var(--etat-line)] pt-4">
-                <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{title}</p>
-                <p className="text-xs text-[var(--etat-stone-600)]">{indicator.label}</p>
-                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--etat-line)]"><div className="h-full rounded-full bg-[var(--etat-navy-600)]" style={{ width: `${Math.min(100, (indicator.current / indicator.target) * 100)}%` }} /></div>
-                <p className="mt-2 text-xs text-[var(--etat-stone-600)]">{indicator.current} / {indicator.target} {indicator.unit} <span className="text-[var(--etat-stone-400)]">(départ : {indicator.baseline})</span></p>
+          {/* Évolution de la valeur coordonnée (maquette validée,
+              arbitrage CEO 2026-08-18) : même méthode que la courbe
+              Pilotage — grain jour, un point par date réellement
+              disponible, repli honnête sinon. La valeur coordonnée
+              (executedValue/engagedValue) n'a pas d'horodatage propre
+              (Opportunity n'en porte aucun) : on la fait remonter à un
+              horodatage réel via lot → landing.weighedAt/arrivedAt,
+              seule donnée temporelle fiable de la chaîne. Vérifié en
+              exécutant createDemoState() avant de construire quoi que
+              ce soit : seules 2 dates sur les 5 désormais disponibles
+              portent une valeur coordonnée (9 des 24 opportunités sont
+              exécutées/engagées) — repli affiché en dessous de 2 points,
+              jamais une courbe forcée pour ressembler à la maquette. */}
+          <div className="mt-8 border-b border-[var(--etat-line)] pb-6">
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Évolution de la valeur coordonnée</p>
+            {coordinatedValueTrendPath ? (
+              <div className="mt-4">
+                <svg viewBox="0 0 640 180" preserveAspectRatio="none" className="h-36 w-full" role="img" aria-label="Évolution de la valeur coordonnée dans le temps">
+                  <path d={coordinatedValueTrendPath.area} fill="var(--etat-terracotta)" fillOpacity="0.08" />
+                  <path d={coordinatedValueTrendPath.line} fill="none" stroke="var(--etat-terracotta)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  {coordinatedValueTrendPath.coords.map(([x, y], index) => <circle key={coordinatedValueTrendPoints[index].date} cx={x} cy={y} r="4.5" fill="var(--etat-terracotta)" stroke="#fff" strokeWidth="2" />)}
+                </svg>
+                <div className="mt-2 flex justify-between text-xs">
+                  {coordinatedValueTrendPoints.map((point) => (
+                    <div key={point.date} className="text-center">
+                      <p className="font-bold text-[var(--etat-navy-950)]">{formatFcfa(point.value)}</p>
+                      <p className="text-[var(--etat-stone-400)]">{new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(new Date(point.date))}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-4 text-[11px] text-[var(--etat-stone-400)]">Grain jour, dérivé des pesées réelles reliées à chaque opportunité (weighedAt, ou arrivedAt à défaut) — aucun jour interpolé. Seules {coordinatedValueTrendPoints.length} date(s) portent une valeur coordonnée pour l’instant.</p>
               </div>
-            ))}
+            ) : (
+              <p className="mt-3 text-sm text-[var(--etat-stone-600)]">Historique insuffisant pour tracer une évolution : moins de deux jours documentés portent une valeur coordonnée pour le moment.</p>
+            )}
+          </div>
+
+          <div className="mt-8">
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Évolution des programmes en cours</p>
+            <div className="mt-4 grid gap-6 sm:grid-cols-2">
+              {leadIndicators.map(({ title, indicator }) => indicator && (
+                <div key={title} className="border-t border-[var(--etat-line)] pt-4">
+                  <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{title}</p>
+                  <p className="text-xs text-[var(--etat-stone-600)]">{indicator.label}</p>
+                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--etat-line)]"><div className="h-full rounded-full bg-[var(--etat-navy-600)]" style={{ width: `${Math.min(100, (indicator.current / indicator.target) * 100)}%` }} /></div>
+                  <p className="mt-2 text-xs text-[var(--etat-stone-600)]">{indicator.current} / {indicator.target} {indicator.unit} <span className="text-[var(--etat-stone-400)]">(départ : {indicator.baseline})</span></p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -522,8 +617,12 @@ export default function EtatPage() {
             <button className="etat-btn etat-btn-outline" onClick={() => setSignalDrawerOpen(true)}><Radio size={15} /> Signaler une situation</button>
           </div>
         </div>
+        {/* Chapitre enveloppé dans .etat-panel (correctif 2026-08-18,
+            vérification par capture) — même doctrine crème/blanc que le
+            Chapitre 2 (cf. commentaire équivalent plus haut). */}
+        <div className="etat-panel mt-5 p-6 lg:p-7">
         {situationsAArbitrer.length === 0 ? (
-          <p className="mt-5 text-sm text-[var(--etat-stone-600)]">Aucune situation de risque élevé ou critique en attente d’arbitrage pour le moment.</p>
+          <p className="text-sm text-[var(--etat-stone-600)]">Aucune situation de risque élevé ou critique en attente d’arbitrage pour le moment.</p>
         ) : (
           <>
             {/* Desktop : table — la vraie surface décisionnelle (mandat
@@ -532,8 +631,9 @@ export default function EtatPage() {
                 audit XXL Public) plutôt qu'un nouveau patron inventé.
                 Échéance/Responsable = Situation.dueAt/responsibleId
                 (champs réels, optionnels — "—" si non renseignés, jamais
-                fabriqués). */}
-            <div className="mt-5 hidden overflow-x-auto rounded-xl border border-[var(--etat-line)] md:block">
+                fabriqués). Bordure/arrondi propres retirés (redondants,
+                désormais imbriqués dans .etat-panel). */}
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-[var(--etat-line)] text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">
@@ -600,6 +700,7 @@ export default function EtatPage() {
             </div>
           </>
         )}
+        </div>
         {visits.filter((item) => item.status === "planifiee").length > 0 && <p className="mt-4 text-xs text-[var(--etat-stone-600)]">{visits.filter((item) => item.status === "planifiee").length} visite(s) terrain déjà planifiée(s) par le ministère.</p>}
       </section>
 
