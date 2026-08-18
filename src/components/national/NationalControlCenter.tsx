@@ -12,6 +12,20 @@ import { generateNationalSnapshot } from "@/domain/national/national-engine";
 // toutes affichées dans ce lot (aucune retirée) — la réduction à
 // "quelques mesures" se fera par chapitre au Lot B, pas ici : ce lot ne
 // change que l'habillage visuel, pas le contenu.
+//
+// Lot B, gap analysis Pilotage (CEO 2026-08-17) : le hero sombre propre
+// ("Intelligence territoriale nationale") est retiré. pilotage/page.tsx
+// rend ce composant juste avant PilotageWorkspace, qui a désormais son
+// propre hero de Chapitre 1 ("Brief exécutif") — pour administrateur
+// (seul rôle vivant qui atteint ce composant, cf. commentaire
+// nationalReading dans pilotage/page.tsx), les deux s'empilaient : deux
+// H1/hero l'un sur l'autre sur une même page, la redondance exacte que
+// le mandat vise à corriger. Ce composant devient un addendum compact —
+// seulement ses 7 mesures, sans habillage de hero. Sa vraie place dans
+// les 4 chapitres (probablement Chapitre 4 — Mesurer) reste une
+// question à trancher par le CEO quand ce chapitre sera construit
+// (Lot D) : ce lot ne fait que désempiler les deux hero, il ne déplace
+// pas encore le bloc dans la page.
 function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
     <div>
@@ -34,14 +48,13 @@ export function NationalControlCenter({ state }: { state: ProductState }) {
   ];
 
   return (
-    <section className="space-y-6">
-      <div className="overflow-hidden rounded-2xl bg-sidebar p-7 text-sidebar-foreground lg:p-8">
-        <p className="text-xs font-bold uppercase tracking-widest text-primary">Mbàmbulaan Sénégal</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Intelligence territoriale nationale</h1>
-        <p className="mt-3 max-w-3xl text-sidebar-foreground/65">Vision consolidée des territoires côtiers, des acteurs et des dynamiques de filière.</p>
+    <section className="space-y-4 border-b pb-8">
+      <div className="flex items-center gap-2 text-[#1d4468]">
+        <Map size={16} />
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Vision nationale · lecture consolidée</p>
       </div>
 
-      <div className="grid gap-6 border-y py-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.map((metric) => <Metric key={metric.label} {...metric} />)}
       </div>
     </section>

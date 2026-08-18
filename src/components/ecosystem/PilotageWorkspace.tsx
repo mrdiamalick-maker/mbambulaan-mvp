@@ -5,20 +5,19 @@ import { useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
-  BarChart3,
   CheckCircle2,
   ChevronDown,
   Factory,
   Fish,
   Handshake,
   Radio,
-  ShipWheel,
   Sparkles
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { Button } from "@/components/ui/button";
 import { ExportActions } from "@/components/reporting/ExportActions";
+import { CoastlineTerritoryMap } from "@/components/territories/CoastlineTerritoryMap";
 
 export function PilotageWorkspace() {
   const { state } = useProduct();
@@ -36,7 +35,12 @@ export function PilotageWorkspace() {
   const vessels = state.vessels.filter((item) => siteIds.includes(item.homeSiteId));
   const totalLanded = landings.filter((item) => item.status === "lots_crees").reduce((sum, item) => sum + item.totalWeightKg, 0);
   const valorized = lots.filter((item) => item.status === "valorise").reduce((sum, item) => sum + item.quantityKg, 0);
-  const estimatedValue = lots.reduce((sum, lot) => sum + lot.quantityKg * (state.species.find((item) => item.id === lot.speciesId)?.indicativePriceFcfaKg ?? 0), 0);
+  // "Valeur potentielle" (estimatedValue = somme lots.quantityKg × prix
+  // indicatif espèce) différée au Chapitre 2 — Tendances (Lot C, Audit DA
+  // Premium XXL v2) avec "Pirogues suivies" : le Chapitre 1 — Maintenant
+  // ne garde que "quelques mesures" (mandat CEO 2026-08-17). Recalculable
+  // à l'identique depuis lots/state.species, déjà en portée ici — aucune
+  // donnée perdue, seulement différée.
   const critical = situations.filter((item) => item.priority === "critique" && item.status !== "reglee");
   const resolved = situations.filter((item) => item.status === "reglee").length;
   const progress = situations.length ? Math.round((resolved / situations.length) * 100) : 0;
@@ -77,13 +81,48 @@ export function PilotageWorkspace() {
 
   return (
     <div className="space-y-8">
-      <section className="overflow-hidden rounded-2xl bg-sidebar text-sidebar-foreground">
-        <div className="grid lg:grid-cols-[1.25fr_.75fr]">
-          <div className="p-6 lg:p-7">
+      {/* Chapitre 1 — Maintenant (Lot B, Audit DA Premium XXL v2, mandat
+          CEO 2026-08-17). Même schéma que le Chapitre 1 de /app/etat :
+          carte + décision prioritaire côte à côte, puis un rang de
+          compteurs réduit sous les deux — carte cliquable, désormais
+          raccordée au filtre territoire déjà existant de cette page
+          (cliquer un point sélectionne ce territoire, comme le
+          sélecteur juste au-dessus) plutôt qu'un nouveau tiroir de
+          détail : Pilotage a déjà un mécanisme de périmètre, inutile
+          d'en dupliquer un second comme sur /app/etat qui n'en avait
+          pas. L'ancien bloc "Fenêtre de décision" (périmètre/période/
+          confiance) est dissous : périmètre et période étaient déjà
+          redondants avec les sélecteurs juste en dessous — seule
+          "Confiance" survit, glissée dans le panneau de droite. */}
+      <section>
+        <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">1 · Maintenant</p>
+
+        <div className="mt-3 flex flex-col gap-4 border-b pb-4 md:flex-row md:items-end md:justify-between">
+          <div><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Périmètre d’analyse</p><p className="mt-1 text-sm text-muted-foreground">La carte, les indicateurs et les décisions utilisent les mêmes filtres.</p></div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="text-xs font-semibold">Territoire<select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 block min-w-52 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"><option value="all">Vue nationale</option>{state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label className="text-xs font-semibold">Période<select value={period} onChange={(event) => setPeriod(event.target.value)} className="mt-1.5 block min-w-44 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"><option value="today">Aujourd’hui</option><option value="7d">7 derniers jours</option><option value="30d">30 derniers jours</option></select></label>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_.7fr] lg:items-stretch">
+          <div className="overflow-hidden rounded-2xl border bg-card">
+            <div className="aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full lg:min-h-[420px]">
+              <CoastlineTerritoryMap
+                territories={state.territories}
+                selectedId={territoryId !== "all" ? territoryId : undefined}
+                onSelect={(id) => setTerritoryId(id)}
+                colors={{ stable: "#1d4468", vigilance: "#c68a2c", critique: "#b6522f", land: "#f4f0e6", landStroke: "#1d4468" }}
+              />
+            </div>
+          </div>
+
+          <aside className="flex flex-col overflow-hidden rounded-2xl bg-sidebar p-6 text-sidebar-foreground">
             <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary"><Radio size={15} /> Brief exécutif</div>
-            <h2 className="mt-4 max-w-3xl text-2xl font-semibold tracking-tight lg:text-3xl">{critical.length ? `${critical.length} arbitrage${critical.length > 1 ? "s" : ""} critique${critical.length > 1 ? "s" : ""} sur le périmètre.` : "La situation est maîtrisée ; la veille reste active."}</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-sidebar-foreground/60">{(totalLanded / 1000).toFixed(2)} t documentées, {vessels.length} pirogues suivies et {infrastructures.filter((item) => item.status !== "operationnelle").length} capacités fragiles. Chaque chiffre renvoie à ses objets sources.</p>
-            <div className="mt-5 flex flex-wrap gap-2">
+            <h2 className="mt-4 text-xl font-semibold tracking-tight lg:text-2xl">{critical.length ? `${critical.length} arbitrage${critical.length > 1 ? "s" : ""} critique${critical.length > 1 ? "s" : ""} sur le périmètre.` : "La situation est maîtrisée ; la veille reste active."}</h2>
+            <p className="mt-3 text-sm leading-6 text-sidebar-foreground/60">{(totalLanded / 1000).toFixed(2)} t documentées, {vessels.length} pirogues suivies et {infrastructures.filter((item) => item.status !== "operationnelle").length} capacités fragiles. Chaque chiffre renvoie à ses objets sources.</p>
+            <p className="mt-4 border-t border-white/10 pt-4 text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40">Confiance <span className="ml-1 text-sm font-bold normal-case tracking-normal text-sidebar-foreground">{Math.round((situations.filter((item) => ["verifiee", "consolidee"].includes(item.trust)).length / Math.max(situations.length, 1)) * 100)}% qualifié</span></p>
+            <div className="mt-5 flex flex-1 flex-col justify-end gap-2">
               {/* Correctif 2026-08-17 (gap analysis Pilotage) : le repli
                   pointait vers /app/situations (index), dont la garde de
                   rôle (situations/page.tsx, Lot 2) redirige justement
@@ -97,41 +136,28 @@ export function PilotageWorkspace() {
               <Button variant="secondary" asChild><Link href={critical[0] ? `/app/situations/${critical[0].id}` : "/app/travail"}>{critical[0] ? "Ouvrir l’arbitrage" : "Voir les situations"} <ArrowRight size={15} /></Link></Button>
               <Button variant="outline" className="border-white/20 bg-transparent text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground" asChild><Link href="/app/atlas">Vérifier dans l’Atlas</Link></Button>
             </div>
-          </div>
-          <aside className="border-t border-white/10 bg-white/5 p-6 lg:border-l lg:border-t-0">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/40">Fenêtre de décision</p>
-            <div className="mt-5 space-y-5">{[["Périmètre", territoryId === "all" ? "Vue nationale" : state.territories.find((item) => item.id === territoryId)?.name ?? "Territoire"], ["Période", period === "today" ? "Aujourd’hui" : period === "7d" ? "7 derniers jours" : "30 derniers jours"], ["Confiance", `${Math.round((situations.filter((item) => ["verifiee", "consolidee"].includes(item.trust)).length / Math.max(situations.length, 1)) * 100)}% qualifié`]].map(([label, value]) => <div key={label} className="border-b border-white/10 pb-4 last:border-0"><p className="text-[9px] font-bold uppercase tracking-widest text-sidebar-foreground/35">{label}</p><p className="mt-1.5 text-sm font-bold">{value}</p></div>)}</div>
           </aside>
         </div>
-      </section>
 
-      <section className="flex flex-col gap-4 border-y py-4 md:flex-row md:items-end md:justify-between">
-        <div><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Périmètre d’analyse</p><p className="mt-1 text-sm text-muted-foreground">Les indicateurs, graphiques et décisions utilisent les mêmes filtres.</p></div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <label className="text-xs font-semibold">Territoire<select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 block min-w-52 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"><option value="all">Vue nationale</option>{state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <label className="text-xs font-semibold">Période<select value={period} onChange={(event) => setPeriod(event.target.value)} className="mt-1.5 block min-w-44 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"><option value="today">Aujourd’hui</option><option value="7d">7 derniers jours</option><option value="30d">30 derniers jours</option></select></label>
+        {/* "Quelques mesures" (mandat) : 3 des 5 anciennes mesures restent
+            ici — le coeur de "maintenant". Pirogues suivies reste visible
+            dans la phrase du brief ci-dessus (vessels toujours utilisé,
+            aucune donnée perdue) ; Valeur potentielle est différée au
+            Chapitre 2 — Tendances (Lot C), cf. commentaire sur
+            estimatedValue plus haut dans ce fichier. */}
+        <div className="mt-6 grid gap-6 border-t pt-5 sm:grid-cols-3">
+          {[
+            [Fish, "Volume débarqué", `${(totalLanded / 1000).toFixed(2)} t`, "Pesées disponibles sur le périmètre", "text-[#1d4468]"],
+            [Factory, "Capacités fragiles", String(infrastructures.filter((item) => item.status !== "operationnelle").length), "Froid, pesée ou transport à surveiller", "text-[#b6522f]"],
+            [CheckCircle2, "Volume valorisé", `${(valorized / 1000).toFixed(2)} t`, "Lots avec résultat logistique", "text-[#1d4468]"]
+          ].map(([Icon, label, value, detail, tone]) => {
+            const ItemIcon = Icon as typeof Fish;
+            return <div key={String(label)}><ItemIcon size={18} className={String(tone)} /><p className="mt-2 text-2xl font-bold">{String(value)}</p><p className="text-xs text-muted-foreground">{String(label)}</p><p className="mt-1 text-[11px] text-muted-foreground">{String(detail)}</p></div>;
+          })}
         </div>
       </section>
 
-      {/* Lot A, gap analysis Pilotage (CEO 2026-08-17) : chiffres inline
-          plutôt que 5 cartes à bordures — même §17 déjà appliqué sur
-          /app/etat. Les 5 mesures restent toutes affichées ici (aucune
-          retirée) ; leur répartition entre chapitres se décide au Lot C
-          (Tendances), pas dans ce lot visuel. */}
-      <section className="grid gap-6 border-y py-5 sm:grid-cols-2 xl:grid-cols-5">
-        {[
-          [Fish, "Volume débarqué", `${(totalLanded / 1000).toFixed(2)} t`, "Pesées disponibles sur le périmètre", "text-[#1d4468]"],
-          [ShipWheel, "Pirogues suivies", String(vessels.length), "Unités rattachées aux quais visibles", "text-[#1d4468]"],
-          [BarChart3, "Valeur potentielle", `${(estimatedValue / 1_000_000).toFixed(1)} M`, "FCFA estimés, non transactionnels", "text-[#1d4468]"],
-          [Factory, "Capacités fragiles", String(infrastructures.filter((item) => item.status !== "operationnelle").length), "Froid, pesée ou transport à surveiller", "text-[#b6522f]"],
-          [CheckCircle2, "Volume valorisé", `${(valorized / 1000).toFixed(2)} t`, "Lots avec résultat logistique", "text-[#1d4468]"]
-        ].map(([Icon, label, value, detail, tone]) => {
-          const ItemIcon = Icon as typeof Fish;
-          return <div key={String(label)}><ItemIcon size={18} className={String(tone)} /><p className="mt-2 text-2xl font-bold">{String(value)}</p><p className="text-xs text-muted-foreground">{String(label)}</p><p className="mt-1 text-[11px] text-muted-foreground">{String(detail)}</p></div>;
-        })}
-      </section>
-
-      <section className="grid gap-8 xl:grid-cols-[1.25fr_.75fr]">
+      <section className="grid gap-8 border-t pt-8 xl:grid-cols-[1.25fr_.75fr]">
         <section>
           <div className="flex items-start justify-between gap-4 border-b pb-3"><div><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pêche du jour</p><h2 className="mt-1 text-xl font-semibold">Volumes par espèce</h2></div><TrustBadge trust="verifiee" /></div>
           <div className="mt-7 space-y-5">
