@@ -32,7 +32,7 @@ import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { channelMeta, glyphBorderColor, priorityLabels, priorityToTag } from "@/lib/status-tokens";
 import type { PublicRequest, PublicRequestIntent } from "@/domain/public/request";
-import { serviceRequestIntentLabels, type AuditEntry, type CatchLine, type IncomingMessage, type ProductState, type ServiceRequestIntent, type Signal } from "@/domain/types";
+import { serviceRequestIntentLabels, type AuditEntry, type CatchLine, type Capacity, type IncomingMessage, type Priority, type ProductState, type ServiceRequest, type ServiceRequestIntent, type Signal } from "@/domain/types";
 
 // Relais généralisé (Lot A, canal simulé) : une entrée d'audit compte comme
 // "relais visible dans le fil" seulement si elle porte la mention que
@@ -41,6 +41,31 @@ import { serviceRequestIntentLabels, type AuditEntry, type CatchLine, type Incom
 function isRelayAuditEntry(entry: AuditEntry) {
   return (entry.action === "accept_opportunity" || entry.action === "complete_logistics") && entry.detail.includes("pour le compte de");
 }
+
+// Gap analysis Coordination, point 3 (arbitrage CEO 2026-08-18) : "Besoins
+// à couvrir" et "Capacités mobilisables" n'étaient triés par rien —
+// l'ordre suivait state.serviceRequests/state.capacities tel quel, un
+// besoin critique pouvait se retrouver en milieu de liste. Même
+// discipline que /app/etat et /app/pilotage (situations/décisions
+// toujours triées critique-en-premier).
+const priorityRank: Record<Priority, number> = { critique: 3, haute: 2, moyenne: 1, faible: 0 };
+
+// Les capacités n'ont pas de champ priority — leur criticité est le taux
+// de disponibilité déjà utilisé pour la couleur de la barre de progression
+// (rouge <30%, ambre <65%) et pour viewTension ci-dessous. Extrait en
+// fonction plutôt que recalculé séparément pour le tri et pour l'affichage
+// (une seule source, jamais deux calculs qui pourraient diverger).
+function capacityRate(capacity: Capacity, state: ProductState) {
+  const infrastructure = state.infrastructures.find((item) => item.id === capacity.infrastructureId);
+  return infrastructure?.theoreticalCapacity ? Math.round((infrastructure.availableCapacity / infrastructure.theoreticalCapacity) * 100) : 0;
+}
+
+// Combien d'éléments rester visibles avant le repli "Voir tout" — même
+// principe que topPriorities/morePriorities sur /app/etat (Chapitre 3),
+// adapté à des listes plus denses (jusqu'à 40 besoins dans la
+// démonstration) : 5 plutôt que 3, pour rester lisible sans réduire la
+// liste à presque rien.
+const VISIBLE_ROWS = 5;
 
 type View = "besoins" | "capacites" | "rapprochements" | "missions" | "demandes_publiques" | "messages_entrants";
 
@@ -140,6 +165,8 @@ export function CoordinationWorkspace() {
   const [view, setView] = useState<View>("besoins");
   const [territoryId, setTerritoryId] = useState("all");
   const [query, setQuery] = useState("");
+  const [needsExpanded, setNeedsExpanded] = useState(false);
+  const [capacitiesExpanded, setCapacitiesExpanded] = useState(false);
   const [pendingPublicRequests, setPendingPublicRequests] = useState<PublicRequest[]>([]);
   const [pendingPublicRequestsLoading, setPendingPublicRequestsLoading] = useState(true);
   const [pendingPublicRequestsError, setPendingPublicRequestsError] = useState("");
@@ -207,15 +234,23 @@ export function CoordinationWorkspace() {
   const urgentSpecies = state.species.find((item) => item.id === urgentNeed?.speciesId);
   const selectedView = views.find((item) => item.id === view) ?? views[0];
 
-  const filteredNeeds = openNeeds.filter((need) => {
-    const species = state.species.find((item) => item.id === need.speciesId)?.name ?? "";
-    return (territoryId === "all" || need.territoryId === territoryId) && `${species} ${need.intent} ${need.source}`.toLowerCase().includes(query.toLowerCase());
-  });
+  const filteredNeeds = openNeeds
+    .filter((need) => {
+      const species = state.species.find((item) => item.id === need.speciesId)?.name ?? "";
+      return (territoryId === "all" || need.territoryId === territoryId) && `${species} ${need.intent} ${need.source}`.toLowerCase().includes(query.toLowerCase());
+    })
+    .sort((a, b) => priorityRank[b.priority] - priorityRank[a.priority]);
+  const topNeeds = filteredNeeds.slice(0, VISIBLE_ROWS);
+  const moreNeeds = filteredNeeds.slice(VISIBLE_ROWS);
 
-  const filteredCapacities = availableCapacities.filter((capacity) => {
-    const infrastructure = state.infrastructures.find((item) => item.id === capacity.infrastructureId);
-    return (territoryId === "all" || infrastructure?.territoryId === territoryId) && `${infrastructure?.name ?? ""} ${capacity.type}`.toLowerCase().includes(query.toLowerCase());
-  });
+  const filteredCapacities = availableCapacities
+    .filter((capacity) => {
+      const infrastructure = state.infrastructures.find((item) => item.id === capacity.infrastructureId);
+      return (territoryId === "all" || infrastructure?.territoryId === territoryId) && `${infrastructure?.name ?? ""} ${capacity.type}`.toLowerCase().includes(query.toLowerCase());
+    })
+    .sort((a, b) => capacityRate(a, state) - capacityRate(b, state));
+  const topCapacities = filteredCapacities.slice(0, VISIBLE_ROWS);
+  const moreCapacities = filteredCapacities.slice(VISIBLE_ROWS);
 
   // C06 — indicateur de tension par vue (marine neutre partout ailleurs) :
   // un point terracotta dans la navigation seulement si la vue contient
@@ -264,7 +299,14 @@ export function CoordinationWorkspace() {
         <div className="px-4 py-4"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">Besoins ouverts</p><p className="mt-1.5 text-2xl font-bold tracking-tight text-[#0b1a2a]">{openNeeds.length}</p></div>
         <div className="px-4 py-4"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">Capacités mobilisables</p><p className="mt-1.5 text-2xl font-bold tracking-tight text-[#0b1a2a]">{availableCapacities.length}</p></div>
         <div className="px-4 py-4"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">Rapprochements</p><p className="mt-1.5 text-2xl font-bold tracking-tight text-[#0b1a2a]">{state.opportunities.length}</p></div>
-        <div className="px-4 py-4"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">Résultats</p><p className="mt-1.5 text-2xl font-bold tracking-tight text-[#0b1a2a]">{state.situations.filter((item) => item.status === "reglee").length}</p></div>
+        {/* "Résultats" recalculé sur le domaine propre de Coordination
+            (gap analysis, point 4, arbitrage CEO 2026-08-18) :
+            state.situations.filter(reglee) empruntait un concept
+            État/vigilance ; state.opportunities.filter(executee) boucle
+            au contraire exactement le cycle que cette page raconte
+            elle-même (légende C13 plus bas : Besoin qualifié → Capacité
+            vérifiée → Engagement humain → Résultat observé). */}
+        <div className="px-4 py-4"><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs">Résultats</p><p className="mt-1.5 text-2xl font-bold tracking-tight text-[#0b1a2a]">{state.opportunities.filter((item) => item.status === "executee").length}</p></div>
       </div>
 
       {/* C05 — plus de grande Card qui enferme tout le workspace : un
@@ -317,66 +359,50 @@ export function CoordinationWorkspace() {
           </label>
         </div>
 
-        {/* C08 — Besoins à couvrir : registre continu, rail de priorité. */}
+        {/* C08 — Besoins à couvrir : registre continu, rail de priorité.
+            Trié critique-en-premier (gap analysis, point 3) : les 5
+            premiers restent toujours visibles, le reste replié derrière
+            un bascule explicite — même principe que /app/etat (Chapitre
+            3, topPriorities/morePriorities), pour qu'une liste de 40
+            besoins reste utilisable plutôt qu'un défilement de plusieurs
+            écrans sans structure. */}
         {view === "besoins" && (
           filteredNeeds.length ? (
-            <div className="divide-y border-y">
-              {filteredNeeds.map((need) => {
-                const species = state.species.find((item) => item.id === need.speciesId);
-                const territory = state.territories.find((item) => item.id === need.territoryId);
-                const actor = state.actors.find((item) => item.id === need.actorId);
-                const tag = priorityToTag[need.priority];
-                return (
-                  <div key={need.id} className="relative flex flex-col gap-3 py-5 pl-5 md:flex-row md:flex-wrap md:items-center md:justify-between">
-                    <span className="absolute inset-y-4 left-0 w-1 rounded-full" style={{ backgroundColor: glyphBorderColor[tag] }} aria-hidden="true" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={tag === "critique" ? "terracotta" : tag === "vigilance" ? "amber" : "marine"}>{priorityLabels[need.priority]}</Badge>
-                        <span className="text-xs font-semibold text-muted-foreground">{need.intent} · {territory?.name}</span>
-                      </div>
-                      <p className="mt-1.5 text-sm font-semibold">{species?.name} · {need.quantityKg.toLocaleString("fr-FR")} kg · Classe {need.quality}</p>
-                      {/* need.actorId identifie l'acteur qui a créé la ServiceRequest —
-                          pour une demande convertie depuis le public, c'est le
-                          coordinateur qui convertit, pas le demandeur d'origine
-                          (cf. commentaire PublicRequestRow). Les vraies coordonnées
-                          du demandeur restent portées par contactName/organization/
-                          phone quand ils existent ; sinon (besoin déclaré directement
-                          par un acteur professionnel) actor?.name reste correct. */}
-                      <p className="mt-1 text-xs text-muted-foreground">Demandé par {need.contactName ?? actor?.name}{need.organization ? ` · ${need.organization}` : ""}{need.phone ? ` · ${need.phone}` : ""} · {need.source} · <span className="capitalize">{need.status}</span></p>
-                    </div>
-                    <Button size="sm" variant="outline" onClick={() => setView("rapprochements")}>Chercher une réponse <ArrowRight /></Button>
-                  </div>
-                );
-              })}
+            <div>
+              <div className="divide-y border-y">
+                {topNeeds.map((need) => <NeedRow key={need.id} need={need} state={state} onRespond={() => setView("rapprochements")} />)}
+              </div>
+              {moreNeeds.length > 0 && (
+                <div className="mt-4">
+                  <Button size="sm" variant="outline" onClick={() => setNeedsExpanded((value) => !value)}>
+                    {needsExpanded ? "Réduire" : `Voir tous les besoins (${filteredNeeds.length})`} <ArrowRight className={needsExpanded ? "rotate-90" : undefined} />
+                  </Button>
+                  {needsExpanded && <div className="mt-3 divide-y border-y">{moreNeeds.map((need) => <NeedRow key={need.id} need={need} state={state} onRespond={() => setView("rapprochements")} />)}</div>}
+                </div>
+              )}
             </div>
           ) : <Empty label="Aucun besoin ne correspond aux filtres." />
         )}
 
         {/* C09 — Capacités mobilisables : palette de disponibilité
-            corrigée (terracotta/ambre/marine, plus de turquoise). */}
+            corrigée (terracotta/ambre/marine, plus de turquoise). Triées
+            par taux de disponibilité croissant (les plus fragiles
+            d'abord, gap analysis point 3) — même repli "voir tout" que
+            les besoins. */}
         {view === "capacites" && (
           filteredCapacities.length ? (
-            <div className="divide-y border-y">
-              {filteredCapacities.map((capacity) => {
-                const infrastructure = state.infrastructures.find((item) => item.id === capacity.infrastructureId);
-                const territory = state.territories.find((item) => item.id === infrastructure?.territoryId);
-                const rate = infrastructure?.theoreticalCapacity ? Math.round(infrastructure.availableCapacity / infrastructure.theoreticalCapacity * 100) : 0;
-                const barColor = rate < 30 ? "#b6522f" : rate < 65 ? "#c68a2c" : "#0b1a2a";
-                return (
-                  <div key={capacity.id} className="flex flex-col gap-4 py-5 md:flex-row md:items-center md:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-muted-foreground">{capacity.type} · {territory?.name}</p>
-                      <p className="mt-1.5 text-sm font-semibold">{infrastructure?.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Disponible jusqu’au {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(capacity.validUntil))}</p>
-                    </div>
-                    <div className="w-full md:max-w-xs">
-                      <div className="flex justify-between text-xs font-semibold"><span className="text-muted-foreground">{capacity.availableQuantity} {capacity.unit} disponible(s)</span><strong>{rate}%</strong></div>
-                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${rate}%`, backgroundColor: barColor }} /></div>
-                    </div>
-                    <Button size="sm" variant="outline" asChild><Link href="/app/atlas">Voir sur l’Atlas <ArrowRight /></Link></Button>
-                  </div>
-                );
-              })}
+            <div>
+              <div className="divide-y border-y">
+                {topCapacities.map((capacity) => <CapacityRow key={capacity.id} capacity={capacity} state={state} />)}
+              </div>
+              {moreCapacities.length > 0 && (
+                <div className="mt-4">
+                  <Button size="sm" variant="outline" onClick={() => setCapacitiesExpanded((value) => !value)}>
+                    {capacitiesExpanded ? "Réduire" : `Voir toutes les capacités (${filteredCapacities.length})`} <ArrowRight className={capacitiesExpanded ? "rotate-90" : undefined} />
+                  </Button>
+                  {capacitiesExpanded && <div className="mt-3 divide-y border-y">{moreCapacities.map((capacity) => <CapacityRow key={capacity.id} capacity={capacity} state={state} />)}</div>}
+                </div>
+              )}
             </div>
           ) : <Empty label="Aucune capacité mobilisable ne correspond aux filtres." />
         )}
@@ -554,6 +580,58 @@ export function CoordinationWorkspace() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// Extraites de l'ancien .map() inline (gap analysis Coordination, point
+// 3) pour être réutilisées à la fois par la liste toujours visible et
+// par le repli "voir tout", sans dupliquer le gabarit de ligne.
+function NeedRow({ need, state, onRespond }: { need: ServiceRequest; state: ProductState; onRespond: () => void }) {
+  const species = state.species.find((item) => item.id === need.speciesId);
+  const territory = state.territories.find((item) => item.id === need.territoryId);
+  const actor = state.actors.find((item) => item.id === need.actorId);
+  const tag = priorityToTag[need.priority];
+  return (
+    <div className="relative flex flex-col gap-3 py-5 pl-5 md:flex-row md:flex-wrap md:items-center md:justify-between">
+      <span className="absolute inset-y-4 left-0 w-1 rounded-full" style={{ backgroundColor: glyphBorderColor[tag] }} aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={tag === "critique" ? "terracotta" : tag === "vigilance" ? "amber" : "marine"}>{priorityLabels[need.priority]}</Badge>
+          <span className="text-xs font-semibold text-muted-foreground">{need.intent} · {territory?.name}</span>
+        </div>
+        <p className="mt-1.5 text-sm font-semibold">{species?.name} · {need.quantityKg.toLocaleString("fr-FR")} kg · Classe {need.quality}</p>
+        {/* need.actorId identifie l'acteur qui a créé la ServiceRequest —
+            pour une demande convertie depuis le public, c'est le
+            coordinateur qui convertit, pas le demandeur d'origine
+            (cf. commentaire PublicRequestRow). Les vraies coordonnées
+            du demandeur restent portées par contactName/organization/
+            phone quand ils existent ; sinon (besoin déclaré directement
+            par un acteur professionnel) actor?.name reste correct. */}
+        <p className="mt-1 text-xs text-muted-foreground">Demandé par {need.contactName ?? actor?.name}{need.organization ? ` · ${need.organization}` : ""}{need.phone ? ` · ${need.phone}` : ""} · {need.source} · <span className="capitalize">{need.status}</span></p>
+      </div>
+      <Button size="sm" variant="outline" onClick={onRespond}>Chercher une réponse <ArrowRight /></Button>
+    </div>
+  );
+}
+
+function CapacityRow({ capacity, state }: { capacity: Capacity; state: ProductState }) {
+  const infrastructure = state.infrastructures.find((item) => item.id === capacity.infrastructureId);
+  const territory = state.territories.find((item) => item.id === infrastructure?.territoryId);
+  const rate = capacityRate(capacity, state);
+  const barColor = rate < 30 ? "#b6522f" : rate < 65 ? "#c68a2c" : "#0b1a2a";
+  return (
+    <div className="flex flex-col gap-4 py-5 md:flex-row md:items-center md:justify-between">
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold text-muted-foreground">{capacity.type} · {territory?.name}</p>
+        <p className="mt-1.5 text-sm font-semibold">{infrastructure?.name}</p>
+        <p className="mt-1 text-xs text-muted-foreground">Disponible jusqu’au {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(capacity.validUntil))}</p>
+      </div>
+      <div className="w-full md:max-w-xs">
+        <div className="flex justify-between text-xs font-semibold"><span className="text-muted-foreground">{capacity.availableQuantity} {capacity.unit} disponible(s)</span><strong>{rate}%</strong></div>
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${rate}%`, backgroundColor: barColor }} /></div>
+      </div>
+      <Button size="sm" variant="outline" asChild><Link href="/app/atlas">Voir sur l’Atlas <ArrowRight /></Link></Button>
     </div>
   );
 }
