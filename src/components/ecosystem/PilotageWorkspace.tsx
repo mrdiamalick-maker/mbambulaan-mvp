@@ -82,7 +82,17 @@ export function PilotageWorkspace() {
             <h2 className="mt-4 max-w-3xl text-2xl font-semibold tracking-tight lg:text-3xl">{critical.length ? `${critical.length} arbitrage${critical.length > 1 ? "s" : ""} critique${critical.length > 1 ? "s" : ""} sur le périmètre.` : "La situation est maîtrisée ; la veille reste active."}</h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-sidebar-foreground/60">{(totalLanded / 1000).toFixed(2)} t documentées, {vessels.length} pirogues suivies et {infrastructures.filter((item) => item.status !== "operationnelle").length} capacités fragiles. Chaque chiffre renvoie à ses objets sources.</p>
             <div className="mt-5 flex flex-wrap gap-2">
-              <Button variant="secondary" asChild><Link href={critical[0] ? `/app/situations/${critical[0].id}` : "/app/situations"}>{critical[0] ? "Ouvrir l’arbitrage" : "Voir les situations"} <ArrowRight size={15} /></Link></Button>
+              {/* Correctif 2026-08-17 (gap analysis Pilotage) : le repli
+                  pointait vers /app/situations (index), dont la garde de
+                  rôle (situations/page.tsx, Lot 2) redirige justement
+                  administrateur/gestionnaire_organisation/coordinateur/
+                  partenaire — les 4 seuls rôles qui atteignent cette page
+                  — vers /app/travail. Retour silencieux vérifié en
+                  conditions réelles. /app/travail (CoordinatorHub) est la
+                  vraie destination pour ces rôles : la file de situations
+                  fusionnée y vit déjà ("Situations à traiter, par
+                  priorité"), ce n'est pas un contournement. */}
+              <Button variant="secondary" asChild><Link href={critical[0] ? `/app/situations/${critical[0].id}` : "/app/travail"}>{critical[0] ? "Ouvrir l’arbitrage" : "Voir les situations"} <ArrowRight size={15} /></Link></Button>
               <Button variant="outline" className="border-white/20 bg-transparent text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground" asChild><Link href="/app/atlas">Vérifier dans l’Atlas</Link></Button>
             </div>
           </div>
