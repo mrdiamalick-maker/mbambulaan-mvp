@@ -8,16 +8,38 @@
 // l'eau (contrairement à l'illustration de référence) : la palette D9
 // verrouillée n'a pas de bleu, une nouvelle teinte n'est pas introduite
 // pour un simple effet décoratif.
+//
+// Couleurs paramétrables (Lot A, gap analysis Pilotage, arbitrage CEO
+// 2026-08-17, option 2) : les tokens --etat-* ci-dessous en valeurs par
+// défaut ne sont définis qu'à l'intérieur de .etat-scope
+// (etat-design-system.css), pas sur :root — contrairement aux tokens
+// --pub-* du Public qui sont globaux. Ce composant était donc invisible
+// (couleurs non résolues) hors d'un ancêtre .etat-scope. La prop `colors`
+// permet de le réutiliser tel quel sur des pages en .shadcn-scope
+// (Pilotage, puis Coordination/Rapport) sans dupliquer le composant ni
+// l'envelopper artificiellement dans un .etat-scope local — les valeurs
+// par défaut restent strictement identiques à l'usage existant sur
+// /app/etat (Lots B/C/D), aucune régression visuelle.
 "use client";
 
 import { coastlinePath, coastlineViewBox, territoryMapPositions } from "@/domain/territory-map-positions";
 
 export type MapActivity = "stable" | "vigilance" | "critique";
 
-const activityColor: Record<MapActivity, string> = {
+export interface CoastlineTerritoryMapColors {
+  stable: string;
+  vigilance: string;
+  critique: string;
+  land: string;
+  landStroke: string;
+}
+
+const defaultColors: CoastlineTerritoryMapColors = {
   stable: "var(--etat-navy-600)",
   vigilance: "var(--etat-ocre)",
-  critique: "var(--etat-terracotta)"
+  critique: "var(--etat-terracotta)",
+  land: "var(--etat-offwhite-dim)",
+  landStroke: "var(--etat-navy-600)"
 };
 
 export interface MapTerritory {
@@ -29,22 +51,25 @@ export interface MapTerritory {
 export function CoastlineTerritoryMap({
   territories,
   selectedId,
-  onSelect
+  onSelect,
+  colors
 }: {
   territories: MapTerritory[];
   selectedId?: string;
   onSelect?: (id: string) => void;
+  colors?: Partial<CoastlineTerritoryMapColors>;
 }) {
+  const tone: CoastlineTerritoryMapColors = { ...defaultColors, ...colors };
   return (
     <svg viewBox={coastlineViewBox} preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label="Carte illustrative du littoral sénégalais et des territoires suivis par le réseau">
       <title>Littoral du Sénégal — territoires suivis par Mbàmbulaan</title>
-      <path d={coastlinePath} fill="var(--etat-offwhite-dim)" stroke="var(--etat-navy-600)" strokeOpacity="0.3" strokeWidth="4" strokeLinejoin="round" />
+      <path d={coastlinePath} fill={tone.land} stroke={tone.landStroke} strokeOpacity="0.3" strokeWidth="4" strokeLinejoin="round" />
       {territories.map((territory) => {
         const position = territoryMapPositions[territory.id];
         if (!position) return null;
         const [x, y] = position;
         const active = territory.id === selectedId;
-        const color = activityColor[territory.activity];
+        const color = tone[territory.activity];
         const clickable = Boolean(onSelect);
         const activate = () => onSelect?.(territory.id);
         return (

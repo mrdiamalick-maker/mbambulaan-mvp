@@ -7,6 +7,7 @@ import {
   ArrowRight,
   BarChart3,
   CheckCircle2,
+  ChevronDown,
   Factory,
   Fish,
   Handshake,
@@ -23,6 +24,7 @@ export function PilotageWorkspace() {
   const { state } = useProduct();
   const [territoryId, setTerritoryId] = useState("all");
   const [period, setPeriod] = useState("today");
+  const [aiTeaserExpanded, setAiTeaserExpanded] = useState(false);
   if (!state) return null;
 
   const report = state.reports[0];
@@ -111,16 +113,21 @@ export function PilotageWorkspace() {
         </div>
       </section>
 
-      <section className="grid border-y sm:grid-cols-2 xl:grid-cols-5">
+      {/* Lot A, gap analysis Pilotage (CEO 2026-08-17) : chiffres inline
+          plutôt que 5 cartes à bordures — même §17 déjà appliqué sur
+          /app/etat. Les 5 mesures restent toutes affichées ici (aucune
+          retirée) ; leur répartition entre chapitres se décide au Lot C
+          (Tendances), pas dans ce lot visuel. */}
+      <section className="grid gap-6 border-y py-5 sm:grid-cols-2 xl:grid-cols-5">
         {[
           [Fish, "Volume débarqué", `${(totalLanded / 1000).toFixed(2)} t`, "Pesées disponibles sur le périmètre", "text-[#1d4468]"],
           [ShipWheel, "Pirogues suivies", String(vessels.length), "Unités rattachées aux quais visibles", "text-[#1d4468]"],
           [BarChart3, "Valeur potentielle", `${(estimatedValue / 1_000_000).toFixed(1)} M`, "FCFA estimés, non transactionnels", "text-[#1d4468]"],
           [Factory, "Capacités fragiles", String(infrastructures.filter((item) => item.status !== "operationnelle").length), "Froid, pesée ou transport à surveiller", "text-[#b6522f]"],
           [CheckCircle2, "Volume valorisé", `${(valorized / 1000).toFixed(2)} t`, "Lots avec résultat logistique", "text-[#1d4468]"]
-        ].map(([Icon, label, value, detail, tone], index) => {
+        ].map(([Icon, label, value, detail, tone]) => {
           const ItemIcon = Icon as typeof Fish;
-          return <div key={String(label)} className={`py-4 ${index > 0 ? "sm:border-l sm:pl-4" : ""}`}><ItemIcon size={18} className={String(tone)} /><p className="mt-3 text-2xl font-bold">{String(value)}</p><p className="text-xs text-muted-foreground">{String(label)}</p><p className="mt-1 text-[11px] text-muted-foreground">{String(detail)}</p></div>;
+          return <div key={String(label)}><ItemIcon size={18} className={String(tone)} /><p className="mt-2 text-2xl font-bold">{String(value)}</p><p className="text-xs text-muted-foreground">{String(label)}</p><p className="mt-1 text-[11px] text-muted-foreground">{String(detail)}</p></div>;
         })}
       </section>
 
@@ -191,9 +198,18 @@ export function PilotageWorkspace() {
         </section>
       </section>
 
-      <section className="flex gap-3 border-t pt-6">
-        <Sparkles className="mt-0.5 shrink-0 text-[#1d4468]" size={20} />
-        <div><p className="font-semibold">Assistance à la synthèse · optionnelle</p><p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">Mbàmbulaan peut préparer une lecture des tendances, des incohérences et des décisions possibles. L’organisation choisit de l’activer ; aucune recommandation ne remplace la validation humaine.</p></div>
+      {/* Lot A, gap analysis Pilotage (CEO 2026-08-17) : passé de section
+          toujours dépliée à drill-down replié par défaut — c'était l'une
+          des "bonnes briques en trop" du diagnostic mandat, une
+          fonctionnalité optionnelle n'a pas besoin d'occuper un bloc de
+          pleine largeur en permanence. */}
+      <section className="border-t pt-5">
+        <button onClick={() => setAiTeaserExpanded((value) => !value)} className="flex w-full items-center gap-3 text-left">
+          <Sparkles className="shrink-0 text-[#1d4468]" size={18} />
+          <span className="font-semibold">Assistance à la synthèse · optionnelle</span>
+          <ChevronDown size={16} className={`ml-auto shrink-0 text-muted-foreground transition ${aiTeaserExpanded ? "rotate-180" : ""}`} />
+        </button>
+        {aiTeaserExpanded && <p className="mt-3 max-w-4xl text-sm leading-6 text-muted-foreground">Mbàmbulaan peut préparer une lecture des tendances, des incohérences et des décisions possibles. L’organisation choisit de l’activer ; aucune recommandation ne remplace la validation humaine.</p>}
       </section>
     </div>
   );
