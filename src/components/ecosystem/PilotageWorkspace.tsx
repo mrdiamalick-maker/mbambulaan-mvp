@@ -270,29 +270,52 @@ export function PilotageWorkspace() {
         </div>
       </section>
 
-      <section className="grid gap-8 border-t pt-8 xl:grid-cols-[1.2fr_.8fr]">
-        <section>
-          <div className="border-b border-[#b6522f]/30 pb-3"><p className="text-xs font-bold uppercase tracking-widest text-[#b6522f]">Décisions attendues</p><h2 className="mt-1 text-lg font-semibold">Responsabilités et prochain geste</h2></div>
-          <div className="divide-y">
-            {critical.length > 0 ? critical.map((item) => {
-              const territory = state.territories.find((territoryItem) => territoryItem.id === item.territoryId);
-              return (
-                <article key={item.id} className="grid gap-4 border-l-2 border-[#b6522f]/50 py-4 pl-4 md:grid-cols-[1fr_auto] md:items-center">
-                  <div><div className="flex flex-wrap items-center gap-2"><AlertTriangle size={17} className="text-[#b6522f]" /><h3 className="font-semibold">{item.title}</h3><TrustBadge trust={item.trust} /></div><p className="mt-2 text-xs text-muted-foreground">{territory?.name} · {item.nextStep}</p></div>
-                  <span className="text-xs font-bold text-[#b6522f]">Action aujourd’hui</span>
-                </article>
-              );
-            }) : <p className="py-5 text-sm text-muted-foreground">Aucune situation critique sur ce périmètre.</p>}
-          </div>
-        </section>
+      {/* Chapitre 3 — Décider (Lot D, Audit DA Premium XXL v2, mandat CEO
+          2026-08-18). Contenu inchangé depuis le Lot A (fusion des deux
+          blocs de décision) — seulement re-chaptré : section propre,
+          pleine largeur, plutôt que partagée en grille avec le Rapport
+          de valeur. Même schéma que les chapitres numérotés d'/app/etat
+          (jamais deux chapitres numérotés dans une même rangée). */}
+      <section className="border-t pt-8">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">3 · Décider</p>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Ce qui attend un arbitrage.</h2>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Situations critiques sur le périmètre, avec responsable et prochain geste.</p>
 
-        <section>
-          <div className="flex items-center gap-2 text-[#1d4468]"><Handshake size={19} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Rapport de valeur</p></div>
-          <h2 className="mt-3 text-lg font-semibold">{report.title}</h2>
-          <p className="mt-2 text-sm text-muted-foreground">{report.period} · données simulées et traçables</p>
-          <div className="mt-5 divide-y border-y">{report.metrics.map((metric) => <div key={metric.label} className="py-4"><p className="text-xs text-muted-foreground">{metric.label}</p><p className="mt-1 text-xl font-bold">{metric.value}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">{metric.source} · limite : {metric.limit}</p></div>)}</div>
-          <div className="mt-6"><ExportActions filename={`mbambulaan-pilotage-${territoryId}-${period}`} rows={exportRows} compact /></div>
-        </section>
+        <div className="mt-6 divide-y border-t">
+          {critical.length > 0 ? critical.map((item) => {
+            const territory = state.territories.find((territoryItem) => territoryItem.id === item.territoryId);
+            return (
+              <article key={item.id} className="grid gap-4 border-l-2 border-[#b6522f]/50 py-4 pl-4 md:grid-cols-[1fr_auto] md:items-center">
+                <div><div className="flex flex-wrap items-center gap-2"><AlertTriangle size={17} className="text-[#b6522f]" /><h3 className="font-semibold">{item.title}</h3><TrustBadge trust={item.trust} /></div><p className="mt-2 text-xs text-muted-foreground">{territory?.name} · {item.nextStep}</p></div>
+                <span className="text-xs font-bold text-[#b6522f]">Action aujourd’hui</span>
+              </article>
+            );
+          }) : <p className="py-5 text-sm text-muted-foreground">Aucune situation critique sur ce périmètre.</p>}
+        </div>
+      </section>
+
+      {/* Chapitre 4 — Mesurer (Lot D). Le rapport de valeur passe du
+          style liste verticale (divide-y) à la grille de chiffres
+          inline déjà utilisée aux Chapitres 1 et 2 (§17 du mandat) —
+          c'était le dernier bloc de la page encore dans l'ancien style,
+          corrigé ici pour la cohérence de grammaire visuelle sur toute
+          la page, pas un changement de contenu (mêmes report.metrics,
+          mêmes source/limite). */}
+      <section className="border-t pt-8">
+        <div className="flex items-center gap-2 text-[#1d4468]"><Handshake size={19} /><p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">4 · Mesurer</p></div>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Ce que la coordination a produit, mesuré.</h2>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{report.title} · {report.period} · données simulées et traçables</p>
+
+        <div className="mt-6 grid gap-6 border-y py-5 sm:grid-cols-2 lg:grid-cols-4">
+          {report.metrics.map((metric) => (
+            <div key={metric.label}>
+              <p className="text-2xl font-bold">{metric.value}</p>
+              <p className="text-xs text-muted-foreground">{metric.label}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">{metric.source} · limite : {metric.limit}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6"><ExportActions filename={`mbambulaan-pilotage-${territoryId}-${period}`} rows={exportRows} compact /></div>
       </section>
 
       {/* Lot A, gap analysis Pilotage (CEO 2026-08-17) : passé de section
