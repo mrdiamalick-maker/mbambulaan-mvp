@@ -1,9 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Download, Printer } from "lucide-react";
+import { ArrowLeft, Compass, Download, Handshake, Printer, ShieldAlert, Users } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
+import { generateNationalSnapshot } from "@/domain/national/national-engine";
+import { NumberTicker } from "@/components/magicui/number-ticker";
 import type { TrustLevel } from "@/domain/types";
+
+// Audit DA Premium XXL v2 (mandat CEO 2026-08-19, arbitrage gap analysis
+// /app/etat/rapport). 4 lots, dans l'ordre approuvé :
+// Lot A — executive summary + couverture institutionnelle
+//   (generateNationalSnapshot, déjà réutilisé par le Pilotage — aucun
+//   nouveau calcul d'agrégat).
+// Lot B — baseline/actuel/cible (Initiative.indicators) + financements
+//   détaillés par statut/bailleur (Funding, imbriqué dans Initiative).
+// Lot C — chaîne situation → intervention → résultat → preuve, limitée
+//   au sous-ensemble avec result renseigné ET au moins une Evidence liée
+//   (compteur honnête, cf. gap analysis — 30 situations n'ont pas toutes
+//   un dossier complet).
+// Lot D — réorganisation visuelle (regroupement des cartes de rapport,
+//   mise en avant confiance/source, contrôle de la longueur mobile).
+// Aucune modification du modèle de données, des moteurs métier, ni de
+// l'Atlas spatial dans ce mandat.
 
 const trustLabels: Record<TrustLevel, string> = {
   declaree: "Déclarée",
@@ -63,6 +81,8 @@ export default function EtatReportPage() {
   const { state } = useProduct();
   if (!state) return null;
 
+  const snapshot = generateNationalSnapshot(state);
+
   const download = () => {
     const markdown = buildMarkdown(state);
     const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
@@ -88,6 +108,33 @@ export default function EtatReportPage() {
         <p className="etat-eyebrow etat-eyebrow--on-dark">Rapport bailleurs</p>
         <h1 className="etat-display mt-3 text-2xl not-italic text-white md:text-3xl">Impact de la coordination, territoire par territoire.</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">Généré depuis l’environnement {state.tenant.name}, le {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}. Préparé pour faciliter vos échanges avec les partenaires et bailleurs.</p>
+
+        {/* Executive summary — Lot A. Chiffres inline sur la toile sombre
+            (même doctrine §17 que /app/etat), agrégat déjà calculé par
+            generateNationalSnapshot (réutilisé tel quel, également
+            consommé par le Pilotage) : aucun nouveau calcul introduit. */}
+        <div className="mt-7 grid grid-cols-2 gap-6 border-t border-white/15 pt-6 sm:grid-cols-4">
+          <div>
+            <Compass size={18} color="var(--etat-ocre-dim)" />
+            <p className="etat-display mt-2 text-2xl not-italic text-white"><NumberTicker value={snapshot.territories} /></p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/55">Territoires suivis</p>
+          </div>
+          <div>
+            <ShieldAlert size={18} color="var(--etat-ocre-dim)" />
+            <p className="etat-display mt-2 text-2xl not-italic text-white"><NumberTicker value={snapshot.activeSituations} /></p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/55">Situations actives{snapshot.criticalSituations > 0 ? ` · ${snapshot.criticalSituations} critique${snapshot.criticalSituations > 1 ? "s" : ""}` : ""}</p>
+          </div>
+          <div>
+            <Users size={18} color="var(--etat-ocre-dim)" />
+            <p className="etat-display mt-2 text-2xl not-italic text-white"><NumberTicker value={snapshot.actors} /></p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/55">Acteurs mobilisés</p>
+          </div>
+          <div>
+            <Handshake size={18} color="var(--etat-ocre-dim)" />
+            <p className="etat-display mt-2 text-2xl not-italic text-white"><NumberTicker value={snapshot.opportunities} /></p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/55">Opportunités de coordination</p>
+          </div>
+        </div>
       </section>
 
       <div className="mx-5 mt-8 space-y-6 pb-16 lg:mx-8">
