@@ -984,18 +984,23 @@ export function createDemoState(): ProductState {
     ]
   }));
 
+  // Réécriture éditoriale (mandat CEO 2026-08-19) : même texte pour les 4
+  // métriques sur les 5 rapports XXL — voulu, pas une répétition à
+  // corriger. Ça crée une grille de comparaison territoriale stable
+  // (couverture → situations → programmation → financement), cohérente
+  // avec la donnée source qui avait déjà exactement cette répétition.
   const generatedReports: ProductState["reports"] = coastalPrograms.map((program, index) => ({
     id: `report-${program.id}-xxl`,
-    title: `Revue de coordination · ${program.title.split(" · ")[1]}`,
+    title: `Revue territoriale de coordination — ${program.title.split(" · ")[1]}`,
     territoryIds: program.territoryIds,
     generatedAt: now,
     period: "Semaine du 3 août 2026",
     status: index % 3 === 0 ? "a_actualiser" : "pret",
     metrics: [
-      { label: "Territoires reliés", value: `${program.territoryIds.length}`, source: "Référentiel territorial de démonstration", trust: "consolidee", limit: "Périmètre illustratif et non réglementaire" },
-      { label: "Situations actives", value: `${program.territoryIds.length + index}`, source: "Registre des situations", trust: "observee", limit: "État simulé à la date de génération" },
-      { label: "Budget programmé", value: `${Math.round(program.budget / 1000000)} M FCFA`, source: "Portefeuille de programmes", trust: "declaree", limit: "Programmation distincte d’un décaissement" },
-      { label: "Financement confirmé", value: `${Math.round(program.budget * 0.36 / 1000000)} M FCFA`, source: "Conventions et conditions de démonstration", trust: "observee", limit: "Montants fictifs destinés à la démonstration" }
+      { label: "Territoires couverts par la revue", value: `${program.territoryIds.length}`, source: "Référentiel territorial utilisé pour la démonstration", trust: "consolidee", limit: "Périmètre illustratif ; ne constitue pas un découpage réglementaire" },
+      { label: "Situations nécessitant encore un suivi", value: `${program.territoryIds.length + index}`, source: "Registre des situations documentées dans Mbàmbulaan", trust: "observee", limit: "État de démonstration simulé à la date de génération du rapport" },
+      { label: "Budget inscrit dans les programmes suivis", value: `${Math.round(program.budget / 1000000)} M FCFA`, source: "Portefeuille de programmes documenté dans la démonstration", trust: "declaree", limit: "Budget programmé ; ne constitue ni un financement confirmé ni un décaissement" },
+      { label: "Financement documenté comme confirmé", value: `${Math.round(program.budget * 0.36 / 1000000)} M FCFA`, source: "Conventions et conditions renseignées dans la démonstration", trust: "observee", limit: "Montants fictifs utilisés exclusivement pour illustrer le suivi des financements" }
     ]
   }));
 
@@ -2124,40 +2129,45 @@ export function createDemoState(): ProductState {
     reports: [
       {
         id: "report-national",
-        title: "Situation halieutique de démonstration",
+        // Réécriture éditoriale (mandat CEO 2026-08-19, texte fourni via
+        // ChatGPT) : le titre ne promet plus un "impact" générique — il
+        // dit précisément ce que les données démontrent. Seuls
+        // title/metric.label/metric.source/metric.limit changent, aucune
+        // value/trust/status/territoire n'est touché.
+        title: "Vue d’ensemble de la coordination — démonstration nationale",
         territoryIds: territoryRows.map(([id]) => id),
         generatedAt: now,
         period: "Semaine du 3 août 2026",
         status: "pret",
         metrics: [
-          { label: "Volume débarqué observé", value: "9,45 t", source: "Six pesées reliées aux quais", trust: "verifiee", limit: "Échantillon déterministe de démonstration" },
-          { label: "Volume immédiatement orientable", value: "4,85 t", source: "Lots disponibles et engagements", trust: "verifiee", limit: "Disponibilité instantanée simulée" },
-          { label: "Valeur potentielle documentée", value: "12,6 M FCFA", source: "Volumes × prix indicatifs", trust: "observee", limit: "Estimation, aucune transaction réalisée" },
-          { label: "Territoires représentés", value: `${territories.length}`, source: "Référentiel de démonstration", trust: "consolidee", limit: "Géométrie illustrative, non réglementaire" }
+          { label: "Volume de débarquements documenté", value: "9,45 t", source: "Six pesées documentées et reliées à des points de débarquement", trust: "verifiee", limit: "Échantillon de démonstration ; ne représente pas l’ensemble des débarquements nationaux" },
+          { label: "Volume identifié avec une possibilité d’orientation", value: "4,85 t", source: "Lots documentés et engagements de coordination associés", trust: "verifiee", limit: "Disponibilité simulée à un instant donné ; ne constitue pas une garantie de mobilisation" },
+          { label: "Valeur potentielle des volumes documentés", value: "12,6 M FCFA", source: "Volumes documentés × prix indicatifs disponibles", trust: "observee", limit: "Estimation indicative ; aucune transaction correspondante n’a été réalisée" },
+          { label: "Territoires couverts par la démonstration", value: `${territories.length}`, source: "Référentiel territorial utilisé pour la démonstration", trust: "consolidee", limit: "Couverture illustrative ; la géométrie utilisée n’a pas de portée réglementaire" }
         ]
       },
       {
         id: "report-petite-cote",
-        title: "Continuité de la chaîne du froid · Petite-Côte",
+        title: "Continuité de la chaîne du froid — revue de démonstration Petite-Côte",
         territoryIds: ["kayar", "mbour", "joal"],
         generatedAt: now,
         period: "Semaine du 3 août 2026",
         status: "pret",
         metrics: [
-          { label: "Capacités fragiles ou indisponibles", value: "3", source: "Référentiel des infrastructures", trust: "verifiee", limit: "États simulés à un instant donné" },
-          { label: "Financement en instruction", value: "80 M FCFA", source: "Programme résilience froid", trust: "observee", limit: "Instruction non équivalente à un engagement ferme" }
+          { label: "Capacités de chaîne du froid identifiées comme fragiles ou indisponibles", value: "3", source: "Référentiel des infrastructures documentées dans la démonstration", trust: "verifiee", limit: "États simulés à un instant donné ; ne constituent pas un diagnostic exhaustif des infrastructures" },
+          { label: "Financement en cours d’instruction", value: "80 M FCFA", source: "Programme de démonstration « Résilience froid »", trust: "observee", limit: "Un financement en instruction ne constitue ni un engagement ferme ni un décaissement" }
         ]
       },
       {
         id: "report-casamance",
-        title: "Flux et valorisation · Casamance",
+        title: "Flux coordonnés et valorisation — revue de démonstration Casamance",
         territoryIds: ["kafountine", "cap-skirring"],
         generatedAt: now,
         period: "Semaine du 3 août 2026",
         status: "a_actualiser",
         metrics: [
-          { label: "Volume pesé dans la démonstration", value: "2,44 t", source: "Deux débarquements reliés", trust: "verifiee", limit: "Ne représente pas l’activité totale du territoire" },
-          { label: "Volume orienté par transport groupé", value: "1,2 t", source: "Coordination Casamance", trust: "consolidee", limit: "Scénario de démonstration" }
+          { label: "Volume de débarquements documenté", value: "2,44 t", source: "Deux débarquements documentés et reliés à des pesées", trust: "verifiee", limit: "Échantillon de démonstration ; ne représente pas l’activité totale du territoire" },
+          { label: "Volume associé à une coordination de transport groupé", value: "1,2 t", source: "Scénario de coordination documenté pour la Casamance", trust: "consolidee", limit: "Scénario de démonstration ; ne constitue pas une mesure exhaustive des flux coordonnés sur le territoire" }
         ]
       },
       ...generatedReports
