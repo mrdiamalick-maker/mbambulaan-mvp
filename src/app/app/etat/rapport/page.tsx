@@ -155,6 +155,23 @@ export default function EtatReportPage() {
     (situation) => situation.result && state.evidences.some((evidence) => evidence.situationId === situation.id)
   );
 
+  // Lot D — regroupement des rapports : le rapport national (18
+  // territoires) est distingué des 7 revues territoriales, plutôt que 8
+  // cartes plates de même poids visuel (cf. gap analysis, mesure au
+  // pixel de la longueur excessive). Aucun rapport n'est retiré ni
+  // fusionné — même donnée, hiérarchie de lecture différente.
+  const nationalReport = state.reports.find((report) => report.id === "report-national") ?? state.reports[0];
+  const territorialReports = state.reports.filter((report) => report.id !== nationalReport?.id);
+
+  // Lot D — synthèse confiance/sources sur l'ensemble des métriques de
+  // rapport, agrégée une seule fois plutôt que dispersée en petite
+  // légende répétée sur chaque tuile.
+  const allMetrics = state.reports.flatMap((report) => report.metrics);
+  const trustCounts = allMetrics.reduce<Partial<Record<TrustLevel, number>>>((acc, metric) => {
+    acc[metric.trust] = (acc[metric.trust] ?? 0) + 1;
+    return acc;
+  }, {});
+
   const download = () => {
     const markdown = buildMarkdown(state);
     const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
@@ -168,7 +185,11 @@ export default function EtatReportPage() {
 
   return (
     <div className="etat-scope">
-      <div className="mx-5 mt-5 flex flex-wrap items-center justify-between gap-3 lg:mx-8 lg:mt-6">
+      {/* Lot D — masqué à l'impression (print:hidden) : la barre d'actions
+          n'a pas sa place sur le document imprimé, qui doit rester un
+          document linéaire complet (rappel CEO), sans rien d'autre y
+          être caché ou conditionné à un état d'interface. */}
+      <div className="mx-5 mt-5 flex flex-wrap items-center justify-between gap-3 print:hidden lg:mx-8 lg:mt-6">
         <Link href="/app/etat" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--etat-navy-800)]"><ArrowLeft size={15} /> Retour à l’Espace État</Link>
         <div className="flex gap-2">
           <button onClick={() => window.print()} className="etat-btn etat-btn-outline"><Printer size={15} /> Version imprimable</button>
@@ -210,17 +231,23 @@ export default function EtatReportPage() {
       </section>
 
       <div className="mx-5 mt-8 space-y-6 pb-16 lg:mx-8">
-        {state.reports.map((report) => (
-          <article key={report.id} className="etat-panel p-6">
+        {/* Lot D — vue nationale distinguée des revues territoriales
+            (cf. nationalReport/territorialReports ci-dessus), plutôt que
+            8 cartes de même poids visuel. Même donnée, hiérarchie de
+            lecture différente : le rapport national ouvre la section,
+            les 7 revues territoriales suivent en grille resserrée. */}
+        {nationalReport && (
+          <article className="etat-panel p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="etat-display text-lg not-italic text-[var(--etat-navy-950)]">{report.title}</h2>
-                <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{report.period} · {report.territoryIds.map((id) => state.territories.find((t) => t.id === id)?.name ?? id).join(", ")}</p>
+                <p className="etat-eyebrow">Vue nationale</p>
+                <h2 className="etat-display mt-1 text-lg not-italic text-[var(--etat-navy-950)]">{nationalReport.title}</h2>
+                <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{nationalReport.period} · {nationalReport.territoryIds.length} territoires suivis</p>
               </div>
-              <span className={`etat-tag ${report.status === "pret" ? "etat-tag--reel" : "etat-tag--vigilance"}`}>{report.status === "pret" ? "Prêt" : "À actualiser"}</span>
+              <span className={`etat-tag ${nationalReport.status === "pret" ? "etat-tag--reel" : "etat-tag--vigilance"}`}>{nationalReport.status === "pret" ? "Prêt" : "À actualiser"}</span>
             </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {report.metrics.map((metric) => (
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {nationalReport.metrics.map((metric) => (
                 <div key={metric.label} className="etat-panel--warm p-4">
                   <p className="etat-display text-xl not-italic text-[var(--etat-navy-950)]">{metric.value}</p>
                   <p className="mt-1 text-xs font-bold text-[var(--etat-navy-800)]">{metric.label}</p>
@@ -232,7 +259,36 @@ export default function EtatReportPage() {
               ))}
             </div>
           </article>
-        ))}
+        )}
+
+        <div>
+          <p className="etat-eyebrow">Revues territoriales</p>
+          <div className="mt-3 grid gap-5 lg:grid-cols-2">
+            {territorialReports.map((report) => (
+              <article key={report.id} className="etat-panel p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="etat-display text-base not-italic text-[var(--etat-navy-950)]">{report.title}</h3>
+                    <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{report.period} · {report.territoryIds.map((id) => state.territories.find((t) => t.id === id)?.name ?? id).join(", ")}</p>
+                  </div>
+                  <span className={`etat-tag ${report.status === "pret" ? "etat-tag--reel" : "etat-tag--vigilance"}`}>{report.status === "pret" ? "Prêt" : "À actualiser"}</span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  {report.metrics.map((metric) => (
+                    <div key={metric.label} className="etat-panel--warm p-3.5">
+                      <p className="etat-display text-lg not-italic text-[var(--etat-navy-950)]">{metric.value}</p>
+                      <p className="mt-1 text-xs font-bold text-[var(--etat-navy-800)]">{metric.label}</p>
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <span className={`etat-tag ${trustTagClass[metric.trust]}`}>{trustLabels[metric.trust]}</span>
+                      </div>
+                      <p className="mt-1.5 text-[11px] leading-4 text-[var(--etat-stone-400)]">{metric.source} — {metric.limit}</p>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
 
         {/* Lot C — chaîne situation initiale → intervention → résultat →
             preuve, limitée au sous-ensemble réellement documenté
@@ -361,6 +417,22 @@ export default function EtatReportPage() {
               );
             })}
           </div>
+        </article>
+
+        {/* Lot D — sources, confiance et limites méthodologiques : une
+            synthèse dédiée plutôt que la seule petite légende répétée
+            sur chaque tuile (rappel arbitrage CEO "mise en avant
+            confiance/source"). Le disclaimer démo, déjà présent dans
+            l'export Markdown, est désormais aussi visible à l'écran. */}
+        <article className="etat-panel p-6">
+          <h2 className="etat-display text-lg not-italic text-[var(--etat-navy-950)]">Sources, confiance et limites méthodologiques</h2>
+          <p className="mt-3 text-xs leading-5 text-[var(--etat-stone-600)]">Les valeurs non marquées « Vérifiée » ou « Consolidée » sont des données de démonstration et ne constituent pas des statistiques officielles. Chaque métrique de rapport porte sa propre source et sa propre limite (visibles sur chaque tuile ci-dessus) ; la répartition ci-dessous en donne la synthèse.</p>
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--etat-line)] pt-4">
+            {(Object.keys(trustCounts) as TrustLevel[]).map((trust) => (
+              <span key={trust} className={`etat-tag ${trustTagClass[trust]}`}>{trustLabels[trust]} · {trustCounts[trust]}</span>
+            ))}
+          </div>
+          <p className="mt-4 text-xs leading-5 text-[var(--etat-stone-600)]">La chaîne situation → intervention → résultat → preuve n’est présentée que pour les {documentedSituations.length} situations sur {state.situations.length} qui disposent d’un résultat renseigné et d’au moins une preuve enregistrée ; les autres restent en cours ou sans preuve documentée et ne sont pas incluses dans ce rapport.</p>
         </article>
       </div>
     </div>
