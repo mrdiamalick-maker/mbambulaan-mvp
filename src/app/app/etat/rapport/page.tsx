@@ -5,7 +5,8 @@ import { ArrowLeft, Compass, Download, Handshake, Printer, ShieldAlert, Users } 
 import { useProduct } from "@/components/providers/ProductProvider";
 import { generateNationalSnapshot } from "@/domain/national/national-engine";
 import { NumberTicker } from "@/components/magicui/number-ticker";
-import type { Funding, TrustLevel } from "@/domain/types";
+import { EngagementIcon, PreuveIcon, ResultatIcon, SituationIcon } from "@/components/etat/MotifIcons";
+import { decisionTypeLabels, evidenceTypeLabels, type Funding, type TrustLevel } from "@/domain/types";
 
 // Audit DA Premium XXL v2 (mandat CEO 2026-08-19, arbitrage gap analysis
 // /app/etat/rapport). 4 lots, dans l'ordre approuvé :
@@ -93,6 +94,26 @@ function buildMarkdown(state: NonNullable<ReturnType<typeof useProduct>["state"]
     }
     lines.push("");
   }
+  const documented = state.situations.filter(
+    (situation) => situation.result && state.evidences.some((evidence) => evidence.situationId === situation.id)
+  );
+  lines.push(`## Situation initiale → intervention → résultat → preuve`);
+  lines.push("");
+  lines.push(`_${documented.length} situation(s) avec dossier complet sur ${state.situations.length}. Les autres restent en cours ou sans preuve documentée et ne sont pas listées ici._`);
+  lines.push("");
+  for (const situation of documented) {
+    const decision = state.decisions.find((item) => item.situationId === situation.id);
+    const evidences = state.evidences.filter((item) => item.situationId === situation.id);
+    const territory = state.territories.find((item) => item.id === situation.territoryId);
+    lines.push(`### ${situation.title} (${territory?.name ?? situation.territoryId})`);
+    lines.push(`- Situation initiale : ${situation.description}`);
+    lines.push(`- Intervention : ${decision ? `${decisionTypeLabels[decision.type]} — ${decision.rationale}` : "Aucune décision enregistrée."}`);
+    lines.push(`- Résultat : ${situation.result}`);
+    for (const evidence of evidences) {
+      lines.push(`- Preuve (${evidenceTypeLabels[evidence.type]}) : ${evidence.label} — ${evidence.detail}`);
+    }
+    lines.push("");
+  }
   lines.push(`## Programmes et financements`);
   lines.push("");
   for (const initiative of state.initiatives) {
@@ -125,6 +146,14 @@ export default function EtatReportPage() {
   if (!state) return null;
 
   const snapshot = generateNationalSnapshot(state);
+
+  // Lot C — seuil de sélection retenu par le CEO (arbitrage 2026-08-19) :
+  // result renseigné ET au moins une Evidence liée. Sur 30 situations,
+  // seules 11 remplissent les deux conditions — compteur honnête affiché,
+  // pas une narration forcée sur l'ensemble des situations.
+  const documentedSituations = state.situations.filter(
+    (situation) => situation.result && state.evidences.some((evidence) => evidence.situationId === situation.id)
+  );
 
   const download = () => {
     const markdown = buildMarkdown(state);
@@ -204,6 +233,64 @@ export default function EtatReportPage() {
             </div>
           </article>
         ))}
+
+        {/* Lot C — chaîne situation initiale → intervention → résultat →
+            preuve, limitée au sous-ensemble réellement documenté
+            (cf. documentedSituations ci-dessus). Preuves rendues en
+            cartes texte typées (evidenceTypeLabels), jamais une image
+            fabriquée — Evidence.type === "photo" n'a aucun champ image
+            réel dans le modèle, même discipline que SituationRoom.tsx. */}
+        <article className="etat-panel p-6">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="etat-display text-lg not-italic text-[var(--etat-navy-950)]">Situation initiale → intervention → résultat → preuve</h2>
+            <span className="etat-tag etat-tag--stable whitespace-normal text-left">{documentedSituations.length} situation(s) avec dossier complet sur {state.situations.length}</span>
+          </div>
+          <p className="mt-1 text-xs text-[var(--etat-stone-600)]">Sous-ensemble des situations avec un résultat renseigné et au moins une preuve enregistrée. Les autres situations restent en cours ou sans preuve documentée et ne sont pas incluses ici.</p>
+
+          <div className="mt-5 space-y-5">
+            {documentedSituations.map((situation) => {
+              const decision = state.decisions.find((item) => item.situationId === situation.id);
+              const evidences = state.evidences.filter((item) => item.situationId === situation.id);
+              const territory = state.territories.find((item) => item.id === situation.territoryId);
+              return (
+                <div key={situation.id} className="etat-panel--warm p-5">
+                  <p className="text-sm font-bold text-[var(--etat-navy-950)]">{situation.title}</p>
+                  <p className="mt-0.5 text-xs text-[var(--etat-stone-600)]">{territory?.name ?? situation.territoryId}</p>
+
+                  <div className="mt-4 grid gap-4 border-t border-[var(--etat-line)] pt-4 md:grid-cols-4">
+                    <div>
+                      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]"><SituationIcon size={13} color="var(--etat-navy-600)" /> Situation initiale</p>
+                      <p className="mt-1.5 text-xs leading-5 text-[var(--etat-navy-800)]">{situation.description}</p>
+                    </div>
+                    <div>
+                      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]"><EngagementIcon size={13} color="var(--etat-navy-600)" /> Intervention</p>
+                      {decision ? (
+                        <p className="mt-1.5 text-xs leading-5 text-[var(--etat-navy-800)]"><span className="font-semibold">{decisionTypeLabels[decision.type]}</span> — {decision.rationale}</p>
+                      ) : (
+                        <p className="mt-1.5 text-xs text-[var(--etat-stone-400)]">Aucune décision enregistrée.</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]"><ResultatIcon size={13} color="var(--etat-terracotta)" /> Résultat</p>
+                      <p className="mt-1.5 text-xs leading-5 text-[var(--etat-navy-800)]">{situation.result}</p>
+                    </div>
+                    <div>
+                      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]"><PreuveIcon size={13} color="var(--etat-terracotta)" /> Preuve{evidences.length > 1 ? "s" : ""}</p>
+                      <div className="mt-1.5 space-y-2">
+                        {evidences.map((evidence) => (
+                          <div key={evidence.id}>
+                            <p className="text-xs font-semibold text-[var(--etat-navy-800)]">{evidenceTypeLabels[evidence.type]} — {evidence.label}</p>
+                            <p className="text-[11px] leading-4 text-[var(--etat-stone-400)]">{evidence.detail}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </article>
 
         <article className="etat-panel p-6">
           <h2 className="etat-display text-lg not-italic text-[var(--etat-navy-950)]">Programmes et financements</h2>
