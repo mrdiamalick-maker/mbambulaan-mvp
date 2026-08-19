@@ -5,7 +5,7 @@ import { ArrowLeft, Compass, Download, Handshake, Printer, ShieldAlert, Users } 
 import { useProduct } from "@/components/providers/ProductProvider";
 import { generateNationalSnapshot } from "@/domain/national/national-engine";
 import { NumberTicker } from "@/components/magicui/number-ticker";
-import type { TrustLevel } from "@/domain/types";
+import type { Funding, TrustLevel } from "@/domain/types";
 
 // Audit DA Premium XXL v2 (mandat CEO 2026-08-19, arbitrage gap analysis
 // /app/etat/rapport). 4 lots, dans l'ordre approuvé :
@@ -48,6 +48,34 @@ const trustTagClass: Record<TrustLevel, string> = {
   expiree: "etat-tag--critique"
 };
 
+// Lot B — mêmes libellés que /app/app/(coordination)/initiatives/page.tsx
+// (page interne, non modifiée) pour ne pas introduire un 3e vocabulaire
+// de statut de financement.
+const fundingStatusLabel: Record<Funding["status"], string> = {
+  a_mobiliser: "À mobiliser",
+  en_instruction: "En instruction",
+  confirme: "Confirmé"
+};
+const fundingTagClass: Record<Funding["status"], string> = {
+  a_mobiliser: "etat-tag--stable",
+  en_instruction: "etat-tag--vigilance",
+  confirme: "etat-tag--reel"
+};
+
+function formatFcfa(amount: number) {
+  return `${new Intl.NumberFormat("fr-FR").format(Math.round(amount))} FCFA`;
+}
+
+// Baseline → actuel → cible : formule générique qui fonctionne aussi
+// pour les indicateurs à réduire (ex. délai médian, cible < baseline),
+// pas seulement current/target — sinon un indicateur en cours de baisse
+// afficherait une progression fausse.
+function indicatorProgress(indicator: { baseline: number; target: number; current: number }) {
+  const span = indicator.target - indicator.baseline;
+  if (span === 0) return 100;
+  return Math.min(100, Math.max(0, Math.round(((indicator.current - indicator.baseline) / span) * 100)));
+}
+
 function buildMarkdown(state: NonNullable<ReturnType<typeof useProduct>["state"]>) {
   const lines: string[] = [];
   lines.push(`# Rapport d'impact — Mbàmbulaan`);
@@ -72,7 +100,22 @@ function buildMarkdown(state: NonNullable<ReturnType<typeof useProduct>["state"]
     const budgetText = initiative.budgetFcfa !== undefined
       ? `${new Intl.NumberFormat("fr-FR").format(initiative.budgetFcfa)} FCFA`
       : "à estimer";
-    lines.push(`- **${initiative.title}** — ${initiative.objective}. Budget : ${budgetText}, dont ${new Intl.NumberFormat("fr-FR").format(confirmed)} FCFA confirmés.`);
+    lines.push(`### ${initiative.title}`);
+    lines.push(`${initiative.objective}. Budget : ${budgetText}, dont ${new Intl.NumberFormat("fr-FR").format(confirmed)} FCFA confirmés.`);
+    if (initiative.indicators.length === 0) {
+      lines.push(`_Aucun indicateur défini pour ce programme — encore au stade cadrage._`);
+    } else {
+      for (const indicator of initiative.indicators) {
+        lines.push(`- ${indicator.label} : ${indicator.baseline}${indicator.unit} (baseline) → ${indicator.current}${indicator.unit} (actuel) → ${indicator.target}${indicator.unit} (cible)`);
+      }
+    }
+    if (initiative.funding.length > 0) {
+      for (const fund of initiative.funding) {
+        const partner = state.actors.find((item) => item.id === fund.partnerId);
+        lines.push(`- Financement ${partner?.name ?? fund.partnerId} : ${new Intl.NumberFormat("fr-FR").format(fund.amountFcfa)} FCFA (${fundingStatusLabel[fund.status]}) — ${fund.condition}`);
+      }
+    }
+    lines.push("");
   }
   return lines.join("\n");
 }
@@ -164,14 +207,69 @@ export default function EtatReportPage() {
 
         <article className="etat-panel p-6">
           <h2 className="etat-display text-lg not-italic text-[var(--etat-navy-950)]">Programmes et financements</h2>
-          <div className="mt-4 divide-y divide-[var(--etat-line)]">
+          <p className="mt-1 text-xs text-[var(--etat-stone-600)]">Baseline, actuel et cible par indicateur ; financement détaillé par bailleur et par statut.</p>
+          {/* Lot B : chaque initiative expose désormais ses indicateurs
+              réels (Initiative.indicators) et son financement ventilé
+              par bailleur (Initiative.funding → state.actors), plutôt
+              que la seule somme confirmée. init-lompoul-balises a 0
+              indicateur et 0 financement — repli honnête affiché tel
+              quel, jamais masqué ni fabriqué. */}
+          <div className="mt-5 space-y-5">
             {state.initiatives.map((initiative) => {
               const confirmed = initiative.funding.filter((f) => f.status === "confirme").reduce((sum, f) => sum + f.amountFcfa, 0);
+              const totalFunding = initiative.funding.reduce((sum, f) => sum + f.amountFcfa, 0);
               return (
-                <div key={initiative.id} className="py-3.5 first:pt-0 last:pb-0">
+                <div key={initiative.id} className="etat-panel--warm p-5">
                   <p className="text-sm font-bold text-[var(--etat-navy-950)]">{initiative.title}</p>
                   <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{initiative.objective}</p>
-                  <p className="mt-1.5 text-xs font-semibold text-[var(--etat-navy-600)]">{initiative.budgetFcfa !== undefined ? `${new Intl.NumberFormat("fr-FR").format(initiative.budgetFcfa)} FCFA de budget` : "Budget à estimer"}, dont {new Intl.NumberFormat("fr-FR").format(confirmed)} FCFA confirmés.</p>
+                  <p className="mt-1.5 text-xs font-semibold text-[var(--etat-navy-600)]">{initiative.budgetFcfa !== undefined ? `${formatFcfa(initiative.budgetFcfa)} de budget` : "Budget à estimer"}, dont {formatFcfa(confirmed)} confirmés.</p>
+
+                  <div className="mt-4 grid gap-6 border-t border-[var(--etat-line)] pt-4 lg:grid-cols-2">
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Baseline → actuel → cible</p>
+                      {initiative.indicators.length === 0 ? (
+                        <p className="mt-2 text-xs text-[var(--etat-stone-400)]">Aucun indicateur défini pour ce programme — encore au stade cadrage.</p>
+                      ) : (
+                        <div className="mt-3 space-y-4">
+                          {initiative.indicators.map((indicator) => (
+                            <div key={indicator.label}>
+                              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-xs">
+                                <span className="font-semibold text-[var(--etat-navy-800)]">{indicator.label}</span>
+                                <span className="text-[var(--etat-stone-600)]">{indicator.baseline}{indicator.unit} → {indicator.current}{indicator.unit} → {indicator.target}{indicator.unit}</span>
+                              </div>
+                              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--etat-line)]">
+                                <div className="h-full rounded-full bg-[var(--etat-terracotta)]" style={{ width: `${indicatorProgress(indicator)}%` }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Financement par bailleur</p>
+                      {initiative.funding.length === 0 ? (
+                        <p className="mt-2 text-xs text-[var(--etat-stone-400)]">Aucun financement engagé pour le moment.</p>
+                      ) : (
+                        <div className="mt-3 divide-y divide-[var(--etat-line)]">
+                          {initiative.funding.map((fund) => {
+                            const partner = state.actors.find((item) => item.id === fund.partnerId);
+                            return (
+                              <div key={fund.id} className="py-2.5 first:pt-0 last:pb-0">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <span className="text-xs font-bold text-[var(--etat-navy-950)]">{partner?.name ?? fund.partnerId}</span>
+                                  <span className={`etat-tag ${fundingTagClass[fund.status]}`}>{fundingStatusLabel[fund.status]}</span>
+                                </div>
+                                <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{formatFcfa(fund.amountFcfa)}</p>
+                                <p className="mt-1 text-[11px] leading-4 text-[var(--etat-stone-400)]">{fund.condition}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {totalFunding > 0 && <p className="mt-3 text-xs font-semibold text-[var(--etat-navy-600)]">{formatFcfa(confirmed)} confirmés sur {formatFcfa(totalFunding)} identifiés.</p>}
+                    </div>
+                  </div>
                 </div>
               );
             })}
