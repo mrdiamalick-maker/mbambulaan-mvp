@@ -11,7 +11,7 @@ import { DecisionIcon, ResultatIcon, SituationIcon } from "@/components/etat/Mot
 import { CoastlineTerritoryMap } from "@/components/territories/CoastlineTerritoryMap";
 import { coastlineViewBox, territoryMapPositions } from "@/domain/territory-map-positions";
 import { NumberTicker } from "@/components/magicui/number-ticker";
-import { decisionTypeLabels, type Situation, type Territory } from "@/domain/types";
+import { decisionTypeLabels, type Initiative, type Situation, type Territory } from "@/domain/types";
 import { fieldVisitObjectiveLabels, type FieldVisit, type FieldVisitObjective } from "@/domain/ministry/field-visit";
 import {
   vigilanceCategoryLabels,
@@ -944,6 +944,11 @@ function severityRank(severity: VigilanceSeverity) {
 const situationPriorityRank: Record<Situation["priority"], number> = { critique: 3, haute: 2, moyenne: 1, faible: 0 };
 const infraStatusColor: Record<"operationnelle" | "fragile" | "indisponible", string> = { operationnelle: "#1d8a5f", fragile: "var(--etat-ocre)", indisponible: "var(--etat-terracotta)" };
 const infraStatusLabel: Record<"operationnelle" | "fragile" | "indisponible", string> = { operationnelle: "Opérationnelle", fragile: "Fragile", indisponible: "Indisponible" };
+// Lot État-C — mêmes libellés que /app/app/(coordination)/initiatives/page.tsx
+// (page interne, non modifiée) pour ne pas introduire un 2e vocabulaire
+// de statut de programme.
+const initiativeStatusLabel: Record<Initiative["status"], string> = { cadrage: "Cadrage", financee: "Financée", execution: "Exécution", terminee: "Terminée" };
+const commitmentStatusLabel: Record<"a_faire" | "en_cours" | "bloquee" | "terminee", string> = { a_faire: "À faire", en_cours: "En cours", bloquee: "Bloqué", terminee: "Terminé" };
 
 function TerritoryDetail({ territory, cases, onOpenSituation }: { territory: Territory; cases: VigilanceCase[]; onOpenSituation: (situation: Situation) => void }) {
   const { state } = useProduct();
@@ -953,6 +958,13 @@ function TerritoryDetail({ territory, cases, onOpenSituation }: { territory: Ter
   const acteurs = state.actors.filter((item) => item.territoryIds.includes(territory.id));
   const acteursParRole = acteurs.reduce<Record<string, number>>((acc, item) => { acc[item.role] = (acc[item.role] ?? 0) + 1; return acc; }, {});
   const prioritySituation = state.situations.filter((item) => item.territoryId === territory.id && item.status !== "reglee").sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])[0];
+  // Lot État-C (mandat §3.4) : deux ajouts additifs, données déjà
+  // présentes dans le modèle mais jusqu'ici non lues par cette fiche —
+  // débarquements/flux documentés (via les sites du territoire) et
+  // programmes actifs (Initiative.territoryIds).
+  const siteIds = new Set(sites.map((item) => item.id));
+  const landings = state.landings.filter((item) => siteIds.has(item.siteId));
+  const programmes = state.initiatives.filter((item) => item.territoryIds.includes(territory.id));
 
   return (
     <div className="space-y-6">
@@ -965,6 +977,18 @@ function TerritoryDetail({ territory, cases, onOpenSituation }: { territory: Ter
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Infrastructures · {sites.length} site(s), {infrastructures.length} infrastructure(s)</p>
         {infrastructures.length === 0 ? <p className="mt-1.5 text-xs text-[var(--etat-stone-400)]">Aucune infrastructure recensée.</p> : <div className="mt-1.5 space-y-1.5">{infrastructures.map((infra) => <div key={infra.id} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--etat-line)] bg-white px-3 py-2"><span className="text-xs font-medium capitalize text-[var(--etat-navy-950)]">{infra.type.replaceAll("_", " ")}</span><span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: infraStatusColor[infra.status] }}><span className="size-1.5 rounded-full" style={{ backgroundColor: infraStatusColor[infra.status] }} aria-hidden="true" />{infraStatusLabel[infra.status]}</span></div>)}</div>}
+      </div>
+      {/* Lot État-C : débarquements/flux documentés + programmes actifs —
+          données déjà présentes dans le modèle (landings via les sites
+          du territoire, Initiative.territoryIds), non lues jusqu'ici par
+          cette fiche. Ajout additif, aucune régression sur le reste. */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Débarquements documentés · {landings.length}</p>
+        {landings.length === 0 ? <p className="mt-1.5 text-xs text-[var(--etat-stone-400)]">Aucun débarquement documenté pour le moment.</p> : <p className="mt-1.5 text-xs text-[var(--etat-stone-600)]">{landings.filter((item) => item.status === "lots_crees").length} déjà valorisé(s) en lot(s), sur {landings.length} au total.</p>}
+      </div>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Programmes actifs · {programmes.length}</p>
+        {programmes.length === 0 ? <p className="mt-1.5 text-xs text-[var(--etat-stone-400)]">Aucun programme actif sur ce territoire pour le moment.</p> : <div className="mt-1.5 space-y-1.5">{programmes.map((programme) => <div key={programme.id} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--etat-line)] bg-white px-3 py-2"><span className="text-xs font-medium text-[var(--etat-navy-950)]">{programme.title}</span><span className="etat-tag etat-tag--stable shrink-0">{initiativeStatusLabel[programme.status]}</span></div>)}</div>}
       </div>
       {prioritySituation && <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Situation prioritaire</p><div className="mt-2 rounded-lg border border-[var(--etat-line)] bg-white p-3"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{prioritySituation.title}</p><p className="mt-1 text-xs text-[var(--etat-stone-600)]">{prioritySituation.nextStep}</p>{prioritySituation.history.length > 0 && <div className="mt-3 space-y-1.5 border-t border-[var(--etat-line)] pt-3">{prioritySituation.history.slice(0, 2).map((entry) => <div key={entry.id} className="border-l-2 border-[var(--etat-line)] pl-2 text-[11px] leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{entry.label}</span> · {new Date(entry.at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</div>)}</div>}<button onClick={() => onOpenSituation(prioritySituation)} className="etat-btn etat-btn-outline mt-3 w-full justify-center">Entrer dans le dossier <ArrowRight size={15} /></button></div></div>}
       {cases.length > 0 && <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Signaux sur ce territoire</p><div className="mt-2 space-y-2">{cases.map((item) => <div key={item.id} className="rounded-lg bg-[var(--etat-offwhite)] p-3 text-xs text-[var(--etat-navy-950)]">{vigilanceCategoryLabels[item.category]} — {item.description}</div>)}</div></div>}
@@ -992,6 +1016,10 @@ function SituationDetail({ situation, state, onPlanVisit }: { situation: Situati
   const relatedDecisions = state.decisions
     .filter((item) => item.situationId === situation.id)
     .sort((a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime());
+  // Lot État-C (mandat §3.4, "quelles capacités ou coordinations sont
+  // déjà engagées") : situation.coordinationId existe déjà dans le
+  // modèle et n'était affiché nulle part sur cette fiche.
+  const coordination = situation.coordinationId ? state.coordinationSpaces.find((item) => item.id === situation.coordinationId) : undefined;
 
   return (
     <div className="space-y-6">
@@ -1018,6 +1046,24 @@ function SituationDetail({ situation, state, onPlanVisit }: { situation: Situati
           <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{responsable?.name ?? "Non désigné"}</p>
         </div>
       </div>
+      {coordination && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Coordination et engagements déjà en cours</p>
+          <div className="mt-2 rounded-lg border border-[var(--etat-line)] bg-white p-3">
+            <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{coordination.title}</p>
+            {coordination.commitments.length === 0 ? (
+              <p className="mt-1 text-xs text-[var(--etat-stone-400)]">Aucun engagement enregistré pour le moment.</p>
+            ) : (
+              <div className="mt-2 space-y-1.5 border-t border-[var(--etat-line)] pt-2">
+                {coordination.commitments.map((commitment) => {
+                  const actor = state.actors.find((item) => item.id === commitment.actorId);
+                  return <p key={commitment.id} className="text-xs leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{actor?.name ?? commitment.actorId}</span> — {commitment.label} <span className="text-[var(--etat-stone-400)]">({commitmentStatusLabel[commitment.status]})</span></p>;
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {(situation.result ?? situation.confirmation) && (
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Résultat</p>
