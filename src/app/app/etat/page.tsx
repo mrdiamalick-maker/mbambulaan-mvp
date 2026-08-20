@@ -124,6 +124,20 @@ function formatFcfa(amount: number) {
   return `${new Intl.NumberFormat("fr-FR").format(Math.round(amount))} FCFA`;
 }
 
+// Lot État-E — mêmes libellés que /app/app/(coordination)/initiatives/page.tsx
+// et /app/etat/rapport (page interne + rapport, non modifiés) pour ne pas
+// introduire un 3e vocabulaire de statut de financement.
+const fundingStatusLabel: Record<"a_mobiliser" | "en_instruction" | "confirme", string> = { a_mobiliser: "À mobiliser", en_instruction: "En instruction", confirme: "Confirmé" };
+const fundingTagClass: Record<"a_mobiliser" | "en_instruction" | "confirme", string> = { a_mobiliser: "etat-tag--stable", en_instruction: "etat-tag--vigilance", confirme: "etat-tag--reel" };
+
+// Baseline → actuel → cible : même formule générique que /app/etat/rapport
+// (Lot B), correcte aussi pour les indicateurs à réduire (cible < baseline).
+function indicatorProgress(indicator: { baseline: number; target: number; current: number }) {
+  const span = indicator.target - indicator.baseline;
+  if (span === 0) return 100;
+  return Math.min(100, Math.max(0, Math.round(((indicator.current - indicator.baseline) / span) * 100)));
+}
+
 // Ligne/aire d'évolution — même technique que la courbe Pilotage
 // (PilotageWorkspace.tsx, arbitrage CEO 2026-08-18, "Option 1") : grain
 // jour, aucun point interpolé. N'est appelée que pour ≥2 points — en
@@ -166,6 +180,10 @@ export default function EtatPage() {
   // décisions de démonstration partagent toutes le même decidedAt,
   // cf. commentaire plus bas, donc pas de filtre Période fabriqué dessus).
   const [periodFilter, setPeriodFilter] = useState<string>("all");
+  // Lot État-E (mandat §3.8) : filtre statut/phase propre aux programmes
+  // — le filtre territoire, lui, réutilise selectedTerritoryId (même
+  // Périmètre que le reste de la page, cf. Lot État-B).
+  const [programmeStatusFilter, setProgrammeStatusFilter] = useState<Initiative["status"] | "all">("all");
   const [situationDrawer, setSituationDrawer] = useState<Situation | null>(null);
   const [missionDrawer, setMissionDrawer] = useState<Mission | null>(null);
   const [signalDrawerOpen, setSignalDrawerOpen] = useState(false);
@@ -212,11 +230,6 @@ export default function EtatPage() {
     if (critiqueTerritory) return { kind: "territoire" as const, glyphStatus: "critique" as const, territory: critiqueTerritory };
     return { kind: "calme" as const, glyphStatus: "stable" as const };
   }, [openCases, state]);
-
-  const leadIndicators = useMemo(() => {
-    if (!state) return [];
-    return state.initiatives.slice(0, 2).map((initiative) => ({ title: initiative.title, indicator: initiative.indicators[0] })).filter((item) => item.indicator);
-  }, [state]);
 
   if (!state) return null;
 
@@ -381,6 +394,14 @@ export default function EtatPage() {
   // Dates calendaires réelles disponibles pour le filtre Période — dérivées
   // des landings (seule donnée avec une vraie dispersion temporelle ici).
   const landingDates = [...new Set(state.landings.map((item) => (item.weighedAt ?? item.arrivedAt ?? "").slice(0, 10)).filter(Boolean))].sort();
+
+  // Lot État-E (mandat §3.8) — portefeuille de programmes filtrable :
+  // toutes les initiatives (plus de limite à 2), filtrées par le
+  // Périmètre partagé (selectedTerritoryId) et par statut/phase.
+  const filteredProgrammes = state.initiatives.filter((item) =>
+    (!selectedTerritoryId || item.territoryIds.includes(selectedTerritoryId)) &&
+    (programmeStatusFilter === "all" || item.status === programmeStatusFilter)
+  );
 
   return (
     <div className="etat-scope space-y-16 bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
@@ -655,19 +676,6 @@ export default function EtatPage() {
             )}
           </div>
 
-          <div id="programmes" className="mt-8 scroll-mt-6">
-            <p className="text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Évolution des programmes en cours</p>
-            <div className="mt-4 grid gap-6 sm:grid-cols-2">
-              {leadIndicators.map(({ title, indicator }) => indicator && (
-                <div key={title} className="border-t border-[var(--etat-line)] pt-4">
-                  <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{title}</p>
-                  <p className="text-xs text-[var(--etat-stone-600)]">{indicator.label}</p>
-                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--etat-line)]"><div className="h-full rounded-full bg-[var(--etat-navy-600)]" style={{ width: `${Math.min(100, (indicator.current / indicator.target) * 100)}%` }} /></div>
-                  <p className="mt-2 text-xs text-[var(--etat-stone-600)]">{indicator.current} / {indicator.target} {indicator.unit} <span className="text-[var(--etat-stone-400)]">(départ : {indicator.baseline})</span></p>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 
@@ -855,8 +863,117 @@ export default function EtatPage() {
         {visits.filter((item) => item.status === "planifiee").length > 0 && <p className="mt-4 text-xs text-[var(--etat-stone-600)]">{visits.filter((item) => item.status === "planifiee").length} visite(s) terrain déjà planifiée(s) par le ministère.</p>}
       </section>
 
+      {/* Chapitre 5 — Programmes en cours (mandat §3.8, Lot État-E).
+          Remplace le sous-bloc "Évolution des programmes en cours"
+          (2 initiatives, 1 indicateur chacune) par un vrai portefeuille
+          filtrable : les 9 initiatives, filtre territoire (Périmètre
+          partagé, cf. Lot État-B) + statut/phase, et pour chacune :
+          territoires, responsable, budget/financement (mêmes libellés
+          prudents que /app/etat/rapport, jamais "financement sécurisé"),
+          progression baseline→actuel→cible, prochaine échéance dérivée
+          honnêtement des situations liées (Initiative.situationIds) —
+          aucun champ d'échéance propre au programme n'existe dans le
+          modèle, donc pas de date fabriquée si aucune situation liée
+          n'a de dueAt. Positionné après Arbitrages et avant Décisions
+          pour suivre le flux territoire→résultats→priorités→arbitrages→
+          programmes→redevabilité décrit par le mandat (§2). */}
+      <section id="programmes" className="scroll-mt-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="etat-eyebrow">5 · Programmes en cours</p>
+            <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Portefeuille de programmes.</h2>
+            <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{filteredProgrammes.length} programme(s){selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}{programmeStatusFilter !== "all" ? ` · ${initiativeStatusLabel[programmeStatusFilter]}` : ""} sur {state.initiatives.length} au total.</p>
+          </div>
+          <label className="block">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Statut</p>
+            <select
+              value={programmeStatusFilter}
+              onChange={(event) => setProgrammeStatusFilter(event.target.value as Initiative["status"] | "all")}
+              className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
+            >
+              <option value="all">Tous les statuts</option>
+              {(["cadrage", "financee", "execution", "terminee"] as const).map((status) => (
+                <option key={status} value={status}>{initiativeStatusLabel[status]}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="etat-panel mt-5 p-6 lg:p-7">
+          {filteredProgrammes.length === 0 ? (
+            <p className="text-sm text-[var(--etat-stone-600)]">Aucun programme ne correspond à ce filtre pour le moment.</p>
+          ) : (
+            <div className="space-y-5">
+              {filteredProgrammes.map((programme) => {
+                const owner = state.actors.find((item) => item.id === programme.ownerId);
+                const territoryNames = programme.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
+                const confirmed = programme.funding.filter((item) => item.status === "confirme").reduce((sum, item) => sum + item.amountFcfa, 0);
+                const totalFunding = programme.funding.reduce((sum, item) => sum + item.amountFcfa, 0);
+                const linkedDueDates = programme.situationIds
+                  .map((id) => state.situations.find((item) => item.id === id)?.dueAt)
+                  .filter((value): value is string => Boolean(value))
+                  .sort();
+                const nextDeadline = linkedDueDates[0];
+                return (
+                  <div key={programme.id} className="etat-panel--warm p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-[var(--etat-navy-950)]">{programme.title}</p>
+                        <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{programme.objective}</p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">{territoryNames.map((name) => <span key={name} className="etat-tag etat-tag--stable">{name}</span>)}</div>
+                      </div>
+                      <span className="etat-tag etat-tag--stable shrink-0">{initiativeStatusLabel[programme.status]}</span>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 border-t border-[var(--etat-line)] pt-4 sm:grid-cols-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Responsable</p>
+                        <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{owner?.name ?? "Non désigné"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Budget / financement</p>
+                        <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{programme.budgetFcfa !== undefined ? formatFcfa(programme.budgetFcfa) : "Budget à estimer"}</p>
+                        <p className="mt-0.5 text-[11px] text-[var(--etat-stone-600)]">{formatFcfa(confirmed)} confirmés{totalFunding > 0 ? ` sur ${formatFcfa(totalFunding)} identifiés` : ""}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Prochaine échéance</p>
+                        <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{nextDeadline ? new Date(nextDeadline).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) : "Aucune échéance documentée"}</p>
+                      </div>
+                    </div>
+
+                    {programme.indicators.length > 0 && (
+                      <div className="mt-4 space-y-3 border-t border-[var(--etat-line)] pt-4">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Progression baseline → actuel → cible</p>
+                        {programme.indicators.map((indicator) => (
+                          <div key={indicator.label}>
+                            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-xs">
+                              <span className="font-semibold text-[var(--etat-navy-800)]">{indicator.label}</span>
+                              <span className="text-[var(--etat-stone-600)]">{indicator.baseline}{indicator.unit} → {indicator.current}{indicator.unit} → {indicator.target}{indicator.unit}</span>
+                            </div>
+                            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--etat-line)]"><div className="h-full rounded-full bg-[var(--etat-terracotta)]" style={{ width: `${indicatorProgress(indicator)}%` }} /></div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {programme.funding.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-1.5 border-t border-[var(--etat-line)] pt-4">
+                        {programme.funding.map((fund) => {
+                          const partner = state.actors.find((item) => item.id === fund.partnerId);
+                          return <span key={fund.id} className={`etat-tag ${fundingTagClass[fund.status]}`}>{partner?.name ?? fund.partnerId} · {fundingStatusLabel[fund.status]}</span>;
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
       <section id="redevabilite" className="scroll-mt-6">
-        <p className="etat-eyebrow">5 · Décisions et résultats récents</p>
+        <p className="etat-eyebrow">6 · Décisions et résultats récents</p>
         <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Décisions récentes.</h2>
         <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{state.decisions.length} décision(s) enregistrée(s) au total — chaque arbitrage institutionnel reste tracé et consultable.</p>
         {recentDecisions.length === 0 ? (
@@ -915,7 +1032,7 @@ export default function EtatPage() {
           <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, var(--etat-navy-950) 0%, transparent 65%)" }} />
         </div>
         <div className="relative z-10">
-          <p className="etat-eyebrow etat-eyebrow--on-dark">6 · Programmes &amp; rapport</p>
+          <p className="etat-eyebrow etat-eyebrow--on-dark">7 · Programmes &amp; rapport</p>
           <h2 className="etat-display mt-2 text-2xl not-italic">Un rapport d’impact prêt à partager.</h2>
           <p className="mt-2 max-w-xl text-sm text-[var(--etat-offwhite)]/65">Structuré par territoire, exportable, pensé pour vos propres échanges avec les bailleurs et programmes.</p>
         </div>
