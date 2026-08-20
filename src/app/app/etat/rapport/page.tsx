@@ -6,7 +6,7 @@ import { ArrowLeft, Compass, Download, Handshake, Printer, ShieldAlert, Users } 
 import { useProduct } from "@/components/providers/ProductProvider";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { EngagementIcon, PreuveIcon, ResultatIcon, SituationIcon } from "@/components/etat/MotifIcons";
-import { decisionTypeLabels, evidenceTypeLabels, type Funding, type TrustLevel } from "@/domain/types";
+import { decisionTypeLabels, evidenceTypeLabels, type Funding, type Report, type Territory, type TrustLevel } from "@/domain/types";
 
 // Audit DA Premium XXL v2 (mandat CEO 2026-08-19, arbitrage gap analysis
 // /app/etat/rapport). 4 lots, dans l'ordre approuvé :
@@ -154,6 +154,11 @@ export default function EtatReportPage() {
   const [rapportTerritoryFilter, setRapportTerritoryFilter] = useState<string>("all");
   const [rapportStatusFilter, setRapportStatusFilter] = useState<"all" | "pret" | "a_actualiser">("all");
   const [rapportTrustFilter, setRapportTrustFilter] = useState<"all" | TrustLevel>("all");
+  // Lot Rapport-D (mandat §4.4) : explorateur registre/détail — un seul
+  // rapport sélectionné à la fois, plutôt qu'une succession de cartes
+  // empilées. null = pas de sélection explicite, retombe sur le premier
+  // rapport filtré (cf. selectedReport plus bas).
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   if (!state) return null;
 
   // Lot C — seuil de sélection retenu par le CEO (arbitrage 2026-08-19) :
@@ -178,9 +183,11 @@ export default function EtatReportPage() {
     (rapportTerritoryFilter === "all" || report.territoryIds.includes(rapportTerritoryFilter)) &&
     (rapportStatusFilter === "all" || report.status === rapportStatusFilter) &&
     (rapportTrustFilter === "all" || report.metrics.some((metric) => metric.trust === rapportTrustFilter));
-  const filteredNationalReport = nationalReport && matchesReportFilters(nationalReport) ? nationalReport : undefined;
-  const territorialReports = state.reports.filter((report) => report.id !== nationalReport?.id && matchesReportFilters(report));
-  const filteredReportsCount = (filteredNationalReport ? 1 : 0) + territorialReports.length;
+  // Lot Rapport-D — le rapport national reste en tête de liste (ordre
+  // naturel de state.reports), simplement signalé "Vue nationale" dans
+  // le registre plutôt que structurellement séparé en deux blocs.
+  const filteredReports = state.reports.filter(matchesReportFilters);
+  const selectedReport = filteredReports.find((report) => report.id === selectedReportId) ?? filteredReports[0];
 
   // Lot D — synthèse confiance/sources sur l'ensemble des métriques de
   // rapport, agrégée une seule fois plutôt que dispersée en petite
@@ -288,7 +295,7 @@ export default function EtatReportPage() {
             visible, repli honnête si aucun résultat. */}
         <div id="rapports-territoriaux" className="scroll-mt-6">
           <div className="flex flex-wrap items-end justify-between gap-4 print:hidden">
-            <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{filteredReportsCount} rapport(s) sur {state.reports.length}.</p>
+            <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{filteredReports.length} rapport(s) sur {state.reports.length}.</p>
             <div className="flex flex-wrap items-end gap-3">
               <label className="block">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Territoire</p>
@@ -319,65 +326,55 @@ export default function EtatReportPage() {
             </div>
           </div>
 
-          {filteredReportsCount === 0 ? (
+          {filteredReports.length === 0 ? (
             <p className="etat-panel mt-4 p-6 text-sm text-[var(--etat-stone-600)]">Aucun rapport ne correspond à ces filtres pour le moment.</p>
           ) : (
             <>
-              {filteredNationalReport && (
-                <article className="etat-panel mt-4 p-6">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="etat-eyebrow">Vue nationale</p>
-                      <h2 className="etat-display mt-1 text-lg not-italic text-[var(--etat-navy-950)]">{filteredNationalReport.title}</h2>
-                      <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{filteredNationalReport.period} · {filteredNationalReport.territoryIds.length} territoires suivis</p>
-                    </div>
-                    <span className={`etat-tag ${filteredNationalReport.status === "pret" ? "etat-tag--reel" : "etat-tag--vigilance"}`}>{filteredNationalReport.status === "pret" ? "Prêt" : "À actualiser"}</span>
-                  </div>
-                  <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {filteredNationalReport.metrics.map((metric) => (
-                      <div key={metric.label} className="etat-panel--warm p-4">
-                        <p className="etat-display text-xl not-italic text-[var(--etat-navy-950)]">{metric.value}</p>
-                        <p className="mt-1 text-xs font-bold text-[var(--etat-navy-800)]">{metric.label}</p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className={`etat-tag ${trustTagClass[metric.trust]}`}>{trustLabels[metric.trust]}</span>
-                        </div>
-                        <p className="mt-2 text-[11px] leading-4 text-[var(--etat-stone-400)]">{metric.source} — {metric.limit}</p>
-                      </div>
-                    ))}
-                  </div>
-                </article>
-              )}
-
-              {territorialReports.length > 0 && (
-                <div className="mt-6">
-                  <p className="etat-eyebrow">Revues territoriales</p>
-                  <div className="mt-3 grid gap-5 lg:grid-cols-2">
-                    {territorialReports.map((report) => (
-                      <article key={report.id} className="etat-panel p-5">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <h3 className="etat-display text-base not-italic text-[var(--etat-navy-950)]">{report.title}</h3>
-                            <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{report.period} · {report.territoryIds.map((id) => state.territories.find((t) => t.id === id)?.name ?? id).join(", ")}</p>
+              {/* Explorateur (mandat §4.4) : registre à gauche, détail du
+                  rapport sélectionné à droite (desktop) — empilé en
+                  dessous du registre en mobile via l'ordre naturel du
+                  flux (le registre garde une hauteur bornée avec défilement
+                  interne, le détail suit). print:hidden : la version
+                  imprimable ne doit jamais dépendre d'un état de
+                  sélection — cf. le bloc plein ci-dessous, réservé à
+                  l'impression, qui liste tous les rapports filtrés en
+                  entier. */}
+              <div className="mt-4 grid gap-5 print:hidden lg:grid-cols-[320px_1fr]">
+                <div className="etat-panel divide-y divide-[var(--etat-line)] overflow-y-auto lg:max-h-[70vh]">
+                  {filteredReports.map((report) => {
+                    const active = report.id === selectedReport?.id;
+                    return (
+                      <button
+                        key={report.id}
+                        onClick={() => setSelectedReportId(report.id)}
+                        className="block w-full p-4 text-left transition"
+                        style={{ backgroundColor: active ? "var(--etat-offwhite)" : undefined, borderLeft: active ? "3px solid var(--etat-terracotta)" : "3px solid transparent" }}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            {report.id === nationalReport?.id && <p className="etat-eyebrow text-[10px]">Vue nationale</p>}
+                            <p className="mt-0.5 truncate text-sm font-semibold text-[var(--etat-navy-950)]">{report.title}</p>
+                            <p className="mt-0.5 text-[11px] text-[var(--etat-stone-600)]">{report.territoryIds.length} territoire(s)</p>
                           </div>
-                          <span className={`etat-tag ${report.status === "pret" ? "etat-tag--reel" : "etat-tag--vigilance"}`}>{report.status === "pret" ? "Prêt" : "À actualiser"}</span>
+                          <span className={`etat-tag shrink-0 ${report.status === "pret" ? "etat-tag--reel" : "etat-tag--vigilance"}`}>{report.status === "pret" ? "Prêt" : "À actualiser"}</span>
                         </div>
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                          {report.metrics.map((metric) => (
-                            <div key={metric.label} className="etat-panel--warm p-3.5">
-                              <p className="etat-display text-lg not-italic text-[var(--etat-navy-950)]">{metric.value}</p>
-                              <p className="mt-1 text-xs font-bold text-[var(--etat-navy-800)]">{metric.label}</p>
-                              <div className="mt-1.5 flex items-center gap-2">
-                                <span className={`etat-tag ${trustTagClass[metric.trust]}`}>{trustLabels[metric.trust]}</span>
-                              </div>
-                              <p className="mt-1.5 text-[11px] leading-4 text-[var(--etat-stone-400)]">{metric.source} — {metric.limit}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+
+                {selectedReport && <ReportDetailCard report={selectedReport} isNational={selectedReport.id === nationalReport?.id} territories={state.territories} />}
+              </div>
+
+              {/* Version imprimable (mandat : document linéaire complet,
+                  jamais de contenu caché par un état d'onglet) : tous les
+                  rapports filtrés, en entier, indépendamment de la
+                  sélection de l'explorateur ci-dessus. */}
+              <div className="mt-4 hidden space-y-5 print:block">
+                {filteredReports.map((report) => (
+                  <ReportDetailCard key={report.id} report={report} isNational={report.id === nationalReport?.id} territories={state.territories} />
+                ))}
+              </div>
             </>
           )}
         </div>
@@ -528,5 +525,37 @@ export default function EtatReportPage() {
         </article>
       </div>
     </div>
+  );
+}
+
+// Lot Rapport-D — rendu détaillé d'un rapport, partagé entre
+// l'explorateur (un seul rapport affiché, celui sélectionné) et la
+// version imprimable (tous les rapports filtrés, en entier) : même
+// contenu exact dans les deux cas, jamais une version imprimée
+// appauvrie par rapport à ce que l'explorateur peut montrer.
+function ReportDetailCard({ report, isNational, territories }: { report: Report; isNational: boolean; territories: Territory[] }) {
+  return (
+    <article className="etat-panel p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          {isNational && <p className="etat-eyebrow">Vue nationale</p>}
+          <h2 className="etat-display mt-1 text-lg not-italic text-[var(--etat-navy-950)]">{report.title}</h2>
+          <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{report.period} · {isNational ? `${report.territoryIds.length} territoires suivis` : report.territoryIds.map((id) => territories.find((t) => t.id === id)?.name ?? id).join(", ")}</p>
+        </div>
+        <span className={`etat-tag ${report.status === "pret" ? "etat-tag--reel" : "etat-tag--vigilance"}`}>{report.status === "pret" ? "Prêt" : "À actualiser"}</span>
+      </div>
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {report.metrics.map((metric) => (
+          <div key={metric.label} className="etat-panel--warm p-4">
+            <p className="etat-display text-xl not-italic text-[var(--etat-navy-950)]">{metric.value}</p>
+            <p className="mt-1 text-xs font-bold text-[var(--etat-navy-800)]">{metric.label}</p>
+            <div className="mt-2 flex items-center gap-2">
+              <span className={`etat-tag ${trustTagClass[metric.trust]}`}>{trustLabels[metric.trust]}</span>
+            </div>
+            <p className="mt-2 text-[11px] leading-4 text-[var(--etat-stone-400)]">{metric.source} — {metric.limit}</p>
+          </div>
+        ))}
+      </div>
+    </article>
   );
 }
