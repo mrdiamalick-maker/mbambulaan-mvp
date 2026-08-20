@@ -160,6 +160,12 @@ export default function EtatPage() {
   // territoryDrawer reste réservé à l'ouverture explicite via le CTA
   // "Voir le territoire".
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);
+  // Lot État-B (mandat §3.1, §4.2) : filtre Période réel, restreint aux
+  // dates calendaires réellement présentes dans les landings (seule
+  // donnée temporelle avec une vraie dispersion sur cette page — les
+  // décisions de démonstration partagent toutes le même decidedAt,
+  // cf. commentaire plus bas, donc pas de filtre Période fabriqué dessus).
+  const [periodFilter, setPeriodFilter] = useState<string>("all");
   const [situationDrawer, setSituationDrawer] = useState<Situation | null>(null);
   const [missionDrawer, setMissionDrawer] = useState<Mission | null>(null);
   const [signalDrawerOpen, setSignalDrawerOpen] = useState(false);
@@ -251,8 +257,8 @@ export default function EtatPage() {
   const focusSiteIds = new Set(focusSites.map((item) => item.id));
   const focusVessels = state.vessels.filter((item) => focusSiteIds.has(item.homeSiteId));
   const focusVesselIds = new Set(focusVessels.map((item) => item.id));
-  const focusLandings = state.landings.filter((item) => focusSiteIds.has(item.siteId));
-  const focusTripsEnMer = state.trips.filter((item) => focusVesselIds.has(item.vesselId) && item.status === "en_mer").length;
+  const focusLandings = state.landings.filter((item) => focusSiteIds.has(item.siteId) && (periodFilter === "all" || (item.weighedAt ?? item.arrivedAt ?? "").slice(0, 10) === periodFilter));
+  const focusTripsEnMer = state.trips.filter((item) => focusVesselIds.has(item.vesselId) && item.status === "en_mer" && (periodFilter === "all" || item.departureAt.slice(0, 10) === periodFilter)).length;
   const focusInfrastructures = dominantTerritoryId ? state.infrastructures.filter((item) => item.territoryId === dominantTerritoryId) : [];
   const focusAvailableCapacity = focusInfrastructures.filter((item) => item.status === "operationnelle").length;
   const focusActors = dominantTerritoryId ? state.actors.filter((item) => item.territoryIds.includes(dominantTerritoryId)).length : 0;
@@ -354,13 +360,25 @@ export default function EtatPage() {
   }
   const coordinatedValueTrendPoints = [...coordinatedValueByDate.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ date, value }));
   const coordinatedValueTrendPath = coordinatedValueTrendPoints.length >= 2 ? buildTrendPath(coordinatedValueTrendPoints.map((point) => point.value), 640, 180, 20) : null;
+  // Lot État-B — Périmètre réel (mandat §3.1) : réutilise selectedTerritoryId
+  // (même état que le clic Atlas, Lot État-A) plutôt qu'un second
+  // mécanisme de sélection parallèle — un seul territoire "actif" pour
+  // toute la page, quelle que soit son origine (carte ou sélecteur).
   const situationsAArbitrer = state.situations
-    .filter((item) => item.status !== "reglee" && (item.priority === "critique" || item.priority === "haute"))
+    .filter((item) => item.status !== "reglee" && (item.priority === "critique" || item.priority === "haute") && (!selectedTerritoryId || item.territoryId === selectedTerritoryId))
     .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])
     .slice(0, 5);
   const recentDecisions = [...state.decisions]
+    .filter((item) => {
+      if (!selectedTerritoryId) return true;
+      const linkedSituation = state.situations.find((situation) => situation.id === item.situationId);
+      return linkedSituation?.territoryId === selectedTerritoryId;
+    })
     .sort((a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime())
     .slice(0, 5);
+  // Dates calendaires réelles disponibles pour le filtre Période — dérivées
+  // des landings (seule donnée avec une vraie dispersion temporelle ici).
+  const landingDates = [...new Set(state.landings.map((item) => (item.weighedAt ?? item.arrivedAt ?? "").slice(0, 10)).filter(Boolean))].sort();
 
   return (
     <div className="etat-scope space-y-16 bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
@@ -369,21 +387,61 @@ export default function EtatPage() {
         <p>Mbàmbulaan <strong>qualifie et signale</strong> les situations remontées du terrain. La décision et l’action relèvent des autorités compétentes.</p>
       </div>
 
-      {/* Raffinement visuel (maquette validée, arbitrage CEO 2026-08-18,
-          point 2) : "Filtres avancés" retiré, Périmètre/Période en
-          lecture seule (étiquettes fixes, pas des <select>) — construire
-          un vrai filtrage des 6 chapitres est un chantier à part
-          entière, hors périmètre de ce raffinement visuel. Jamais un
-          contrôle qui a l'air interactif sans l'être. */}
+      {/* Lot État-B (mandat §3.1) : navigation d'ancrage propre à l'Espace
+          État — confirmée comme telle par le CEO (pas un rail permanent
+          façon AppSidebar/AppShell, cohérent avec A14/D9). Simple ligne de
+          liens horizontale, défilante sur mobile, pas de position sticky
+          (le CEO n'a pas demandé un rail persistant au scroll). */}
+      <nav className="-mx-1 flex gap-1 overflow-x-auto border-b border-[var(--etat-line)] pb-3 text-sm">
+        {[
+          { href: "#terrain", label: "Vue d’ensemble" },
+          { href: "#territoires", label: "Territoires" },
+          { href: "#arbitrage", label: "Arbitrages" },
+          { href: "#programmes", label: "Programmes" },
+          { href: "#performance", label: "Performance & impact" },
+          { href: "#redevabilite", label: "Rapports & redevabilité" }
+        ].map((item) => (
+          <a key={item.href} href={item.href} className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 font-semibold text-[var(--etat-navy-800)] transition hover:bg-[var(--etat-offwhite)]">{item.label}</a>
+        ))}
+      </nav>
+
+      {/* Filtres Périmètre/Période réellement fonctionnels (mandat §3.1,
+          §8, arbitrage CEO 2026-08-20 levant la réserve "lecture seule"
+          du 18/08). Périmètre réutilise selectedTerritoryId (Lot État-A) :
+          un seul mécanisme de sélection de territoire pour toute la
+          page, que l'origine soit la carte ou ce sélecteur. Période
+          restreinte aux dates calendaires réellement présentes dans les
+          landings (seule donnée avec une vraie dispersion temporelle
+          ici) — pas de filtre fabriqué sur les décisions, qui partagent
+          toutes le même decidedAt dans ce jeu de démonstration. */}
       <div className="flex flex-wrap items-center gap-8 border-b border-[var(--etat-line)] pb-4">
-        <div>
+        <label className="block">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>
-          <p className="mt-1 text-sm font-semibold text-[var(--etat-navy-950)]">Sénégal entier</p>
-        </div>
-        <div>
+          <select
+            value={selectedTerritoryId ?? ""}
+            onChange={(event) => setSelectedTerritoryId(event.target.value || null)}
+            className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
+          >
+            <option value="">Sénégal entier</option>
+            {[...state.territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => (
+              <option key={territory.id} value={territory.id}>{territory.name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Période</p>
-          <p className="mt-1 text-sm font-semibold text-[var(--etat-navy-950)]">30 derniers jours</p>
-        </div>
+          <select
+            value={periodFilter}
+            onChange={(event) => setPeriodFilter(event.target.value)}
+            className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
+          >
+            <option value="all">Toutes les dates disponibles</option>
+            {landingDates.map((date) => (
+              <option key={date} value={date}>{new Date(date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-[10px] text-[var(--etat-stone-400)]">S’applique aux débarquements et sorties en mer du panneau territorial.</p>
+        </label>
       </div>
 
       {/* Chapitre 1 — Lecture territoriale (mandat §5, Lot B). Carte +
@@ -391,7 +449,7 @@ export default function EtatPage() {
           uniquement les 3 compteurs — "rien d'autre dans ce premier
           chapitre" (mandat). H1 déplacé ici (était dans l'ancien Hero) :
           reste le titre principal de la page. */}
-      <section id="terrain">
+      <section id="terrain" className="scroll-mt-6">
         <p className="etat-eyebrow">1 · Lecture territoriale</p>
         <h1 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)] md:text-3xl">Le littoral, territoire par territoire.</h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">Espace État · {actor?.name ?? "Ministère"}. Cliquez un point sur la carte pour ouvrir le détail d’un territoire.</p>
@@ -511,7 +569,7 @@ export default function EtatPage() {
         </div>
       </section>
 
-      <section>
+      <section id="performance" className="scroll-mt-6">
         <div className="flex flex-wrap items-center gap-2.5">
           <p className="etat-eyebrow">2 · Résultats de la coordination</p>
           <span className="etat-tag etat-tag--demo whitespace-normal text-left">Mode démonstration · données non opérationnelles</span>
@@ -595,7 +653,7 @@ export default function EtatPage() {
             )}
           </div>
 
-          <div className="mt-8">
+          <div id="programmes" className="mt-8 scroll-mt-6">
             <p className="text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Évolution des programmes en cours</p>
             <div className="mt-4 grid gap-6 sm:grid-cols-2">
               {leadIndicators.map(({ title, indicator }) => indicator && (
@@ -617,7 +675,7 @@ export default function EtatPage() {
           Chapitre 1 (tous les 18 y sont cliquables), donc rien n'est perdu
           en retirant cette liste ici. */}
       {prioritized.length > 0 && (
-        <section>
+        <section id="territoires" className="scroll-mt-6">
           <p className="etat-eyebrow">3 · Où concentrer l’attention ?</p>
           <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">{prioritized.length} territoire(s) prioritaire(s) sur {territoiresActifs} suivis par le réseau.</h2>
 
@@ -683,12 +741,12 @@ export default function EtatPage() {
         </section>
       )}
 
-      <section id="arbitrage">
+      <section id="arbitrage" className="scroll-mt-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="etat-eyebrow">4 · Situations à arbitrer</p>
             <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Situations critiques à arbitrer.</h2>
-            <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{situationsAArbitrer.length} situation(s) de risque élevé ou critique attendent une décision, sur {state.situations.filter((item) => item.status !== "reglee").length} dossier(s) ouverts.</p>
+            <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{situationsAArbitrer.length} situation(s) de risque élevé ou critique attendent une décision, sur {state.situations.filter((item) => item.status !== "reglee" && (!selectedTerritoryId || item.territoryId === selectedTerritoryId)).length} dossier(s) ouverts{selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button className="etat-btn etat-btn-outline" onClick={() => setSignalDrawerOpen(true)}><Radio size={15} /> Signaler une situation</button>
@@ -781,7 +839,7 @@ export default function EtatPage() {
         {visits.filter((item) => item.status === "planifiee").length > 0 && <p className="mt-4 text-xs text-[var(--etat-stone-600)]">{visits.filter((item) => item.status === "planifiee").length} visite(s) terrain déjà planifiée(s) par le ministère.</p>}
       </section>
 
-      <section>
+      <section id="redevabilite" className="scroll-mt-6">
         <p className="etat-eyebrow">5 · Décisions et résultats récents</p>
         <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Décisions récentes.</h2>
         <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{state.decisions.length} décision(s) enregistrée(s) au total — chaque arbitrage institutionnel reste tracé et consultable.</p>
