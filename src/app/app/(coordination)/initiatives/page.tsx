@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Banknote, CircleDollarSign, Flag, Target, UsersRound } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Banknote, CircleDollarSign, Flag, Target, UsersRound } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { ExportActions } from "@/components/reporting/ExportActions";
 import { CollectiveNeedsPanel } from "@/components/coordination/CollectiveNeedsPanel";
 import { Badge } from "@/components/ui/badge";
-import type { Funding, Initiative } from "@/domain/types";
+import type { Funding, Initiative, ProductState } from "@/domain/types";
 
 const money = new Intl.NumberFormat("fr-FR", { notation: "compact", style: "currency", currency: "XOF", maximumFractionDigits: 0 });
 
@@ -126,71 +127,7 @@ export default function InitiativesPage() {
 
       <div className="space-y-10">
         {filteredInitiatives.length === 0 && <p className="text-sm text-muted-foreground">Aucun programme ne correspond à ce filtre pour le moment.</p>}
-        {filteredInitiatives.map((initiative) => {
-          const secured = initiative.funding.filter((item) => item.status === "confirme").reduce((sum, item) => sum + item.amountFcfa, 0);
-          const instructed = initiative.funding.filter((item) => item.status === "en_instruction").reduce((sum, item) => sum + item.amountFcfa, 0);
-          const owner = state.actors.find((item) => item.id === initiative.ownerId);
-          return (
-            <section key={initiative.id} className="overflow-hidden rounded-2xl border">
-              <div className="bg-sidebar p-6 text-sidebar-foreground">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-sidebar-foreground/60">Programme · {initiative.territoryIds.length} territoire(s)</p>
-                    <h2 className="mt-2 max-w-3xl text-xl font-semibold tracking-tight">{initiative.title}</h2>
-                    <p className="mt-2 max-w-3xl text-sm leading-6 text-sidebar-foreground/70">{initiative.objective}</p>
-                  </div>
-                  <Badge variant={initiativeStatusVariant[initiative.status]} className="w-fit">{initiativeStatusLabel[initiative.status]}</Badge>
-                </div>
-              </div>
-
-              <div className="grid border-b sm:grid-cols-2 xl:grid-cols-4">
-                <div className="p-5"><Banknote size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{initiative.budgetFcfa !== undefined ? money.format(initiative.budgetFcfa) : "À estimer"}</p><p className="text-xs text-muted-foreground">{budgetStatusCaption[initiative.budgetStatus]}</p></div>
-                <div className="p-5 sm:border-l"><CircleDollarSign size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{money.format(secured + instructed)}</p><p className="text-xs text-muted-foreground">confirmé ou en instruction</p></div>
-                <div className="p-5 xl:border-l"><Flag size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{initiative.territoryIds.length}</p><p className="text-xs text-muted-foreground">territoires reliés</p></div>
-                <div className="p-5 sm:border-l"><UsersRound size={19} className="text-[#1d4468]" /><p className="mt-3 font-bold">{owner?.name}</p><p className="text-xs text-muted-foreground">responsable de l’initiative</p></div>
-              </div>
-
-              <div className="grid gap-8 p-5 lg:grid-cols-2 lg:p-6">
-                <section>
-                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Progression vers les résultats</p>
-                  <div className="mt-4 space-y-5">
-                    {initiative.indicators.map((indicator) => {
-                      const progress = Math.min(100, Math.round((indicator.current / indicator.target) * 100));
-                      return (
-                        <div key={indicator.label}>
-                          <div className="flex justify-between gap-4 text-sm"><span className="font-semibold">{indicator.label}</span><strong>{indicator.current}{indicator.unit} / {indicator.target}{indicator.unit}</strong></div>
-                          <div className="mt-2 h-2 rounded-full bg-muted"><div className="h-full rounded-full bg-[#1d4468]" style={{ width: `${progress}%` }} /></div>
-                          <p className="mt-1 text-xs text-muted-foreground">Référence initiale : {indicator.baseline}{indicator.unit}</p>
-                        </div>
-                      );
-                    })}
-                    {initiative.indicators.length === 0 && <p className="text-sm text-muted-foreground">Aucun indicateur défini pour le moment — programme en cadrage.</p>}
-                  </div>
-                </section>
-
-                <section>
-                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Instruction financière</p>
-                  <div className="mt-4 divide-y border-y">
-                    {initiative.funding.map((fund) => {
-                      const partner = state.actors.find((item) => item.id === fund.partnerId);
-                      return (
-                        <div key={fund.id} className="py-4">
-                          <div className="flex items-center justify-between gap-4">
-                            <strong className="text-sm">{partner?.name}</strong>
-                            <Badge variant={fundingStatusVariant[fund.status]}>{fundingStatusLabel[fund.status]}</Badge>
-                          </div>
-                          <p className="mt-2 text-lg font-bold">{money.format(fund.amountFcfa)}</p>
-                          <p className="mt-2 text-sm leading-5 text-muted-foreground">{fund.condition}</p>
-                        </div>
-                      );
-                    })}
-                    {initiative.funding.length === 0 && <p className="py-4 text-sm text-muted-foreground">Aucun financement engagé pour le moment.</p>}
-                  </div>
-                </section>
-              </div>
-            </section>
-          );
-        })}
+        {filteredInitiatives.map((initiative) => <InitiativeCard key={initiative.id} initiative={initiative} state={state} />)}
       </div>
 
       <section className="flex gap-3 border-l-2 border-[#1d4468]/30 pl-4">
@@ -201,5 +138,104 @@ export default function InitiativesPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+// Lot Initiatives-B (propagation DA v2, arbitrage CEO 2026-08-20) : extrait
+// de la boucle .map() ci-dessus pour être réutilisé tel quel par le bloc
+// print-only du Lot Initiatives-D (même discipline que ReportDetailCard
+// sur /app/etat/rapport, Lot Rapport-D) — la version imprimée ne doit
+// jamais être une version appauvrie de la version interactive.
+function InitiativeCard({ initiative, state }: { initiative: Initiative; state: ProductState }) {
+  const secured = initiative.funding.filter((item) => item.status === "confirme").reduce((sum, item) => sum + item.amountFcfa, 0);
+  const instructed = initiative.funding.filter((item) => item.status === "en_instruction").reduce((sum, item) => sum + item.amountFcfa, 0);
+  const owner = state.actors.find((item) => item.id === initiative.ownerId);
+  // Situations liées (Initiative.situationIds, peuplé à 100% dans le jeu de
+  // démonstration actuel) — jusqu'ici jamais affiché ni lié, alors que la
+  // phrase de clôture de la page ("Chaque financement renvoie aux
+  // situations qui l'ont justifié...") le promettait déjà. Repli explicite
+  // si un programme futur n'a aucune situation liée documentée.
+  const linkedSituations = initiative.situationIds
+    .map((id) => state.situations.find((item) => item.id === id))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  return (
+    <section className="overflow-hidden rounded-2xl border">
+      <div className="bg-sidebar p-6 text-sidebar-foreground">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-sidebar-foreground/60">Programme · {initiative.territoryIds.length} territoire(s)</p>
+            <h2 className="mt-2 max-w-3xl text-xl font-semibold tracking-tight">{initiative.title}</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-sidebar-foreground/70">{initiative.objective}</p>
+          </div>
+          <Badge variant={initiativeStatusVariant[initiative.status]} className="w-fit">{initiativeStatusLabel[initiative.status]}</Badge>
+        </div>
+      </div>
+
+      <div className="grid border-b sm:grid-cols-2 xl:grid-cols-4">
+        <div className="p-5"><Banknote size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{initiative.budgetFcfa !== undefined ? money.format(initiative.budgetFcfa) : "À estimer"}</p><p className="text-xs text-muted-foreground">{budgetStatusCaption[initiative.budgetStatus]}</p></div>
+        <div className="p-5 sm:border-l"><CircleDollarSign size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{money.format(secured + instructed)}</p><p className="text-xs text-muted-foreground">confirmé ou en instruction</p></div>
+        <div className="p-5 xl:border-l"><Flag size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{initiative.territoryIds.length}</p><p className="text-xs text-muted-foreground">territoires reliés</p></div>
+        <div className="p-5 sm:border-l"><UsersRound size={19} className="text-[#1d4468]" /><p className="mt-3 font-bold">{owner?.name}</p><p className="text-xs text-muted-foreground">responsable de l’initiative</p></div>
+      </div>
+
+      <div className="grid gap-8 p-5 lg:grid-cols-2 lg:p-6">
+        <section>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Progression vers les résultats</p>
+          <div className="mt-4 space-y-5">
+            {initiative.indicators.map((indicator) => {
+              const progress = Math.min(100, Math.round((indicator.current / indicator.target) * 100));
+              return (
+                <div key={indicator.label}>
+                  <div className="flex justify-between gap-4 text-sm"><span className="font-semibold">{indicator.label}</span><strong>{indicator.current}{indicator.unit} / {indicator.target}{indicator.unit}</strong></div>
+                  <div className="mt-2 h-2 rounded-full bg-muted"><div className="h-full rounded-full bg-[#1d4468]" style={{ width: `${progress}%` }} /></div>
+                  <p className="mt-1 text-xs text-muted-foreground">Référence initiale : {indicator.baseline}{indicator.unit}</p>
+                </div>
+              );
+            })}
+            {initiative.indicators.length === 0 && <p className="text-sm text-muted-foreground">Aucun indicateur défini pour le moment — programme en cadrage.</p>}
+          </div>
+        </section>
+
+        <section>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Instruction financière</p>
+          <div className="mt-4 divide-y border-y">
+            {initiative.funding.map((fund) => {
+              const partner = state.actors.find((item) => item.id === fund.partnerId);
+              return (
+                <div key={fund.id} className="py-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <strong className="text-sm">{partner?.name}</strong>
+                    <Badge variant={fundingStatusVariant[fund.status]}>{fundingStatusLabel[fund.status]}</Badge>
+                  </div>
+                  <p className="mt-2 text-lg font-bold">{money.format(fund.amountFcfa)}</p>
+                  <p className="mt-2 text-sm leading-5 text-muted-foreground">{fund.condition}</p>
+                </div>
+              );
+            })}
+            {initiative.funding.length === 0 && <p className="py-4 text-sm text-muted-foreground">Aucun financement engagé pour le moment.</p>}
+          </div>
+        </section>
+      </div>
+
+      <section className="border-t p-5 lg:p-6">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Situations liées</p>
+        <div className="mt-4 space-y-2">
+          {linkedSituations.map((situation) => {
+            const territory = state.territories.find((item) => item.id === situation.territoryId);
+            return (
+              <Link key={situation.id} href={`/app/situations/${situation.id}`} className="flex items-center justify-between gap-4 rounded-lg border px-4 py-3 text-sm transition hover:bg-muted">
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{situation.title}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">{territory?.name ?? situation.territoryId}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-[#1d4468]">Ouvrir la situation <ArrowRight size={13} /></span>
+              </Link>
+            );
+          })}
+          {linkedSituations.length === 0 && <p className="text-sm text-muted-foreground">Aucune situation liée documentée pour ce programme.</p>}
+        </div>
+      </section>
+    </section>
   );
 }
