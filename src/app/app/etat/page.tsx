@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowRight, ArrowUpRight, Compass, Factory, FileDown, Fish, Radio, Sailboat, Send, ShieldCheck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, Compass, Factory, FileDown, Fish, Radio, Sailboat, Send, ShieldCheck, Users } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { InstitutionIllustration } from "@/components/public/CoordinationIllustration";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
@@ -154,6 +154,12 @@ export default function EtatPage() {
   const [cases, setCases] = useState<VigilanceCase[]>([]);
   const [visits, setVisits] = useState<FieldVisit[]>([]);
   const [territoryDrawer, setTerritoryDrawer] = useState<Territory | null>(null);
+  // Lot État-A (mandat CEO 2026-08-20, §3.2/§3.3) : état distinct de
+  // territoryDrawer — un clic sur l'Atlas sélectionne un territoire pour
+  // peupler "À décider aujourd'hui" sans ouvrir immédiatement le tiroir.
+  // territoryDrawer reste réservé à l'ouverture explicite via le CTA
+  // "Voir le territoire".
+  const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);
   const [situationDrawer, setSituationDrawer] = useState<Situation | null>(null);
   const [missionDrawer, setMissionDrawer] = useState<Mission | null>(null);
   const [signalDrawerOpen, setSignalDrawerOpen] = useState(false);
@@ -213,10 +219,71 @@ export default function EtatPage() {
   // du territoire/dossier dominant, pas les libellés illustratifs de la
   // référence (aucun champ "sorties de pêche concernées"/"tonnage
   // impacté"/"risque de pertes" n'existe dans le modèle — non fabriqués).
-  const dominantTerritoryId = dominant.kind === "territoire" ? dominant.territory.id : dominant.kind === "signal" ? dominant.case.territoryId : undefined;
+  //
+  // Lot État-A : selectedTerritoryId (clic Atlas explicite) prend le pas
+  // sur le calcul dominant réseau — dès qu'un territoire est sélectionné,
+  // tout le panneau (situations, capacités, KPI) se recalcule pour lui,
+  // sans changer le calcul par défaut (dominant) quand rien n'est
+  // sélectionné.
+  const dominantTerritoryId = selectedTerritoryId ?? (dominant.kind === "territoire" ? dominant.territory.id : dominant.kind === "signal" ? dominant.case.territoryId : undefined);
+  const focusTerritory = dominantTerritoryId ? state.territories.find((item) => item.id === dominantTerritoryId) : undefined;
   const dominantOpenSituations = dominantTerritoryId ? state.situations.filter((item) => item.territoryId === dominantTerritoryId && item.status !== "reglee") : [];
   const dominantFragileInfra = dominantTerritoryId ? state.infrastructures.filter((item) => item.territoryId === dominantTerritoryId && item.status !== "operationnelle").length : 0;
   const dominantPrioritySituation = [...dominantOpenSituations].sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])[0];
+
+  // Titre adaptatif du panneau quand un territoire est sélectionné
+  // explicitement (mandat §3.3) : "À décider aujourd'hui" seulement
+  // quand une décision est réellement attendue (situation ouverte
+  // critique/haute), sinon un wording honnête selon le statut réel —
+  // jamais une urgence fabriquée pour un territoire calme.
+  const selectedPanelTitle = !selectedTerritoryId || !focusTerritory ? undefined :
+    dominantPrioritySituation && (dominantPrioritySituation.priority === "critique" || dominantPrioritySituation.priority === "haute")
+      ? "À décider aujourd’hui"
+      : dominantOpenSituations.length > 0 || focusTerritory.activity === "vigilance"
+        ? "À surveiller"
+        : "Lecture du territoire";
+
+  // 6 KPI territoriaux réels (mandat §3.3, gap analysis livrable 2) —
+  // tous directement dérivés du modèle, aucune dérivation de confiance
+  // fabriquée en 7e chiffre. Recalculés à chaque changement de
+  // dominantTerritoryId (sélection Atlas ou calcul dominant par défaut).
+  const focusSites = dominantTerritoryId ? state.sites.filter((item) => item.territoryId === dominantTerritoryId) : [];
+  const focusSiteIds = new Set(focusSites.map((item) => item.id));
+  const focusVessels = state.vessels.filter((item) => focusSiteIds.has(item.homeSiteId));
+  const focusVesselIds = new Set(focusVessels.map((item) => item.id));
+  const focusLandings = state.landings.filter((item) => focusSiteIds.has(item.siteId));
+  const focusTripsEnMer = state.trips.filter((item) => focusVesselIds.has(item.vesselId) && item.status === "en_mer").length;
+  const focusInfrastructures = dominantTerritoryId ? state.infrastructures.filter((item) => item.territoryId === dominantTerritoryId) : [];
+  const focusAvailableCapacity = focusInfrastructures.filter((item) => item.status === "operationnelle").length;
+  const focusActors = dominantTerritoryId ? state.actors.filter((item) => item.territoryIds.includes(dominantTerritoryId)).length : 0;
+  const territoryKpis = dominantTerritoryId ? [
+    { icon: Fish, value: focusLandings.length, label: "Débarquements documentés" },
+    { icon: Sailboat, value: focusTripsEnMer, label: "Sorties en mer en cours" },
+    { icon: Factory, value: dominantFragileInfra, label: "Capacités fragiles/indisponibles", caption: `${focusAvailableCapacity} disponible(s) sur ${focusInfrastructures.length}` },
+    { icon: Compass, value: focusSites.length, label: "Sites documentés" },
+    { icon: BadgeCheck, value: focusVessels.length, label: "Immatriculations recensées" },
+    { icon: Users, value: focusActors, label: "Acteurs mobilisables" }
+  ] : [];
+
+  // Rendu du panneau : sélection Atlas explicite prioritaire sur le
+  // calcul dominant réseau (cf. commentaire dominantTerritoryId).
+  const panelGlyphStatus = selectedTerritoryId && focusTerritory ? focusTerritory.activity : dominant.glyphStatus;
+  const panelBorderColor = selectedTerritoryId && focusTerritory ? glyphBorderColor[focusTerritory.activity] : (dominant.kind === "calme" ? "var(--etat-navy-600)" : "var(--etat-terracotta)");
+  const panelEyebrow = selectedPanelTitle ?? (dominant.kind === "calme" ? "Situation calme" : "À décider aujourd’hui");
+  const panelHeading = selectedTerritoryId && focusTerritory
+    ? selectedPanelTitle === "À décider aujourd’hui"
+      ? `${focusTerritory.name} — une décision est attendue`
+      : selectedPanelTitle === "À surveiller"
+        ? `${focusTerritory.name} — à surveiller`
+        : `Lecture de ${focusTerritory.name}`
+    : dominant.kind === "signal" ? `${vigilanceCategoryLabels[dominant.case.category]} à ${dominant.case.territoryLabel}`
+    : dominant.kind === "territoire" ? `${dominant.territory.name} concentre l’attention du réseau`
+    : "Aucune tension prioritaire signalée";
+  const panelDescription = selectedTerritoryId && focusTerritory
+    ? (dominantPrioritySituation?.description ?? (focusTerritory.activity === "stable" ? "Aucune situation ouverte prioritaire sur ce territoire pour le moment." : "Territoire sélectionné sur la carte — voir le détail pour comprendre ce qui s’y joue."))
+    : dominant.kind === "signal" ? dominant.case.description
+    : dominant.kind === "territoire" ? "Territoire classé en activité critique — voir le détail pour comprendre ce qui s’y joue."
+    : "Le réseau reste sous surveillance continue ; les territoires actifs restent consultables sur la carte.";
 
   // Chapitre 2 — Résultats de la coordination (Lot D). 4 mesures maximum
   // (§17 du mandat), toutes réellement dérivées :
@@ -374,32 +441,26 @@ export default function EtatPage() {
             <div className="relative aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full lg:min-h-[520px]">
               <CoastlineTerritoryMap
                 territories={state.territories}
-                selectedId={territoryDrawer?.id}
-                onSelect={(id) => {
-                  const territory = state.territories.find((item) => item.id === id);
-                  if (territory) setTerritoryDrawer(territory);
-                }}
+                selectedId={selectedTerritoryId ?? undefined}
+                onSelect={(id) => setSelectedTerritoryId(id)}
               />
             </div>
           </div>
 
-          <aside className="etat-panel flex flex-col p-6" style={{ borderLeftWidth: 4, borderLeftColor: dominant.kind === "calme" ? "var(--etat-navy-600)" : "var(--etat-terracotta)" }}>
-            <div className="flex items-center gap-2.5" style={{ color: dominant.kind === "calme" ? "var(--etat-navy-600)" : "var(--etat-terracotta)" }}>
-              <TensionGlyph status={dominant.glyphStatus} size={26} pulse={dominant.kind !== "calme"} />
-              <p className="text-[11px] font-bold uppercase tracking-widest">{dominant.kind === "calme" ? "Situation calme" : "À décider aujourd’hui"}</p>
+          <aside className="etat-panel flex flex-col p-6" style={{ borderLeftWidth: 4, borderLeftColor: panelBorderColor }}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5" style={{ color: panelBorderColor }}>
+                <TensionGlyph status={panelGlyphStatus} size={26} pulse={panelGlyphStatus !== "stable"} />
+                <p className="text-[11px] font-bold uppercase tracking-widest">{panelEyebrow}</p>
+              </div>
+              {selectedTerritoryId && (
+                <button onClick={() => setSelectedTerritoryId(null)} className="text-[11px] font-semibold text-[var(--etat-stone-400)] underline decoration-dotted underline-offset-2 hover:text-[var(--etat-stone-600)]">Revenir à la lecture par défaut</button>
+              )}
             </div>
-            <h2 className="etat-display mt-3 text-xl not-italic text-[var(--etat-navy-950)]">
-              {dominant.kind === "signal" && `${vigilanceCategoryLabels[dominant.case.category]} à ${dominant.case.territoryLabel}`}
-              {dominant.kind === "territoire" && `${dominant.territory.name} concentre l’attention du réseau`}
-              {dominant.kind === "calme" && "Aucune tension prioritaire signalée"}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--etat-stone-600)]">
-              {dominant.kind === "signal" && dominant.case.description}
-              {dominant.kind === "territoire" && "Territoire classé en activité critique — voir le détail pour comprendre ce qui s’y joue."}
-              {dominant.kind === "calme" && "Le réseau reste sous surveillance continue ; les territoires actifs restent consultables sur la carte."}
-            </p>
+            <h2 className="etat-display mt-3 text-xl not-italic text-[var(--etat-navy-950)]">{panelHeading}</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--etat-stone-600)]">{panelDescription}</p>
 
-            {dominant.kind !== "calme" && (
+            {dominantTerritoryId && (
               <div className="mt-4 space-y-2.5 border-t border-[var(--etat-line)] pt-4 text-sm text-[var(--etat-navy-950)]">
                 <p className="flex items-center gap-2"><SituationIcon size={15} color="var(--etat-stone-600)" /> {dominantOpenSituations.length} situation(s) ouverte(s) sur ce territoire</p>
                 {dominantFragileInfra > 0 && <p className="flex items-center gap-2"><Factory size={15} color="var(--etat-ocre)" /> {dominantFragileInfra} capacité(s) fragile(s) ou indisponible(s)</p>}
@@ -407,10 +468,26 @@ export default function EtatPage() {
               </div>
             )}
 
+            {/* 6 KPI territoriaux réels (mandat §3.3) — compacts, icône +
+                valeur + libellé, recalculés à chaque changement de
+                territoire en focus (sélection Atlas ou calcul dominant). */}
+            {territoryKpis.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[var(--etat-line)] pt-4 sm:grid-cols-3">
+                {territoryKpis.map((kpi) => (
+                  <div key={kpi.label}>
+                    <kpi.icon size={15} color="var(--etat-stone-600)" />
+                    <p className="etat-display mt-1 text-lg not-italic text-[var(--etat-navy-950)]"><NumberTicker value={kpi.value} /></p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide leading-tight text-[var(--etat-stone-600)]">{kpi.label}</p>
+                    {"caption" in kpi && kpi.caption && <p className="mt-0.5 text-[10px] text-[var(--etat-stone-400)]">{kpi.caption}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="mt-5 flex flex-1 flex-col justify-end gap-2">
-              {dominant.kind === "territoire" && <button className="etat-btn etat-btn-outline justify-center" onClick={() => setTerritoryDrawer(dominant.territory)}>Voir le territoire <ArrowRight size={15} /></button>}
+              {focusTerritory && <button className="etat-btn etat-btn-outline justify-center" onClick={() => setTerritoryDrawer(focusTerritory)}>Voir le territoire <ArrowRight size={15} /></button>}
               {dominantPrioritySituation ? (
-                <button onClick={() => setSituationDrawer(dominantPrioritySituation)} className="etat-btn etat-btn-primary justify-center">Ouvrir l’arbitrage <ArrowRight size={15} /></button>
+                <button onClick={() => setSituationDrawer(dominantPrioritySituation)} className="etat-btn etat-btn-primary justify-center">Voir la situation <ArrowRight size={15} /></button>
               ) : (
                 <a href="#arbitrage" className="etat-btn etat-btn-outline justify-center">Voir les situations à arbitrer <ArrowRight size={15} /></a>
               )}
