@@ -208,8 +208,33 @@ export function ProfessionalAtlasWorkspace() {
   const situations = state.situations.filter((item) => item.territoryId === territory.id && item.status !== "reglee");
   const primarySituation = [...situations].sort((a, b) => (a.priority === "critique" ? -1 : b.priority === "critique" ? 1 : 0))[0];
   const vessels = state.vessels.filter((item) => item.homeSiteId === quayId);
-  const trips = state.trips.filter((item) => vessels.some((vessel) => vessel.id === item.vesselId));
-  const landings = state.landings.filter((item) => item.siteId === quayId);
+
+  // Lot Atlas-B (propagation DA v2, mandat CEO 2026-08-20) : filtre
+  // Période réellement fonctionnel. Ancré sur la donnée réelle la plus
+  // récente du jeu de démonstration (dernier landing/départ), pas sur
+  // l'horloge murale — vérifié par script sur createDemoState() : les
+  // dates réelles s'arrêtent au 8 août 2026, "aujourd'hui"/"7 jours"
+  // calculés sur la date système seraient systématiquement vides pour
+  // les 18 territoires. Même principe que les filtres Période déjà posés
+  // sur /app/etat et /app/etat/rapport : ancré sur la donnée réelle
+  // disponible. Si aucune date réelle n'existe du tout, le filtre se
+  // désactive honnêtement (withinPeriod retombe à true) plutôt que de
+  // masquer des objets sans repère temporel fiable.
+  const allActivityDates = [
+    ...state.landings.map((item) => item.weighedAt ?? item.arrivedAt),
+    ...state.trips.map((item) => item.departureAt)
+  ].filter((value): value is string => Boolean(value)).sort();
+  const latestActivityAt = allActivityDates[allActivityDates.length - 1];
+  const periodWindowDays: Record<string, number> = { today: 0, "7d": 6, "30d": 29 };
+  const windowStartAt = latestActivityAt ? new Date(new Date(latestActivityAt).getTime() - periodWindowDays[period] * 86400000) : undefined;
+  const withinPeriod = (iso?: string) => {
+    if (!iso || !latestActivityAt || !windowStartAt) return true;
+    const at = new Date(iso).getTime();
+    return at >= windowStartAt.getTime() && at <= new Date(latestActivityAt).getTime();
+  };
+
+  const trips = state.trips.filter((item) => vessels.some((vessel) => vessel.id === item.vesselId) && withinPeriod(item.departureAt));
+  const landings = state.landings.filter((item) => item.siteId === quayId && withinPeriod(item.weighedAt ?? item.arrivedAt));
   const landedKg = landings.reduce((sum, item) => sum + item.totalWeightKg, 0);
   const infrastructures = state.infrastructures.filter((item) => item.territoryId === territory.id);
   const availableCapacity = infrastructures.reduce((sum, item) => sum + item.availableCapacity, 0);
@@ -340,6 +365,12 @@ export function ProfessionalAtlasWorkspace() {
                 <div className="flex items-start gap-3"><Scale size={16} className="mt-0.5 shrink-0 text-white/40" /><div><p className="text-sm font-semibold">{landings.length} débarquement(s)</p><p className="mt-0.5 text-xs text-white/45">Pesée et lots reliés aux opérations</p></div></div>
                 <div className="flex items-start gap-3"><UsersRound size={16} className="mt-0.5 shrink-0 text-white/40" /><div><p className="text-sm font-semibold">{activeActors} acteur(s) habilité(s)</p><p className="mt-0.5 text-xs text-white/45">Sur le périmètre de démonstration</p></div></div>
               </div>
+              {/* Repli honnête : si la fenêtre choisie ne contient aucun
+                  débarquement ni aucune sortie réels pour ce quai, le
+                  dire plutôt que laisser deux zéros sans explication. */}
+              {trips.length === 0 && landings.length === 0 && (
+                <p className="mt-3 text-xs text-white/45">Aucune activité documentée sur cette fenêtre pour ce quai.</p>
+              )}
             </div>
 
             {/* A14 — seul contraste fort du dossier : terracotta si

@@ -430,21 +430,35 @@ button:disabled { cursor: not-allowed; }
 
 .ops-filter select option { color: var(--ink); }
 
+/* Lot Atlas-C (propagation DA v2, mandat CEO 2026-08-20, arbitrage gap
+   analysis /app/atlas) : dégradé recoloré en marine (aligné sur
+   #0b1a2a, déjà utilisé par le reste de ProfessionalAtlasWorkspace —
+   header, dossier territorial) — l'ancienne teinte turquoise/sarcelle
+   (rgba(87,219,200,…) / rgba(27,128,151,…)) était un reliquat d'une
+   itération antérieure du composant, incohérente avec la palette D9
+   marine/terracotta/ambre que ce même fichier applique déjà partout
+   ailleurs (commentaires A12-A20). Accents ambre/marine très discrets
+   à la place du turquoise ; ondulations ajoutées en toile de fond,
+   même esprit que la texture eau de CoastlineTerritoryMap sur
+   /app/etat (illustratif, jamais une précision SIG). Aucune position,
+   aucun tracé, aucun mécanisme de clic modifié — uniquement le fond. */
 .ops-map-canvas {
   background:
-    radial-gradient(circle at 30% 20%, rgba(87, 219, 200, .14), transparent 22%),
-    radial-gradient(circle at 42% 73%, rgba(27, 128, 151, .14), transparent 28%),
+    radial-gradient(circle at 30% 20%, rgba(198, 138, 44, .08), transparent 24%),
+    radial-gradient(circle at 42% 73%, rgba(29, 68, 104, .18), transparent 30%),
+    repeating-linear-gradient(100deg, rgba(255,255,255,.025) 0 2px, transparent 2px 46px),
+    repeating-linear-gradient(115deg, rgba(255,255,255,.018) 0 1px, transparent 1px 30px),
     linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px),
-    linear-gradient(150deg, #0a3541, #031a22 78%);
-  background-size: auto, auto, 42px 42px, 42px 42px, auto;
+    linear-gradient(150deg, #102944, #071627 78%);
+  background-size: auto, auto, auto, auto, 42px 42px, 42px 42px, auto;
 }
 
 .ops-landmass {
   position: absolute;
   inset: 0 0 0 auto;
   width: 29%;
-  border-left: 1px solid rgba(112, 227, 213, .28);
+  border-left: 1px solid rgba(198, 138, 44, .22);
   background: linear-gradient(145deg, #d8d6c7, #aaa998);
   clip-path: polygon(27% 0, 100% 0, 100% 100%, 0 100%, 10% 88%, 2% 77%, 18% 68%, 7% 57%, 22% 48%, 10% 37%, 27% 27%, 14% 17%);
   opacity: .94;
