@@ -184,6 +184,10 @@ export default function EtatPage() {
   // — le filtre territoire, lui, réutilise selectedTerritoryId (même
   // Périmètre que le reste de la page, cf. Lot État-B).
   const [programmeStatusFilter, setProgrammeStatusFilter] = useState<Initiative["status"] | "all">("all");
+  // Lot État-F (mandat §3.7) : filtre urgence propre à Situations à
+  // arbitrer — le filtre territoire réutilise, ici aussi, le Périmètre
+  // partagé (selectedTerritoryId).
+  const [urgenceFilter, setUrgenceFilter] = useState<"all" | "critique" | "haute">("all");
   const [situationDrawer, setSituationDrawer] = useState<Situation | null>(null);
   const [missionDrawer, setMissionDrawer] = useState<Mission | null>(null);
   const [signalDrawerOpen, setSignalDrawerOpen] = useState(false);
@@ -380,9 +384,12 @@ export default function EtatPage() {
   // mécanisme de sélection parallèle — un seul territoire "actif" pour
   // toute la page, quelle que soit son origine (carte ou sélecteur).
   const situationsAArbitrer = state.situations
-    .filter((item) => item.status !== "reglee" && (item.priority === "critique" || item.priority === "haute") && (!selectedTerritoryId || item.territoryId === selectedTerritoryId))
-    .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])
-    .slice(0, 5);
+    .filter((item) =>
+      item.status !== "reglee" &&
+      (urgenceFilter === "all" ? (item.priority === "critique" || item.priority === "haute") : item.priority === urgenceFilter) &&
+      (!selectedTerritoryId || item.territoryId === selectedTerritoryId)
+    )
+    .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority]);
   const recentDecisions = [...state.decisions]
     .filter((item) => {
       if (!selectedTerritoryId) return true;
@@ -770,9 +777,21 @@ export default function EtatPage() {
           <div>
             <p className="etat-eyebrow">4 · Situations à arbitrer</p>
             <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Situations critiques à arbitrer.</h2>
-            <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{situationsAArbitrer.length} situation(s) de risque élevé ou critique attendent une décision, sur {state.situations.filter((item) => item.status !== "reglee" && (!selectedTerritoryId || item.territoryId === selectedTerritoryId)).length} dossier(s) ouverts{selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}.</p>
+            <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{situationsAArbitrer.length} situation(s) {urgenceFilter === "all" ? "de risque élevé ou critique" : urgenceFilter === "critique" ? "critiques" : "de risque élevé"} attendent une décision, sur {state.situations.filter((item) => item.status !== "reglee" && (!selectedTerritoryId || item.territoryId === selectedTerritoryId)).length} dossier(s) ouverts{selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}.</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="block">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Urgence</p>
+              <select
+                value={urgenceFilter}
+                onChange={(event) => setUrgenceFilter(event.target.value as "all" | "critique" | "haute")}
+                className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
+              >
+                <option value="all">Critique + élevé</option>
+                <option value="critique">Critique seulement</option>
+                <option value="haute">Élevé seulement</option>
+              </select>
+            </label>
             <button className="etat-btn etat-btn-outline" onClick={() => setSignalDrawerOpen(true)}><Radio size={15} /> Signaler une situation</button>
           </div>
         </div>
@@ -972,10 +991,17 @@ export default function EtatPage() {
         </div>
       </section>
 
+      {/* Lot État-G (mandat §3.9, livrable 6 de la gap analysis) :
+          maintenu comme registre de redevabilité distinct — 13 des 17
+          décisions (76%) ont déjà un engagement terminé avec résultat
+          documenté, une vraie substance, pas un doublon vide avec
+          Situations à arbitrer. Renommé pour le dire explicitement ;
+          statut dérivé affiché sur chaque ligne (jamais masqué quand il
+          n'y a pas encore de résultat — honnêteté du 24% restant). */}
       <section id="redevabilite" className="scroll-mt-6">
-        <p className="etat-eyebrow">6 · Décisions et résultats récents</p>
-        <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Décisions récentes.</h2>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{state.decisions.length} décision(s) enregistrée(s) au total — chaque arbitrage institutionnel reste tracé et consultable.</p>
+        <p className="etat-eyebrow">6 · Décisions exécutées &amp; résultats observés</p>
+        <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Décisions exécutées &amp; résultats observés.</h2>
+        <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{state.decisions.length} décision(s) enregistrée(s) au total — ce que la coordination a décidé, et ce que cela a produit. Chaque arbitrage institutionnel reste tracé et consultable.</p>
         {recentDecisions.length === 0 ? (
           <p className="mt-5 text-sm text-[var(--etat-stone-600)]">Aucune décision enregistrée pour le moment.</p>
         ) : (
@@ -999,7 +1025,10 @@ export default function EtatPage() {
                   <span className="absolute -left-[47px] top-0 grid size-10 place-items-center rounded-full" style={{ backgroundColor: "var(--etat-navy-600)" }}><DecisionIcon size={20} color="var(--etat-offwhite)" /></span>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{decisionTypeLabels[decision.type]}{situation ? ` · ${territory?.name ?? situation.territoryId}` : ""}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{decisionTypeLabels[decision.type]}{situation ? ` · ${territory?.name ?? situation.territoryId}` : ""}</p>
+                        <span className={`etat-tag ${completedCommitments.length > 0 ? "etat-tag--reel" : "etat-tag--stable"}`}>{completedCommitments.length > 0 ? "Résultat documenté" : "En cours"}</span>
+                      </div>
                       <p className="mt-1 text-xs leading-5 text-[var(--etat-stone-600)]">{decision.rationale}</p>
                       <p className="mt-1.5 text-[11px] text-[var(--etat-stone-400)]">{new Date(decision.decidedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}{decider ? ` · ${decider.name}` : ""}</p>
                       {completedCommitments.length > 0 && (
