@@ -99,8 +99,10 @@ export default function InitiativesPage() {
       {/* Lot Initiatives-A : filtres réels, pas d'option masquée même si
           elle peut légitimement retourner zéro résultat (arbitrage CEO —
           ex. statut "Financée" ne compte qu'un programme, "Terminée"
-          aucun dans le jeu de démonstration actuel). */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-4">
+          aucun dans le jeu de démonstration actuel). print:hidden (Lot
+          Initiatives-D) : les filtres n'ont pas de sens à l'impression,
+          cf. bloc plein ci-dessous. */}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-4 print:hidden">
         <div className="flex flex-wrap items-center gap-6">
           <label className="block">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Territoire</p>
@@ -132,9 +134,20 @@ export default function InitiativesPage() {
         <p className="text-sm text-muted-foreground">{filteredInitiatives.length} programme(s){focusTerritoryName ? ` · ${focusTerritoryName}` : ""}{statusFilter !== "all" ? ` · ${initiativeStatusLabel[statusFilter]}` : ""} sur {state.initiatives.length} au total.</p>
       </div>
 
-      <div className="space-y-10">
+      <div className="space-y-10 print:hidden">
         {filteredInitiatives.length === 0 && <p className="text-sm text-muted-foreground">Aucun programme ne correspond à ce filtre pour le moment.</p>}
         {filteredInitiatives.map((initiative) => <InitiativeCard key={initiative.id} initiative={initiative} state={state} />)}
+      </div>
+
+      {/* Lot Initiatives-D (arbitrage CEO 2026-08-20, option b, même
+          discipline que Rapport-D) : version imprimable qui ignore le
+          filtre écran — les 9 programmes en entier, toujours, quel que
+          soit le filtre Territoire/Statut actif à l'écran. Un lecteur qui
+          imprime un portefeuille doit voir l'ensemble, pas un
+          sous-ensemble filtré par accident. Même InitiativeCard que la
+          version interactive — jamais de version imprimée appauvrie. */}
+      <div className="hidden space-y-10 print:block">
+        {state.initiatives.map((initiative) => <InitiativeCard key={initiative.id} initiative={initiative} state={state} />)}
       </div>
 
       <section className="flex gap-3 border-l-2 border-[#1d4468]/30 pl-4">
