@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Banknote, CircleDollarSign, Flag, Target, UsersRound } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
+import { NumberTicker } from "@/components/magicui/number-ticker";
 import { ExportActions } from "@/components/reporting/ExportActions";
 import { CollectiveNeedsPanel } from "@/components/coordination/CollectiveNeedsPanel";
 import { Badge } from "@/components/ui/badge";
@@ -83,7 +84,13 @@ export default function InitiativesPage() {
       <section className="flex flex-col gap-4 border-y py-5 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Portefeuille présenté en mode démonstration</p>
-          <h2 className="mt-2 text-xl font-bold">{state.initiatives.length} programmes · {money.format(totalBudget)}</h2>
+          {/* Lot Initiatives-C (propagation DA v2) : NumberTicker appliqué
+              uniquement au compte entier de programmes — le montant
+              compacté (Md/M FCFA) reste en texte statique, NumberTicker
+              n'a pas de notation "compact" et une animation chiffre par
+              chiffre sur un montant en milliards serait illisible et
+              perdrait le suffixe Md/M. */}
+          <h2 className="mt-2 text-xl font-bold"><NumberTicker value={state.initiatives.length} /> programmes · {money.format(totalBudget)}</h2>
           <p className="mt-1 text-sm text-muted-foreground">Besoins, conditions et statuts restent distincts des engagements fermes.{toEstimateCount > 0 ? ` Total chiffré hors ${toEstimateCount} programme(s) au budget encore à estimer.` : ""}</p>
         </div>
         <ExportActions filename="mbambulaan-programmes-financements" rows={portfolioRows} compact />
