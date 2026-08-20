@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Banknote, CircleDollarSign, Flag, Target, UsersRound } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { ExportActions } from "@/components/reporting/ExportActions";
@@ -39,6 +40,13 @@ const budgetStatusCaption: Record<Initiative["budgetStatus"], string> = {
 
 export default function InitiativesPage() {
   const { state } = useProduct();
+  // Lot Initiatives-A (propagation DA v2, arbitrage CEO 2026-08-20, gap
+  // analysis /app/initiatives) : filtres Territoire + Statut réellement
+  // fonctionnels — réplique fidèle de la logique filteredProgrammes du
+  // chapitre "Programmes en cours" de /app/etat (Lot État-E), même
+  // périmètre de données (state.initiatives), mêmes libellés de statut.
+  const [territoryFilter, setTerritoryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<Initiative["status"] | "all">("all");
   if (!state) return null;
   const portfolioRows = state.initiatives.flatMap((initiative) => initiative.funding.map((fund) => ({
     Initiative: initiative.title,
@@ -55,6 +63,11 @@ export default function InitiativesPage() {
   const chiffredInitiatives = state.initiatives.filter((item) => item.budgetFcfa !== undefined);
   const totalBudget = chiffredInitiatives.reduce((sum, item) => sum + (item.budgetFcfa ?? 0), 0);
   const toEstimateCount = state.initiatives.length - chiffredInitiatives.length;
+  const filteredInitiatives = state.initiatives.filter((item) =>
+    (!territoryFilter || item.territoryIds.includes(territoryFilter)) &&
+    (statusFilter === "all" || item.status === statusFilter)
+  );
+  const focusTerritoryName = territoryFilter ? state.territories.find((item) => item.id === territoryFilter)?.name ?? territoryFilter : undefined;
 
   return (
     <div className="shadcn-scope space-y-8 bg-background p-5 pb-16 lg:p-8">
@@ -75,8 +88,45 @@ export default function InitiativesPage() {
         <ExportActions filename="mbambulaan-programmes-financements" rows={portfolioRows} compact />
       </section>
 
+      {/* Lot Initiatives-A : filtres réels, pas d'option masquée même si
+          elle peut légitimement retourner zéro résultat (arbitrage CEO —
+          ex. statut "Financée" ne compte qu'un programme, "Terminée"
+          aucun dans le jeu de démonstration actuel). */}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-4">
+        <div className="flex flex-wrap items-center gap-6">
+          <label className="block">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Territoire</p>
+            <select
+              value={territoryFilter}
+              onChange={(event) => setTerritoryFilter(event.target.value)}
+              className="mt-1 rounded-md border bg-background py-1 pl-0 pr-6 text-sm font-semibold outline-none focus:border-primary"
+            >
+              <option value="">Sénégal entier</option>
+              {[...state.territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => (
+                <option key={territory.id} value={territory.id}>{territory.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Statut</p>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value as Initiative["status"] | "all")}
+              className="mt-1 rounded-md border bg-background py-1 pl-0 pr-6 text-sm font-semibold outline-none focus:border-primary"
+            >
+              <option value="all">Tous les statuts</option>
+              {(["cadrage", "financee", "execution", "terminee"] as const).map((status) => (
+                <option key={status} value={status}>{initiativeStatusLabel[status]}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="text-sm text-muted-foreground">{filteredInitiatives.length} programme(s){focusTerritoryName ? ` · ${focusTerritoryName}` : ""}{statusFilter !== "all" ? ` · ${initiativeStatusLabel[statusFilter]}` : ""} sur {state.initiatives.length} au total.</p>
+      </div>
+
       <div className="space-y-10">
-        {state.initiatives.map((initiative) => {
+        {filteredInitiatives.length === 0 && <p className="text-sm text-muted-foreground">Aucun programme ne correspond à ce filtre pour le moment.</p>}
+        {filteredInitiatives.map((initiative) => {
           const secured = initiative.funding.filter((item) => item.status === "confirme").reduce((sum, item) => sum + item.amountFcfa, 0);
           const instructed = initiative.funding.filter((item) => item.status === "en_instruction").reduce((sum, item) => sum + item.amountFcfa, 0);
           const owner = state.actors.find((item) => item.id === initiative.ownerId);
