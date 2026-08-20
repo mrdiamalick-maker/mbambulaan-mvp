@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Compass, Factory, FileDown, Fish, Radio, Sailboat, Send, ShieldCheck, Users } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Compass, Factory, FileDown, Fish, Radio, Sailboat, Send, ShieldCheck, Users } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { InstitutionIllustration } from "@/components/public/CoordinationIllustration";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
@@ -169,7 +169,11 @@ export default function EtatPage() {
   const [situationDrawer, setSituationDrawer] = useState<Situation | null>(null);
   const [missionDrawer, setMissionDrawer] = useState<Mission | null>(null);
   const [signalDrawerOpen, setSignalDrawerOpen] = useState(false);
-  const [prioritiesExpanded, setPrioritiesExpanded] = useState(false);
+  // Lot État-D (mandat §3.6) : carrousel homogène remplace le duo
+  // "3 cards riches + liste appauvrie" — même grammaire de card pour
+  // toutes les priorités, plus de second gabarit dégradé.
+  const prioritiesTrackRef = useRef<HTMLDivElement>(null);
+  const [prioritiesIndex, setPrioritiesIndex] = useState(0);
 
   const reload = async () => {
     const [visitsRes, casesRes] = await Promise.all([fetch("/api/ministry/field-visits"), fetch("/api/ministry/vigilance")]);
@@ -333,8 +337,6 @@ export default function EtatPage() {
       if (a.territory.activity !== b.territory.activity) return a.territory.activity === "critique" ? -1 : b.territory.activity === "critique" ? 1 : 0;
       return (b.openSituationsCount + b.fragileInfra) - (a.openSituationsCount + a.fragileInfra);
     });
-  const topPriorities = prioritized.slice(0, 3);
-  const morePriorities = prioritized.slice(3);
 
   const totalValue = executedValue + engagedValue;
   const executedRatio = totalValue > 0 ? Math.round((executedValue / totalValue) * 100) : 0;
@@ -679,65 +681,79 @@ export default function EtatPage() {
           <p className="etat-eyebrow">3 · Où concentrer l’attention ?</p>
           <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">{prioritized.length} territoire(s) prioritaire(s) sur {territoiresActifs} suivis par le réseau.</h2>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {topPriorities.map((entry, index) => (
-              <article key={entry.territory.id} className="etat-panel flex flex-col p-5" style={{ borderTopWidth: 3, borderTopColor: glyphBorderColor[entry.territory.activity] }}>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: glyphBorderColor[entry.territory.activity] }}>{index + 1}</span>
-                  <StatusBadge status={entry.territory.activity} />
-                </div>
-                <h3 className="etat-display mt-3 text-lg not-italic text-[var(--etat-navy-950)]">{entry.territory.name}</h3>
-                {/* Mini-carte (maquette validée, arbitrage CEO 2026-08-18) :
-                    même composant partagé, mêmes positions calibrées —
-                    aucune géométrie simplifiée ou recréée pour la
-                    miniature, seulement un recadrage visuel (zoom CSS
-                    autour du territoire, cf. territoryZoomStyle plus
-                    haut) : le littoral entier réduit à cette hauteur
-                    serait un fil illisible. selectedId met en évidence
-                    ce territoire ; onSelect omis volontairement
-                    (vignette de lecture, pas un second point d'entrée
-                    vers le tiroir — "Voir le détail" plus bas reste le
-                    seul CTA de la carte). */}
-                <div className="mt-3 flex h-28 items-center justify-center overflow-hidden rounded-lg border border-[var(--etat-line)] bg-[var(--etat-offwhite)]">
-                  {/* Le wrapper interne reprend le ratio réel du viewBox
-                      (704/1122) — sans ça, preserveAspectRatio="meet" sur
-                      le <svg> (h-full w-full dans un conteneur beaucoup
-                      plus large que haut) le réduit en lettrebox centré,
-                      et les pourcentages de territoryZoomStyle ne
-                      correspondent plus à la zone réellement dessinée :
-                      c'est ce qui rendait les 3 vignettes vides. */}
-                  <div className="h-full" style={{ aspectRatio: `${viewBoxWidth} / ${viewBoxHeight}`, ...territoryZoomStyle(entry.territory.id, 3.4) }}>
-                    <CoastlineTerritoryMap territories={state.territories} selectedId={entry.territory.id} />
+          {/* Carrousel homogène (mandat §3.6) : toutes les priorités
+              partagent la même grammaire de card (mini-carte incluse),
+              plus de duo "3 cards riches + liste appauvrie". Navigation
+              fléchée + pagination discrète (points), scroll-snap pour
+              un défilement propre au doigt sur mobile. */}
+          <div className="relative mt-6">
+            <div
+              ref={prioritiesTrackRef}
+              onScroll={(event) => {
+                const el = event.currentTarget;
+                const maxScroll = el.scrollWidth - el.clientWidth;
+                const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
+                setPrioritiesIndex(Math.round(ratio * (prioritized.length - 1)));
+              }}
+              className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {prioritized.map((entry, index) => (
+                <article key={entry.territory.id} className="etat-panel flex w-[270px] shrink-0 snap-start flex-col p-5" style={{ borderTopWidth: 3, borderTopColor: glyphBorderColor[entry.territory.activity] }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: glyphBorderColor[entry.territory.activity] }}>{index + 1}</span>
+                    <StatusBadge status={entry.territory.activity} />
                   </div>
-                </div>
-                <div className="mt-3 space-y-2 text-xs text-[var(--etat-stone-600)]">
-                  <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Tension principale · </span>{entry.prioritySituation ? entry.prioritySituation.title : "Aucune situation ouverte"}</p>
-                  <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Impact · </span>{entry.openSituationsCount} situation(s) ouverte(s){entry.fragileInfra > 0 ? ` · ${entry.fragileInfra} capacité(s) fragile(s)` : ""}</p>
-                  <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Acteurs concernés · </span>{entry.acteurs}</p>
-                </div>
-                <button onClick={() => setTerritoryDrawer(entry.territory)} className="etat-btn etat-btn-outline mt-4 justify-center">Voir le détail <ArrowRight size={15} /></button>
-              </article>
-            ))}
-          </div>
+                  <h3 className="etat-display mt-3 text-lg not-italic text-[var(--etat-navy-950)]">{entry.territory.name}</h3>
+                  {/* Mini-carte (maquette validée, arbitrage CEO 2026-08-18) :
+                      même composant partagé, mêmes positions calibrées —
+                      aucune géométrie simplifiée ou recréée pour la
+                      miniature, seulement un recadrage visuel (zoom CSS
+                      autour du territoire, cf. territoryZoomStyle plus
+                      haut) : le littoral entier réduit à cette hauteur
+                      serait un fil illisible. selectedId met en évidence
+                      ce territoire ; onSelect omis volontairement
+                      (vignette de lecture, pas un second point d'entrée
+                      vers le tiroir — "Voir le détail" plus bas reste le
+                      seul CTA de la carte). */}
+                  <div className="mt-3 flex h-28 items-center justify-center overflow-hidden rounded-lg border border-[var(--etat-line)] bg-[var(--etat-offwhite)]">
+                    {/* Le wrapper interne reprend le ratio réel du viewBox
+                        (704/1122) — sans ça, preserveAspectRatio="meet" sur
+                        le <svg> (h-full w-full dans un conteneur beaucoup
+                        plus large que haut) le réduit en lettrebox centré,
+                        et les pourcentages de territoryZoomStyle ne
+                        correspondent plus à la zone réellement dessinée :
+                        c'est ce qui rendait les 3 vignettes vides. */}
+                    <div className="h-full" style={{ aspectRatio: `${viewBoxWidth} / ${viewBoxHeight}`, ...territoryZoomStyle(entry.territory.id, 3.4) }}>
+                      <CoastlineTerritoryMap territories={state.territories} selectedId={entry.territory.id} />
+                    </div>
+                  </div>
+                  <div className="mt-3 space-y-2 text-xs text-[var(--etat-stone-600)]">
+                    <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Tension principale · </span>{entry.prioritySituation ? entry.prioritySituation.title : "Aucune situation ouverte"}</p>
+                    <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Impact · </span>{entry.openSituationsCount} situation(s) ouverte(s){entry.fragileInfra > 0 ? ` · ${entry.fragileInfra} capacité(s) fragile(s)` : ""}</p>
+                    <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Acteurs concernés · </span>{entry.acteurs}</p>
+                  </div>
+                  <div className="mt-4 flex flex-col gap-2">
+                    <button onClick={() => setTerritoryDrawer(entry.territory)} className="etat-btn etat-btn-outline justify-center">Voir le détail <ArrowRight size={15} /></button>
+                    {entry.prioritySituation && <button onClick={() => setSituationDrawer(entry.prioritySituation!)} className="etat-btn etat-btn-primary justify-center">Voir la situation <ArrowRight size={15} /></button>}
+                  </div>
+                </article>
+              ))}
+            </div>
 
-          {morePriorities.length > 0 && (
-            <div className="mt-5">
-              <button onClick={() => setPrioritiesExpanded((value) => !value)} className="etat-btn etat-btn-outline">
-                {prioritiesExpanded ? "Réduire" : `Voir toutes les priorités (${prioritized.length})`} <ArrowRight size={15} className={prioritiesExpanded ? "rotate-90" : undefined} />
-              </button>
-              {prioritiesExpanded && (
-                <div className="mt-4 rounded-xl border border-[var(--etat-line)]">
-                  {morePriorities.map((entry) => (
-                    <button key={entry.territory.id} onClick={() => setTerritoryDrawer(entry.territory)} className="flex w-full items-center gap-3 border-b border-[var(--etat-line)] py-3.5 pl-3 pr-2 text-left transition last:border-b-0 hover:bg-[var(--etat-offwhite)]" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[entry.territory.activity], backgroundColor: glyphFillColor[entry.territory.activity] }}>
-                      <TensionGlyph status={entry.territory.activity} size={24} />
-                      <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-[var(--etat-navy-950)]">{entry.territory.name}</span><span className="mt-0.5 block text-xs text-[var(--etat-stone-600)]">{entry.prioritySituation ? entry.prioritySituation.title : `${entry.openSituationsCount} situation(s) ouverte(s)`}</span></span>
-                      <StatusBadge status={entry.territory.activity} />
-                    </button>
+            {prioritized.length > 1 && (
+              <div className="mt-4 flex items-center justify-between gap-4">
+                <div className="flex gap-1.5" aria-hidden="true">
+                  {prioritized.map((entry, index) => (
+                    <span key={entry.territory.id} className="h-1.5 w-1.5 rounded-full transition" style={{ backgroundColor: index === prioritiesIndex ? "var(--etat-terracotta)" : "var(--etat-line)" }} />
                   ))}
                 </div>
-              )}
-            </div>
-          )}
+                <div className="flex gap-2">
+                  <button aria-label="Priorités précédentes" onClick={() => prioritiesTrackRef.current?.scrollBy({ left: -prioritiesTrackRef.current.clientWidth * 0.9, behavior: "smooth" })} className="etat-btn etat-btn-outline" style={{ minHeight: 36, padding: "6px 10px" }}><ArrowLeft size={15} /></button>
+                  <button aria-label="Priorités suivantes" onClick={() => prioritiesTrackRef.current?.scrollBy({ left: prioritiesTrackRef.current.clientWidth * 0.9, behavior: "smooth" })} className="etat-btn etat-btn-outline" style={{ minHeight: 36, padding: "6px 10px" }}><ArrowRight size={15} /></button>
+                </div>
+              </div>
+            )}
+          </div>
         </section>
       )}
 
