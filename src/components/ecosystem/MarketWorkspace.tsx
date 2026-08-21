@@ -1,12 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDownRight, ArrowUpRight, CircleHelp, Minus, ShieldAlert } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, CircleHelp, Fish, Minus, ShieldAlert, Store } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
+import { NumberTicker } from "@/components/magicui/number-ticker";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ScarcityIndicator } from "@/domain/types";
+
+// Lot Marches-B (propagation DA v2, arbitrage CEO 2026-08-20) : bande de
+// synthèse chiffres inline, cohérence avec État/Atlas/Initiatives — cette
+// page passait jusqu'ici directement du titre aux filtres, sans aucun
+// chiffre agrégé. Totaux non filtrés (portefeuille complet), comme le
+// bandeau d'Initiatives ; le compte "N observation(s)" plus bas dans le
+// filtre reste, lui, réactif aux filtres Espèce/Territoire.
+function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+  return (
+    <div className="p-4">
+      <div className="flex items-center gap-2 text-[#1d4468]">{icon}</div>
+      <p className="mt-2 text-2xl font-bold tracking-tight"><NumberTicker value={value} /></p>
+      <p className="mt-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+    </div>
+  );
+}
 
 // Lot Marches-A (propagation DA v2, arbitrage CEO 2026-08-20, gap analysis
 // /app/marches) : jusqu'ici tous les statuts de rareté partageaient la même
@@ -44,6 +61,9 @@ export function MarketWorkspace() {
     (speciesId === "all" || item.speciesId === speciesId) &&
     (territoryId === "all" || item.territoryId === territoryId)
   );
+  const flaggedCount = state.priceObservations.filter((item) => item.flagged).length;
+  const tensionStatuses: ScarcityIndicator["status"][] = ["sous_tension", "rare", "critique"];
+  const tensionCount = state.scarcity.filter((item) => tensionStatuses.includes(item.status)).length;
 
   const flag = async (priceId: string) => {
     setPending(priceId);
@@ -56,6 +76,13 @@ export function MarketWorkspace() {
 
   return (
     <div className="space-y-7">
+      <section className="grid grid-cols-2 divide-x divide-y border-y sm:grid-cols-4 sm:divide-y-0">
+        <Metric icon={<Store size={18} />} label="Observations documentées" value={state.priceObservations.length} />
+        <Metric icon={<AlertTriangle size={18} />} label="Signalées à vérifier" value={flaggedCount} />
+        <Metric icon={<ShieldAlert size={18} />} label="Tensions actives" value={tensionCount} />
+        <Metric icon={<Fish size={18} />} label="Espèces suivies" value={state.species.length} />
+      </section>
+
       <div className="grid gap-4 border-y py-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
         <label className="block">
           <span className="text-xs font-bold text-muted-foreground">Espèce</span>
