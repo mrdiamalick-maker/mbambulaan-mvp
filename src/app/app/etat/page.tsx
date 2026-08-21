@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowRight, ArrowUpRight, Factory, FileDown, Radio, Send, ShieldCheck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Factory, FileDown, Gavel, MapPinned, Radio, Send, ShieldCheck } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { InstitutionIllustration } from "@/components/public/CoordinationIllustration";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
@@ -87,6 +87,10 @@ function formatFcfa(amount: number) {
   return `${new Intl.NumberFormat("fr-FR").format(Math.round(amount))} FCFA`;
 }
 
+function countLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 type Mission = {
   key: string;
   territoryId: string;
@@ -98,7 +102,7 @@ type Mission = {
 };
 
 export default function EtatPage() {
-  const { state, actorId } = useProduct();
+  const { state } = useProduct();
   const [cases, setCases] = useState<VigilanceCase[]>([]);
   const [visits, setVisits] = useState<FieldVisit[]>([]);
   const [territoryDrawer, setTerritoryDrawer] = useState<Territory | null>(null);
@@ -117,7 +121,6 @@ export default function EtatPage() {
     void reload();
   }, []);
 
-  const actor = state?.actors.find((item) => item.id === actorId);
   const openCases = useMemo(() => cases.filter((item) => item.status !== "clos"), [cases]);
 
   const { executedValue, engagedValue } = useMemo(() => {
@@ -217,30 +220,76 @@ export default function EtatPage() {
     .filter((item) => item.status !== "reglee" && (item.priority === "critique" || item.priority === "haute"))
     .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])
     .slice(0, 5);
+  const totalArbitrations = state.situations.filter((item) => item.status !== "reglee" && (item.priority === "critique" || item.priority === "haute")).length;
   const recentDecisions = [...state.decisions]
     .sort((a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime())
     .slice(0, 5);
 
   return (
-    <div className="etat-scope space-y-16 bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
-      <div className="flex items-start gap-3 border-b border-[var(--etat-line)] pb-4 text-sm">
-        <ShieldCheck size={16} className="mt-0.5 shrink-0 text-[var(--etat-navy-600)]" />
-        <p>Mbàmbulaan <strong>qualifie et signale</strong> les situations remontées du terrain. La décision et l’action relèvent des autorités compétentes.</p>
-      </div>
+    <div className="etat-scope min-h-screen">
+      <div className="etat-page space-y-14">
+        <section className="etat-briefing" aria-labelledby="briefing-title">
+          <div className="relative z-10">
+            <p className="etat-eyebrow">Centre de pilotage institutionnel</p>
+            <h1 id="briefing-title" className="etat-display mt-4 max-w-4xl text-3xl leading-[1.08] not-italic text-[var(--etat-navy-950)] sm:text-4xl lg:text-[3.25rem]">
+              Décider à partir du terrain, garder la trace de l’action.
+            </h1>
+            <p className="mt-5 max-w-3xl text-base leading-7 text-[var(--etat-stone-600)]">
+              Le réseau suit <strong className="font-bold text-[var(--etat-navy-950)]">{countLabel(territoiresActifs, "territoire", "territoires")}</strong>. Aujourd’hui, <strong className="font-bold text-[var(--etat-terracotta)]">{countLabel(totalArbitrations, "situation prioritaire", "situations prioritaires")}</strong> {totalArbitrations === 1 ? "demande" : "demandent"} une décision ou une coordination renforcée.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a href="#arbitrage" className="etat-btn etat-btn-primary"><Gavel size={16} /> Voir les arbitrages</a>
+              <Link href="/app/etat/rapport" className="etat-btn etat-btn-outline"><FileDown size={16} /> Préparer le rapport</Link>
+            </div>
+          </div>
+
+          <div className="etat-briefing__note">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px] font-black uppercase tracking-[.14em] text-[var(--etat-sea-700)]">Cadre de décision</p>
+              <span className="etat-tag etat-tag--demo">Démonstration</span>
+            </div>
+            <div className="mt-5 flex items-start gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--etat-sea-100)] text-[var(--etat-sea-700)]"><ShieldCheck size={18} /></span>
+              <p className="text-sm leading-6 text-[var(--etat-stone-600)]">Mbàmbulaan qualifie et signale les situations remontées du terrain. <strong className="font-bold text-[var(--etat-navy-950)]">La décision et l’action restent du ressort des autorités compétentes.</strong></p>
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-[var(--etat-sea-50)] p-4">
+                <p className="text-2xl font-black tracking-tight text-[var(--etat-sea-700)]">{territoiresVigilance}</p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">En vigilance</p>
+              </div>
+              <div className="rounded-xl bg-[var(--etat-terracotta-dim)] p-4">
+                <p className="text-2xl font-black tracking-tight text-[var(--etat-terracotta)]">{territoiresCritiques}</p>
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">En critique</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
       {/* Chapitre 1 — Lecture territoriale (mandat §5, Lot B). Carte +
           décision prioritaire unique côte à côte ; sous les deux,
           uniquement les 3 compteurs — "rien d'autre dans ce premier
           chapitre" (mandat). H1 déplacé ici (était dans l'ancien Hero) :
           reste le titre principal de la page. */}
-      <section id="terrain">
-        <p className="etat-eyebrow">1 · Lecture territoriale</p>
-        <h1 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)] md:text-3xl">Le littoral, territoire par territoire.</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">Espace État · {actor?.name ?? "Ministère"}. Cliquez un point sur la carte pour ouvrir le détail d’un territoire.</p>
+      <section id="terrain" className="etat-section">
+        <div className="etat-section-heading">
+          <div>
+            <p className="etat-eyebrow">1 · Lecture territoriale</p>
+            <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)] md:text-3xl">Le littoral, territoire par territoire.</h2>
+          </div>
+          <p className="text-sm leading-6 text-[var(--etat-stone-600)]">Sélectionnez un point pour comprendre la situation locale, les capacités disponibles et la prochaine décision attendue.</p>
+        </div>
 
-        <div className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_.7fr] lg:items-stretch">
+        <div className="mt-7 grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,.65fr)] xl:items-stretch">
           <div className="etat-panel overflow-hidden">
-            <div className="aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full lg:min-h-[520px]">
+            <div className="flex items-center justify-between gap-3 border-b border-[var(--etat-line)] px-5 py-4">
+              <div className="flex items-center gap-2 text-xs font-bold text-[var(--etat-navy-800)]"><MapPinned size={15} className="text-[var(--etat-sea-700)]" /> Couverture nationale</div>
+              <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">
+                <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[var(--etat-sea-600)]" /> Stable</span>
+                <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[var(--etat-ocre)]" /> Vigilance</span>
+                <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-[var(--etat-terracotta)]" /> Critique</span>
+              </div>
+            </div>
+            <div className="etat-map-frame p-4">
               <CoastlineTerritoryMap
                 territories={state.territories}
                 selectedId={territoryDrawer?.id}
@@ -252,7 +301,7 @@ export default function EtatPage() {
             </div>
           </div>
 
-          <aside className="etat-panel flex flex-col p-6" style={{ borderLeftWidth: 4, borderLeftColor: dominant.kind === "calme" ? "var(--etat-navy-600)" : "var(--etat-terracotta)" }}>
+          <aside className="etat-panel etat-pulse-card flex flex-col p-6" style={{ borderTopWidth: 4, borderTopColor: dominant.kind === "calme" ? "var(--etat-sea-700)" : "var(--etat-terracotta)" }}>
             <div className="flex items-center gap-2.5" style={{ color: dominant.kind === "calme" ? "var(--etat-navy-600)" : "var(--etat-terracotta)" }}>
               <TensionGlyph status={dominant.glyphStatus} size={26} pulse={dominant.kind !== "calme"} />
               <p className="text-[11px] font-bold uppercase tracking-widest">{dominant.kind === "calme" ? "Situation calme" : "À décider aujourd’hui"}</p>
@@ -269,14 +318,23 @@ export default function EtatPage() {
             </p>
 
             {dominant.kind !== "calme" && (
-              <div className="mt-4 space-y-2.5 border-t border-[var(--etat-line)] pt-4 text-sm text-[var(--etat-navy-950)]">
-                <p className="flex items-center gap-2"><SituationIcon size={15} color="var(--etat-stone-600)" /> {dominantOpenSituations.length} situation(s) ouverte(s) sur ce territoire</p>
-                {dominantFragileInfra > 0 && <p className="flex items-center gap-2"><Factory size={15} color="var(--etat-ocre)" /> {dominantFragileInfra} capacité(s) fragile(s) ou indisponible(s)</p>}
-                {dominantPrioritySituation && <p className="text-xs text-[var(--etat-stone-600)]">Prochaine étape : {dominantPrioritySituation.nextStep}</p>}
+              <div className="relative z-10 mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-[var(--etat-line)] bg-white/80 p-4">
+                  <SituationIcon size={16} color="var(--etat-sea-700)" />
+                  <p className="mt-2 text-xl font-black text-[var(--etat-navy-950)]">{dominantOpenSituations.length}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">{dominantOpenSituations.length === 1 ? "Situation ouverte" : "Situations ouvertes"}</p>
+                </div>
+                <div className="rounded-xl border border-[var(--etat-line)] bg-white/80 p-4">
+                  <Factory size={16} color="var(--etat-ocre)" />
+                  <p className="mt-2 text-xl font-black text-[var(--etat-navy-950)]">{dominantFragileInfra}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">{dominantFragileInfra === 1 ? "Capacité fragile" : "Capacités fragiles"}</p>
+                </div>
               </div>
             )}
 
-            <div className="mt-5 flex flex-1 flex-col justify-end gap-2">
+            {dominantPrioritySituation && <div className="relative z-10 mt-4 rounded-xl bg-[var(--etat-navy-950)] p-4 text-white"><p className="text-[10px] font-black uppercase tracking-[.14em] text-white/55">Prochaine étape</p><p className="mt-2 text-sm leading-5 text-white/90">{dominantPrioritySituation.nextStep}</p></div>}
+
+            <div className="relative z-10 mt-5 flex flex-1 flex-col justify-end gap-2">
               {dominant.kind === "territoire" && <button className="etat-btn etat-btn-outline justify-center" onClick={() => setTerritoryDrawer(dominant.territory)}>Voir le territoire <ArrowRight size={15} /></button>}
               {dominantPrioritySituation ? (
                 <button onClick={() => setSituationDrawer(dominantPrioritySituation)} className="etat-btn etat-btn-primary justify-center">Ouvrir l’arbitrage <ArrowRight size={15} /></button>
@@ -287,7 +345,7 @@ export default function EtatPage() {
           </aside>
         </div>
 
-        <div className="mt-6 grid grid-cols-3 gap-6 border-t border-[var(--etat-line)] pt-5">
+        <div className="etat-national-strip mt-5">
           <div>
             <p className="etat-display text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={territoiresActifs} /></p>
             <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Territoires suivis</p>
@@ -303,7 +361,7 @@ export default function EtatPage() {
         </div>
       </section>
 
-      <section>
+      <section className="etat-section">
         <div className="flex flex-wrap items-center gap-2.5">
           <p className="etat-eyebrow">2 · Résultats de la coordination</p>
           <span className="etat-tag etat-tag--demo whitespace-normal text-left">Mode démonstration · données non opérationnelles</span>
@@ -314,7 +372,7 @@ export default function EtatPage() {
             page, pas dans des cartes complètes à fond plein. 4 mesures
             maximum, toutes réellement dérivées (cf. commentaire des
             constantes ci-dessus pour le détail et ce qui a été écarté). */}
-        <div className="mt-6 grid gap-8 border-y border-[var(--etat-line)] py-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="etat-kpi-grid mt-6">
           <div>
             <ResultatIcon size={20} color="var(--etat-terracotta)" />
             <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={totalValue} /> <span className="text-sm font-semibold text-[var(--etat-stone-600)]">FCFA</span></p>
@@ -326,7 +384,7 @@ export default function EtatPage() {
             <DecisionIcon size={20} color="var(--etat-navy-600)" />
             <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={closedRatio} />%</p>
             <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Situations clôturées avec résultat</p>
-            <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{closedWithResult} / {state.situations.length} dossier(s)</p>
+            <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{closedWithResult} sur {countLabel(state.situations.length, "dossier", "dossiers")}</p>
           </div>
           <div>
             <SituationIcon size={20} color="var(--etat-navy-600)" />
@@ -361,9 +419,9 @@ export default function EtatPage() {
           Chapitre 1 (tous les 18 y sont cliquables), donc rien n'est perdu
           en retirant cette liste ici. */}
       {prioritized.length > 0 && (
-        <section>
+        <section className="etat-section">
           <p className="etat-eyebrow">3 · Où concentrer l’attention ?</p>
-          <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">{prioritized.length} territoire(s) prioritaire(s) sur {territoiresActifs} suivis par le réseau.</h2>
+          <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">{countLabel(prioritized.length, "territoire prioritaire", "territoires prioritaires")} sur {territoiresActifs} suivis par le réseau.</h2>
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {topPriorities.map((entry, index) => (
@@ -375,7 +433,7 @@ export default function EtatPage() {
                 <h3 className="etat-display mt-3 text-lg not-italic text-[var(--etat-navy-950)]">{entry.territory.name}</h3>
                 <div className="mt-3 space-y-2 text-xs text-[var(--etat-stone-600)]">
                   <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Tension principale · </span>{entry.prioritySituation ? entry.prioritySituation.title : "Aucune situation ouverte"}</p>
-                  <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Impact · </span>{entry.openSituationsCount} situation(s) ouverte(s){entry.fragileInfra > 0 ? ` · ${entry.fragileInfra} capacité(s) fragile(s)` : ""}</p>
+                  <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Impact · </span>{countLabel(entry.openSituationsCount, "situation ouverte", "situations ouvertes")}{entry.fragileInfra > 0 ? ` · ${countLabel(entry.fragileInfra, "capacité fragile", "capacités fragiles")}` : ""}</p>
                   <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Acteurs concernés · </span>{entry.acteurs}</p>
                 </div>
                 <button onClick={() => setTerritoryDrawer(entry.territory)} className="etat-btn etat-btn-outline mt-4 justify-center">Voir le détail <ArrowRight size={15} /></button>
@@ -393,7 +451,7 @@ export default function EtatPage() {
                   {morePriorities.map((entry) => (
                     <button key={entry.territory.id} onClick={() => setTerritoryDrawer(entry.territory)} className="flex w-full items-center gap-3 border-b border-[var(--etat-line)] py-3.5 pl-3 pr-2 text-left transition last:border-b-0 hover:bg-[var(--etat-offwhite)]" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[entry.territory.activity], backgroundColor: glyphFillColor[entry.territory.activity] }}>
                       <TensionGlyph status={entry.territory.activity} size={24} />
-                      <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-[var(--etat-navy-950)]">{entry.territory.name}</span><span className="mt-0.5 block text-xs text-[var(--etat-stone-600)]">{entry.prioritySituation ? entry.prioritySituation.title : `${entry.openSituationsCount} situation(s) ouverte(s)`}</span></span>
+                      <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-[var(--etat-navy-950)]">{entry.territory.name}</span><span className="mt-0.5 block text-xs text-[var(--etat-stone-600)]">{entry.prioritySituation ? entry.prioritySituation.title : countLabel(entry.openSituationsCount, "situation ouverte", "situations ouvertes")}</span></span>
                       <StatusBadge status={entry.territory.activity} />
                     </button>
                   ))}
@@ -404,12 +462,12 @@ export default function EtatPage() {
         </section>
       )}
 
-      <section id="arbitrage">
+      <section id="arbitrage" className="etat-section">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="etat-eyebrow">4 · Situations à arbitrer</p>
             <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Situations critiques à arbitrer.</h2>
-            <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{situationsAArbitrer.length} situation(s) de risque élevé ou critique attendent une décision, sur {state.situations.filter((item) => item.status !== "reglee").length} dossier(s) ouverts.</p>
+            <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{situationsAArbitrer.length === 1 ? "Le dossier le plus urgent est présenté ici" : `Les ${situationsAArbitrer.length} dossiers les plus urgents sont présentés ici`}, sur {countLabel(totalArbitrations, "situation prioritaire", "situations prioritaires")} et {countLabel(state.situations.filter((item) => item.status !== "reglee").length, "dossier ouvert", "dossiers ouverts")}.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button className="etat-btn etat-btn-outline" onClick={() => setSignalDrawerOpen(true)}><Radio size={15} /> Signaler une situation</button>
@@ -456,7 +514,7 @@ export default function EtatPage() {
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-2">
                             <button className="etat-btn etat-btn-outline" style={{ minHeight: 32, padding: "5px 10px", fontSize: 12 }} onClick={() => setMissionDrawer({ key: `situation-${situation.id}`, territoryId: situation.territoryId, territoryLabel: territory?.name ?? situation.territoryId, raison: situation.title, action: situation.nextStep, glyphStatus: tag, suggestedObjective: "verification_vigilance" })}>Visite</button>
-                            <button className="etat-btn etat-btn-primary" style={{ minHeight: 32, padding: "5px 10px", fontSize: 12 }} onClick={() => setSituationDrawer(situation)}>Arbitrer <ArrowRight size={13} /></button>
+                            <button className="etat-btn etat-btn-danger" style={{ minHeight: 32, padding: "5px 10px", fontSize: 12 }} onClick={() => setSituationDrawer(situation)}>Arbitrer <ArrowRight size={13} /></button>
                           </div>
                         </td>
                       </tr>
@@ -485,7 +543,7 @@ export default function EtatPage() {
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <button className="etat-btn etat-btn-outline" style={{ minHeight: 36, padding: "6px 14px" }} onClick={() => setMissionDrawer({ key: `situation-${situation.id}`, territoryId: situation.territoryId, territoryLabel: territory?.name ?? situation.territoryId, raison: situation.title, action: situation.nextStep, glyphStatus: tag, suggestedObjective: "verification_vigilance" })}>Planifier une visite</button>
-                      <button className="etat-btn etat-btn-primary" style={{ minHeight: 36, padding: "6px 14px" }} onClick={() => setSituationDrawer(situation)}>Arbitrer <ArrowRight size={15} /></button>
+                      <button className="etat-btn etat-btn-danger" style={{ minHeight: 36, padding: "6px 14px" }} onClick={() => setSituationDrawer(situation)}>Arbitrer <ArrowRight size={15} /></button>
                     </div>
                   </article>
                 );
@@ -493,13 +551,13 @@ export default function EtatPage() {
             </div>
           </>
         )}
-        {visits.filter((item) => item.status === "planifiee").length > 0 && <p className="mt-4 text-xs text-[var(--etat-stone-600)]">{visits.filter((item) => item.status === "planifiee").length} visite(s) terrain déjà planifiée(s) par le ministère.</p>}
+        {visits.filter((item) => item.status === "planifiee").length > 0 && <p className="mt-4 text-xs text-[var(--etat-stone-600)]">{countLabel(visits.filter((item) => item.status === "planifiee").length, "visite terrain déjà planifiée", "visites terrain déjà planifiées")} par le ministère.</p>}
       </section>
 
-      <section>
+      <section id="decisions" className="etat-section">
         <p className="etat-eyebrow">5 · Décisions et résultats récents</p>
         <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Décisions récentes.</h2>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{state.decisions.length} décision(s) enregistrée(s) au total — chaque arbitrage institutionnel reste tracé et consultable.</p>
+        <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{countLabel(state.decisions.length, "décision enregistrée", "décisions enregistrées")} au total — chaque arbitrage institutionnel reste tracé et consultable.</p>
         {recentDecisions.length === 0 ? (
           <p className="mt-5 text-sm text-[var(--etat-stone-600)]">Aucune décision enregistrée pour le moment.</p>
         ) : (
@@ -590,6 +648,7 @@ export default function EtatPage() {
       <Drawer open={!!missionDrawer} onClose={() => setMissionDrawer(null)} eyebrow="Terrain" title="Planifier la mission">
         {missionDrawer && <MissionForm mission={missionDrawer} onDone={() => { setMissionDrawer(null); void reload(); }} />}
       </Drawer>
+      </div>
     </div>
   );
 }
@@ -620,7 +679,7 @@ function TerritoryDetail({ territory, cases, onOpenSituation }: { territory: Ter
         {acteurs.length === 0 ? <p className="mt-1.5 text-xs text-[var(--etat-stone-400)]">Aucun acteur rattaché pour le moment.</p> : <div className="mt-1.5 flex flex-wrap gap-1.5">{Object.entries(acteursParRole).map(([role, count]) => <span key={role} className="etat-tag etat-tag--stable capitalize">{role.replaceAll("_", " ")} · {count}</span>)}</div>}
       </div>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Infrastructures · {sites.length} site(s), {infrastructures.length} infrastructure(s)</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Infrastructures · {countLabel(sites.length, "site", "sites")}, {countLabel(infrastructures.length, "infrastructure", "infrastructures")}</p>
         {infrastructures.length === 0 ? <p className="mt-1.5 text-xs text-[var(--etat-stone-400)]">Aucune infrastructure recensée.</p> : <div className="mt-1.5 space-y-1.5">{infrastructures.map((infra) => <div key={infra.id} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--etat-line)] bg-white px-3 py-2"><span className="text-xs font-medium capitalize text-[var(--etat-navy-950)]">{infra.type.replaceAll("_", " ")}</span><span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: infraStatusColor[infra.status] }}><span className="size-1.5 rounded-full" style={{ backgroundColor: infraStatusColor[infra.status] }} aria-hidden="true" />{infraStatusLabel[infra.status]}</span></div>)}</div>}
       </div>
       {prioritySituation && <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Situation prioritaire</p><div className="mt-2 rounded-lg border border-[var(--etat-line)] bg-white p-3"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{prioritySituation.title}</p><p className="mt-1 text-xs text-[var(--etat-stone-600)]">{prioritySituation.nextStep}</p>{prioritySituation.history.length > 0 && <div className="mt-3 space-y-1.5 border-t border-[var(--etat-line)] pt-3">{prioritySituation.history.slice(0, 2).map((entry) => <div key={entry.id} className="border-l-2 border-[var(--etat-line)] pl-2 text-[11px] leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{entry.label}</span> · {new Date(entry.at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</div>)}</div>}<button onClick={() => onOpenSituation(prioritySituation)} className="etat-btn etat-btn-outline mt-3 w-full justify-center">Entrer dans le dossier <ArrowRight size={15} /></button></div></div>}

@@ -11,8 +11,12 @@
     --etat-navy-950: #071627;
     --etat-navy-800: #102944;
     --etat-navy-600: #1d4468;
-    --etat-offwhite: #f6f1e7;
-    --etat-offwhite-dim: #efe7d6;
+    --etat-sea-700: #0b6f6b;
+    --etat-sea-600: #168580;
+    --etat-sea-100: #dff1ee;
+    --etat-sea-50: #eef8f6;
+    --etat-offwhite: #f7f8f5;
+    --etat-offwhite-dim: #eef1eb;
     --etat-terracotta: #b6522f;
     --etat-terracotta-dim: #f1ded3;
     --etat-ocre: #c68a2c;
@@ -25,6 +29,9 @@
 
     color: var(--etat-ink);
     font-variant-numeric: tabular-nums;
+    background:
+      radial-gradient(circle at 6% 3%, rgba(22, 133, 128, .055), transparent 26rem),
+      var(--etat-offwhite);
   }
 
   .etat-display {
@@ -58,13 +65,149 @@
   .etat-panel {
     background: #fff;
     border: 1px solid var(--etat-line);
-    border-radius: 20px;
+    border-radius: 18px;
+    box-shadow: 0 18px 45px rgba(7, 22, 39, .055), 0 2px 6px rgba(7, 22, 39, .025);
   }
   .etat-panel--warm {
-    background: var(--etat-offwhite);
+    background: #f5f7f3;
     border: 1px solid rgba(16, 41, 68, .08);
-    border-radius: 20px;
+    border-radius: 16px;
   }
+
+  .etat-page {
+    width: min(100%, 1480px);
+    margin-inline: auto;
+    padding: 24px 20px 72px;
+  }
+
+  .etat-briefing {
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, .55fr);
+    gap: 36px;
+    border: 1px solid var(--etat-line);
+    border-radius: 24px;
+    background: #fff;
+    padding: clamp(28px, 4vw, 56px);
+    box-shadow: 0 24px 70px rgba(7, 22, 39, .07);
+  }
+
+  .etat-briefing::after {
+    content: "";
+    position: absolute;
+    right: -110px;
+    top: -150px;
+    width: 360px;
+    height: 360px;
+    border: 72px solid rgba(11, 111, 107, .055);
+    border-radius: 999px;
+    pointer-events: none;
+  }
+
+  .etat-briefing__note {
+    position: relative;
+    z-index: 1;
+    align-self: stretch;
+    border-left: 1px solid var(--etat-line);
+    padding-left: 28px;
+  }
+
+  .etat-section {
+    scroll-margin-top: 92px;
+    padding-top: 8px;
+  }
+
+  .etat-section-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, .45fr);
+    gap: 32px;
+    align-items: end;
+  }
+
+  .etat-map-frame {
+    min-height: 430px;
+    height: 100%;
+  }
+
+  .etat-national-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--etat-line);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .78);
+  }
+
+  .etat-national-strip > * {
+    padding: 17px 20px;
+    border-right: 1px solid var(--etat-line);
+  }
+
+  .etat-national-strip > *:last-child { border-right: 0; }
+
+  .etat-pulse-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 100%;
+    background:
+      linear-gradient(160deg, rgba(238, 248, 246, .8), rgba(255, 255, 255, 0) 50%),
+      #fff;
+  }
+
+  .etat-pulse-card::after {
+    content: "";
+    position: absolute;
+    inset: auto -60px -80px auto;
+    width: 190px;
+    height: 190px;
+    border-radius: 50%;
+    background: rgba(11, 111, 107, .045);
+    pointer-events: none;
+  }
+
+  .etat-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid var(--etat-line);
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 14px 38px rgba(7, 22, 39, .04);
+  }
+
+  .etat-kpi-grid > * {
+    min-width: 0;
+    padding: 24px;
+    border-right: 1px solid var(--etat-line);
+  }
+
+  .etat-kpi-grid > *:last-child { border-right: 0; }
+
+  .etat-report-sheet {
+    overflow: hidden;
+    border: 1px solid var(--etat-line);
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 20px 55px rgba(7, 22, 39, .055);
+  }
+
+  .etat-report-chapter {
+    display: grid;
+    grid-template-columns: minmax(220px, .38fr) minmax(0, 1fr);
+    gap: 32px;
+    padding: 32px;
+    border-top: 1px solid var(--etat-line);
+  }
+
+  .etat-report-chapter:first-child { border-top: 0; }
+
+  .etat-report-metric {
+    padding: 0 0 18px;
+    border-bottom: 1px solid var(--etat-line);
+  }
+
+  .etat-report-metric:nth-last-child(-n + 2) { border-bottom: 0; padding-bottom: 0; }
 
   .etat-tag {
     display: inline-flex;
@@ -80,7 +223,7 @@
   }
   .etat-tag--demo { background: var(--etat-ocre-dim); color: #8a5b17; }
   .etat-tag--reel { background: #dfeee3; color: #1e6b3d; }
-  .etat-tag--stable { background: #e7edf1; color: var(--etat-navy-600); }
+  .etat-tag--stable { background: var(--etat-sea-100); color: var(--etat-sea-700); }
   .etat-tag--vigilance { background: var(--etat-ocre-dim); color: #8a5b17; }
   .etat-tag--critique { background: var(--etat-terracotta-dim); color: var(--etat-terracotta); }
 
@@ -94,14 +237,17 @@
     padding: 9px 18px;
     font-size: 13px;
     font-weight: 700;
-    transition: filter .15s ease, background-color .15s ease;
+    transition: filter .15s ease, background-color .15s ease, border-color .15s ease, transform .15s ease;
   }
-  .etat-btn-primary { background: var(--etat-terracotta); color: #fff8f2; }
-  .etat-btn-primary:hover { filter: brightness(1.07); }
+  .etat-btn-primary { background: var(--etat-sea-700); color: #fff; box-shadow: 0 8px 18px rgba(11, 111, 107, .16); }
+  .etat-btn-primary:hover { filter: brightness(1.07); transform: translateY(-1px); }
+  .etat-btn-danger { background: var(--etat-terracotta); color: #fff8f2; box-shadow: 0 8px 18px rgba(182, 82, 47, .14); }
+  .etat-btn-danger:hover { filter: brightness(1.06); transform: translateY(-1px); }
   .etat-btn-outline { border: 1px solid var(--etat-line); color: var(--etat-navy-800); background: #fff; }
-  .etat-btn-outline:hover { background: var(--etat-offwhite); }
+  .etat-btn-outline:hover { border-color: rgba(11, 111, 107, .24); background: var(--etat-sea-50); color: var(--etat-sea-700); }
   .etat-btn-on-dark { border: 1px solid rgba(246, 241, 231, .22); color: var(--etat-offwhite); background: rgba(246, 241, 231, .06); }
   .etat-btn-on-dark:hover { background: rgba(246, 241, 231, .12); }
+  .etat-btn:focus-visible { outline: 3px solid rgba(22, 133, 128, .3); outline-offset: 2px; }
 
   .etat-divider { height: 1px; background: var(--etat-line); border: 0; }
 
@@ -116,5 +262,37 @@
     font-size: 12.5px;
     line-height: 1.5;
     color: var(--etat-navy-800);
+  }
+
+  @media (max-width: 1023px) {
+    .etat-briefing { grid-template-columns: 1fr; }
+    .etat-briefing__note { border-left: 0; border-top: 1px solid var(--etat-line); padding-top: 24px; padding-left: 0; }
+    .etat-section-heading { grid-template-columns: 1fr; gap: 12px; }
+    .etat-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .etat-kpi-grid > *:nth-child(2) { border-right: 0; }
+    .etat-kpi-grid > *:nth-child(-n + 2) { border-bottom: 1px solid var(--etat-line); }
+  }
+
+  @media (max-width: 639px) {
+    .etat-page { padding: 18px 14px 56px; }
+    .etat-briefing { border-radius: 18px; padding: 24px 20px; }
+    .etat-map-frame { min-height: 520px; }
+    .etat-national-strip { grid-template-columns: 1fr; }
+    .etat-national-strip > * { border-right: 0; border-bottom: 1px solid var(--etat-line); }
+    .etat-national-strip > *:last-child { border-bottom: 0; }
+    .etat-kpi-grid { grid-template-columns: 1fr; }
+    .etat-kpi-grid > * { border-right: 0; border-bottom: 1px solid var(--etat-line); }
+    .etat-kpi-grid > *:nth-child(-n + 3) { border-bottom: 1px solid var(--etat-line); }
+    .etat-kpi-grid > *:last-child { border-bottom: 0; }
+    .etat-report-chapter { grid-template-columns: 1fr; gap: 22px; padding: 24px 20px; }
+    .etat-report-metric:nth-last-child(2) { border-bottom: 1px solid var(--etat-line); padding-bottom: 18px; }
+  }
+
+  @media print {
+    .etat-print-hidden { display: none !important; }
+    .etat-scope { background: #fff !important; }
+    .etat-page { width: 100%; max-width: none; padding: 0; }
+    .etat-report-sheet { break-inside: avoid; box-shadow: none; }
+    .etat-report-chapter { break-inside: avoid; }
   }
 }
