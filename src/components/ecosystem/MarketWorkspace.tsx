@@ -6,6 +6,32 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { ScarcityIndicator } from "@/domain/types";
+
+// Lot Marches-A (propagation DA v2, arbitrage CEO 2026-08-20, gap analysis
+// /app/marches) : jusqu'ici tous les statuts de rareté partageaient la même
+// pastille ambre inline, sans distinction de sévérité — "Abondant" (bonne
+// nouvelle) rendu identique à "Sous tension" (tension réelle, majorité des
+// cas). Même système Badge/variant que TrustBadge (StatusBadges.tsx), pas
+// un nouveau système de couleur. Couvre les 6 valeurs de l'enum même si
+// "rare"/"critique" sont absents du jeu de démonstration actuel (aucun
+// exemple fabriqué pour ces deux-là, cf. gap analysis point 4).
+const scarcityStatusLabel: Record<ScarcityIndicator["status"], string> = {
+  abondant: "Abondant",
+  disponible: "Disponible",
+  sous_tension: "Sous tension",
+  rare: "Rare",
+  critique: "Critique",
+  donnee_insuffisante: "Donnée insuffisante"
+};
+const scarcityStatusVariant: Record<ScarcityIndicator["status"], "marine" | "terracotta" | "amber" | "success"> = {
+  abondant: "success",
+  disponible: "success",
+  sous_tension: "amber",
+  rare: "terracotta",
+  critique: "terracotta",
+  donnee_insuffisante: "marine"
+};
 
 export function MarketWorkspace() {
   const { state, run } = useProduct();
@@ -102,7 +128,7 @@ export function MarketWorkspace() {
                       <h3 className="font-semibold">{species?.name}</h3>
                       <p className="text-xs text-muted-foreground">{territory?.name}</p>
                     </div>
-                    <strong className="rounded-full bg-[#c68a2c]/10 px-2.5 py-1 text-[11px] uppercase tracking-wide text-[#8a5f1a]">{item.status.replaceAll("_", " ")}</strong>
+                    <Badge variant={scarcityStatusVariant[item.status]} className="shrink-0">{scarcityStatusLabel[item.status]}</Badge>
                   </div>
                   <p className="mt-3 text-xs leading-5 text-muted-foreground">{item.reasons.join(" · ")}</p>
                   <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"><CircleHelp size={14} /><span>{item.availableKg} kg observés / {item.requestedKg} kg demandés</span></div>
