@@ -517,59 +517,75 @@ export default function EtatPage() {
   );
 
   return (
-    <div className="etat-scope space-y-16 bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
-      {/* Correctif (CEO 2026-08-22) : ce bandeau de doctrine consommait
-          ~70px de hauteur (icône + paragraphe deux lignes, bordure pleine
-          largeur) avant même la nav, absent de la référence — retiré
-          purement, pas seulement raccourci : la maquette ne le montre à
-          aucun endroit de ce premier viewport, et son contenu (portée
-          institutionnelle "qualifie et signale, ne décide pas") reste
-          disponible ailleurs sur le produit (bandeau d'accueil, mentions).
-          Réduit ici à une seule ligne fine, sans bordure pleine largeur ni
-          icône séparée — garde le rappel de portée sans le coût vertical. */}
-      <p className="flex items-center gap-1.5 text-xs text-[var(--etat-stone-600)]">
-        <ShieldCheck size={13} className="shrink-0 text-[var(--etat-navy-600)]" />
-        Mbàmbulaan qualifie et signale les situations remontées du terrain — la décision relève des autorités compétentes.
-      </p>
+    <div className="etat-scope bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
+      {/* Correctif 2 (CEO 2026-08-22) : la mesure directe du CEO a montré
+          qu'au-delà du bandeau doctrine/eyebrow/toolbar déjà resserrés
+          individuellement (correctif 1), l'espace CUMULÉ avant la carte
+          restait excessif — trois interstices de 64px (space-y-16 du
+          conteneur racine, appliqué uniformément à tous ses enfants
+          directs, y compris entre doctrine/nav/toolbar) ajoutaient à eux
+          seuls 192px. space-y-16 retiré du conteneur racine ; ce trio
+          (doctrine/nav/toolbar) forme désormais son propre groupe à
+          espacement resserré (space-y-2), et les chapitres eux-mêmes
+          (#terrain et suivants) sont regroupés dans un second conteneur
+          qui reprend exactement le même space-y-16 qu'avant — seul
+          l'espacement AVANT la carte change, le rythme entre chapitres
+          reste identique à ce qui était déjà validé. */}
+      <div className="space-y-2">
+        {/* Correctif (CEO 2026-08-22) : ce bandeau de doctrine consommait
+            ~70px de hauteur (icône + paragraphe deux lignes, bordure
+            pleine largeur) avant même la nav, absent de la référence —
+            retiré purement, pas seulement raccourci : la maquette ne le
+            montre à aucun endroit de ce premier viewport, et son contenu
+            (portée institutionnelle "qualifie et signale, ne décide pas")
+            reste disponible ailleurs sur le produit (bandeau d'accueil,
+            mentions). Réduit ici à une seule ligne fine, sans bordure
+            pleine largeur ni icône séparée — garde le rappel de portée
+            sans le coût vertical. */}
+        <p className="flex items-center gap-1.5 text-xs text-[var(--etat-stone-600)]">
+          <ShieldCheck size={13} className="shrink-0 text-[var(--etat-navy-600)]" />
+          Mbàmbulaan qualifie et signale les situations remontées du terrain — la décision relève des autorités compétentes.
+        </p>
 
-      {/* Lot État-B (mandat §3.1) : navigation d'ancrage propre à l'Espace
-          État — confirmée comme telle par le CEO (pas un rail permanent
-          façon AppSidebar/AppShell, cohérent avec A14/D9). Simple ligne de
-          liens horizontale, défilante sur mobile, pas de position sticky
-          (le CEO n'a pas demandé un rail persistant au scroll). */}
-      <nav className="-mx-1 flex gap-1 overflow-x-auto border-b border-[var(--etat-line)] pb-3 text-sm">
-        {[
-          { href: "#terrain", label: "Vue d’ensemble" },
-          { href: "#territoires", label: "Territoires" },
-          { href: "#arbitrage", label: "Arbitrages" },
-          { href: "#programmes", label: "Programmes" },
-          { href: "#performance", label: "Performance & impact" },
-          { href: "#redevabilite", label: "Rapports & redevabilité" }
-        ].map((item) => (
-          <a key={item.href} href={item.href} className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 font-semibold text-[var(--etat-navy-800)] transition hover:bg-[var(--etat-offwhite)]">{item.label}</a>
-        ))}
-      </nav>
+        {/* Lot État-B (mandat §3.1) : navigation d'ancrage propre à l'Espace
+            État — confirmée comme telle par le CEO (pas un rail permanent
+            façon AppSidebar/AppShell, cohérent avec A14/D9). Simple ligne de
+            liens horizontale, défilante sur mobile, pas de position sticky
+            (le CEO n'a pas demandé un rail persistant au scroll). */}
+        <nav className="-mx-1 flex gap-1 overflow-x-auto border-b border-[var(--etat-line)] pb-3 text-sm">
+          {[
+            { href: "#terrain", label: "Vue d’ensemble" },
+            { href: "#territoires", label: "Territoires" },
+            { href: "#arbitrage", label: "Arbitrages" },
+            { href: "#programmes", label: "Programmes" },
+            { href: "#performance", label: "Performance & impact" },
+            { href: "#redevabilite", label: "Rapports & redevabilité" }
+          ].map((item) => (
+            <a key={item.href} href={item.href} className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 font-semibold text-[var(--etat-navy-800)] transition hover:bg-[var(--etat-offwhite)]">{item.label}</a>
+          ))}
+        </nav>
 
-      {/* Filtres Périmètre/Période réellement fonctionnels (mandat §3.1,
-          §8, arbitrage CEO 2026-08-20 levant la réserve "lecture seule"
-          du 18/08). Périmètre réutilise selectedTerritoryId (Lot État-A) :
-          un seul mécanisme de sélection de territoire pour toute la
-          page, que l'origine soit la carte ou ce sélecteur. Période
-          restreinte aux dates calendaires réellement présentes dans les
-          landings (seule donnée avec une vraie dispersion temporelle
-          ici) — pas de filtre fabriqué sur les décisions, qui partagent
-          toutes le même decidedAt dans ce jeu de démonstration.
-          Toolbar blanche compacte (Lot 1, Refonte Premium XXL, mandat
-          §2) : les filtres flottaient jusqu'ici directement sur le
-          crème, comme la nav juste au-dessus — désormais une surface
-          blanche distincte, cohérente avec la doctrine crème/blanc déjà
-          appliquée ailleurs sur cette page (chapitres en .etat-panel). */}
-      {/* Toolbar resserrée davantage (correctif CEO 2026-08-22) : padding
-          réduit (py-3→py-2, gap-8→gap-6) et texte d'aide du filtre
-          Période retiré de sa propre ligne visible — reporté en `title`
-          (info-bulle native au survol), l'information reste disponible
-          sans consommer de hauteur en permanence. */}
-      <div className="etat-panel flex flex-wrap items-center gap-6 px-5 py-2">
+        {/* Filtres Périmètre/Période réellement fonctionnels (mandat §3.1,
+            §8, arbitrage CEO 2026-08-20 levant la réserve "lecture seule"
+            du 18/08). Périmètre réutilise selectedTerritoryId (Lot État-A) :
+            un seul mécanisme de sélection de territoire pour toute la
+            page, que l'origine soit la carte ou ce sélecteur. Période
+            restreinte aux dates calendaires réellement présentes dans les
+            landings (seule donnée avec une vraie dispersion temporelle
+            ici) — pas de filtre fabriqué sur les décisions, qui partagent
+            toutes le même decidedAt dans ce jeu de démonstration.
+            Toolbar blanche compacte (Lot 1, Refonte Premium XXL, mandat
+            §2) : les filtres flottaient jusqu'ici directement sur le
+            crème, comme la nav juste au-dessus — désormais une surface
+            blanche distincte, cohérente avec la doctrine crème/blanc déjà
+            appliquée ailleurs sur cette page (chapitres en .etat-panel). */}
+        {/* Toolbar resserrée davantage (correctif CEO 2026-08-22, py-1.5
+            au correctif 2 du même jour) : padding réduit (py-3→py-2→py-1.5,
+            gap-8→gap-6) et texte d'aide du filtre Période retiré de sa
+            propre ligne visible — reporté en `title` (info-bulle native au
+            survol), l'information reste disponible sans consommer de
+            hauteur en permanence. */}
+        <div className="etat-panel flex flex-wrap items-center gap-6 px-5 py-1.5">
         <label className="block">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>
           <select
@@ -597,8 +613,15 @@ export default function EtatPage() {
             ))}
           </select>
         </label>
+        </div>
       </div>
 
+      {/* Groupe des chapitres (correctif 2) : reprend exactement le
+          space-y-16 qui régissait auparavant tout le conteneur racine —
+          seul l'espacement AVANT ce groupe change (mt-4 au lieu des 64px
+          de space-y-16 hérités du bandeau/nav/toolbar), le rythme entre
+          #terrain et les chapitres suivants reste identique à avant. */}
+      <div className="mt-4 space-y-16">
       {/* Chapitre 1 — Lecture territoriale (mandat §5, Lot B ; recomposé
           Lot 1, correctif CEO 2026-08-22). L'ancien bloc d'en-tête pleine
           largeur (eyebrow + H1 serif + sous-titre, ~90px avant la carte)
@@ -620,18 +643,22 @@ export default function EtatPage() {
             (donc la carte ET le panneau) à ~393px sur un viewport à
             390px. Confirmé par script (git stash sur ce lot : aucun
             débordement avant, +23px après) avant d'écrire ce correctif. */}
-        {/* lg:h-[560px] explicite (correctif CEO 2026-08-22) : remplace
-            lg:items-stretch seul. Cause identifiée par mesure DOM directe
-            (958px sur le seul bloc CTA de l'aside, panneau total 1428px) :
-            un enfant lg:h-full imbriqué dans un item de grille sans
-            hauteur PROPRE (seulement stretch) ne resout pas de façon
-            fiable — la piste de grille grandissait pour englober le
-            contenu au lieu de le contraindre. Une hauteur fixe sur la
-            ligne elle-même donne enfin à lg:h-full (sur le conteneur de
-            la carte) une base de résolution définie, exactement la
-            "fenêtre de supervision à hauteur fixe (~520-560px)" du
-            mandat (§4) — pas une valeur arbitraire choisie deux fois. */}
-        <div className="mt-6 grid grid-cols-1 gap-5 lg:h-[560px] lg:grid-cols-[1.3fr_.7fr]">
+        {/* lg:h-[520px] explicite (correctif CEO 2026-08-22, ajusté au
+            correctif 2 du même jour) : remplace lg:items-stretch seul.
+            Cause identifiée par mesure DOM directe (958px sur le seul
+            bloc CTA de l'aside, panneau total 1428px) : un enfant
+            lg:h-full imbriqué dans un item de grille sans hauteur PROPRE
+            (seulement stretch) ne resout pas de façon fiable — la piste
+            de grille grandissait pour englober le contenu au lieu de le
+            contraindre. Une hauteur fixe sur la ligne elle-même donne
+            enfin à lg:h-full (sur le conteneur de la carte) une base de
+            résolution définie. 520px plutôt que 560px (correctif 2) :
+            toujours dans la fourchette "~520-560px" du mandat (§4), donc
+            aucun nouvel écart au mandat — la borne basse déjà approuvée
+            est simplement celle retenue, pour que la bande de synthèse
+            nationale juste en dessous reste visible sans scroll à
+            1440×900 (mesure CEO : elle dépassait de 40px). */}
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:h-[520px] lg:grid-cols-[1.3fr_.7fr]">
           {/* Richesse visuelle de la carte (maquette validée, arbitrage
               CEO 2026-08-18, corrigé le même jour après vérification par
               capture réelle) : texture/boussole/icônes décoratives
@@ -702,7 +729,7 @@ export default function EtatPage() {
           </div>
 
           {/* overflow-y-auto (correctif CEO 2026-08-22) : filet de sécurité
-              maintenant que la ligne a une hauteur fixe (lg:h-[560px]) —
+              maintenant que la ligne a une hauteur fixe (lg:h-[520px]) —
               si le contenu du panneau (situation longue, 5 tuiles KPI)
               dépasse malgré tout cette hauteur, il défile en interne au
               lieu de repousser la carte, plutôt que de reproduire le
@@ -764,7 +791,10 @@ export default function EtatPage() {
           </aside>
         </div>
 
-        <div className="etat-panel mt-6 flex flex-wrap items-center gap-x-8 gap-y-4 divide-x divide-[var(--etat-line)] p-5">
+        {/* mt-5 (correctif 2, était mt-6) : marge de sécurité supplémentaire
+            sous la carte (520px) pour que cette bande reste visible sans
+            scroll à 1440×900 — pas seulement tangente au pixel près. */}
+        <div className="etat-panel mt-5 flex flex-wrap items-center gap-x-8 gap-y-4 divide-x divide-[var(--etat-line)] p-5">
           <div className="pl-0">
             <p className="etat-display text-xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={situationsOuvertesTotal} /></p>
             <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Situations ouvertes</p>
@@ -1257,6 +1287,7 @@ export default function EtatPage() {
         </div>
         <Link href="/app/etat/rapport" className="etat-btn etat-btn-primary relative z-10"><FileDown size={15} /> Ouvrir le rapport bailleurs</Link>
       </section>
+      </div>
 
       <Drawer open={!!territoryDrawer} onClose={() => setTerritoryDrawer(null)} eyebrow="Territoire" title={territoryDrawer?.name ?? ""}>
         {territoryDrawer && <TerritoryDetail territory={territoryDrawer} cases={cases.filter((item) => item.territoryId === territoryDrawer.id)} onOpenSituation={(situation) => { setTerritoryDrawer(null); setSituationDrawer(situation); }} />}
