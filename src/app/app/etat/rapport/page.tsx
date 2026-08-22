@@ -338,9 +338,29 @@ export default function EtatReportPage() {
                   imprimable ne doit jamais dépendre d'un état de
                   sélection — cf. le bloc plein ci-dessous, réservé à
                   l'impression, qui liste tous les rapports filtrés en
-                  entier. */}
-              <div className="mt-4 grid gap-5 print:hidden lg:grid-cols-[320px_1fr]">
-                <div className="etat-panel divide-y divide-[var(--etat-line)] overflow-y-auto lg:max-h-[70vh]">
+                  entier.
+                  Split en % plutôt qu'en px fixe (Lot 4, gap analysis
+                  Lot 0) : 320px sur un conteneur étroit (fenêtre réduite,
+                  panneau latéral ouvert) laissait trop peu de place au
+                  détail — 30%/70% s'adapte à la largeur réelle du
+                  conteneur au lieu d'une valeur figée. */}
+              <div className="mt-4 grid gap-5 print:hidden lg:grid-cols-[30%_1fr]">
+                {/* lg:sticky (Lot 4, gap analysis Lot 0 — faisabilité
+                    confirmée) : le registre reste visible pendant que le
+                    lecteur parcourt un détail de rapport long, au lieu de
+                    disparaître en haut de page au défilement — top-6
+                    aligné sur la marge du conteneur (mt-4 du grid parent +
+                    léger espace de respiration, cohérent avec lg:mt-6 de
+                    la barre d'actions plus haut). lg:self-start
+                    indispensable ici : par défaut une grid stretch ses
+                    items sur la hauteur de la ligne (align-items:
+                    stretch), ce qui annule le "sticky" en pratique (rien
+                    à quoi s'accrocher, l'item occupe déjà toute la
+                    hauteur) — confirmé par mesure directe (position:
+                    sticky posé mais top défilant en continu jusqu'à
+                    -448px à 1200px de scroll, exactement comme un élément
+                    statique, avant l'ajout de self-start). */}
+                <div className="etat-panel divide-y divide-[var(--etat-line)] overflow-y-auto lg:sticky lg:top-6 lg:max-h-[70vh] lg:self-start">
                   {filteredReports.map((report) => {
                     const active = report.id === selectedReport?.id;
                     return (
@@ -533,6 +553,13 @@ export default function EtatReportPage() {
 // version imprimable (tous les rapports filtrés, en entier) : même
 // contenu exact dans les deux cas, jamais une version imprimée
 // appauvrie par rapport à ce que l'explorateur peut montrer.
+//
+// Fiche d'identité (Lot 4) : generatedAt ajouté à l'en-tête — donnée
+// réelle du modèle (Report.generatedAt), déjà utilisée au niveau page
+// pour "Dernière mise à jour" du portefeuille entier, mais jusqu'ici
+// absente de la fiche de CE rapport précis. Un lecteur qui consulte un
+// rapport territorial isolé doit pouvoir dater CE rapport, pas
+// seulement le plus récent du portefeuille.
 function ReportDetailCard({ report, isNational, territories }: { report: Report; isNational: boolean; territories: Territory[] }) {
   return (
     <article className="etat-panel p-6">
@@ -541,9 +568,17 @@ function ReportDetailCard({ report, isNational, territories }: { report: Report;
           {isNational && <p className="etat-eyebrow">Vue nationale</p>}
           <h2 className="etat-display mt-1 text-lg not-italic text-[var(--etat-navy-950)]">{report.title}</h2>
           <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{report.period} · {isNational ? `${report.territoryIds.length} territoires suivis` : report.territoryIds.map((id) => territories.find((t) => t.id === id)?.name ?? id).join(", ")}</p>
+          <p className="mt-1 text-[11px] text-[var(--etat-stone-400)]">Généré le {new Date(report.generatedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</p>
         </div>
         <span className={`etat-tag ${report.status === "pret" ? "etat-tag--reel" : "etat-tag--vigilance"}`}>{report.status === "pret" ? "Prêt" : "À actualiser"}</span>
       </div>
+      {/* Blocs de preuve (mandat §4.4, Lot 4) : VALEUR / LABEL / CONFIANCE
+          / Source / Limite comme 5 champs distincts — Source et Limite
+          vivaient jusqu'ici dans une seule ligne jointe par un tiret
+          ("source — limite"), ce qui les faisait lire comme une seule
+          note plutôt que deux informations méthodologiques différentes
+          (d'où vient la donnée / jusqu'où elle va). Séparées en deux
+          lignes labellisées, même contenu réel, aucune donnée ajoutée. */}
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {report.metrics.map((metric) => (
           <div key={metric.label} className="etat-panel--warm p-4">
@@ -552,7 +587,10 @@ function ReportDetailCard({ report, isNational, territories }: { report: Report;
             <div className="mt-2 flex items-center gap-2">
               <span className={`etat-tag ${trustTagClass[metric.trust]}`}>{trustLabels[metric.trust]}</span>
             </div>
-            <p className="mt-2 text-[11px] leading-4 text-[var(--etat-stone-400)]">{metric.source} — {metric.limit}</p>
+            <div className="mt-2.5 space-y-1 border-t border-[var(--etat-line)] pt-2">
+              <p className="text-[11px] leading-4 text-[var(--etat-stone-400)]"><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Source · </span>{metric.source}</p>
+              <p className="text-[11px] leading-4 text-[var(--etat-stone-400)]"><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Limite · </span>{metric.limit}</p>
+            </div>
           </div>
         ))}
       </div>
