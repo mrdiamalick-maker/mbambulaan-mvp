@@ -352,15 +352,44 @@ export default function EtatReportPage() {
                     aligné sur la marge du conteneur (mt-4 du grid parent +
                     léger espace de respiration, cohérent avec lg:mt-6 de
                     la barre d'actions plus haut). lg:self-start
-                    indispensable ici : par défaut une grid stretch ses
-                    items sur la hauteur de la ligne (align-items:
-                    stretch), ce qui annule le "sticky" en pratique (rien
-                    à quoi s'accrocher, l'item occupe déjà toute la
-                    hauteur) — confirmé par mesure directe (position:
-                    sticky posé mais top défilant en continu jusqu'à
-                    -448px à 1200px de scroll, exactement comme un élément
-                    statique, avant l'ajout de self-start). */}
-                <div className="etat-panel divide-y divide-[var(--etat-line)] overflow-y-auto lg:sticky lg:top-6 lg:max-h-[70vh] lg:self-start">
+                    indispensable : par défaut une grid stretch ses items
+                    sur la hauteur de la ligne (align-items: stretch), ce
+                    qui annule le "sticky" en pratique (rien à quoi
+                    s'accrocher, l'item occupe déjà toute la hauteur) —
+                    confirmé par mesure directe (position: sticky posé
+                    mais top défilant en continu jusqu'à -448px à 1200px
+                    de scroll, exactement comme un élément statique, avant
+                    l'ajout de self-start).
+                    Correctif (CEO 2026-08-22, plage de collage nulle sur
+                    tous les rapports testés) : max-h-[70vh] remplacé par une
+                    hauteur fixe. Diagnostic vérifié avant correction (pas
+                    supposé) : ni le registre ni le détail n'avaient de
+                    hauteur "coincée" ou clippée l'un par l'autre (offsetHeight
+                    === scrollHeight des deux côtés, aucun overflow interne
+                    actif, aucun ancêtre ne contraint le détail) — les deux
+                    mesuraient exactement 613px sur les 8 rapports parce que
+                    (a) le registre affiche toujours la même liste de 8 lignes,
+                    donc sa hauteur naturelle est constante quel que soit le
+                    rapport sélectionné, et (b) chaque fiche de rapport tient
+                    ses 2 ou 4 métriques sur une seule ligne à cette largeur
+                    (sm:grid-cols-4), donc la hauteur du détail ne varie pas
+                    non plus avec le nombre de métriques. Ce n'est pas un bug
+                    de propagation de hauteur : les deux colonnes convergent
+                    juste naturellement vers une hauteur proche avec CE jeu de
+                    données, laissant une plage de collage nulle par
+                    construction plutôt que par accident.
+                    Un premier essai à h-[420px] restait insuffisant : une
+                    fois lg:self-start ajouté aussi au détail (ci-dessous,
+                    nécessaire pour révéler sa vraie hauteur naturelle plutôt
+                    que la hauteur étirée par la grille), la mesure a montré
+                    que 5 des 8 rapports (les revues territoriales, 4
+                    métriques) ont un détail naturellement plus COURT que
+                    420px (405px) — pire qu'avant sur ces rapports-là.
+                    h-[280px] choisi à la place : nettement sous la plus
+                    courte fiche de détail mesurée (405px), marge de ~125px
+                    minimum sur les 8 rapports, pas seulement sur le plus
+                    riche. */}
+                <div className="etat-panel divide-y divide-[var(--etat-line)] overflow-y-auto lg:sticky lg:top-6 lg:h-[280px] lg:self-start">
                   {filteredReports.map((report) => {
                     const active = report.id === selectedReport?.id;
                     return (
@@ -383,7 +412,23 @@ export default function EtatReportPage() {
                   })}
                 </div>
 
-                {selectedReport && <ReportDetailCard report={selectedReport} isNational={selectedReport.id === nationalReport?.id} territories={state.territories} />}
+                {/* lg:self-start ici aussi (correctif CEO 2026-08-22) :
+                    sans lui, align-items: stretch (défaut de la grid)
+                    étire le détail à la hauteur de la ligne — déterminée
+                    en partie par le registre, désormais à hauteur fixe —
+                    ce qui masquait la vraie hauteur naturelle du détail et
+                    réduisait d'autant la marge de collage réellement
+                    disponible. Avec les deux colonnes en self-start, la
+                    ligne de la grille prend enfin la hauteur naturelle du
+                    détail (perturbée par rien), et le registre — fixé à
+                    une hauteur volontairement compacte — a une vraie marge
+                    de collage en dessous, quel que soit le contenu du
+                    rapport affiché. */}
+                {selectedReport && (
+                  <div className="lg:self-start">
+                    <ReportDetailCard report={selectedReport} isNational={selectedReport.id === nationalReport?.id} territories={state.territories} />
+                  </div>
+                )}
               </div>
 
               {/* Version imprimable (mandat : document linéaire complet,
