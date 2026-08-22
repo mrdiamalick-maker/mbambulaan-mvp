@@ -269,6 +269,13 @@ export default function EtatPage() {
   // toutes les priorités, plus de second gabarit dégradé.
   const prioritiesTrackRef = useRef<HTMLDivElement>(null);
   const [prioritiesIndex, setPrioritiesIndex] = useState(0);
+  // 3 onglets de classement (Lot 3, arbitrage CEO Lot 0 : "3 des 4 pistes
+  // proposées sont calculables — Priorité globale, Activité critique,
+  // Capacités fragiles ; 'Programmes en retard' écarté, non calculable
+  // honnêtement avec le modèle actuel). Même liste de territoires dans
+  // les 3 cas, seul le tri (et pour "Activité critique" le filtre) change
+  // — pas 3 jeux de données différents.
+  const [prioriteTab, setPrioriteTab] = useState<"globale" | "critique" | "fragile">("globale");
 
   const reload = async () => {
     const [visitsRes, casesRes] = await Promise.all([fetch("/api/ministry/field-visits"), fetch("/api/ministry/vigilance")]);
@@ -464,6 +471,16 @@ export default function EtatPage() {
       if (a.territory.activity !== b.territory.activity) return a.territory.activity === "critique" ? -1 : b.territory.activity === "critique" ? 1 : 0;
       return (b.openSituationsCount + b.fragileInfra) - (a.openSituationsCount + a.fragileInfra);
     });
+  // Onglets "Activité critique" et "Capacités fragiles" (Lot 3) : mêmes
+  // entrées que prioritized (aucun recalcul, aucune nouvelle donnée),
+  // seulement un filtre ou un tri différent — "Activité critique" réduit
+  // réellement l'ensemble (uniquement territory.activity === "critique"),
+  // "Capacités fragiles" réordonne le même ensemble par fragileInfra
+  // décroissant, la seule dimension honnêtement isolable de "priorité
+  // globale" avec les champs réellement disponibles.
+  const prioritizedCritique = prioritized.filter((entry) => entry.territory.activity === "critique");
+  const prioritizedFragile = [...prioritized].sort((a, b) => b.fragileInfra - a.fragileInfra);
+  const activePriorityList = prioriteTab === "critique" ? prioritizedCritique : prioriteTab === "fragile" ? prioritizedFragile : prioritized;
 
   const totalValue = executedValue + engagedValue;
   const executedRatio = totalValue > 0 ? Math.round((executedValue / totalValue) * 100) : 0;
@@ -1226,25 +1243,53 @@ export default function EtatPage() {
       {prioritized.length > 0 && (
         <section id="territoires" className="scroll-mt-6">
           <p className="etat-eyebrow">5 · Où concentrer l’attention ?</p>
-          <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">{prioritized.length} territoire(s) prioritaire(s) sur {territoiresActifs} suivis par le réseau.</h2>
+          <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">{activePriorityList.length} territoire(s) {prioriteTab === "critique" ? "en activité critique" : "prioritaire(s)"} sur {territoiresActifs} suivis par le réseau.</h2>
+
+          {/* 3 onglets de classement (Lot 3, arbitrage CEO Lot 0) : même
+              ensemble de territoires (sauf "Activité critique", un vrai
+              sous-ensemble), 3 tris honnêtement calculables avec les champs
+              réellement disponibles — pas un 4e onglet "Programmes en
+              retard" écarté faute de champ d'échéance fiable côté
+              programme (cf. Chapitre 4, Prochaine échéance). Changer
+              d'onglet réinitialise la pagination du carrousel (l'ordre des
+              cartes change, l'index de scroll précédent n'a plus de sens). */}
+          <div className="mt-4 flex gap-1.5 border-b border-[var(--etat-line)] pb-3 text-sm">
+            {([
+              { key: "globale", label: "Priorité globale" },
+              { key: "critique", label: "Activité critique" },
+              { key: "fragile", label: "Capacités fragiles" }
+            ] as const).map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => { setPrioriteTab(tab.key); setPrioritiesIndex(0); prioritiesTrackRef.current?.scrollTo({ left: 0 }); }}
+                className="rounded-full px-3 py-1.5 font-semibold transition"
+                style={prioriteTab === tab.key ? { backgroundColor: "var(--etat-terracotta-dim)", color: "var(--etat-terracotta)" } : { color: "var(--etat-navy-800)" }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
           {/* Carrousel homogène (mandat §3.6) : toutes les priorités
               partagent la même grammaire de card (mini-carte incluse),
               plus de duo "3 cards riches + liste appauvrie". Navigation
               fléchée + pagination discrète (points), scroll-snap pour
               un défilement propre au doigt sur mobile. */}
-          <div className="relative mt-6">
+          {activePriorityList.length === 0 ? (
+            <p className="mt-6 text-sm text-[var(--etat-stone-600)]">Aucun territoire en activité critique pour le moment — tous les territoires suivis sont en vigilance ou en veille.</p>
+          ) : (
+          <div className="relative mt-4">
             <div
               ref={prioritiesTrackRef}
               onScroll={(event) => {
                 const el = event.currentTarget;
                 const maxScroll = el.scrollWidth - el.clientWidth;
                 const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
-                setPrioritiesIndex(Math.round(ratio * (prioritized.length - 1)));
+                setPrioritiesIndex(Math.round(ratio * (activePriorityList.length - 1)));
               }}
               className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              {prioritized.map((entry, index) => (
+              {activePriorityList.map((entry, index) => (
                 <article key={entry.territory.id} className="etat-panel flex w-[270px] shrink-0 snap-start flex-col p-5" style={{ borderTopWidth: 3, borderTopColor: glyphBorderColor[entry.territory.activity] }}>
                   <div className="flex items-center justify-between gap-2">
                     <span className="grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: glyphBorderColor[entry.territory.activity] }}>{index + 1}</span>
@@ -1261,15 +1306,16 @@ export default function EtatPage() {
                       ce territoire ; onSelect omis volontairement
                       (vignette de lecture, pas un second point d'entrée
                       vers le tiroir — "Voir le détail" plus bas reste le
-                      seul CTA de la carte). */}
-                  <div className="mt-3 flex h-28 items-center justify-center overflow-hidden rounded-lg border border-[var(--etat-line)] bg-[var(--etat-offwhite)]">
-                    {/* Le wrapper interne reprend le ratio réel du viewBox
-                        (704/1122) — sans ça, preserveAspectRatio="meet" sur
-                        le <svg> (h-full w-full dans un conteneur beaucoup
-                        plus large que haut) le réduit en lettrebox centré,
-                        et les pourcentages de territoryZoomStyle ne
-                        correspondent plus à la zone réellement dessinée :
-                        c'est ce qui rendait les 3 vignettes vides. */}
+                      seul CTA de la carte).
+                      Texture maritime (Lot 3) : même dégradé d'eau que la
+                      carte du Chapitre 1 (--etat-water-*), en repli léger
+                      ici — pas le motif de vaguelettes SVG répété (id de
+                      pattern non dupliqué proprement sur N mini-cartes,
+                      et surcharge visuelle inutile à cette taille) — pour
+                      que ces vignettes ne se lisent plus comme un fond
+                      plat mais comme le même littoral que la carte
+                      principale. */}
+                  <div className="relative mt-3 flex h-28 items-center justify-center overflow-hidden rounded-lg border border-[var(--etat-line)]" style={{ backgroundImage: "radial-gradient(circle at 20% 15%, #89aec2, transparent 45%), linear-gradient(165deg, #89aec2 0%, #4c7691 60%, #2c4f63 100%)" }}>
                     <div className="h-full" style={{ aspectRatio: `${viewBoxWidth} / ${viewBoxHeight}`, ...territoryZoomStyle(entry.territory.id, 3.4) }}>
                       <CoastlineTerritoryMap territories={state.territories} selectedId={entry.territory.id} />
                     </div>
@@ -1287,10 +1333,10 @@ export default function EtatPage() {
               ))}
             </div>
 
-            {prioritized.length > 1 && (
+            {activePriorityList.length > 1 && (
               <div className="mt-4 flex items-center justify-between gap-4">
                 <div className="flex gap-1.5" aria-hidden="true">
-                  {prioritized.map((entry, index) => (
+                  {activePriorityList.map((entry, index) => (
                     <span key={entry.territory.id} className="h-1.5 w-1.5 rounded-full transition" style={{ backgroundColor: index === prioritiesIndex ? "var(--etat-terracotta)" : "var(--etat-line)" }} />
                   ))}
                 </div>
@@ -1301,6 +1347,7 @@ export default function EtatPage() {
               </div>
             )}
           </div>
+          )}
         </section>
       )}
 
@@ -1315,10 +1362,18 @@ export default function EtatPage() {
         <p className="etat-eyebrow">6 · Décisions exécutées &amp; résultats observés</p>
         <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Décisions exécutées &amp; résultats observés.</h2>
         <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{state.decisions.length} décision(s) enregistrée(s) au total — ce que la coordination a décidé, et ce que cela a produit. Chaque arbitrage institutionnel reste tracé et consultable.</p>
+        {/* Chapitre enveloppé dans .etat-panel (Lot 3) : dernier chapitre
+            de contenu encore posé directement sur le crème sans surface
+            propre — même doctrine que Situations à arbitrer, Résultats de
+            la coordination et Programmes (correctif 2026-08-18 puis Lot 2),
+            appliquée ici pour fermer l'écart. Registre de redevabilité,
+            contenu à fort enjeu institutionnel : mérite la même matérialité
+            que les autres chapitres, pas moins. */}
+        <div className="etat-panel mt-5 p-6 lg:p-7">
         {recentDecisions.length === 0 ? (
-          <p className="mt-5 text-sm text-[var(--etat-stone-600)]">Aucune décision enregistrée pour le moment.</p>
+          <p className="text-sm text-[var(--etat-stone-600)]">Aucune décision enregistrée pour le moment.</p>
         ) : (
-          <div className="relative mt-6 ml-5 border-l border-[var(--etat-line)] pl-7">
+          <div className="relative ml-5 border-l border-[var(--etat-line)] pl-7">
             {recentDecisions.map((decision, index) => {
               const situation = state.situations.find((item) => item.id === decision.situationId);
               const territory = situation ? state.territories.find((item) => item.id === situation.territoryId) : undefined;
@@ -1362,6 +1417,7 @@ export default function EtatPage() {
             })}
           </div>
         )}
+        </div>
       </section>
 
       {/* InstitutionIllustration (P5, audit XXL Public) migre ici depuis
