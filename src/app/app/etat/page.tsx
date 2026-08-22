@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Compass, Factory, FileDown, Fish, Radio, Sailboat, Send, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Compass, Factory, FileDown, Fish, Radio, Sailboat, Search, Send, ShieldCheck, Users } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { InstitutionIllustration } from "@/components/public/CoordinationIllustration";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
@@ -257,6 +257,10 @@ export default function EtatPage() {
   // arbitrer — le filtre territoire réutilise, ici aussi, le Périmètre
   // partagé (selectedTerritoryId).
   const [urgenceFilter, setUrgenceFilter] = useState<"all" | "critique" | "haute">("all");
+  // Recherche libre (Lot 2, Refonte Premium XXL, arbitrage CEO Lot 0) :
+  // filtre texte réel sur Situations à arbitrer, en complément du filtre
+  // Urgence et du Périmètre partagé — pas un champ décoratif.
+  const [arbitrageSearch, setArbitrageSearch] = useState("");
   const [situationDrawer, setSituationDrawer] = useState<Situation | null>(null);
   const [missionDrawer, setMissionDrawer] = useState<Mission | null>(null);
   const [signalDrawerOpen, setSignalDrawerOpen] = useState(false);
@@ -484,16 +488,33 @@ export default function EtatPage() {
     coordinatedValueByDate.set(date, (coordinatedValueByDate.get(date) ?? 0) + value);
   }
   const coordinatedValueTrendPoints = [...coordinatedValueByDate.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ date, value }));
-  const coordinatedValueTrendPath = coordinatedValueTrendPoints.length >= 2 ? buildTrendPath(coordinatedValueTrendPoints.map((point) => point.value), 640, 180, 20) : null;
+  // Seuil relevé à 3 points (Lot 2, gap analysis Lot 0 — écart confirmé
+  // "fiable à 100%" par le CEO) : une ligne reliant exactement 2 points
+  // dessine une pente qui n'existe pas réellement — 2 dates ne racontent
+  // pas une évolution, seulement une différence entre deux instants. Le
+  // mandat est explicite (§5) : "si aucune vraie série temporelle
+  // n'existe, ne pas simuler une courbe [...] préférer une comparaison
+  // réelle entre périodes disponibles". Exactement 2 points → comparaison
+  // directe ci-dessous (pas de tracé), pas une fausse tendance graphique.
+  const coordinatedValueTrendPath = coordinatedValueTrendPoints.length >= 3 ? buildTrendPath(coordinatedValueTrendPoints.map((point) => point.value), 640, 180, 20) : null;
   // Lot État-B — Périmètre réel (mandat §3.1) : réutilise selectedTerritoryId
   // (même état que le clic Atlas, Lot État-A) plutôt qu'un second
   // mécanisme de sélection parallèle — un seul territoire "actif" pour
   // toute la page, quelle que soit son origine (carte ou sélecteur).
+  // Recherche libre (Lot 2, arbitrage CEO Lot 0) : sur titre, prochaine
+  // étape et nom du territoire — les seuls champs texte réellement lisibles
+  // par un décideur sur cette ligne, pas d'index caché ni de champ interne.
+  const arbitrageSearchNormalized = arbitrageSearch.trim().toLowerCase();
   const situationsAArbitrer = state.situations
     .filter((item) =>
       item.status !== "reglee" &&
       (urgenceFilter === "all" ? (item.priority === "critique" || item.priority === "haute") : item.priority === urgenceFilter) &&
-      (!selectedTerritoryId || item.territoryId === selectedTerritoryId)
+      (!selectedTerritoryId || item.territoryId === selectedTerritoryId) &&
+      (arbitrageSearchNormalized === "" || [
+        item.title,
+        item.nextStep,
+        state.territories.find((territory) => territory.id === item.territoryId)?.name ?? ""
+      ].some((field) => field.toLowerCase().includes(arbitrageSearchNormalized)))
     )
     .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority]);
   const recentDecisions = [...state.decisions]
@@ -551,14 +572,22 @@ export default function EtatPage() {
             État — confirmée comme telle par le CEO (pas un rail permanent
             façon AppSidebar/AppShell, cohérent avec A14/D9). Simple ligne de
             liens horizontale, défilante sur mobile, pas de position sticky
-            (le CEO n'a pas demandé un rail persistant au scroll). */}
+            (le CEO n'a pas demandé un rail persistant au scroll).
+            Ordre des liens (Lot 2, Refonte Premium XXL) : reprend désormais
+            l'ordre physique réel des chapitres sur la page — Arbitrages et
+            Performance & impact permutés pour suivre le nouvel ordre
+            Lecture territoriale → Situations à arbitrer → Résultats de la
+            coordination → Programmes → Où concentrer l'attention → Rapports
+            & redevabilité (arbitrage CEO, Lot 0). Territoires reste après
+            Programmes pour l'instant — son propre déplacement est prévu au
+            Lot 3, pas encore fait ici. */}
         <nav className="-mx-1 flex gap-1 overflow-x-auto border-b border-[var(--etat-line)] pb-3 text-sm">
           {[
             { href: "#terrain", label: "Vue d’ensemble" },
-            { href: "#territoires", label: "Territoires" },
             { href: "#arbitrage", label: "Arbitrages" },
-            { href: "#programmes", label: "Programmes" },
             { href: "#performance", label: "Performance & impact" },
+            { href: "#programmes", label: "Programmes" },
+            { href: "#territoires", label: "Territoires" },
             { href: "#redevabilite", label: "Rapports & redevabilité" }
           ].map((item) => (
             <a key={item.href} href={item.href} className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 font-semibold text-[var(--etat-navy-800)] transition hover:bg-[var(--etat-offwhite)]">{item.label}</a>
@@ -819,187 +848,30 @@ export default function EtatPage() {
         </div>
       </section>
 
-      <section id="performance" className="scroll-mt-6">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <p className="etat-eyebrow">2 · Résultats de la coordination</p>
-          <span className="etat-tag etat-tag--demo whitespace-normal text-left">Mode démonstration · données non opérationnelles</span>
-        </div>
-        <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Ce que la coordination a produit, en un coup d’œil.</h2>
-
-        {/* Chapitre enveloppé dans .etat-panel (correctif 2026-08-18,
-            vérification par capture) : le Chapitre 1 était déjà une
-            surface blanche sur fond crème, les Chapitres 2 et 4
-            flottaient directement sur le crème avec de simples filets —
-            même doctrine crème/blanc déjà posée ailleurs (Public,
-            Produit), appliquée ici de façon incomplète jusqu'ici. Ne
-            change rien à la doctrine "chiffres inline" (§17) : les
-            chiffres restent inline, seul le conteneur du chapitre
-            redevient une surface blanche. */}
-        <div className="etat-panel mt-6 p-6 lg:p-7">
-          {/* §17 du mandat : un chiffre important vit directement sur la
-              page, pas dans des cartes complètes à fond plein. 4 mesures
-              maximum, toutes réellement dérivées (cf. commentaire des
-              constantes ci-dessus pour le détail et ce qui a été écarté). */}
-          <div className="grid gap-8 border-b border-[var(--etat-line)] pb-6 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <ResultatIcon size={20} color="var(--etat-terracotta)" />
-              <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={totalValue} /> <span className="text-sm font-semibold text-[var(--etat-stone-600)]">FCFA</span></p>
-              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Valeur coordonnée</p>
-              <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[var(--etat-line)]"><div className="h-full rounded-full bg-[var(--etat-terracotta)]" style={{ width: `${executedRatio}%` }} /></div>
-              <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{executedRatio}% exécuté · {formatFcfa(engagedValue)} engagés</p>
-            </div>
-            <div>
-              <DecisionIcon size={20} color="var(--etat-navy-600)" />
-              <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={closedRatio} />%</p>
-              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Situations clôturées avec résultat</p>
-              <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{closedWithResult} / {state.situations.length} dossier(s)</p>
-            </div>
-            <div>
-              <SituationIcon size={20} color="var(--etat-navy-600)" />
-              <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={involvedActors} /></p>
-              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Acteurs impliqués dans une coordination</p>
-            </div>
-            <div>
-              <Factory size={20} color="var(--etat-navy-600)" />
-              <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={availableCapacity} /> <span className="text-sm font-semibold text-[var(--etat-stone-600)]">/ {state.infrastructures.length}</span></p>
-              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Capacités disponibles</p>
-            </div>
-          </div>
-
-          {/* Évolution de la valeur coordonnée (maquette validée,
-              arbitrage CEO 2026-08-18) : même méthode que la courbe
-              Pilotage — grain jour, un point par date réellement
-              disponible, repli honnête sinon. La valeur coordonnée
-              (executedValue/engagedValue) n'a pas d'horodatage propre
-              (Opportunity n'en porte aucun) : on la fait remonter à un
-              horodatage réel via lot → landing.weighedAt/arrivedAt,
-              seule donnée temporelle fiable de la chaîne. Vérifié en
-              exécutant createDemoState() avant de construire quoi que
-              ce soit : seules 2 dates sur les 5 désormais disponibles
-              portent une valeur coordonnée (9 des 24 opportunités sont
-              exécutées/engagées) — repli affiché en dessous de 2 points,
-              jamais une courbe forcée pour ressembler à la maquette. */}
-          <div className="mt-8 border-b border-[var(--etat-line)] pb-6">
-            <p className="text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Évolution de la valeur coordonnée</p>
-            {coordinatedValueTrendPath ? (
-              <div className="mt-4">
-                <svg viewBox="0 0 640 180" preserveAspectRatio="none" className="h-36 w-full" role="img" aria-label="Évolution de la valeur coordonnée dans le temps">
-                  <path d={coordinatedValueTrendPath.area} fill="var(--etat-terracotta)" fillOpacity="0.08" />
-                  <path d={coordinatedValueTrendPath.line} fill="none" stroke="var(--etat-terracotta)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  {coordinatedValueTrendPath.coords.map(([x, y], index) => <circle key={coordinatedValueTrendPoints[index].date} cx={x} cy={y} r="4.5" fill="var(--etat-terracotta)" stroke="#fff" strokeWidth="2" />)}
-                </svg>
-                <div className="mt-2 flex justify-between text-xs">
-                  {coordinatedValueTrendPoints.map((point) => (
-                    <div key={point.date} className="text-center">
-                      <p className="font-bold text-[var(--etat-navy-950)]">{formatFcfa(point.value)}</p>
-                      <p className="text-[var(--etat-stone-400)]">{new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(new Date(point.date))}</p>
-                    </div>
-                  ))}
-                </div>
-                <p className="mt-4 text-[11px] text-[var(--etat-stone-400)]">Grain jour, dérivé des pesées réelles reliées à chaque opportunité (weighedAt, ou arrivedAt à défaut) — aucun jour interpolé. Seules {coordinatedValueTrendPoints.length} date(s) portent une valeur coordonnée pour l’instant.</p>
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-[var(--etat-stone-600)]">Historique insuffisant pour tracer une évolution : moins de deux jours documentés portent une valeur coordonnée pour le moment.</p>
-            )}
-          </div>
-
-        </div>
-      </section>
-
-      {/* Chapitre 3 — Où concentrer l'attention ? (mandat §5, Lot C).
-          Remplace l'ancienne liste plate "Explorer tous les territoires" —
-          browse des territoires stables toujours possible via la carte du
-          Chapitre 1 (tous les 18 y sont cliquables), donc rien n'est perdu
-          en retirant cette liste ici. */}
-      {prioritized.length > 0 && (
-        <section id="territoires" className="scroll-mt-6">
-          <p className="etat-eyebrow">3 · Où concentrer l’attention ?</p>
-          <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">{prioritized.length} territoire(s) prioritaire(s) sur {territoiresActifs} suivis par le réseau.</h2>
-
-          {/* Carrousel homogène (mandat §3.6) : toutes les priorités
-              partagent la même grammaire de card (mini-carte incluse),
-              plus de duo "3 cards riches + liste appauvrie". Navigation
-              fléchée + pagination discrète (points), scroll-snap pour
-              un défilement propre au doigt sur mobile. */}
-          <div className="relative mt-6">
-            <div
-              ref={prioritiesTrackRef}
-              onScroll={(event) => {
-                const el = event.currentTarget;
-                const maxScroll = el.scrollWidth - el.clientWidth;
-                const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
-                setPrioritiesIndex(Math.round(ratio * (prioritized.length - 1)));
-              }}
-              className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            >
-              {prioritized.map((entry, index) => (
-                <article key={entry.territory.id} className="etat-panel flex w-[270px] shrink-0 snap-start flex-col p-5" style={{ borderTopWidth: 3, borderTopColor: glyphBorderColor[entry.territory.activity] }}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: glyphBorderColor[entry.territory.activity] }}>{index + 1}</span>
-                    <StatusBadge status={entry.territory.activity} />
-                  </div>
-                  <h3 className="etat-display mt-3 text-lg not-italic text-[var(--etat-navy-950)]">{entry.territory.name}</h3>
-                  {/* Mini-carte (maquette validée, arbitrage CEO 2026-08-18) :
-                      même composant partagé, mêmes positions calibrées —
-                      aucune géométrie simplifiée ou recréée pour la
-                      miniature, seulement un recadrage visuel (zoom CSS
-                      autour du territoire, cf. territoryZoomStyle plus
-                      haut) : le littoral entier réduit à cette hauteur
-                      serait un fil illisible. selectedId met en évidence
-                      ce territoire ; onSelect omis volontairement
-                      (vignette de lecture, pas un second point d'entrée
-                      vers le tiroir — "Voir le détail" plus bas reste le
-                      seul CTA de la carte). */}
-                  <div className="mt-3 flex h-28 items-center justify-center overflow-hidden rounded-lg border border-[var(--etat-line)] bg-[var(--etat-offwhite)]">
-                    {/* Le wrapper interne reprend le ratio réel du viewBox
-                        (704/1122) — sans ça, preserveAspectRatio="meet" sur
-                        le <svg> (h-full w-full dans un conteneur beaucoup
-                        plus large que haut) le réduit en lettrebox centré,
-                        et les pourcentages de territoryZoomStyle ne
-                        correspondent plus à la zone réellement dessinée :
-                        c'est ce qui rendait les 3 vignettes vides. */}
-                    <div className="h-full" style={{ aspectRatio: `${viewBoxWidth} / ${viewBoxHeight}`, ...territoryZoomStyle(entry.territory.id, 3.4) }}>
-                      <CoastlineTerritoryMap territories={state.territories} selectedId={entry.territory.id} />
-                    </div>
-                  </div>
-                  <div className="mt-3 space-y-2 text-xs text-[var(--etat-stone-600)]">
-                    <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Tension principale · </span>{entry.prioritySituation ? entry.prioritySituation.title : "Aucune situation ouverte"}</p>
-                    <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Impact · </span>{entry.openSituationsCount} situation(s) ouverte(s){entry.fragileInfra > 0 ? ` · ${entry.fragileInfra} capacité(s) fragile(s)` : ""}</p>
-                    <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Acteurs concernés · </span>{entry.acteurs}</p>
-                  </div>
-                  <div className="mt-4 flex flex-col gap-2">
-                    <button onClick={() => setTerritoryDrawer(entry.territory)} className="etat-btn etat-btn-outline justify-center">Voir le détail <ArrowRight size={15} /></button>
-                    {entry.prioritySituation && <button onClick={() => setSituationDrawer(entry.prioritySituation!)} className="etat-btn etat-btn-primary justify-center">Voir la situation <ArrowRight size={15} /></button>}
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            {prioritized.length > 1 && (
-              <div className="mt-4 flex items-center justify-between gap-4">
-                <div className="flex gap-1.5" aria-hidden="true">
-                  {prioritized.map((entry, index) => (
-                    <span key={entry.territory.id} className="h-1.5 w-1.5 rounded-full transition" style={{ backgroundColor: index === prioritiesIndex ? "var(--etat-terracotta)" : "var(--etat-line)" }} />
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <button aria-label="Priorités précédentes" onClick={() => prioritiesTrackRef.current?.scrollBy({ left: -prioritiesTrackRef.current.clientWidth * 0.9, behavior: "smooth" })} className="etat-btn etat-btn-outline" style={{ minHeight: 36, padding: "6px 10px" }}><ArrowLeft size={15} /></button>
-                  <button aria-label="Priorités suivantes" onClick={() => prioritiesTrackRef.current?.scrollBy({ left: prioritiesTrackRef.current.clientWidth * 0.9, behavior: "smooth" })} className="etat-btn etat-btn-outline" style={{ minHeight: 36, padding: "6px 10px" }}><ArrowRight size={15} /></button>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
       <section id="arbitrage" className="scroll-mt-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="etat-eyebrow">4 · Situations à arbitrer</p>
+            <p className="etat-eyebrow">2 · Situations à arbitrer</p>
             <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Situations critiques à arbitrer.</h2>
             <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{situationsAArbitrer.length} situation(s) {urgenceFilter === "all" ? "de risque élevé ou critique" : urgenceFilter === "critique" ? "critiques" : "de risque élevé"} attendent une décision, sur {state.situations.filter((item) => item.status !== "reglee" && (!selectedTerritoryId || item.territoryId === selectedTerritoryId)).length} dossier(s) ouverts{selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}.</p>
           </div>
           <div className="flex flex-wrap items-end gap-3">
+            {/* Recherche libre (Lot 2, arbitrage CEO Lot 0) : "il faut la
+                conserver et la rendre plus dynamique" — filtre texte réel,
+                pas décoratif, cf. situationsAArbitrer ci-dessus. */}
+            <label className="block">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Recherche</p>
+              <div className="relative mt-1">
+                <Search size={14} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--etat-stone-400)]" />
+                <input
+                  type="search"
+                  value={arbitrageSearch}
+                  onChange={(event) => setArbitrageSearch(event.target.value)}
+                  placeholder="Titre, étape, territoire…"
+                  className="w-44 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-7 pr-2 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
+                />
+              </div>
+            </label>
             <label className="block">
               <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Urgence</p>
               <select
@@ -1016,11 +888,12 @@ export default function EtatPage() {
           </div>
         </div>
         {/* Chapitre enveloppé dans .etat-panel (correctif 2026-08-18,
-            vérification par capture) — même doctrine crème/blanc que le
-            Chapitre 2 (cf. commentaire équivalent plus haut). */}
+            vérification par capture) — même doctrine crème/blanc que
+            Résultats de la coordination (cf. commentaire équivalent
+            plus loin). */}
         <div className="etat-panel mt-5 p-6 lg:p-7">
         {situationsAArbitrer.length === 0 ? (
-          <p className="text-sm text-[var(--etat-stone-600)]">Aucune situation de risque élevé ou critique en attente d’arbitrage pour le moment.</p>
+          <p className="text-sm text-[var(--etat-stone-600)]">{arbitrageSearchNormalized ? `Aucune situation ne correspond à « ${arbitrageSearch} » avec ces filtres.` : "Aucune situation de risque élevé ou critique en attente d’arbitrage pour le moment."}</p>
         ) : (
           <>
             {/* Desktop : table — la vraie surface décisionnelle (mandat
@@ -1102,24 +975,143 @@ export default function EtatPage() {
         {visits.filter((item) => item.status === "planifiee").length > 0 && <p className="mt-4 text-xs text-[var(--etat-stone-600)]">{visits.filter((item) => item.status === "planifiee").length} visite(s) terrain déjà planifiée(s) par le ministère.</p>}
       </section>
 
-      {/* Chapitre 5 — Programmes en cours (mandat §3.8, Lot État-E).
-          Remplace le sous-bloc "Évolution des programmes en cours"
-          (2 initiatives, 1 indicateur chacune) par un vrai portefeuille
-          filtrable : les 9 initiatives, filtre territoire (Périmètre
-          partagé, cf. Lot État-B) + statut/phase, et pour chacune :
-          territoires, responsable, budget/financement (mêmes libellés
-          prudents que /app/etat/rapport, jamais "financement sécurisé"),
-          progression baseline→actuel→cible, prochaine échéance dérivée
-          honnêtement des situations liées (Initiative.situationIds) —
-          aucun champ d'échéance propre au programme n'existe dans le
-          modèle, donc pas de date fabriquée si aucune situation liée
-          n'a de dueAt. Positionné après Arbitrages et avant Décisions
-          pour suivre le flux territoire→résultats→priorités→arbitrages→
-          programmes→redevabilité décrit par le mandat (§2). */}
+      <section id="performance" className="scroll-mt-6">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <p className="etat-eyebrow">3 · Résultats de la coordination</p>
+          <span className="etat-tag etat-tag--demo whitespace-normal text-left">Mode démonstration · données non opérationnelles</span>
+        </div>
+        <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Ce que la coordination a produit, en un coup d’œil.</h2>
+
+        {/* Chapitre enveloppé dans .etat-panel (correctif 2026-08-18,
+            vérification par capture) : le Chapitre 1 était déjà une
+            surface blanche sur fond crème, les Chapitres 2 et 4
+            flottaient directement sur le crème avec de simples filets —
+            même doctrine crème/blanc déjà posée ailleurs (Public,
+            Produit), appliquée ici de façon incomplète jusqu'ici. Ne
+            change rien à la doctrine "chiffres inline" (§17) : les
+            chiffres restent inline, seul le conteneur du chapitre
+            redevient une surface blanche. */}
+        <div className="etat-panel mt-6 p-6 lg:p-7">
+          {/* §17 du mandat : un chiffre important vit directement sur la
+              page, pas dans des cartes complètes à fond plein. 4 mesures
+              maximum, toutes réellement dérivées (cf. commentaire des
+              constantes ci-dessus pour le détail et ce qui a été écarté). */}
+          <div className="grid gap-8 border-b border-[var(--etat-line)] pb-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <ResultatIcon size={20} color="var(--etat-terracotta)" />
+              <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={totalValue} /> <span className="text-sm font-semibold text-[var(--etat-stone-600)]">FCFA</span></p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Valeur coordonnée</p>
+              <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[var(--etat-line)]"><div className="h-full rounded-full bg-[var(--etat-terracotta)]" style={{ width: `${executedRatio}%` }} /></div>
+              <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{executedRatio}% exécuté · {formatFcfa(engagedValue)} engagés</p>
+            </div>
+            <div>
+              <DecisionIcon size={20} color="var(--etat-navy-600)" />
+              <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={closedRatio} />%</p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Situations clôturées avec résultat</p>
+              <p className="mt-2 text-[11px] text-[var(--etat-stone-400)]">{closedWithResult} / {state.situations.length} dossier(s)</p>
+            </div>
+            <div>
+              <SituationIcon size={20} color="var(--etat-navy-600)" />
+              <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={involvedActors} /></p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Acteurs impliqués dans une coordination</p>
+            </div>
+            <div>
+              <Factory size={20} color="var(--etat-navy-600)" />
+              <p className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={availableCapacity} /> <span className="text-sm font-semibold text-[var(--etat-stone-600)]">/ {state.infrastructures.length}</span></p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Capacités disponibles</p>
+            </div>
+          </div>
+
+          {/* Évolution de la valeur coordonnée (maquette validée,
+              arbitrage CEO 2026-08-18 ; seuil du graphe relevé au Lot 2,
+              cf. commentaire sur coordinatedValueTrendPath ci-dessus) :
+              même méthode que la courbe Pilotage — grain jour, un point
+              par date réellement disponible, repli honnête sinon. La
+              valeur coordonnée (executedValue/engagedValue) n'a pas
+              d'horodatage propre (Opportunity n'en porte aucun) : on la
+              fait remonter à un horodatage réel via lot →
+              landing.weighedAt/arrivedAt, seule donnée temporelle fiable
+              de la chaîne. Vérifié en exécutant createDemoState() avant
+              de construire quoi que ce soit : seules 2 dates sur les 5
+              désormais disponibles portent une valeur coordonnée (9 des
+              24 opportunités sont exécutées/engagées) — comparaison
+              directe pour ce cas à 2 points (ci-dessous), jamais une
+              courbe forcée pour ressembler à la maquette. */}
+          <div className="mt-8 border-b border-[var(--etat-line)] pb-6">
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Évolution de la valeur coordonnée</p>
+            {coordinatedValueTrendPath ? (
+              <div className="mt-4">
+                <svg viewBox="0 0 640 180" preserveAspectRatio="none" className="h-36 w-full" role="img" aria-label="Évolution de la valeur coordonnée dans le temps">
+                  <path d={coordinatedValueTrendPath.area} fill="var(--etat-terracotta)" fillOpacity="0.08" />
+                  <path d={coordinatedValueTrendPath.line} fill="none" stroke="var(--etat-terracotta)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  {coordinatedValueTrendPath.coords.map(([x, y], index) => <circle key={coordinatedValueTrendPoints[index].date} cx={x} cy={y} r="4.5" fill="var(--etat-terracotta)" stroke="#fff" strokeWidth="2" />)}
+                </svg>
+                <div className="mt-2 flex justify-between text-xs">
+                  {coordinatedValueTrendPoints.map((point) => (
+                    <div key={point.date} className="text-center">
+                      <p className="font-bold text-[var(--etat-navy-950)]">{formatFcfa(point.value)}</p>
+                      <p className="text-[var(--etat-stone-400)]">{new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(new Date(point.date))}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-4 text-[11px] text-[var(--etat-stone-400)]">Grain jour, dérivé des pesées réelles reliées à chaque opportunité (weighedAt, ou arrivedAt à défaut) — aucun jour interpolé. {coordinatedValueTrendPoints.length} dates portent une valeur coordonnée pour l’instant.</p>
+              </div>
+            ) : coordinatedValueTrendPoints.length === 2 ? (
+              /* Comparaison directe entre les 2 seules dates disponibles —
+                 pas de tracé reliant les points, pour ne pas suggérer une
+                 tendance continue à partir de 2 instants (mandat §5, Lot 0). */
+              (() => {
+                const [first, second] = coordinatedValueTrendPoints;
+                const delta = second.value - first.value;
+                const deltaPct = first.value > 0 ? Math.round((delta / first.value) * 100) : null;
+                return (
+                  <div className="mt-4 flex flex-wrap items-center gap-4">
+                    <div>
+                      <p className="font-bold text-[var(--etat-navy-950)]">{formatFcfa(first.value)}</p>
+                      <p className="text-xs text-[var(--etat-stone-400)]">{new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(new Date(first.date))}</p>
+                    </div>
+                    {/* Vert réservé au "résultat confirmé" (mandat §2) : la
+                        hausse entre les 2 seules dates documentées est un
+                        résultat positif explicite, pas une tendance
+                        supposée — même vert que etat-tag--reel (#1e6b3d),
+                        pas un nouveau token créé pour l'occasion. */}
+                    <div className="flex flex-col items-center" style={{ color: delta >= 0 ? "#1e6b3d" : "var(--etat-terracotta)" }}>
+                      <ArrowRight size={16} />
+                      {deltaPct !== null && <span className="text-xs font-bold">{delta >= 0 ? "+" : ""}{deltaPct}%</span>}
+                    </div>
+                    <div>
+                      <p className="font-bold text-[var(--etat-navy-950)]">{formatFcfa(second.value)}</p>
+                      <p className="text-xs text-[var(--etat-stone-400)]">{new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(new Date(second.date))}</p>
+                    </div>
+                    <p className="ml-auto max-w-[14rem] text-[11px] text-[var(--etat-stone-400)]">Comparaison entre les 2 seules dates documentées — pas assez de points pour une courbe d’évolution.</p>
+                  </div>
+                );
+              })()
+            ) : (
+              <p className="mt-3 text-sm text-[var(--etat-stone-600)]">Historique insuffisant pour tracer une évolution : moins de deux jours documentés portent une valeur coordonnée pour le moment.</p>
+            )}
+          </div>
+
+        </div>
+      </section>
+
+      {/* Chapitre 4 — Programmes en cours (mandat §3.8, Lot État-E ;
+          repositionné au Lot 2 de la Refonte Premium XXL, cf. commentaire
+          de réordonnancement en tête du composant). Remplace le sous-bloc
+          "Évolution des programmes en cours" (2 initiatives, 1 indicateur
+          chacune) par un vrai portefeuille filtrable : les 9 initiatives,
+          filtre territoire (Périmètre partagé, cf. Lot État-B) + statut/
+          phase, et pour chacune : territoires, responsable, budget/
+          financement (mêmes libellés prudents que /app/etat/rapport,
+          jamais "financement sécurisé"), progression baseline→actuel→
+          cible, prochaine échéance dérivée honnêtement des situations
+          liées (Initiative.situationIds) — aucun champ d'échéance propre
+          au programme n'existe dans le modèle, donc pas de date fabriquée
+          si aucune situation liée n'a de dueAt. */}
       <section id="programmes" className="scroll-mt-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="etat-eyebrow">5 · Programmes en cours</p>
+            <p className="etat-eyebrow">4 · Programmes en cours</p>
             <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Portefeuille de programmes.</h2>
             <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{filteredProgrammes.length} programme(s){selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}{programmeStatusFilter !== "all" ? ` · ${initiativeStatusLabel[programmeStatusFilter]}` : ""} sur {state.initiatives.length} au total.</p>
           </div>
@@ -1153,6 +1145,16 @@ export default function EtatPage() {
                   .filter((value): value is string => Boolean(value))
                   .sort();
                 const nextDeadline = linkedDueDates[0];
+                // Progression globale (Lot 2, arbitrage CEO Lot 0) : moyenne
+                // des indicateurs disponibles — la seule règle honnête pour
+                // résumer en un chiffre un programme à 1, 2 ou 3 indicateurs
+                // de nature différente (aucune pondération n'est documentée
+                // dans le modèle). Repli explicite "Aucun indicateur suivi"
+                // pour les programmes sans indicateur (cadrage), jamais 0%
+                // ni un chiffre inventé qui laisserait croire à une mesure.
+                const indicatorsAvgProgress = programme.indicators.length > 0
+                  ? Math.round(programme.indicators.reduce((sum, indicator) => sum + indicatorProgress(indicator), 0) / programme.indicators.length)
+                  : null;
                 return (
                   <div key={programme.id} className="etat-panel--warm p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1164,7 +1166,7 @@ export default function EtatPage() {
                       <span className="etat-tag etat-tag--stable shrink-0">{initiativeStatusLabel[programme.status]}</span>
                     </div>
 
-                    <div className="mt-4 grid gap-3 border-t border-[var(--etat-line)] pt-4 sm:grid-cols-3">
+                    <div className="mt-4 grid gap-3 border-t border-[var(--etat-line)] pt-4 sm:grid-cols-4">
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Responsable</p>
                         <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{owner?.name ?? "Non désigné"}</p>
@@ -1177,6 +1179,11 @@ export default function EtatPage() {
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Prochaine échéance</p>
                         <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{nextDeadline ? new Date(nextDeadline).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) : "Aucune échéance documentée"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Progression</p>
+                        <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{indicatorsAvgProgress !== null ? `${indicatorsAvgProgress}% en moyenne` : "Aucun indicateur suivi"}</p>
+                        {indicatorsAvgProgress !== null && <p className="mt-0.5 text-[11px] text-[var(--etat-stone-600)]">{programme.indicators.length} indicateur{programme.indicators.length > 1 ? "s" : ""}</p>}
                       </div>
                     </div>
 
@@ -1210,6 +1217,92 @@ export default function EtatPage() {
           )}
         </div>
       </section>
+
+      {/* Chapitre 5 — Où concentrer l'attention ? (mandat §5, Lot C).
+          Remplace l'ancienne liste plate "Explorer tous les territoires" —
+          browse des territoires stables toujours possible via la carte du
+          Chapitre 1 (tous les 18 y sont cliquables), donc rien n'est perdu
+          en retirant cette liste ici. */}
+      {prioritized.length > 0 && (
+        <section id="territoires" className="scroll-mt-6">
+          <p className="etat-eyebrow">5 · Où concentrer l’attention ?</p>
+          <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">{prioritized.length} territoire(s) prioritaire(s) sur {territoiresActifs} suivis par le réseau.</h2>
+
+          {/* Carrousel homogène (mandat §3.6) : toutes les priorités
+              partagent la même grammaire de card (mini-carte incluse),
+              plus de duo "3 cards riches + liste appauvrie". Navigation
+              fléchée + pagination discrète (points), scroll-snap pour
+              un défilement propre au doigt sur mobile. */}
+          <div className="relative mt-6">
+            <div
+              ref={prioritiesTrackRef}
+              onScroll={(event) => {
+                const el = event.currentTarget;
+                const maxScroll = el.scrollWidth - el.clientWidth;
+                const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
+                setPrioritiesIndex(Math.round(ratio * (prioritized.length - 1)));
+              }}
+              className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {prioritized.map((entry, index) => (
+                <article key={entry.territory.id} className="etat-panel flex w-[270px] shrink-0 snap-start flex-col p-5" style={{ borderTopWidth: 3, borderTopColor: glyphBorderColor[entry.territory.activity] }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: glyphBorderColor[entry.territory.activity] }}>{index + 1}</span>
+                    <StatusBadge status={entry.territory.activity} />
+                  </div>
+                  <h3 className="etat-display mt-3 text-lg not-italic text-[var(--etat-navy-950)]">{entry.territory.name}</h3>
+                  {/* Mini-carte (maquette validée, arbitrage CEO 2026-08-18) :
+                      même composant partagé, mêmes positions calibrées —
+                      aucune géométrie simplifiée ou recréée pour la
+                      miniature, seulement un recadrage visuel (zoom CSS
+                      autour du territoire, cf. territoryZoomStyle plus
+                      haut) : le littoral entier réduit à cette hauteur
+                      serait un fil illisible. selectedId met en évidence
+                      ce territoire ; onSelect omis volontairement
+                      (vignette de lecture, pas un second point d'entrée
+                      vers le tiroir — "Voir le détail" plus bas reste le
+                      seul CTA de la carte). */}
+                  <div className="mt-3 flex h-28 items-center justify-center overflow-hidden rounded-lg border border-[var(--etat-line)] bg-[var(--etat-offwhite)]">
+                    {/* Le wrapper interne reprend le ratio réel du viewBox
+                        (704/1122) — sans ça, preserveAspectRatio="meet" sur
+                        le <svg> (h-full w-full dans un conteneur beaucoup
+                        plus large que haut) le réduit en lettrebox centré,
+                        et les pourcentages de territoryZoomStyle ne
+                        correspondent plus à la zone réellement dessinée :
+                        c'est ce qui rendait les 3 vignettes vides. */}
+                    <div className="h-full" style={{ aspectRatio: `${viewBoxWidth} / ${viewBoxHeight}`, ...territoryZoomStyle(entry.territory.id, 3.4) }}>
+                      <CoastlineTerritoryMap territories={state.territories} selectedId={entry.territory.id} />
+                    </div>
+                  </div>
+                  <div className="mt-3 space-y-2 text-xs text-[var(--etat-stone-600)]">
+                    <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Tension principale · </span>{entry.prioritySituation ? entry.prioritySituation.title : "Aucune situation ouverte"}</p>
+                    <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Impact · </span>{entry.openSituationsCount} situation(s) ouverte(s){entry.fragileInfra > 0 ? ` · ${entry.fragileInfra} capacité(s) fragile(s)` : ""}</p>
+                    <p><span className="font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Acteurs concernés · </span>{entry.acteurs}</p>
+                  </div>
+                  <div className="mt-4 flex flex-col gap-2">
+                    <button onClick={() => setTerritoryDrawer(entry.territory)} className="etat-btn etat-btn-outline justify-center">Voir le détail <ArrowRight size={15} /></button>
+                    {entry.prioritySituation && <button onClick={() => setSituationDrawer(entry.prioritySituation!)} className="etat-btn etat-btn-primary justify-center">Voir la situation <ArrowRight size={15} /></button>}
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {prioritized.length > 1 && (
+              <div className="mt-4 flex items-center justify-between gap-4">
+                <div className="flex gap-1.5" aria-hidden="true">
+                  {prioritized.map((entry, index) => (
+                    <span key={entry.territory.id} className="h-1.5 w-1.5 rounded-full transition" style={{ backgroundColor: index === prioritiesIndex ? "var(--etat-terracotta)" : "var(--etat-line)" }} />
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button aria-label="Priorités précédentes" onClick={() => prioritiesTrackRef.current?.scrollBy({ left: -prioritiesTrackRef.current.clientWidth * 0.9, behavior: "smooth" })} className="etat-btn etat-btn-outline" style={{ minHeight: 36, padding: "6px 10px" }}><ArrowLeft size={15} /></button>
+                  <button aria-label="Priorités suivantes" onClick={() => prioritiesTrackRef.current?.scrollBy({ left: prioritiesTrackRef.current.clientWidth * 0.9, behavior: "smooth" })} className="etat-btn etat-btn-outline" style={{ minHeight: 36, padding: "6px 10px" }}><ArrowRight size={15} /></button>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Lot État-G (mandat §3.9, livrable 6 de la gap analysis) :
           maintenu comme registre de redevabilité distinct — 13 des 17
