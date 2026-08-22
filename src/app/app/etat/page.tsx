@@ -116,6 +116,65 @@ function territoryZoomStyle(territoryId: string, scale: number): React.CSSProper
   return { transform: `translate(${50 - px}%, ${50 - py}%) scale(${scale})`, transformOrigin: `${px}% ${py}%` };
 }
 
+// Caméra Atlas (Lot 1, Refonte Premium XXL Espace État, mandat CEO
+// 2026-08-21, faisabilité confirmée dans le dispatch du 2026-08-20) :
+// "Vue nationale" = coastlineViewBox inchangé ; un territoire sélectionné
+// = une fenêtre resserrée autour de sa position calibrée, dans le même
+// espace de coordonnées — territoryMapPositions et coastlinePath ne sont
+// jamais recalculés ni retouchés, seule la fenêtre de lecture change.
+//
+// REGIONAL_WINDOW_HALF_HEIGHT calibré par script sur les 18 positions
+// réelles (écarts nord-sud entre voisins : 32 à 115 unités, cf. gap
+// analysis) : une demi-hauteur de 200 (fenêtre de 400 unités) inclut,
+// pour chaque territoire testé, 3 à 9 voisins immédiats selon la densité
+// locale — jamais un territoire isolé seul dans le cadre, jamais non plus
+// un cadrage si large qu'il ne se distingue plus de la vue nationale.
+// La largeur de fenêtre conserve le ratio du viewBox national (704/1122)
+// pour rester cohérente avec le conteneur existant (aspect-[4/5] puis
+// aspect-auto en desktop) — pas un nouveau ratio inventé.
+const NATIONAL_ASPECT = viewBoxWidth / viewBoxHeight;
+const REGIONAL_WINDOW_HALF_HEIGHT = 200;
+function cameraWindowFor(territoryId: string | null): string {
+  if (!territoryId) return coastlineViewBox;
+  const position = territoryMapPositions[territoryId];
+  if (!position) return coastlineViewBox;
+  const [x, y] = position;
+  const height = REGIONAL_WINDOW_HALF_HEIGHT * 2;
+  const width = height * NATIONAL_ASPECT;
+  return `${(x - width / 2).toFixed(1)} ${(y - height / 2).toFixed(1)} ${width.toFixed(1)} ${height.toFixed(1)}`;
+}
+
+// Interpolation JS (requestAnimationFrame), tranchée par le CEO le
+// 2026-08-20 plutôt que le transform CSS déjà utilisé par
+// territoryZoomStyle : l'attribut SVG viewBox n'est pas fiablement
+// animable par une transition CSS pure sur tous les navigateurs. Grain
+// simple (easing ease-out cubic), ~420ms — "transition courte, calme,
+// premium" (mandat §6). Aucune dépendance nouvelle : interpolation
+// manuelle des 4 nombres du viewBox, arrondie pour un rendu stable.
+function useAnimatedViewBox(target: string, durationMs = 420): string {
+  const [current, setCurrent] = useState(target);
+  const frameRef = useRef<number | null>(null);
+  useEffect(() => {
+    const from = current.split(" ").map(Number);
+    const to = target.split(" ").map(Number);
+    if (from.every((value, index) => value === to[index])) return;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const elapsed = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - Math.pow(1 - elapsed, 3);
+      const interpolated = from.map((value, index) => value + (to[index] - value) * eased);
+      setCurrent(interpolated.map((value) => value.toFixed(1)).join(" "));
+      if (elapsed < 1) frameRef.current = requestAnimationFrame(tick);
+    };
+    frameRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
+  return current;
+}
+
 function StatusBadge({ status }: { status: "stable" | "vigilance" | "critique" }) {
   return <span className={`etat-tag ${statusTagClass[status]}`}>{statusTagLabel[status]}</span>;
 }
@@ -174,6 +233,13 @@ export default function EtatPage() {
   // territoryDrawer reste réservé à l'ouverture explicite via le CTA
   // "Voir le territoire".
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);
+  // Caméra Atlas (Lot 1, Refonte Premium XXL, mandat §5-6) : la fenêtre
+  // suit directement selectedTerritoryId — vue nationale par défaut,
+  // resserrée dès qu'un territoire est explicitement sélectionné (clic
+  // Atlas ou sélecteur Périmètre, même état que partout ailleurs sur
+  // cette page). Animée par requestAnimationFrame (arbitrage CEO
+  // 2026-08-20, cf. useAnimatedViewBox plus haut).
+  const cameraViewBox = useAnimatedViewBox(cameraWindowFor(selectedTerritoryId));
   // Lot État-B (mandat §3.1, §4.2) : filtre Période réel, restreint aux
   // dates calendaires réellement présentes dans les landings (seule
   // donnée temporelle avec une vraie dispersion sur cette page — les
@@ -238,9 +304,23 @@ export default function EtatPage() {
   if (!state) return null;
 
   const territoiresActifs = state.territories.length;
-  const territoiresVigilance = state.territories.filter((item) => item.activity === "vigilance").length;
-  const territoiresCritiques = state.territories.filter((item) => item.activity === "critique").length;
   const territoiresAttention = state.territories.filter((item) => item.activity !== "stable");
+
+  // Synthèse nationale (Lot 1, Refonte Premium XXL, mandat §9) : bande
+  // fine à 5 chiffres, remplace l'ancien triptyque "Territoires suivis /
+  // En vigilance / En critique" (redondant avec la lecture par couleur
+  // déjà disponible sur la carte) par les 5 agrégats explicitement
+  // composés dans la référence — chacun recalculé ici sur le jeu de
+  // données réel, aucun repris de la maquette (vérifié par script sur
+  // createDemoState() : la maquette affichait 36/9/27,4M/18 — les 4
+  // valeurs réelles diffèrent, seul "18 territoires" coïncide). "Financement
+  // engagé" = somme des Funding confirmés + en instruction sur l'ensemble
+  // des programmes (pas la "valeur coordonnée" du Chapitre 2, qui mesure
+  // autre chose — un lot pêché, pas un financement de programme).
+  const situationsOuvertesTotal = state.situations.filter((item) => item.status !== "reglee").length;
+  const capacitesFragilesTotal = state.infrastructures.filter((item) => item.status !== "operationnelle").length;
+  const financementEngageTotal = state.initiatives.reduce((sum, item) => sum + item.funding.filter((fund) => fund.status === "confirme" || fund.status === "en_instruction").reduce((fundSum, fund) => fundSum + fund.amountFcfa, 0), 0);
+  const programmesActifsTotal = state.initiatives.filter((item) => item.status !== "terminee").length;
 
   // Chapitre 1 — décision prioritaire unique : bulles réellement dérivables
   // du territoire/dossier dominant, pas les libellés illustratifs de la
@@ -270,10 +350,22 @@ export default function EtatPage() {
         ? "À surveiller"
         : "Lecture du territoire";
 
-  // 6 KPI territoriaux réels (mandat §3.3, gap analysis livrable 2) —
+  // KPI territoriaux du copilote (Lot 1, Refonte Premium XXL, mandat §8) —
   // tous directement dérivés du modèle, aucune dérivation de confiance
   // fabriquée en 7e chiffre. Recalculés à chaque changement de
   // dominantTerritoryId (sélection Atlas ou calcul dominant par défaut).
+  //
+  // Recomposition (Lot 1) : le mandat nomme explicitement en premier
+  // "situations ouvertes, capacités fragiles, programmes concernés" —
+  // ces 3 n'étaient pas dans la grille de tuiles jusqu'ici (situations
+  // ouvertes/capacités fragiles vivaient en texte séparé juste au-dessus,
+  // en double avec la tuile "Capacités fragiles/indisponibles" ; aucune
+  // tuile "programmes concernés" n'existait). Débarquements/Sorties en
+  // mer sont conservés : seule donnée que le filtre Période affecte
+  // réellement (cf. légende du filtre) — les retirer aurait rendu ce
+  // filtre inopérant. Sites/Immatriculations/Acteurs retirés de CETTE
+  // grille (doctrine "jamais pour remplir l'espace", §8) — restent
+  // consultables dans la fiche Territoire complète ("Voir le territoire").
   const focusSites = dominantTerritoryId ? state.sites.filter((item) => item.territoryId === dominantTerritoryId) : [];
   const focusSiteIds = new Set(focusSites.map((item) => item.id));
   const focusVessels = state.vessels.filter((item) => focusSiteIds.has(item.homeSiteId));
@@ -282,14 +374,13 @@ export default function EtatPage() {
   const focusTripsEnMer = state.trips.filter((item) => focusVesselIds.has(item.vesselId) && item.status === "en_mer" && (periodFilter === "all" || item.departureAt.slice(0, 10) === periodFilter)).length;
   const focusInfrastructures = dominantTerritoryId ? state.infrastructures.filter((item) => item.territoryId === dominantTerritoryId) : [];
   const focusAvailableCapacity = focusInfrastructures.filter((item) => item.status === "operationnelle").length;
-  const focusActors = dominantTerritoryId ? state.actors.filter((item) => item.territoryIds.includes(dominantTerritoryId)).length : 0;
+  const focusProgrammes = dominantTerritoryId ? state.initiatives.filter((item) => item.territoryIds.includes(dominantTerritoryId)).length : 0;
   const territoryKpis = dominantTerritoryId ? [
-    { icon: Fish, value: focusLandings.length, label: "Débarquements documentés" },
-    { icon: Sailboat, value: focusTripsEnMer, label: "Sorties en mer en cours" },
+    { icon: SituationIcon, value: dominantOpenSituations.length, label: "Situations ouvertes" },
     { icon: Factory, value: dominantFragileInfra, label: "Capacités fragiles/indisponibles", caption: `${focusAvailableCapacity} disponible(s) sur ${focusInfrastructures.length}` },
-    { icon: Compass, value: focusSites.length, label: "Sites documentés" },
-    { icon: BadgeCheck, value: focusVessels.length, label: "Immatriculations recensées" },
-    { icon: Users, value: focusActors, label: "Acteurs mobilisables" }
+    { icon: Users, value: focusProgrammes, label: "Programmes concernés" },
+    { icon: Fish, value: focusLandings.length, label: "Débarquements documentés" },
+    { icon: Sailboat, value: focusTripsEnMer, label: "Sorties en mer en cours" }
   ] : [];
 
   // Rendu du panneau : sélection Atlas explicite prioritaire sur le
@@ -443,8 +534,13 @@ export default function EtatPage() {
           restreinte aux dates calendaires réellement présentes dans les
           landings (seule donnée avec une vraie dispersion temporelle
           ici) — pas de filtre fabriqué sur les décisions, qui partagent
-          toutes le même decidedAt dans ce jeu de démonstration. */}
-      <div className="flex flex-wrap items-center gap-8 border-b border-[var(--etat-line)] pb-4">
+          toutes le même decidedAt dans ce jeu de démonstration.
+          Toolbar blanche compacte (Lot 1, Refonte Premium XXL, mandat
+          §2) : les filtres flottaient jusqu'ici directement sur le
+          crème, comme la nav juste au-dessus — désormais une surface
+          blanche distincte, cohérente avec la doctrine crème/blanc déjà
+          appliquée ailleurs sur cette page (chapitres en .etat-panel). */}
+      <div className="etat-panel flex flex-wrap items-center gap-8 px-5 py-3">
         <label className="block">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>
           <select
@@ -480,11 +576,29 @@ export default function EtatPage() {
           chapitre" (mandat). H1 déplacé ici (était dans l'ancien Hero) :
           reste le titre principal de la page. */}
       <section id="terrain" className="scroll-mt-6">
-        <p className="etat-eyebrow">1 · Lecture territoriale</p>
-        <h1 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)] md:text-3xl">Le littoral, territoire par territoire.</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">Espace État · {actor?.name ?? "Ministère"}. Cliquez un point sur la carte pour ouvrir le détail d’un territoire.</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="etat-eyebrow">1 · Lecture territoriale</p>
+            <h1 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)] md:text-3xl">Le littoral, territoire par territoire.</h1>
+            <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">Espace État · {actor?.name ?? "Ministère"}. Cliquez un point sur la carte pour ouvrir le détail d’un territoire.</p>
+          </div>
+          {/* Caméra Atlas (Lot 1) : contrôle de retour explicite, visible
+              seulement quand un cadrage régional est actif — "Vue
+              nationale" en état par défaut n'a rien vers quoi revenir. */}
+          {selectedTerritoryId && (
+            <button onClick={() => setSelectedTerritoryId(null)} className="etat-btn etat-btn-outline shrink-0"><Compass size={15} /> Vue nationale</button>
+          )}
+        </div>
 
-        <div className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_.7fr] lg:items-stretch">
+        {/* grid-cols-1 explicite (Lot 1, correctif débordement mobile) :
+            sans lui, la piste implicite d'une grille display:grid en
+            dessous de lg n'a pas de minmax(0, 1fr) — le texte tronqué
+            "Prochaine étape" (nouveau dans ce lot) laissait fuir sa
+            largeur min-content non contrainte, poussant toute la piste
+            (donc la carte ET le panneau) à ~393px sur un viewport à
+            390px. Confirmé par script (git stash sur ce lot : aucun
+            débordement avant, +23px après) avant d'écrire ce correctif. */}
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[1.3fr_.7fr] lg:items-stretch">
           {/* Richesse visuelle de la carte (maquette validée, arbitrage
               CEO 2026-08-18, corrigé le même jour après vérification par
               capture réelle) : texture/boussole/icônes décoratives
@@ -531,6 +645,7 @@ export default function EtatPage() {
                 territories={state.territories}
                 selectedId={selectedTerritoryId ?? undefined}
                 onSelect={(id) => setSelectedTerritoryId(id)}
+                viewBox={cameraViewBox}
               />
             </div>
           </div>
@@ -548,11 +663,20 @@ export default function EtatPage() {
             <h2 className="etat-display mt-3 text-xl not-italic text-[var(--etat-navy-950)]">{panelHeading}</h2>
             <p className="mt-2 text-sm leading-6 text-[var(--etat-stone-600)]">{panelDescription}</p>
 
-            {dominantTerritoryId && (
-              <div className="mt-4 space-y-2.5 border-t border-[var(--etat-line)] pt-4 text-sm text-[var(--etat-navy-950)]">
-                <p className="flex items-center gap-2"><SituationIcon size={15} color="var(--etat-stone-600)" /> {dominantOpenSituations.length} situation(s) ouverte(s) sur ce territoire</p>
-                {dominantFragileInfra > 0 && <p className="flex items-center gap-2"><Factory size={15} color="var(--etat-ocre)" /> {dominantFragileInfra} capacité(s) fragile(s) ou indisponible(s)</p>}
-                {dominantPrioritySituation && <p className="text-xs text-[var(--etat-stone-600)]">Prochaine étape : {dominantPrioritySituation.nextStep}</p>}
+            {/* Lot 1 (Refonte Premium XXL, mandat §8) : les mentions texte
+                "situations ouvertes"/"capacités fragiles" qui vivaient ici
+                en double avec la grille de tuiles ci-dessous sont retirées
+                — une seule source d'affichage par chiffre. "Prochaine
+                étape" reste, seule affirmation qui n'est pas déjà un
+                chiffre, avec son propre libellé (mandat : "Prochaine
+                étape" comme rangée distincte). */}
+            {dominantPrioritySituation && (
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--etat-line)] pt-4">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Prochaine étape</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-[var(--etat-navy-950)]">{dominantPrioritySituation.nextStep}</p>
+                </div>
+                <ArrowRight size={16} className="shrink-0 text-[var(--etat-stone-400)]" />
               </div>
             )}
 
@@ -583,19 +707,28 @@ export default function EtatPage() {
           </aside>
         </div>
 
-        <div className="mt-6 grid grid-cols-3 gap-6 border-t border-[var(--etat-line)] pt-5">
-          <div>
-            <p className="etat-display text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={territoiresActifs} /></p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Territoires suivis</p>
+        <div className="etat-panel mt-6 flex flex-wrap items-center gap-x-8 gap-y-4 divide-x divide-[var(--etat-line)] p-5">
+          <div className="pl-0">
+            <p className="etat-display text-xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={situationsOuvertesTotal} /></p>
+            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Situations ouvertes</p>
           </div>
-          <div>
-            <p className="etat-display text-2xl not-italic" style={{ color: "var(--etat-ocre)" }}><NumberTicker value={territoiresVigilance} /></p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">En vigilance</p>
+          <div className="pl-8">
+            <p className="etat-display text-xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={territoiresActifs} /></p>
+            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Territoires couverts</p>
           </div>
-          <div>
-            <p className="etat-display text-2xl not-italic" style={{ color: "var(--etat-terracotta)" }}><NumberTicker value={territoiresCritiques} /></p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">En critique</p>
+          <div className="pl-8">
+            <p className="etat-display text-xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={capacitesFragilesTotal} /></p>
+            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Capacités fragiles</p>
           </div>
+          <div className="pl-8">
+            <p className="etat-display text-xl not-italic text-[var(--etat-navy-950)]">{formatFcfa(financementEngageTotal)}</p>
+            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Financement engagé</p>
+          </div>
+          <div className="pl-8">
+            <p className="etat-display text-xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={programmesActifsTotal} /></p>
+            <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Programmes actifs</p>
+          </div>
+          <a href="#performance" className="ml-auto flex shrink-0 items-center gap-1.5 pl-8 text-xs font-bold text-[var(--etat-navy-800)] hover:text-[var(--etat-navy-600)]">Voir le détail de la performance <ArrowRight size={13} /></a>
         </div>
       </section>
 

@@ -51,12 +51,21 @@ export function InstitutionShell({
   return (
     <div className="shadcn-scope flex min-h-screen flex-col bg-background">
       <header className="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 bg-sidebar px-5 text-sidebar-foreground lg:px-8">
+        {/* Lot 1 (Refonte Premium XXL, mandat §2) : wordmark "Mbàmbulaan"
+            (même patron que AppSidebar.tsx, cohérence inter-shells) +
+            "Espace État" détaché en terracotta (text-sidebar-primary,
+            même token verrouillé D9 que le reste du produit, pas une
+            teinte inventée) — auparavant un seul libellé "Espace État"
+            sans distinction visuelle du nom du produit. orgName reste
+            dynamique (organization?.name, jamais un texte recopié
+            d'une maquette). */}
         <Link href="/app/etat" className="flex shrink-0 items-center gap-2.5">
           <span className="grid size-8 place-items-center rounded-md bg-primary text-sm font-black text-primary-foreground">M</span>
-          <span className="hidden text-sm font-semibold sm:inline">Espace État</span>
+          <span className="hidden text-sm font-semibold sm:inline">Mbàmbulaan</span>
         </Link>
-        <span className="hidden truncate text-xs text-sidebar-foreground/60 md:inline">
-          {orgName ?? "Ministère de la Pêche et de l’Économie Maritime"}
+        <span className="hidden items-baseline gap-2 truncate text-xs md:flex">
+          <span className="font-bold text-sidebar-primary">Espace État</span>
+          <span className="truncate text-sidebar-foreground/60">{orgName ?? "Ministère de la Pêche et de l’Économie Maritime"}</span>
         </span>
         <div className="ml-auto flex items-center gap-2">
           {/* Raffinement visuel (maquette validée, arbitrage CEO
@@ -87,11 +96,20 @@ export function InstitutionShell({
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 px-2 text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground">
+              <Button variant="ghost" className="h-auto gap-2 px-2 py-1.5 text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground">
                 <Avatar className="size-7">
                   <AvatarFallback className="text-[11px]">{initials(actorName)}</AvatarFallback>
                 </Avatar>
-                <span className="hidden text-sm font-medium sm:inline">{actorName}</span>
+                {/* "Accès État" (Lot 1, mandat §2) : décrit l'espace
+                    consulté, pas le rôle système exact de la personne —
+                    cette coquille n'est jamais rendue en dehors de
+                    /app/etat (garde de layout.tsx), l'étiquette reste
+                    donc honnête pour institution comme pour
+                    administrateur. */}
+                <span className="hidden flex-col items-start leading-tight sm:flex">
+                  <span className="text-sm font-medium">{actorName}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-sidebar-foreground/50">Accès État</span>
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

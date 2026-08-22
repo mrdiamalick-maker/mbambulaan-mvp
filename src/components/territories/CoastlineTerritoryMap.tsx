@@ -52,16 +52,25 @@ export function CoastlineTerritoryMap({
   territories,
   selectedId,
   onSelect,
-  colors
+  colors,
+  viewBox
 }: {
   territories: MapTerritory[];
   selectedId?: string;
   onSelect?: (id: string) => void;
   colors?: Partial<CoastlineTerritoryMapColors>;
+  // Refonte Premium XXL Espace État (Lot 1, mandat CEO 2026-08-21) : prop
+  // additif, défaut inchangé (coastlineViewBox, exactement le comportement
+  // précédent) — /app/pilotage, seul autre appelant, ne passe pas ce prop
+  // et n'est donc affecté en rien. Le tracé (coastlinePath) et les
+  // positions calibrées (territoryMapPositions) restent strictement
+  // intouchés : le viewBox n'est qu'une fenêtre sur ce même espace de
+  // coordonnées, jamais une nouvelle géométrie.
+  viewBox?: string;
 }) {
   const tone: CoastlineTerritoryMapColors = { ...defaultColors, ...colors };
   return (
-    <svg viewBox={coastlineViewBox} preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label="Carte illustrative du littoral sénégalais et des territoires suivis par le réseau">
+    <svg viewBox={viewBox ?? coastlineViewBox} preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label="Carte illustrative du littoral sénégalais et des territoires suivis par le réseau">
       <title>Littoral du Sénégal — territoires suivis par Mbàmbulaan</title>
       <path d={coastlinePath} fill={tone.land} stroke={tone.landStroke} strokeOpacity="0.3" strokeWidth="4" strokeLinejoin="round" />
       {territories.map((territory) => {
