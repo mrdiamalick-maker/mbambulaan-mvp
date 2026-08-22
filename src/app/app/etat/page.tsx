@@ -233,13 +233,16 @@ export default function EtatPage() {
   // territoryDrawer reste réservé à l'ouverture explicite via le CTA
   // "Voir le territoire".
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);
-  // Caméra Atlas (Lot 1, Refonte Premium XXL, mandat §5-6) : la fenêtre
-  // suit directement selectedTerritoryId — vue nationale par défaut,
-  // resserrée dès qu'un territoire est explicitement sélectionné (clic
-  // Atlas ou sélecteur Périmètre, même état que partout ailleurs sur
-  // cette page). Animée par requestAnimationFrame (arbitrage CEO
-  // 2026-08-20, cf. useAnimatedViewBox plus haut).
-  const cameraViewBox = useAnimatedViewBox(cameraWindowFor(selectedTerritoryId));
+  // Correctif (CEO 2026-08-22) : la caméra par défaut cadre désormais sur
+  // le territoire dominant (Joal, par ex.), pas la vue nationale — donc
+  // "Vue nationale" ne peut plus se contenter de faire
+  // setSelectedTerritoryId(null) (déjà null par défaut, sans effet sur la
+  // caméra qui retomberait aussitôt sur le dominant). Ce drapeau distinct
+  // force explicitement le national tant que l'utilisateur n'a pas
+  // sélectionné un territoire précis (clic carte ou Périmètre) — remis à
+  // false dès qu'une sélection explicite est faite, pour ne pas bloquer
+  // la caméra sur le national après un choix réel.
+  const [cameraForcedNational, setCameraForcedNational] = useState(false);
   // Lot État-B (mandat §3.1, §4.2) : filtre Période réel, restreint aux
   // dates calendaires réellement présentes dans les landings (seule
   // donnée temporelle avec une vraie dispersion sur cette page — les
@@ -301,6 +304,18 @@ export default function EtatPage() {
     return { kind: "calme" as const, glyphStatus: "stable" as const };
   }, [openCases, state]);
 
+  // Correctif (CEO 2026-08-22) : la caméra doit cadrer sur le territoire
+  // dominant dès le chargement, pas seulement après un clic explicite —
+  // "carte et panneau doivent déjà raconter la même chose au premier
+  // coup d'œil". Même expression que dominantTerritoryId plus bas
+  // (réutilisée telle quelle, cf. const dominantTerritoryId), calculée
+  // ici — avant le garde-fou `if (!state) return null` — parce que
+  // useAnimatedViewBox est un hook et doit s'exécuter inconditionnellement
+  // à chaque rendu ; dominant (déjà un memo) suffit à la déterminer sans
+  // avoir besoin de state après le garde-fou.
+  const cameraTargetId = cameraForcedNational ? null : (selectedTerritoryId ?? (dominant.kind === "territoire" ? dominant.territory.id : dominant.kind === "signal" ? dominant.case.territoryId : null));
+  const cameraViewBox = useAnimatedViewBox(cameraWindowFor(cameraTargetId));
+
   if (!state) return null;
 
   const territoiresActifs = state.territories.length;
@@ -332,7 +347,7 @@ export default function EtatPage() {
   // tout le panneau (situations, capacités, KPI) se recalcule pour lui,
   // sans changer le calcul par défaut (dominant) quand rien n'est
   // sélectionné.
-  const dominantTerritoryId = selectedTerritoryId ?? (dominant.kind === "territoire" ? dominant.territory.id : dominant.kind === "signal" ? dominant.case.territoryId : undefined);
+  const dominantTerritoryId = cameraTargetId ?? undefined;
   const focusTerritory = dominantTerritoryId ? state.territories.find((item) => item.id === dominantTerritoryId) : undefined;
   const dominantOpenSituations = dominantTerritoryId ? state.situations.filter((item) => item.territoryId === dominantTerritoryId && item.status !== "reglee") : [];
   const dominantFragileInfra = dominantTerritoryId ? state.infrastructures.filter((item) => item.territoryId === dominantTerritoryId && item.status !== "operationnelle").length : 0;
@@ -503,10 +518,19 @@ export default function EtatPage() {
 
   return (
     <div className="etat-scope space-y-16 bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
-      <div className="flex items-start gap-3 border-b border-[var(--etat-line)] pb-4 text-sm">
-        <ShieldCheck size={16} className="mt-0.5 shrink-0 text-[var(--etat-navy-600)]" />
-        <p>Mbàmbulaan <strong>qualifie et signale</strong> les situations remontées du terrain. La décision et l’action relèvent des autorités compétentes.</p>
-      </div>
+      {/* Correctif (CEO 2026-08-22) : ce bandeau de doctrine consommait
+          ~70px de hauteur (icône + paragraphe deux lignes, bordure pleine
+          largeur) avant même la nav, absent de la référence — retiré
+          purement, pas seulement raccourci : la maquette ne le montre à
+          aucun endroit de ce premier viewport, et son contenu (portée
+          institutionnelle "qualifie et signale, ne décide pas") reste
+          disponible ailleurs sur le produit (bandeau d'accueil, mentions).
+          Réduit ici à une seule ligne fine, sans bordure pleine largeur ni
+          icône séparée — garde le rappel de portée sans le coût vertical. */}
+      <p className="flex items-center gap-1.5 text-xs text-[var(--etat-stone-600)]">
+        <ShieldCheck size={13} className="shrink-0 text-[var(--etat-navy-600)]" />
+        Mbàmbulaan qualifie et signale les situations remontées du terrain — la décision relève des autorités compétentes.
+      </p>
 
       {/* Lot État-B (mandat §3.1) : navigation d'ancrage propre à l'Espace
           État — confirmée comme telle par le CEO (pas un rail permanent
@@ -540,12 +564,17 @@ export default function EtatPage() {
           crème, comme la nav juste au-dessus — désormais une surface
           blanche distincte, cohérente avec la doctrine crème/blanc déjà
           appliquée ailleurs sur cette page (chapitres en .etat-panel). */}
-      <div className="etat-panel flex flex-wrap items-center gap-8 px-5 py-3">
+      {/* Toolbar resserrée davantage (correctif CEO 2026-08-22) : padding
+          réduit (py-3→py-2, gap-8→gap-6) et texte d'aide du filtre
+          Période retiré de sa propre ligne visible — reporté en `title`
+          (info-bulle native au survol), l'information reste disponible
+          sans consommer de hauteur en permanence. */}
+      <div className="etat-panel flex flex-wrap items-center gap-6 px-5 py-2">
         <label className="block">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>
           <select
             value={selectedTerritoryId ?? ""}
-            onChange={(event) => setSelectedTerritoryId(event.target.value || null)}
+            onChange={(event) => { setSelectedTerritoryId(event.target.value || null); setCameraForcedNational(!event.target.value); }}
             className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
           >
             <option value="">Sénégal entier</option>
@@ -559,6 +588,7 @@ export default function EtatPage() {
           <select
             value={periodFilter}
             onChange={(event) => setPeriodFilter(event.target.value)}
+            title="S’applique aux débarquements et sorties en mer du panneau territorial."
             className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
           >
             <option value="all">Toutes les dates disponibles</option>
@@ -566,30 +596,22 @@ export default function EtatPage() {
               <option key={date} value={date}>{new Date(date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</option>
             ))}
           </select>
-          <p className="mt-1 text-[10px] text-[var(--etat-stone-400)]">S’applique aux débarquements et sorties en mer du panneau territorial.</p>
         </label>
       </div>
 
-      {/* Chapitre 1 — Lecture territoriale (mandat §5, Lot B). Carte +
-          décision prioritaire unique côte à côte ; sous les deux,
-          uniquement les 3 compteurs — "rien d'autre dans ce premier
-          chapitre" (mandat). H1 déplacé ici (était dans l'ancien Hero) :
-          reste le titre principal de la page. */}
+      {/* Chapitre 1 — Lecture territoriale (mandat §5, Lot B ; recomposé
+          Lot 1, correctif CEO 2026-08-22). L'ancien bloc d'en-tête pleine
+          largeur (eyebrow + H1 serif + sous-titre, ~90px avant la carte)
+          n'existe pas dans la référence, où "LECTURE TERRITORIALE" est
+          un simple eyebrow discret intégré à l'intérieur de la carte —
+          repris ici tel quel : le H1 (rôle sémantique conservé, reste le
+          titre principal de la page) devient ce même eyebrow compact,
+          affiché en tête de la carte plutôt qu'au-dessus dans un bloc
+          séparé. Le sous-titre descriptif est retiré de ce viewport
+          (absent de la référence) — le geste "cliquer un point" reste
+          auto-évident via les marqueurs eux-mêmes et le bouton Vue
+          nationale. */}
       <section id="terrain" className="scroll-mt-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="etat-eyebrow">1 · Lecture territoriale</p>
-            <h1 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)] md:text-3xl">Le littoral, territoire par territoire.</h1>
-            <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">Espace État · {actor?.name ?? "Ministère"}. Cliquez un point sur la carte pour ouvrir le détail d’un territoire.</p>
-          </div>
-          {/* Caméra Atlas (Lot 1) : contrôle de retour explicite, visible
-              seulement quand un cadrage régional est actif — "Vue
-              nationale" en état par défaut n'a rien vers quoi revenir. */}
-          {selectedTerritoryId && (
-            <button onClick={() => setSelectedTerritoryId(null)} className="etat-btn etat-btn-outline shrink-0"><Compass size={15} /> Vue nationale</button>
-          )}
-        </div>
-
         {/* grid-cols-1 explicite (Lot 1, correctif débordement mobile) :
             sans lui, la piste implicite d'une grille display:grid en
             dessous de lg n'a pas de minmax(0, 1fr) — le texte tronqué
@@ -598,7 +620,18 @@ export default function EtatPage() {
             (donc la carte ET le panneau) à ~393px sur un viewport à
             390px. Confirmé par script (git stash sur ce lot : aucun
             débordement avant, +23px après) avant d'écrire ce correctif. */}
-        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[1.3fr_.7fr] lg:items-stretch">
+        {/* lg:h-[560px] explicite (correctif CEO 2026-08-22) : remplace
+            lg:items-stretch seul. Cause identifiée par mesure DOM directe
+            (958px sur le seul bloc CTA de l'aside, panneau total 1428px) :
+            un enfant lg:h-full imbriqué dans un item de grille sans
+            hauteur PROPRE (seulement stretch) ne resout pas de façon
+            fiable — la piste de grille grandissait pour englober le
+            contenu au lieu de le contraindre. Une hauteur fixe sur la
+            ligne elle-même donne enfin à lg:h-full (sur le conteneur de
+            la carte) une base de résolution définie, exactement la
+            "fenêtre de supervision à hauteur fixe (~520-560px)" du
+            mandat (§4) — pas une valeur arbitraire choisie deux fois. */}
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:h-[560px] lg:grid-cols-[1.3fr_.7fr]">
           {/* Richesse visuelle de la carte (maquette validée, arbitrage
               CEO 2026-08-18, corrigé le même jour après vérification par
               capture réelle) : texture/boussole/icônes décoratives
@@ -640,24 +673,48 @@ export default function EtatPage() {
             <Fish size={30} strokeWidth={1.6} className="pointer-events-none absolute bottom-28 right-10 text-[var(--etat-water-deep)] opacity-60" aria-hidden="true" />
             <Fish size={22} strokeWidth={1.6} className="pointer-events-none absolute right-24 top-1/3 rotate-[20deg] text-[var(--etat-water-deep)] opacity-50" aria-hidden="true" />
             <Fish size={18} strokeWidth={1.6} className="pointer-events-none absolute left-10 top-1/4 -rotate-[15deg] text-[var(--etat-water-deep)] opacity-40" aria-hidden="true" />
+            <div className="relative flex items-center justify-between gap-3 px-4 pt-4">
+              {/* Contraste (correctif CEO 2026-08-22) : etat-eyebrow--on-dark
+                  seul (ocre sur fond eau clair par endroits) restait
+                  quasi illisible à la capture — petite plaque bg-white/90
+                  identique au traitement déjà utilisé pour le bouton
+                  "Vue nationale" juste à côté, pas une nouvelle couleur. */}
+              <h1 className="etat-eyebrow rounded-full bg-white/90 px-3 py-1.5">Lecture territoriale</h1>
+              {/* Caméra Atlas (Lot 1, correctif CEO 2026-08-22) : contrôle de
+                  retour explicite, visible dès qu'un cadrage régional est
+                  actif — y compris par défaut au chargement (territoire
+                  dominant), pas seulement après un clic. Condition sur
+                  cameraTargetId (pas selectedTerritoryId) : la caméra peut
+                  être resserrée sans sélection explicite (calcul dominant),
+                  il faut quand même pouvoir en sortir. */}
+              {cameraTargetId && (
+                <button onClick={() => { setSelectedTerritoryId(null); setCameraForcedNational(true); }} className="etat-btn etat-btn-outline shrink-0 bg-white/90 text-xs"><Compass size={13} /> Vue nationale</button>
+              )}
+            </div>
             <div className="relative aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full lg:min-h-[520px]">
               <CoastlineTerritoryMap
                 territories={state.territories}
                 selectedId={selectedTerritoryId ?? undefined}
-                onSelect={(id) => setSelectedTerritoryId(id)}
+                onSelect={(id) => { setSelectedTerritoryId(id); setCameraForcedNational(false); }}
                 viewBox={cameraViewBox}
               />
             </div>
           </div>
 
-          <aside className="etat-panel flex flex-col p-6" style={{ borderLeftWidth: 4, borderLeftColor: panelBorderColor }}>
+          {/* overflow-y-auto (correctif CEO 2026-08-22) : filet de sécurité
+              maintenant que la ligne a une hauteur fixe (lg:h-[560px]) —
+              si le contenu du panneau (situation longue, 5 tuiles KPI)
+              dépasse malgré tout cette hauteur, il défile en interne au
+              lieu de repousser la carte, plutôt que de reproduire le
+              même bug avec un autre déclencheur. */}
+          <aside className="etat-panel flex flex-col overflow-y-auto p-6" style={{ borderLeftWidth: 4, borderLeftColor: panelBorderColor }}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5" style={{ color: panelBorderColor }}>
                 <TensionGlyph status={panelGlyphStatus} size={26} pulse={panelGlyphStatus !== "stable"} />
                 <p className="text-[11px] font-bold uppercase tracking-widest">{panelEyebrow}</p>
               </div>
               {selectedTerritoryId && (
-                <button onClick={() => setSelectedTerritoryId(null)} className="text-[11px] font-semibold text-[var(--etat-stone-400)] underline decoration-dotted underline-offset-2 hover:text-[var(--etat-stone-600)]">Revenir à la lecture par défaut</button>
+                <button onClick={() => { setSelectedTerritoryId(null); setCameraForcedNational(false); }} className="text-[11px] font-semibold text-[var(--etat-stone-400)] underline decoration-dotted underline-offset-2 hover:text-[var(--etat-stone-600)]">Revenir à la lecture par défaut</button>
               )}
             </div>
             <h2 className="etat-display mt-3 text-xl not-italic text-[var(--etat-navy-950)]">{panelHeading}</h2>

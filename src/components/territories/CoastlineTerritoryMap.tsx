@@ -69,10 +69,25 @@ export function CoastlineTerritoryMap({
   viewBox?: string;
 }) {
   const tone: CoastlineTerritoryMapColors = { ...defaultColors, ...colors };
+  const effectiveViewBox = viewBox ?? coastlineViewBox;
+  // Compensation de zoom (correctif CEO 2026-08-22, caméra Atlas) : les
+  // marqueurs/labels sont dessinés en unités SVG absolues, calibrées pour
+  // le viewBox national. Une fenêtre resserrée (caméra régionale) réduit
+  // mécaniquement la largeur du viewBox — sans compensation, les mêmes
+  // valeurs absolues occupent une part bien plus grande de l'écran
+  // (labels géants qui se chevauchent, confirmé par capture). `scale`
+  // ramène chaque taille à son équivalent visuel constant, quel que soit
+  // le cadrage. Vaut exactement 1 pour /app/pilotage (qui ne passe jamais
+  // `viewBox`) et pour la vue nationale d'État — aucune régression sur
+  // les deux usages déjà validés.
+  const [, , effectiveWidth] = effectiveViewBox.split(" ").map(Number);
+  const [, , nationalWidth] = coastlineViewBox.split(" ").map(Number);
+  const zoomRatio = nationalWidth / effectiveWidth;
+  const scale = (value: number) => value / zoomRatio;
   return (
-    <svg viewBox={viewBox ?? coastlineViewBox} preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label="Carte illustrative du littoral sénégalais et des territoires suivis par le réseau">
+    <svg viewBox={effectiveViewBox} preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label="Carte illustrative du littoral sénégalais et des territoires suivis par le réseau">
       <title>Littoral du Sénégal — territoires suivis par Mbàmbulaan</title>
-      <path d={coastlinePath} fill={tone.land} stroke={tone.landStroke} strokeOpacity="0.3" strokeWidth="4" strokeLinejoin="round" />
+      <path d={coastlinePath} fill={tone.land} stroke={tone.landStroke} strokeOpacity="0.3" strokeWidth={scale(4)} strokeLinejoin="round" />
       {territories.map((territory) => {
         const position = territoryMapPositions[territory.id];
         if (!position) return null;
@@ -96,17 +111,17 @@ export function CoastlineTerritoryMap({
             {/* Zone de clic généreuse et invisible — même raison que
                 PublicAtlasWorkspace : le marqueur visuel est trop petit
                 pour rester tapable une fois la carte réduite sur mobile. */}
-            <circle r="26" fill="transparent" />
+            <circle r={scale(26)} fill="transparent" />
             {territory.activity === "critique" && (
-              <circle r="11" fill="none" stroke={color} strokeOpacity="0.4" strokeWidth="2.5">
-                <animate attributeName="r" values="11;20" dur="1.8s" repeatCount="indefinite" />
+              <circle r={scale(11)} fill="none" stroke={color} strokeOpacity="0.4" strokeWidth={scale(2.5)}>
+                <animate attributeName="r" values={`${scale(11)};${scale(20)}`} dur="1.8s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.8;0" dur="1.8s" repeatCount="indefinite" />
               </circle>
             )}
-            {active && <circle r="16" fill="none" stroke={color} strokeOpacity="0.35" strokeWidth="3" className="pointer-events-none" />}
-            <circle r={active ? 10 : territory.activity === "stable" ? 6 : 8} fill={color} stroke="#fff" strokeWidth={active ? 3 : 2} className={clickable ? "pointer-events-none transition group-hover:opacity-90" : "pointer-events-none"} />
+            {active && <circle r={scale(16)} fill="none" stroke={color} strokeOpacity="0.35" strokeWidth={scale(3)} className="pointer-events-none" />}
+            <circle r={scale(active ? 10 : territory.activity === "stable" ? 6 : 8)} fill={color} stroke="#fff" strokeWidth={scale(active ? 3 : 2)} className={clickable ? "pointer-events-none transition group-hover:opacity-90" : "pointer-events-none"} />
             {territory.activity !== "stable" && (
-              <text x={14} y={5} fontSize={active ? 20 : 17} fontWeight={active ? 700 : 600} fill={color} style={{ pointerEvents: "none" }}>{territory.name}</text>
+              <text x={scale(14)} y={scale(5)} fontSize={scale(active ? 20 : 17)} fontWeight={active ? 700 : 600} fill={color} style={{ pointerEvents: "none" }}>{territory.name}</text>
             )}
           </g>
         );
