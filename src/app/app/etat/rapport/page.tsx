@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Compass, Download, Handshake, Printer, ShieldAlert, Users } from "lucide-react";
+import { ArrowLeft, Compass, Download, Handshake, ListChecks, Printer, ShieldAlert, Users } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { EngagementIcon, PreuveIcon, ResultatIcon, SituationIcon } from "@/components/etat/MotifIcons";
-import { decisionTypeLabels, evidenceTypeLabels, type Funding, type Report, type Territory, type TrustLevel } from "@/domain/types";
+import { decisionTypeLabels, evidenceTypeLabels, type Funding, type Initiative, type Report, type Territory, type TrustLevel } from "@/domain/types";
 
 // Audit DA Premium XXL v2 (mandat CEO 2026-08-19, arbitrage gap analysis
 // /app/etat/rapport). 4 lots, dans l'ordre approuvé :
@@ -36,6 +36,25 @@ const trustLabels: Record<TrustLevel, string> = {
   contestee: "Contestée",
   expiree: "Expirée"
 };
+// Légende des niveaux de confiance (Lot 5, mandat §4.6 : "créer une
+// lecture méthodologique premium : légende des niveaux de confiance").
+// Définitions du vocabulaire réel du modèle (TrustLevel, domain/types.ts,
+// §12.1 du cahier des charges maître) — pas une donnée d'usage, un
+// glossaire des 10 valeurs possibles, qu'elles apparaissent ou non dans
+// le jeu de démonstration actuel (cf. bande de comptage réel juste
+// au-dessus, qui elle ne montre que les niveaux effectivement présents).
+const trustDefinitions: Record<TrustLevel, string> = {
+  declaree: "Rapportée par un acteur du terrain, sans vérification indépendante à ce stade.",
+  observee: "Constatée directement sur le terrain, sans recoupement formel avec une autre source.",
+  verifiee: "Contrôlée et confirmée par un second processus ou une source indépendante.",
+  consolidee: "Agrégée à partir de plusieurs mesures ou sources réconciliées entre elles.",
+  rapprochee: "Recoupée entre deux enregistrements indépendants (ex. besoin déclaré et lot réellement pesé).",
+  documentee: "Appuyée par une pièce écrite ou un document conservé.",
+  officielle: "Émise par une source institutionnelle ou réglementaire reconnue.",
+  estimee: "Calculée ou approchée à partir d’autres valeurs, pas mesurée directement.",
+  contestee: "Signalée comme disputée ou remise en question par une partie prenante.",
+  expiree: "N’est plus à jour et nécessite une actualisation avant d’être réutilisée."
+};
 const trustTagClass: Record<TrustLevel, string> = {
   declaree: "etat-tag--demo",
   observee: "etat-tag--vigilance",
@@ -62,6 +81,11 @@ const fundingTagClass: Record<Funding["status"], string> = {
   en_instruction: "etat-tag--vigilance",
   confirme: "etat-tag--reel"
 };
+
+// Lot 5 — mêmes libellés que /app/etat (Chapitre 4, Programmes en cours),
+// pour ne pas introduire un 2e vocabulaire de statut de programme entre
+// État et Rapport.
+const initiativeStatusLabel: Record<Initiative["status"], string> = { cadrage: "Cadrage", financee: "Financée", execution: "Exécution", terminee: "Terminée" };
 
 function formatFcfa(amount: number) {
   return `${new Intl.NumberFormat("fr-FR").format(Math.round(amount))} FCFA`;
@@ -212,6 +236,18 @@ export default function EtatReportPage() {
   const lastUpdatedAt = state.reports[0]?.generatedAt;
   const dominantTrust = (Object.entries(trustCounts) as [TrustLevel, number][]).sort((a, b) => b[1] - a[1])[0]?.[0];
 
+  // Points clés (Lot 5, R5 — arbitrage CEO "Option A" : gabarits
+  // déterministes, aucune modification du modèle de données). Chaque
+  // phrase est un template rempli avec des agrégats déjà réels et déjà
+  // calculés ailleurs sur cette page (ou une variante immédiate du même
+  // calcul) — jamais un résumé narratif libre, jamais un nouveau champ.
+  // Financement global : même somme que celle affichée par initiative
+  // plus bas, agrégée une fois sur l'ensemble du portefeuille.
+  const globalConfirmedFunding = state.initiatives.reduce((sum, item) => sum + item.funding.filter((f) => f.status === "confirme").reduce((s, f) => s + f.amountFcfa, 0), 0);
+  const globalIdentifiedFunding = state.initiatives.reduce((sum, item) => sum + item.funding.reduce((s, f) => s + f.amountFcfa, 0), 0);
+  const globalConfirmedPct = globalIdentifiedFunding > 0 ? Math.round((globalConfirmedFunding / globalIdentifiedFunding) * 100) : 0;
+  const initiativesWithoutIndicators = state.initiatives.filter((item) => item.indicators.length === 0).length;
+
   const download = () => {
     const markdown = buildMarkdown(state);
     const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
@@ -287,6 +323,26 @@ export default function EtatReportPage() {
       </section>
 
       <div className="mx-5 mt-8 space-y-6 pb-16 lg:mx-8">
+        {/* Points clés (Lot 5, R5 — arbitrage CEO "Option A" : gabarits
+            déterministes remplis d'agrégats réels, aucune modification du
+            modèle de données ni résumé narratif fabriqué — cf. calcul des
+            variables au niveau du composant). Positionné juste après la
+            synthèse : ce qu'un lecteur pressé doit retenir avant de
+            plonger dans l'explorateur — action-vs-preuve, la lecture
+            rapide d'abord, le détail vérifiable ensuite. Pas dans la
+            navigation d'ancrage (§4.1) : prolongement visuel de la
+            synthèse, pas un nouveau chapitre. */}
+        <article className="etat-panel p-6">
+          <div className="flex items-center gap-2"><ListChecks size={18} color="var(--etat-terracotta)" /><h2 className="etat-display text-lg not-italic text-[var(--etat-navy-950)]">Points clés</h2></div>
+          <ul className="mt-4 space-y-2.5 text-sm leading-6 text-[var(--etat-navy-800)]">
+            <li className="flex gap-2"><span className="text-[var(--etat-terracotta)]">·</span><span>{reportsPret} rapport{reportsPret > 1 ? "s" : ""} sur {state.reports.length} {reportsPret > 1 ? "sont prêts" : "est prêt"} à être partagé{reportsPret > 1 ? "s" : ""} ; {reportsAActualiser} {reportsAActualiser > 1 ? "restent" : "reste"} à actualiser.</span></li>
+            <li className="flex gap-2"><span className="text-[var(--etat-terracotta)]">·</span><span>{documentedSituations.length} situation{documentedSituations.length > 1 ? "s" : ""} sur {state.situations.length} {documentedSituations.length > 1 ? "disposent" : "dispose"} d’un dossier complet (résultat documenté et au moins une preuve enregistrée) — les autres restent en cours ou sans preuve documentée.</span></li>
+            <li className="flex gap-2"><span className="text-[var(--etat-terracotta)]">·</span><span>{formatFcfa(globalConfirmedFunding)} confirmés sur {formatFcfa(globalIdentifiedFunding)} identifiés à travers les {state.initiatives.length} programmes ({globalConfirmedPct}%).</span></li>
+            <li className="flex gap-2"><span className="text-[var(--etat-terracotta)]">·</span><span>{initiativesWithoutIndicators > 0 ? `${initiativesWithoutIndicators} programme${initiativesWithoutIndicators > 1 ? "s" : ""} sur ${state.initiatives.length} ${initiativesWithoutIndicators > 1 ? "n’ont" : "n’a"} pas encore d’indicateur défini — encore au stade cadrage.` : `Les ${state.initiatives.length} programmes disposent tous d’au moins un indicateur suivi.`}</span></li>
+            {dominantTrust && <li className="flex gap-2"><span className="text-[var(--etat-terracotta)]">·</span><span>Niveau de confiance dominant des métriques de rapport : {trustLabels[dominantTrust]}.</span></li>}
+          </ul>
+        </article>
+
         {/* Lot D — vue nationale distinguée des revues territoriales,
             plutôt que 8 cartes de même poids visuel. Même donnée,
             hiérarchie de lecture différente. Lot Rapport-B — filtres
@@ -505,13 +561,52 @@ export default function EtatReportPage() {
         <article id="programmes-financements" className="etat-panel scroll-mt-6 p-6">
           <h2 className="etat-display text-lg not-italic text-[var(--etat-navy-950)]">Programmes et financements</h2>
           <p className="mt-1 text-xs text-[var(--etat-stone-600)]">Baseline, actuel et cible par indicateur ; financement détaillé par bailleur et par statut.</p>
+
+          {/* Table de synthèse (Lot 5, mandat "programmes table") : lecture
+              scannable en un coup d'œil avant le détail complet plus bas —
+              même doctrine que l'explorateur (registre/détail) : le
+              résumé d'abord, la preuve vérifiable ensuite. Progression =
+              moyenne des indicateurs disponibles, repli honnête "—" sinon
+              — même règle que /app/etat (Chapitre 4, arbitrage CEO Lot 0),
+              pas une 2e formule inventée pour ce tableau. */}
+          <div className="mt-4 overflow-x-auto border-t border-[var(--etat-line)] pt-4">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-[var(--etat-line)] text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">
+                  <th className="px-2 py-2 font-bold">Programme</th>
+                  <th className="px-2 py-2 font-bold">Statut</th>
+                  <th className="px-2 py-2 font-bold">Budget</th>
+                  <th className="px-2 py-2 font-bold">Confirmé</th>
+                  <th className="px-2 py-2 font-bold">Progression</th>
+                </tr>
+              </thead>
+              <tbody>
+                {state.initiatives.map((initiative) => {
+                  const confirmedRow = initiative.funding.filter((f) => f.status === "confirme").reduce((sum, f) => sum + f.amountFcfa, 0);
+                  const avgProgress = initiative.indicators.length > 0
+                    ? Math.round(initiative.indicators.reduce((sum, indicator) => sum + indicatorProgress(indicator), 0) / initiative.indicators.length)
+                    : null;
+                  return (
+                    <tr key={initiative.id} className="border-b border-[var(--etat-line)] last:border-b-0">
+                      <td className="px-2 py-2.5 font-semibold text-[var(--etat-navy-950)]">{initiative.title}</td>
+                      <td className="px-2 py-2.5 text-[var(--etat-stone-600)]">{initiativeStatusLabel[initiative.status]}</td>
+                      <td className="px-2 py-2.5 text-[var(--etat-stone-600)]">{initiative.budgetFcfa !== undefined ? formatFcfa(initiative.budgetFcfa) : "À estimer"}</td>
+                      <td className="px-2 py-2.5 text-[var(--etat-stone-600)]">{formatFcfa(confirmedRow)}</td>
+                      <td className="px-2 py-2.5 text-[var(--etat-stone-600)]">{avgProgress !== null ? `${avgProgress}%` : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
           {/* Lot B : chaque initiative expose désormais ses indicateurs
               réels (Initiative.indicators) et son financement ventilé
               par bailleur (Initiative.funding → state.actors), plutôt
               que la seule somme confirmée. init-lompoul-balises a 0
               indicateur et 0 financement — repli honnête affiché tel
               quel, jamais masqué ni fabriqué. */}
-          <div className="mt-5 space-y-5">
+          <div className="mt-6 space-y-5">
             {state.initiatives.map((initiative) => {
               const confirmed = initiative.funding.filter((f) => f.status === "confirme").reduce((sum, f) => sum + f.amountFcfa, 0);
               const totalFunding = initiative.funding.reduce((sum, f) => sum + f.amountFcfa, 0);
@@ -586,7 +681,29 @@ export default function EtatReportPage() {
               <span key={trust} className={`etat-tag ${trustTagClass[trust]}`}>{trustLabels[trust]} · {trustCounts[trust]}</span>
             ))}
           </div>
-          <p className="mt-4 text-xs leading-5 text-[var(--etat-stone-600)]">La chaîne situation → intervention → résultat → preuve n’est présentée que pour les {documentedSituations.length} situations sur {state.situations.length} qui disposent d’un résultat renseigné et d’au moins une preuve enregistrée ; les autres restent en cours ou sans preuve documentée et ne sont pas incluses dans ce rapport.</p>
+
+          {/* Légende des niveaux de confiance (Lot 5) : définit le
+              vocabulaire complet, pas seulement les niveaux présents dans
+              la bande ci-dessus — un bailleur qui compare plusieurs
+              rapports dans le temps doit pouvoir comprendre un niveau
+              même s'il n'apparaît pas dans CETTE version du rapport. */}
+          <div className="mt-5 grid gap-x-6 gap-y-3 border-t border-[var(--etat-line)] pt-4 sm:grid-cols-2">
+            {(Object.keys(trustLabels) as TrustLevel[]).map((trust) => (
+              <div key={trust} className="flex gap-2">
+                <span className={`etat-tag shrink-0 ${trustTagClass[trust]}`}>{trustLabels[trust]}</span>
+                <p className="text-[11px] leading-4 text-[var(--etat-stone-600)]">{trustDefinitions[trust]}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-5 text-xs leading-5 text-[var(--etat-stone-600)] border-t border-[var(--etat-line)] pt-4">La chaîne situation → intervention → résultat → preuve n’est présentée que pour les {documentedSituations.length} situations sur {state.situations.length} qui disposent d’un résultat renseigné et d’au moins une preuve enregistrée ; les autres restent en cours ou sans preuve documentée et ne sont pas incluses dans ce rapport.</p>
+
+          {/* "Zero-chart-by-default" (Lot 5) : ce rapport n'affiche aucun
+              graphique de tendance — confirmé par relecture explicite de
+              l'ensemble de la page à ce lot. Les barres de progression
+              (baseline → actuel → cible) sont des jauges d'un état
+              ponctuel documenté, pas des séries temporelles ; aucune
+              n'implique une évolution qui ne serait pas mesurée. */}
         </article>
       </div>
     </div>
