@@ -947,10 +947,29 @@ export default function EtatPage() {
             {territoryKpis.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[var(--etat-line)] pt-4 sm:grid-cols-3">
                 {territoryKpis.map((kpi) => (
-                  <div key={kpi.label}>
+                  <div key={kpi.label} className="min-w-0">
                     <kpi.icon size={15} color="var(--etat-stone-600)" />
                     <p className="etat-display mt-1 text-lg not-italic text-[var(--etat-navy-950)]"><NumberTicker value={kpi.value} /></p>
-                    <p className="text-[10px] font-bold uppercase tracking-wide leading-tight text-[var(--etat-stone-600)]">{kpi.label}</p>
+                    {/* break-words (CEO 2026-08-23, capture 1440x900) :
+                        "Capacités fragiles/indisponibles" débordait dans la
+                        colonne suivante — le "/" sans espace de part et
+                        d'autre en fait un seul "mot" de 23 caractères que
+                        le navigateur ne coupe jamais par défaut (il ne
+                        coupe qu'aux espaces), quelle que soit la largeur de
+                        colonne disponible. Vérifié précisément avant de
+                        corriger : labelBox mesurait bien 118px (la largeur
+                        de la colonne), mais overflow:visible laissait le
+                        texte se dessiner au-delà sans que la boîte elle-même
+                        ne s'élargisse — un vrai débordement de rendu, pas
+                        une fausse alerte. break-words (overflow-wrap:
+                        break-word) autorise la coupure à l'intérieur du mot
+                        si besoin, sans raccourcir le libellé ni changer le
+                        sens ("indisponibles" reste lisible, juste sur sa
+                        propre ligne). min-w-0 sur la tuile : indispensable
+                        pour que break-words agisse réellement dans une grid
+                        (sans lui, min-width: auto par défaut d'un enfant de
+                        grid annule l'effet du wrap). */}
+                    <p className="min-w-0 break-words text-[10px] font-bold uppercase tracking-wide leading-tight text-[var(--etat-stone-600)]">{kpi.label}</p>
                     {"caption" in kpi && kpi.caption && <p className="mt-0.5 text-[10px] text-[var(--etat-stone-400)]">{kpi.caption}</p>}
                   </div>
                 ))}
