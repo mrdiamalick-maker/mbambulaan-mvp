@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Compass, Factory, FileDown, Fish, Minus, Plus, Radio, Sailboat, Search, Send, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Compass, Factory, FileDown, Minus, Plus, Radio, Sailboat, Search, Send, ShieldCheck } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { InstitutionIllustration } from "@/components/public/CoordinationIllustration";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
@@ -757,47 +758,53 @@ export default function EtatPage() {
             fr exacts — même mécanique de grille, juste la proportion
             ajustée. */}
         <div className="mt-6 grid grid-cols-1 gap-5 lg:h-[520px] lg:grid-cols-[62fr_38fr]">
-          {/* Richesse visuelle de la carte (maquette validée, arbitrage
-              CEO 2026-08-18, corrigé le même jour après vérification par
-              capture réelle) : texture/boussole/icônes décoratives
-              ajoutées ICI, en habillage autour du composant partagé —
-              CoastlineTerritoryMap.tsx lui-même n'est pas touché, pour ne
-              pas propager cet habillage à /app/pilotage qui réutilise le
-              même composant et dont la composition est déjà close et
-              validée. Aucune nouvelle géométrie : coastlinePath et
-              territoryMapPositions inchangés.
+          {/* Fond Atlas — asset d'illustration réel (mandat "intégrer
+              l'asset d'illustration réelle", 2026-08-23), remplace
+              l'habillage CSS/SVG précédent (dégradés "eau" + motif de
+              vagues en <pattern> + Compass/Sailboat/Fish décoratifs,
+              ajoutés au Lot 1 faute d'illustration réelle disponible à
+              l'époque). Le mandat est explicite : "sans le recréer en
+              CSS/SVG et sans l'interpréter" — le fichier fourni intègre
+              déjà sa propre boussole, ses barques et ses poissons
+              aquarellés, reproduire ces mêmes motifs en Lucide par-dessus
+              aurait doublé le geste et non plus servi de "richesse
+              visuelle" (le rôle exact que ces icônes tenaient avant).
+              CoastlineTerritoryMap.tsx n'est pas touché : le fond n'est
+              qu'un habillage sous le SVG, jamais une couche géographique
+              — path/territoryMapPositions restent la seule référence de
+              positionnement (voir plus bas, viewBox inchangé).
 
-              Correctif "pas de bleu" (2026-08-18) : la règle "palette D9
-              verrouillée, pas de bleu" encadre l'habillage produit
-              (cartes, boutons, badges, signalétique) pour éviter
-              l'esthétique SaaS générique — elle ne s'applique pas à un
-              contenu illustratif représentant un phénomène naturel réel.
-              La mer est bleue ; la peindre autrement la rendait
-              illisible (vérifié par capture, pas seulement décrit). Bleu
-              marine désaturé ici (--etat-water-*, propre à cet
-              habillage, pas un nouveau token D9 réutilisé ailleurs) —
-              cohérent avec l'esprit sobre de la page, mais se lit
-              clairement comme de l'eau. Icônes agrandies et assombries
-              pour avoir une vraie présence visuelle, plus un geste
-              symbolique à peine perceptible dans un coin. */}
-          <div className="etat-panel relative overflow-hidden" style={{ "--etat-water-deep": "#2c4f63", "--etat-water-mid": "#4c7691", "--etat-water-light": "#89aec2" } as React.CSSProperties}>
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{ backgroundImage: "radial-gradient(circle at 15% 8%, var(--etat-water-light), transparent 42%), radial-gradient(circle at 88% 82%, var(--etat-water-mid), transparent 48%), linear-gradient(165deg, var(--etat-water-light) 0%, var(--etat-water-mid) 55%, var(--etat-water-deep) 100%)", opacity: 0.5 }}
-              aria-hidden="true"
+              object-cover plein cadre, pas de recadrage manuel : le
+              panneau garde son propre aspect-ratio (aspect-[4/5] →
+              lg:h-full), l'image se contente de le remplir. next/image
+              (fill) suit le patron déjà en place ailleurs sur le produit
+              (HeroBackgroundImage.tsx) — optimisation automatique de
+              Next.js en plus de la compression manuelle en amont
+              (2,6 Mo PNG fourni → 114 Ko WebP, qualité 78, aucune perte
+              visible constatée à la capture). alt="" : purement
+              atmosphérique, aucune information non redondante avec le
+              contenu (la carte elle-même porte déjà son propre
+              role="img"/aria-label). */}
+          <div className="etat-panel relative overflow-hidden">
+            <Image
+              src="/images/etat-atlas-ocean-background.webp"
+              alt=""
+              fill
+              sizes="(min-width: 1024px) 62vw, 100vw"
+              priority={false}
+              className="pointer-events-none absolute inset-0 object-cover"
             />
-            <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-40" aria-hidden="true">
-              <pattern id="etat-map-waves" width="52" height="20" patternUnits="userSpaceOnUse">
-                <path d="M0 10 Q13 2 26 10 T52 10" fill="none" stroke="var(--etat-water-deep)" strokeWidth="1.6" />
-                <path d="M0 16 Q13 8 26 16 T52 16" fill="none" stroke="var(--etat-water-mid)" strokeWidth="1.2" />
-              </pattern>
-              <rect width="100%" height="100%" fill="url(#etat-map-waves)" />
-            </svg>
-            <Compass size={64} strokeWidth={1.4} className="pointer-events-none absolute bottom-5 left-5 text-[var(--etat-water-deep)] opacity-70" aria-hidden="true" />
-            <Sailboat size={44} strokeWidth={1.6} className="pointer-events-none absolute right-12 top-10 text-[var(--etat-water-deep)] opacity-70" aria-hidden="true" />
-            <Fish size={30} strokeWidth={1.6} className="pointer-events-none absolute bottom-28 right-10 text-[var(--etat-water-deep)] opacity-60" aria-hidden="true" />
-            <Fish size={22} strokeWidth={1.6} className="pointer-events-none absolute right-24 top-1/3 rotate-[20deg] text-[var(--etat-water-deep)] opacity-50" aria-hidden="true" />
-            <Fish size={18} strokeWidth={1.6} className="pointer-events-none absolute left-10 top-1/4 -rotate-[15deg] text-[var(--etat-water-deep)] opacity-40" aria-hidden="true" />
+            {/* Lisibilité (mandat point 6 : "priorité fonctionnelle,
+                l'esthétique ne doit jamais nuire") : voile clair
+                translucide entre la photo et le tracé/les libellés — le
+                fond réel a des zones sombres (bas-gauche) et un ciel
+                très clair (haut-droite) qui, seules, faisaient perdre du
+                contraste aux libellés "vigilance" (ocre) une fois posés
+                dessus (vérifié par capture avant/après ce voile). Blanc
+                à faible opacité, pas une nouvelle teinte D9 — n'altère
+                pas la lecture des couleurs du tracé/marqueurs, seulement
+                leur contraste sur le fond. */}
+            <div className="pointer-events-none absolute inset-0 bg-white/30" aria-hidden="true" />
             <div className="relative flex items-center justify-between gap-3 px-4 pt-4">
               {/* Contraste (correctif CEO 2026-08-22) : etat-eyebrow--on-dark
                   seul (ocre sur fond eau clair par endroits) restait
