@@ -14,13 +14,23 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { usePresentationGuide } from "@/components/providers/PresentationGuideProvider";
+import { EtatSidebar } from "@/components/institution/EtatSidebar";
 
 // Entrée technique distincte pour l'Espace État (D9, PRODUCT_DECISION_LOG.md) :
 // pas AppSidebar/SidebarProvider composés différemment, une structure de
-// navigation propre à ce que voit la Ministre. Décision-first (A14) :
-// un seul niveau (le fil national → territoire → situation), pas de rail
-// de navigation à items multiples — le retour se fait par un lien, pas
-// par un menu permanent. Aucun import de src/components/ui/sidebar ici.
+// navigation propre à ce que voit la Ministre. Aucun import de
+// src/components/ui/sidebar ici — EtatSidebar est un composant propre à
+// ce shell, pas une réutilisation du rail générique Coordinateur/
+// Opérateur.
+//
+// A14 ("pas de rail de navigation permanent pour l'Espace État") est
+// consciemment renversée ici (mandat CEO "nouvelle DA Vue d'ensemble",
+// arbitrage Lot 0 2026-08-23, Décision 1 : "l'Option A est retenue, le
+// shell partagé porte la sidebar — /app/etat/rapport en hérite aussi dès
+// ce lot, avant sa propre passe de validation dédiée. C'est cohérent,
+// pas une incohérence à corriger plus tard.") — ce n'est pas un oubli de
+// mise à jour du commentaire A14 d'origine, c'est le nouvel arbitrage qui
+// prévaut explicitement sur l'ancien.
 function initials(name?: string) {
   if (!name) return "MB";
   return name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
@@ -127,11 +137,21 @@ export function InstitutionShell({
           {error}
         </div>
       )}
-      {showLoading ? (
-        <div className="grid min-h-[70vh] flex-1 place-items-center text-sm text-muted-foreground">Initialisation de votre espace…</div>
-      ) : (
-        <main className="min-w-0 flex-1">{children}</main>
-      )}
+      {/* Ligne sidebar + contenu (Décision 1) : la sidebar reste visible
+          même pendant le chargement plutôt que d'apparaître seulement une
+          fois les données prêtes — chrome stable, pas un flash de mise en
+          page. Masquée sous lg (EtatSidebar gère son propre `hidden
+          lg:flex`) : pas de rail permanent sur mobile, cohérent avec le
+          reste du produit qui n'a jamais de sidebar en dessous de ce
+          point de rupture. */}
+      <div className="flex flex-1">
+        <EtatSidebar onLogout={onLogout} />
+        {showLoading ? (
+          <div className="grid min-h-[70vh] flex-1 place-items-center text-sm text-muted-foreground">Initialisation de votre espace…</div>
+        ) : (
+          <main className="min-w-0 flex-1">{children}</main>
+        )}
+      </div>
     </div>
   );
 }

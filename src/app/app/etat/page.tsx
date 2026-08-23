@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Compass, Factory, FileDown, Fish, Radio, Sailboat, Search, Send, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Compass, Factory, FileDown, Fish, Minus, Plus, Radio, Sailboat, Search, Send, ShieldCheck } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { InstitutionIllustration } from "@/components/public/CoordinationIllustration";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
@@ -144,6 +144,23 @@ function cameraWindowFor(territoryId: string | null): string {
   return `${(x - width / 2).toFixed(1)} ${(y - height / 2).toFixed(1)} ${width.toFixed(1)} ${height.toFixed(1)}`;
 }
 
+// Zoom +/- (mandat "nouvelle DA Vue d'ensemble", faisabilité confirmée au
+// Lot 0) : redimensionne une fenêtre viewBox autour de son propre centre
+// — jamais autour d'une position territoriale recalculée séparément, pour
+// rester exactement dans le même espace de coordonnées que
+// cameraWindowFor. factor < 1 resserre (zoom avant), > 1 élargit (zoom
+// arrière). Composé APRÈS cameraWindowFor, AVANT useAnimatedViewBox : le
+// zoom s'anime par la même interpolation rAF, pas un second mécanisme.
+function scaleViewBox(viewBox: string, factor: number): string {
+  if (factor === 1) return viewBox;
+  const [x, y, width, height] = viewBox.split(" ").map(Number);
+  const cx = x + width / 2;
+  const cy = y + height / 2;
+  const newWidth = width * factor;
+  const newHeight = height * factor;
+  return `${(cx - newWidth / 2).toFixed(1)} ${(cy - newHeight / 2).toFixed(1)} ${newWidth.toFixed(1)} ${newHeight.toFixed(1)}`;
+}
+
 // Interpolation JS (requestAnimationFrame), tranchée par le CEO le
 // 2026-08-20 plutôt que le transform CSS déjà utilisé par
 // territoryZoomStyle : l'attribut SVG viewBox n'est pas fiablement
@@ -243,6 +260,23 @@ export default function EtatPage() {
   // false dès qu'une sélection explicite est faite, pour ne pas bloquer
   // la caméra sur le national après un choix réel.
   const [cameraForcedNational, setCameraForcedNational] = useState(false);
+  // Zoom +/- (mandat "nouvelle DA Vue d'ensemble", faisabilité confirmée
+  // au Lot 0) : facteur multiplicatif appliqué à la fenêtre de la caméra
+  // (cameraWindowFor), pas un second système de cadrage — le zoom vient
+  // resserrer/élargir autour du MÊME centre, dans le MÊME espace de
+  // coordonnées, avant interpolation par useAnimatedViewBox (aucune
+  // nouvelle géométrie, aucun nouveau moteur). 1 = fenêtre non modifiée.
+  // Bornes : 0.4 (le plus resserré, évite un cadrage plus étroit que les
+  // marqueurs eux-mêmes) à 2.2 (le plus large, dépasse légèrement la
+  // fenêtre régionale par défaut sans jamais atteindre la vue nationale
+  // complète — "Vue nationale" reste le seul moyen d'y revenir
+  // explicitement, cohérent avec son propre bouton). Réinitialisé à 1 sur
+  // tout changement de cible caméra (nouveau territoire ou national) :
+  // le zoom est un réglage ponctuel de LA lecture en cours, pas un état
+  // qui doit "suivre" d'un territoire à l'autre.
+  const [zoomFactor, setZoomFactor] = useState(1);
+  const ZOOM_MIN = 0.4;
+  const ZOOM_MAX = 2.2;
   // Lot État-B (mandat §3.1, §4.2) : filtre Période réel, restreint aux
   // dates calendaires réellement présentes dans les landings (seule
   // donnée temporelle avec une vraie dispersion sur cette page — les
@@ -325,7 +359,14 @@ export default function EtatPage() {
   // à chaque rendu ; dominant (déjà un memo) suffit à la déterminer sans
   // avoir besoin de state après le garde-fou.
   const cameraTargetId = cameraForcedNational ? null : (selectedTerritoryId ?? (dominant.kind === "territoire" ? dominant.territory.id : dominant.kind === "signal" ? dominant.case.territoryId : null));
-  const cameraViewBox = useAnimatedViewBox(cameraWindowFor(cameraTargetId));
+  const cameraViewBox = useAnimatedViewBox(scaleViewBox(cameraWindowFor(cameraTargetId), zoomFactor));
+  // Reset du zoom sur changement de cible caméra (hook, doit s'exécuter
+  // inconditionnellement — placé ici, avant le garde-fou, pour la même
+  // raison que useAnimatedViewBox juste au-dessus).
+  useEffect(() => {
+    setZoomFactor(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraTargetId]);
 
   if (!state) return null;
 
@@ -396,16 +437,23 @@ export default function EtatPage() {
   const focusSiteIds = new Set(focusSites.map((item) => item.id));
   const focusVessels = state.vessels.filter((item) => focusSiteIds.has(item.homeSiteId));
   const focusVesselIds = new Set(focusVessels.map((item) => item.id));
-  const focusLandings = state.landings.filter((item) => focusSiteIds.has(item.siteId) && (periodFilter === "all" || (item.weighedAt ?? item.arrivedAt ?? "").slice(0, 10) === periodFilter));
   const focusTripsEnMer = state.trips.filter((item) => focusVesselIds.has(item.vesselId) && item.status === "en_mer" && (periodFilter === "all" || item.departureAt.slice(0, 10) === periodFilter)).length;
   const focusInfrastructures = dominantTerritoryId ? state.infrastructures.filter((item) => item.territoryId === dominantTerritoryId) : [];
   const focusAvailableCapacity = focusInfrastructures.filter((item) => item.status === "operationnelle").length;
-  const focusProgrammes = dominantTerritoryId ? state.initiatives.filter((item) => item.territoryIds.includes(dominantTerritoryId)).length : 0;
+  // 3 indicateurs max (mandat "nouvelle DA Vue d'ensemble", conforme à la
+  // maquette : Situations ouvertes / Capacités fragiles / 3e tuile) —
+  // réduit du jeu de 5 tuiles du Lot 1. Programmes concernés (valeur
+  // décisionnelle la plus faible des 5 : un simple comptage de contexte,
+  // pas un signal d'action) cède sa place. Entre Débarquements documentés
+  // et Sorties en mer en cours, Sorties en mer est retenue (arbitrage CEO
+  // 2026-08-23 : "garde celle qui a le plus de valeur décisionnelle
+  // immédiate") — un état opérationnel en cours parle plus directement à
+  // "à décider aujourd'hui" qu'un comptage documentaire historique.
+  // Conserve un vrai effet visible au filtre Période (seul autre
+  // consommateur retiré, aucun autre élément de la page n'y réagit).
   const territoryKpis = dominantTerritoryId ? [
     { icon: SituationIcon, value: dominantOpenSituations.length, label: "Situations ouvertes" },
     { icon: Factory, value: dominantFragileInfra, label: "Capacités fragiles/indisponibles", caption: `${focusAvailableCapacity} disponible(s) sur ${focusInfrastructures.length}` },
-    { icon: Users, value: focusProgrammes, label: "Programmes concernés" },
-    { icon: Fish, value: focusLandings.length, label: "Débarquements documentés" },
     { icon: Sailboat, value: focusTripsEnMer, label: "Sorties en mer en cours" }
   ] : [];
 
@@ -704,7 +752,11 @@ export default function EtatPage() {
             est simplement celle retenue, pour que la bande de synthèse
             nationale juste en dessous reste visible sans scroll à
             1440×900 (mesure CEO : elle dépassait de 40px). */}
-        <div className="mt-6 grid grid-cols-1 gap-5 lg:h-[520px] lg:grid-cols-[1.3fr_.7fr]">
+        {/* Ratio 62/38 (mandat "nouvelle DA Vue d'ensemble") : remplace
+            1.3fr/.7fr (65/35, écart jugé non bloquant au Lot 0) par des
+            fr exacts — même mécanique de grille, juste la proportion
+            ajustée. */}
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:h-[520px] lg:grid-cols-[62fr_38fr]">
           {/* Richesse visuelle de la carte (maquette validée, arbitrage
               CEO 2026-08-18, corrigé le même jour après vérification par
               capture réelle) : texture/boussole/icônes décoratives
@@ -751,8 +803,13 @@ export default function EtatPage() {
                   seul (ocre sur fond eau clair par endroits) restait
                   quasi illisible à la capture — petite plaque bg-white/90
                   identique au traitement déjà utilisé pour le bouton
-                  "Vue nationale" juste à côté, pas une nouvelle couleur. */}
-              <h1 className="etat-eyebrow rounded-full bg-white/90 px-3 py-1.5">Lecture territoriale</h1>
+                  "Vue nationale" juste à côté, pas une nouvelle couleur.
+                  Libellé "Atlas de supervision" (mandat "nouvelle DA Vue
+                  d'ensemble") : reprend le titre de la maquette, remplace
+                  "Lecture territoriale" — même élément, même rôle
+                  sémantique (H1 de ce chapitre), texte aligné sur la
+                  nouvelle référence. */}
+              <h1 className="etat-eyebrow rounded-full bg-white/90 px-3 py-1.5">Atlas de supervision</h1>
               {/* Caméra Atlas (Lot 1, correctif CEO 2026-08-22) : contrôle de
                   retour explicite, visible dès qu'un cadrage régional est
                   actif — y compris par défaut au chargement (territoire
@@ -764,6 +821,69 @@ export default function EtatPage() {
                 <button onClick={() => { setSelectedTerritoryId(null); setCameraForcedNational(true); }} className="etat-btn etat-btn-outline shrink-0 bg-white/90 text-xs"><Compass size={13} /> Vue nationale</button>
               )}
             </div>
+
+            {/* Légende "Niveau d'attention" (mandat "nouvelle DA Vue
+                d'ensemble", Décision 2 : 3 catégories réelles, pas les 5
+                de la maquette). Territory.activity n'a que "stable" |
+                "vigilance" | "critique" (confirmé domain/types.ts) —
+                "Élevé", "Normal" et "Non évalué" de la maquette n'ont
+                aucune valeur correspondante dans le modèle et ne sont pas
+                reproduits. Mêmes couleurs que glyphBorderColor/
+                statusTagLabel, déjà utilisées ailleurs sur cette page
+                (marqueurs de carte, carrousel) — pas une nouvelle
+                palette pour cette légende.
+                hidden lg:block (trouvé en vérifiant le rendu mobile réel,
+                pas supposé sain par défaut) : sur le viewport compact
+                (carte réduite à aspect-[4/5]), cette légende chevauchait
+                géométriquement le marqueur "Rufisque-Bargny" et le
+                rendait réellement inaccessible au clic (confirmé par
+                locator.click() en échec, pas seulement visuellement) —
+                pas un simple souci esthétique. Masquée sous lg, même
+                discipline que la sidebar (EtatSidebar) qui suit le même
+                point de rupture pour la même raison : un raffinement de
+                supervision desktop, pas une régression fonctionnelle
+                acceptée sur mobile où l'espace de la carte est déjà
+                contraint. */}
+            <div className="etat-panel absolute left-4 top-16 z-10 hidden bg-white/95 p-3 text-xs shadow-sm lg:block">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Niveau d’attention</p>
+              <div className="mt-2 space-y-1.5">
+                {(["critique", "vigilance", "stable"] as const).map((status) => (
+                  <div key={status} className="flex items-center gap-2">
+                    <span className="size-2.5 rounded-full" style={{ backgroundColor: glyphBorderColor[status] }} />
+                    <span className="text-[var(--etat-navy-800)]">{statusTagLabel[status]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Zoom +/- (mandat "nouvelle DA Vue d'ensemble", faisabilité
+                confirmée au Lot 0) : agit sur zoomFactor, composé avec la
+                fenêtre caméra existante via scaleViewBox() — même
+                interpolation rAF que le reste de la caméra, aucun nouveau
+                mécanisme d'animation. Bornes désactivent visuellement le
+                bouton correspondant plutôt que de le laisser sans effet
+                silencieux. */}
+            <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1">
+              <button
+                aria-label="Zoom avant"
+                disabled={zoomFactor <= ZOOM_MIN}
+                onClick={() => setZoomFactor((value) => Math.max(ZOOM_MIN, +(value - 0.3).toFixed(2)))}
+                className="etat-btn etat-btn-outline bg-white/95 disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ minHeight: 32, minWidth: 32, padding: 0 }}
+              >
+                <Plus size={15} />
+              </button>
+              <button
+                aria-label="Zoom arrière"
+                disabled={zoomFactor >= ZOOM_MAX}
+                onClick={() => setZoomFactor((value) => Math.min(ZOOM_MAX, +(value + 0.3).toFixed(2)))}
+                className="etat-btn etat-btn-outline bg-white/95 disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ minHeight: 32, minWidth: 32, padding: 0 }}
+              >
+                <Minus size={15} />
+              </button>
+            </div>
+
             <div className="relative aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full lg:min-h-[520px]">
               <CoastlineTerritoryMap
                 territories={state.territories}
@@ -786,12 +906,23 @@ export default function EtatPage() {
                 <TensionGlyph status={panelGlyphStatus} size={26} pulse={panelGlyphStatus !== "stable"} />
                 <p className="text-[11px] font-bold uppercase tracking-widest">{panelEyebrow}</p>
               </div>
-              {selectedTerritoryId && (
-                <button onClick={() => { setSelectedTerritoryId(null); setCameraForcedNational(false); }} className="text-[11px] font-semibold text-[var(--etat-stone-400)] underline decoration-dotted underline-offset-2 hover:text-[var(--etat-stone-600)]">Revenir à la lecture par défaut</button>
-              )}
+              {/* StatusBadge (mandat "nouvelle DA Vue d'ensemble") : réutilise
+                  le composant déjà utilisé dans le carrousel "Où concentrer
+                  l'attention" (arbitrage Lot 0 : pas un nouveau composant) —
+                  qualification réelle à côté de l'eyebrow, comme la maquette. */}
+              <StatusBadge status={panelGlyphStatus} />
             </div>
             <h2 className="etat-display mt-3 text-xl not-italic text-[var(--etat-navy-950)]">{panelHeading}</h2>
+            {/* Zone (Territory.region, mandat "nouvelle DA Vue d'ensemble") :
+                champ réel confirmé au Lot 0, absent jusqu'ici de CE panneau
+                (déjà présent dans le tiroir Territoire). Affiché seulement
+                pour une sélection explicite — dominant.kind "calme"/"signal"
+                n'a pas de territoire unique à qualifier par une zone. */}
+            {selectedTerritoryId && focusTerritory && <p className="mt-1 text-xs font-semibold text-[var(--etat-stone-400)]">{focusTerritory.region}</p>}
             <p className="mt-2 text-sm leading-6 text-[var(--etat-stone-600)]">{panelDescription}</p>
+            {selectedTerritoryId && (
+              <button onClick={() => { setSelectedTerritoryId(null); setCameraForcedNational(false); }} className="mt-2 self-start text-[11px] font-semibold text-[var(--etat-stone-400)] underline decoration-dotted underline-offset-2 hover:text-[var(--etat-stone-600)]">Revenir à la lecture par défaut</button>
+            )}
 
             {/* Lot 1 (Refonte Premium XXL, mandat §8) : les mentions texte
                 "situations ouvertes"/"capacités fragiles" qui vivaient ici
@@ -826,13 +957,19 @@ export default function EtatPage() {
               </div>
             )}
 
+            {/* Libellés et ordre du mandat ("nouvelle DA Vue d'ensemble",
+                §4) : "Voir la situation" (outline) puis "Ouvrir le
+                territoire" (primaire) — ordre et libellé "Ouvrir le
+                territoire" (au lieu de "Voir le territoire") repris
+                explicitement de la maquette, même tiroir Territoire
+                derrière, aucun comportement changé. */}
             <div className="mt-5 flex flex-1 flex-col justify-end gap-2">
-              {focusTerritory && <button className="etat-btn etat-btn-outline justify-center" onClick={() => setTerritoryDrawer(focusTerritory)}>Voir le territoire <ArrowRight size={15} /></button>}
               {dominantPrioritySituation ? (
-                <button onClick={() => setSituationDrawer(dominantPrioritySituation)} className="etat-btn etat-btn-primary justify-center">Voir la situation <ArrowRight size={15} /></button>
+                <button onClick={() => setSituationDrawer(dominantPrioritySituation)} className="etat-btn etat-btn-outline justify-center">Voir la situation <ArrowRight size={15} /></button>
               ) : (
                 <a href="#arbitrage" className="etat-btn etat-btn-outline justify-center">Voir les situations à arbitrer <ArrowRight size={15} /></a>
               )}
+              {focusTerritory && <button className="etat-btn etat-btn-primary justify-center" onClick={() => setTerritoryDrawer(focusTerritory)}>Ouvrir le territoire <ArrowRight size={15} /></button>}
             </div>
           </aside>
         </div>
