@@ -5,7 +5,6 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Compass, Factory, FileDown, Minus, Plus, Radio, Sailboat, Search, Send, ShieldCheck } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
-import { InstitutionIllustration } from "@/components/public/CoordinationIllustration";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
 import { DecisionIcon, ResultatIcon, SituationIcon } from "@/components/etat/MotifIcons";
@@ -46,9 +45,12 @@ import {
 // plus utilisé ici — ses 2 métriques encore non relogées (situations à
 // arbitrer, capacités fragiles) restent trackées pour le Chapitre 2, pas
 // perdues, juste pas encore leur place définitive. DottedMap n'est plus
-// utilisé sur cette page (remplacé) ; InstitutionIllustration migre du
-// Hero (retiré) vers le bandeau rapport bailleurs, où son usage reste
-// légitime (§18 du mandat) plutôt que de devenir orphelin.
+// utilisé sur cette page (remplacé) ; InstitutionIllustration avait
+// migré du Hero (retiré) vers le bandeau rapport bailleurs (§18 du
+// mandat) — retirée à son tour de ce bandeau (mandat "2 assets
+// d'illustration réelle", 2026-08-23) au profit du fond photo réel,
+// cf. commentaire sur place. Toujours utilisée telle quelle sur
+// Login/Institution (CoordinationIllustration.tsx), non modifiée.
 //
 // Écarts assumés vs la référence, validés par le CEO (2026-08-17) : pas de
 // score de confiance composite fabriqué (§20, doctrine anti-score déjà
@@ -1583,15 +1585,40 @@ export default function EtatPage() {
         </div>
       </section>
 
-      {/* InstitutionIllustration (P5, audit XXL Public) migre ici depuis
-          l'ancien Hero (retiré au Lot B) — usage légitime au sens du
-          mandat (§18, "couverture de rapport") plutôt que devenir un
-          composant orphelin. */}
+      {/* Fond Passerelle — asset d'illustration réelle (mandat "intégrer
+          2 assets d'illustration réelle", 2026-08-23), remplace
+          InstitutionIllustration à CET emplacement précis. Le composant
+          reste utilisé tel quel ailleurs (Login/Institution, P5 audit
+          XXL Public) — non touché, non propagé, retiré seulement ici.
+          Ce n'est pas un doublon du même type que Compass/Sailboat/Fish
+          au fond Atlas (InstitutionIllustration est un diagramme
+          abstrait tensions→réseau→décision, pas une icône littérale de
+          pirogue/mouette/boussole) : il est retiré parce qu'IllustrationBase
+          peint son propre rectangle de fond marine opaque sur toute sa
+          zone (cf. CoordinationIllustration.tsx) — superposé à la vraie
+          photo, il l'aurait partiellement masquée d'un aplat marine
+          plutôt que de la laisser porter l'ambiance, l'inverse du but de
+          ce lot. .etat-canvas-dark garde son dégradé CSS existant (texte,
+          position: relative) : simplement recouvert par la photo, pas
+          modifié — la classe est partagée avec /app/etat/rapport (bandeau
+          hero, habillé séparément ci-dessous avec son propre fichier),
+          la retoucher globalement aurait propagé ce fond aux deux
+          emplacements avec la même image. */}
       <section className="etat-canvas-dark relative flex flex-wrap items-center justify-between gap-5 overflow-hidden rounded-[28px] p-7 shadow-lg">
-        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[32%] opacity-70 md:block" aria-hidden="true">
-          <InstitutionIllustration />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, var(--etat-navy-950) 0%, transparent 65%)" }} />
-        </div>
+        <Image
+          src="/images/etat-passerelle-performance-background.webp"
+          alt=""
+          fill
+          sizes="100vw"
+          priority={false}
+          className="pointer-events-none absolute inset-0 object-cover"
+        />
+        {/* Voile (même discipline que le fond Atlas) : le texte se lit
+            déjà sur la zone la plus sombre du fichier (marine, à gauche),
+            mais un léger assombrissement supplémentaire sécurise le
+            contraste du texte le plus fin (etat-offwhite/65) — vérifié
+            par capture, pas présumé. */}
+        <div className="pointer-events-none absolute inset-0 bg-[var(--etat-navy-950)]/25" aria-hidden="true" />
         <div className="relative z-10">
           <p className="etat-eyebrow etat-eyebrow--on-dark">7 · Programmes &amp; rapport</p>
           <h2 className="etat-display mt-2 text-2xl not-italic">Un rapport d’impact prêt à partager.</h2>

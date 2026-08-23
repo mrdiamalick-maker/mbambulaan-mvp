@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, Compass, Download, Handshake, ListChecks, Printer, ShieldAlert, Users } from "lucide-react";
@@ -288,36 +289,68 @@ export default function EtatReportPage() {
         ))}
       </nav>
 
-      <section id="synthese" className="etat-canvas-dark mx-5 mt-5 scroll-mt-6 rounded-[28px] p-8 lg:mx-8 lg:p-10">
-        <p className="etat-eyebrow etat-eyebrow--on-dark">Rapport bailleurs</p>
-        <h1 className="etat-display mt-3 text-2xl not-italic text-white md:text-3xl">Impact de la coordination, territoire par territoire.</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">Généré depuis l’environnement {state.tenant.name}, le {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}. Préparé pour faciliter vos échanges avec les partenaires et bailleurs.</p>
+      {/* Fond hero — asset d'illustration réelle (mandat "2 assets
+          d'illustration réelle", 2026-08-23), même méthode que le fond
+          Atlas et le fond Passerelle : posé sous le contenu existant,
+          object-cover, aucune modification du texte/CTA/données. Aucun
+          élément décoratif Lucide/SVG additionnel n'existait déjà à cet
+          emplacement (seules les 4 icônes de la bande KPI, fonctionnelles
+          — chacune accompagne un vrai chiffre, pas de la décoration —
+          restent inchangées). overflow-hidden ajouté (absent jusqu'ici,
+          jamais nécessaire tant que le fond n'était qu'un dégradé CSS
+          contenu par le rounded-[28px] lui-même) : indispensable
+          maintenant pour que la photo en fill respecte le même rayon
+          d'angle que le bandeau. Contenu existant enveloppé dans
+          "relative z-10" (absent avant, inutile tant qu'il n'y avait
+          aucun élément position:absolute à ce niveau) : sans ça, un
+          enfant absolument positionné (la photo) se peint après les
+          enfants en flux normal dans l'ordre d'empilement CSS, donc
+          au-dessus du texte plutôt qu'en dessous. */}
+      <section id="synthese" className="etat-canvas-dark relative mx-5 mt-5 scroll-mt-6 overflow-hidden rounded-[28px] p-8 lg:mx-8 lg:p-10">
+        <Image
+          src="/images/etat-rapport-hero-background.webp"
+          alt=""
+          fill
+          sizes="100vw"
+          priority={false}
+          className="pointer-events-none absolute inset-0 object-cover"
+        />
+        {/* Voile (même discipline que les 2 autres fonds de ce lot) :
+            assombrissement léger pour sécuriser le texte le plus fin
+            (white/55 et white/65) sur toute la largeur du bandeau,
+            vérifié par capture, pas présumé. */}
+        <div className="pointer-events-none absolute inset-0 bg-[var(--etat-navy-950)]/30" aria-hidden="true" />
+        <div className="relative z-10">
+          <p className="etat-eyebrow etat-eyebrow--on-dark">Rapport bailleurs</p>
+          <h1 className="etat-display mt-3 text-2xl not-italic text-white md:text-3xl">Impact de la coordination, territoire par territoire.</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">Généré depuis l’environnement {state.tenant.name}, le {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}. Préparé pour faciliter vos échanges avec les partenaires et bailleurs.</p>
 
-        {/* Lot Rapport-C (mandat §4.3) : synthèse propre au portefeuille
-            de rapports — remplace les 4 KPI de l'Espace État du Lot A
-            (territoires/situations/acteurs/opportunités), redondants
-            avec /app/etat et hors-sujet pour un lecteur de CE rapport.
-            Chiffres inline (même doctrine §17), aucune grosse KPI card. */}
-        <div className="mt-7 grid grid-cols-2 gap-6 border-t border-white/15 pt-6 sm:grid-cols-4">
-          <div>
-            <Compass size={18} color="var(--etat-ocre-dim)" />
-            <p className="etat-display mt-2 text-2xl not-italic text-white"><NumberTicker value={reportsPret} /></p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/55">Rapports prêts</p>
-          </div>
-          <div>
-            <ShieldAlert size={18} color="var(--etat-ocre-dim)" />
-            <p className="etat-display mt-2 text-2xl not-italic text-white"><NumberTicker value={reportsAActualiser} /></p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/55">Rapports à actualiser</p>
-          </div>
-          <div>
-            <Users size={18} color="var(--etat-ocre-dim)" />
-            <p className="etat-display mt-2 text-2xl not-italic text-white"><NumberTicker value={territoriesCovered} /></p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/55">Territoires couverts</p>
-          </div>
-          <div>
-            <Handshake size={18} color="var(--etat-ocre-dim)" />
-            <p className="etat-display mt-2 text-lg not-italic text-white">{lastUpdatedAt ? new Date(lastUpdatedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long" }) : "—"}</p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/55">Dernière mise à jour{dominantTrust ? ` · Confiance dominante : ${trustLabels[dominantTrust]}` : ""}</p>
+          {/* Lot Rapport-C (mandat §4.3) : synthèse propre au portefeuille
+              de rapports — remplace les 4 KPI de l'Espace État du Lot A
+              (territoires/situations/acteurs/opportunités), redondants
+              avec /app/etat et hors-sujet pour un lecteur de CE rapport.
+              Chiffres inline (même doctrine §17), aucune grosse KPI card. */}
+          <div className="mt-7 grid grid-cols-2 gap-6 border-t border-white/15 pt-6 sm:grid-cols-4">
+            <div>
+              <Compass size={18} color="var(--etat-ocre-dim)" />
+              <p className="etat-display mt-2 text-2xl not-italic text-white"><NumberTicker value={reportsPret} /></p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/55">Rapports prêts</p>
+            </div>
+            <div>
+              <ShieldAlert size={18} color="var(--etat-ocre-dim)" />
+              <p className="etat-display mt-2 text-2xl not-italic text-white"><NumberTicker value={reportsAActualiser} /></p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/55">Rapports à actualiser</p>
+            </div>
+            <div>
+              <Users size={18} color="var(--etat-ocre-dim)" />
+              <p className="etat-display mt-2 text-2xl not-italic text-white"><NumberTicker value={territoriesCovered} /></p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/55">Territoires couverts</p>
+            </div>
+            <div>
+              <Handshake size={18} color="var(--etat-ocre-dim)" />
+              <p className="etat-display mt-2 text-lg not-italic text-white">{lastUpdatedAt ? new Date(lastUpdatedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long" }) : "—"}</p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide text-white/55">Dernière mise à jour{dominantTrust ? ` · Confiance dominante : ${trustLabels[dominantTrust]}` : ""}</p>
+            </div>
           </div>
         </div>
       </section>
