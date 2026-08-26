@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FileCheck2, Home, LayoutGrid, LineChart, LogOut, MapPin, Scale, Settings } from "lucide-react";
 
@@ -12,28 +13,30 @@ import { FileCheck2, Home, LayoutGrid, LineChart, LogOut, MapPin, Scale, Setting
 // InstitutionShell.tsx (partagé /app/etat + /app/etat/rapport, arbitrage
 // Lot 0 : "Option A retenue, Rapport en hérite aussi dès ce lot").
 //
-// Cibles d'ancrage : les items pointent vers les sections de /app/etat
-// (#terrain, #arbitrage-detail, etc.), toujours une vraie navigation
-// /app/etat#ancre depuis ce composant — il ne se rend jamais SUR /app/etat
-// lui-même désormais (cf. garde plus haut), donc plus besoin de choisir
-// entre ancrage natif et navigation complète.
+// Cibles de navigation (correctif "pas de scroll infini", 2026-08-26) :
+// de vraies routes désormais, pas des ancres — Arbitrages/Programmes ont
+// leurs propres pages dédiées (/app/etat/arbitrages, /app/etat/
+// programmes), extraites du Brief national qui ne garde plus que carte +
+// brief + synthèse + teasers. "Rapports & redevabilité" pointe vers
+// /app/etat/rapport (le vrai rapport bailleurs déjà entièrement construit)
+// — corrige au passage une incohérence héritée du lot précédent (son
+// état "actif" testait déjà pathname === "/app/etat/rapport" alors que
+// son href pointait ailleurs). Le nouveau registre "Décisions" (ex-
+// #redevabilite sur /app/etat) vit sur /app/etat/redevabilite, atteint
+// depuis le Brief national ("Ce qui est documenté" → "Décisions
+// récentes") plutôt que depuis ce rail — pas un oubli, un choix pour ne
+// pas dépasser les 6 items déjà nommés par le mandat d'origine.
 //
 // Territoires et Performance & impact (mandat "Brief national",
-// 2026-08-23) : les chapitres #territoires et #performance ont été
-// retirés de /app/etat (carrousel "Où concentrer l'attention" → future
-// page dédiée /app/etat/territoires ; "Résultats de la coordination" →
-// future page dédiée /app/etat/performance, aucune des deux construite
-// pour l'instant). Items gardés présents mais désactivés — même
-// discipline que "Réglages" ci-dessous : la structure nommée par le
-// mandat d'origine reste visible, sans pointer vers une ancre qui
-// n'existe plus ou une route qui n'existe pas encore.
+// 2026-08-23) : futures pages dédiées non construites — items gardés
+// présents mais désactivés, même discipline que "Réglages" ci-dessous.
 const navItems = [
-  { anchor: "#terrain", label: "Vue d’ensemble", icon: Home },
-  { anchor: "#territoires", label: "Territoires", icon: MapPin, disabled: true },
-  { anchor: "#arbitrage-detail", label: "Arbitrages", icon: Scale },
-  { anchor: "#programmes-detail", label: "Programmes", icon: LayoutGrid },
-  { anchor: "#performance", label: "Performance & impact", icon: LineChart, disabled: true },
-  { anchor: "#redevabilite", label: "Rapports & redevabilité", icon: FileCheck2 }
+  { href: "/app/etat", label: "Vue d’ensemble", icon: Home },
+  { label: "Territoires", icon: MapPin, disabled: true },
+  { href: "/app/etat/arbitrages", label: "Arbitrages", icon: Scale },
+  { href: "/app/etat/programmes", label: "Programmes", icon: LayoutGrid },
+  { label: "Performance & impact", icon: LineChart, disabled: true },
+  { href: "/app/etat/rapport", label: "Rapports & redevabilité", icon: FileCheck2 }
 ] as const;
 
 // Couleurs D9 en valeurs littérales, pas en var(--etat-*) : ce shell est
@@ -71,25 +74,22 @@ export function EtatSidebar({ onLogout }: { onLogout: () => void }) {
     <aside className="hidden w-56 shrink-0 flex-col bg-white p-3 lg:flex" style={{ borderRight: `1px solid ${D9.line}` }}>
       <nav className="flex flex-1 flex-col gap-0.5">
         {navItems.map((item) => {
-          if ("disabled" in item && item.disabled) {
+          if (!("href" in item)) {
             return (
-              <span key={item.anchor} className="flex cursor-not-allowed items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: D9.stone400, borderLeft: "3px solid transparent" }} aria-disabled="true" title="Page dédiée à venir">
+              <span key={item.label} className="flex cursor-not-allowed items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: D9.stone400, borderLeft: "3px solid transparent" }} aria-disabled="true" title="Page dédiée à venir">
                 <item.icon size={17} />
                 {item.label}
               </span>
             );
           }
-          // Approximation honnête, pas un scroll-spy réel (gain marginal
-          // pour un observer supplémentaire, non demandé par le mandat) :
-          // seul "Rapports & redevabilité" a un état actif ici, puisque
-          // ce composant ne se rend jamais SUR /app/etat lui-même — les
-          // autres items naviguent toujours vers /app/etat, jamais "actifs"
-          // depuis /app/etat/rapport.
-          const active = item.anchor === "#redevabilite" && pathname === "/app/etat/rapport";
+          // Actif = route courante exacte, un vrai test de pathname
+          // désormais (ce sont de vraies pages, plus des ancres sur une
+          // page qu'on ne rend jamais soi-même).
+          const active = pathname === item.href;
           return (
-            <a
-              key={item.anchor}
-              href={`/app/etat${item.anchor}`}
+            <Link
+              key={item.href}
+              href={item.href}
               className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition"
               style={active
                 ? { backgroundColor: D9.terracottaDim, color: D9.terracotta, borderLeft: `3px solid ${D9.terracotta}` }
@@ -97,7 +97,7 @@ export function EtatSidebar({ onLogout }: { onLogout: () => void }) {
             >
               <item.icon size={17} />
               {item.label}
-            </a>
+            </Link>
           );
         })}
       </nav>

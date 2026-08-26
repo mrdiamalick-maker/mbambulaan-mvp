@@ -2,24 +2,31 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Clock, Compass, Factory, FileDown, Flag, ListChecks, Minus, Plus, Radio, Sailboat, Search, Send } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, ArrowRight, Clock, Compass, Factory, Flag, ListChecks, Minus, Plus, Sailboat } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
-import { DecisionIcon, SituationIcon } from "@/components/etat/MotifIcons";
+import { SituationIcon } from "@/components/etat/MotifIcons";
 import { CoastlineTerritoryMap } from "@/components/territories/CoastlineTerritoryMap";
 import { coastlineViewBox, territoryMapPositions } from "@/domain/territory-map-positions";
 import { NumberTicker } from "@/components/magicui/number-ticker";
-import { decisionTypeLabels, type Initiative, type Situation, type Territory } from "@/domain/types";
-import { fieldVisitObjectiveLabels, type FieldVisit, type FieldVisitObjective } from "@/domain/ministry/field-visit";
 import {
-  vigilanceCategoryLabels,
-  vigilanceSeverityLabels,
-  type VigilanceCase,
-  type VigilanceCategory,
-  type VigilanceSeverity
-} from "@/domain/ministry/vigilance";
+  Mission,
+  MissionForm,
+  SituationDetail,
+  StatusBadge,
+  TerritoryDetail,
+  formatFcfa,
+  glyphBorderColor,
+  initiativeStatusLabel,
+  priorityLabels,
+  priorityToTag,
+  situationPriorityRank,
+  statusTagLabel
+} from "@/components/etat/shared";
+import { type Situation, type Territory } from "@/domain/types";
+import { vigilanceCategoryLabels, type VigilanceCase, type VigilanceSeverity } from "@/domain/ministry/vigilance";
 
 // Audit DA Premium XXL v2 (mandat CEO 2026-08-17). Cette page adopte
 // .etat-scope (etat-design-system.css), déjà construit et validé sur la
@@ -56,42 +63,9 @@ import {
 // score de confiance composite fabriqué (§20, doctrine anti-score déjà
 // appliquée ailleurs) ; pas de second acteur "proposé par / validé par"
 // inventé pour le journal de décisions (le modèle n'a qu'un décideur).
+// severityToTag reste local : n'utilisé que par le calcul `dominant` de
+// cette page (aucun autre consommateur, pas déplacé vers shared.tsx).
 const severityToTag: Record<VigilanceSeverity, "stable" | "vigilance" | "critique"> = { faible: "stable", moyenne: "vigilance", haute: "vigilance", critique: "critique" };
-const priorityLabels: Record<Situation["priority"], string> = { critique: "Critique", haute: "Élevé", moyenne: "Moyen", faible: "Faible" };
-const priorityToTag: Record<Situation["priority"], "stable" | "vigilance" | "critique"> = { critique: "critique", haute: "vigilance", moyenne: "stable", faible: "stable" };
-const glyphBorderColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "var(--etat-navy-600)", vigilance: "var(--etat-ocre)", critique: "var(--etat-terracotta)" };
-const glyphFillColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "rgba(29,68,104,.05)", vigilance: "rgba(198,138,44,.07)", critique: "rgba(182,82,47,.07)" };
-const arbitrageFillColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "rgba(29,68,104,.08)", vigilance: "rgba(198,138,44,.14)", critique: "rgba(182,82,47,.15)" };
-const statusTagClass: Record<"stable" | "vigilance" | "critique", string> = { stable: "etat-tag--stable", vigilance: "etat-tag--vigilance", critique: "etat-tag--critique" };
-const statusTagLabel: Record<"stable" | "vigilance" | "critique", string> = { stable: "Stable", vigilance: "Vigilance", critique: "Critique" };
-// Correctif 2026-08-17 (audit CTA) : la fiche territoire publique
-// (/atlas/[slug]) est indexée par slug, pas par Territory.id du Produit —
-// les deux coïncident pour 17 des 18 territoires partagés, sauf "joal"
-// (Territory.id="joal", data/public-atlas.ts slug="joal-fadiouth") où le
-// lien produisait une vraie 404, vérifié en conditions réelles. Petite
-// table de correspondance plutôt qu'une dépendance du Produit vers
-// data/public-atlas.ts (fichier 100% éditorial Public, à ne pas coupler).
-const territoryPublicSlug: Partial<Record<string, string>> = { joal: "joal-fadiouth" };
-// Correctif 2026-08-18 (CEO) : "Ouakam" n'a jamais eu de fiche Atlas
-// publique (confirmé par grep sur data/public-atlas.ts, préexistant à
-// l'intégration du jeu de données enrichi — pas un des 20 territoires
-// éditoriaux couverts par le site public). Contrairement à Joal, il
-// n'existe aucun slug de correspondance à mapper : le contenu public
-// n'existe simplement pas. Même discipline de découplage que
-// territoryPublicSlug ci-dessus (liste locale plutôt qu'un import
-// depuis data/public-atlas.ts) — liste à tenir à jour si d'autres
-// territoires Produit rejoignent la démonstration sans fiche publique.
-const territoriesWithoutPublicAtlas = new Set(["ouakam"]);
-const pipelineStages: Array<{ status: Situation["status"]; label: string }> = [
-  { status: "recue", label: "Reçue" },
-  { status: "qualification", label: "Qualification" },
-  { status: "priorisee", label: "Priorisée" },
-  { status: "coordination", label: "Coordination" },
-  { status: "intervention", label: "Intervention" },
-  { status: "attente", label: "En attente" },
-  { status: "resultat", label: "Résultat" },
-  { status: "reglee", label: "Réglée" }
-];
 
 // viewBoxMinX/Y ne servaient qu'à territoryZoomStyle (mini-cartes du
 // Chapitre 5 "Où concentrer l'attention", retiré du premier écran —
@@ -176,42 +150,9 @@ function useAnimatedViewBox(target: string, durationMs = 420): string {
   return current;
 }
 
-function StatusBadge({ status }: { status: "stable" | "vigilance" | "critique" }) {
-  return <span className={`etat-tag ${statusTagClass[status]}`}>{statusTagLabel[status]}</span>;
-}
-
-function formatFcfa(amount: number) {
-  return `${new Intl.NumberFormat("fr-FR").format(Math.round(amount))} FCFA`;
-}
-
-// Lot État-E — mêmes libellés que /app/app/(coordination)/initiatives/page.tsx
-// et /app/etat/rapport (page interne + rapport, non modifiés) pour ne pas
-// introduire un 3e vocabulaire de statut de financement.
-const fundingStatusLabel: Record<"a_mobiliser" | "en_instruction" | "confirme", string> = { a_mobiliser: "À mobiliser", en_instruction: "En instruction", confirme: "Confirmé" };
-const fundingTagClass: Record<"a_mobiliser" | "en_instruction" | "confirme", string> = { a_mobiliser: "etat-tag--stable", en_instruction: "etat-tag--vigilance", confirme: "etat-tag--reel" };
-
-// Baseline → actuel → cible : même formule générique que /app/etat/rapport
-// (Lot B), correcte aussi pour les indicateurs à réduire (cible < baseline).
-function indicatorProgress(indicator: { baseline: number; target: number; current: number }) {
-  const span = indicator.target - indicator.baseline;
-  if (span === 0) return 100;
-  return Math.min(100, Math.max(0, Math.round(((indicator.current - indicator.baseline) / span) * 100)));
-}
-
-type Mission = {
-  key: string;
-  territoryId: string;
-  territoryLabel: string;
-  raison: string;
-  action: string;
-  glyphStatus: "stable" | "vigilance" | "critique";
-  suggestedObjective: FieldVisitObjective;
-};
-
 export default function EtatPage() {
   const { state, actorId } = useProduct();
   const [cases, setCases] = useState<VigilanceCase[]>([]);
-  const [visits, setVisits] = useState<FieldVisit[]>([]);
   const [territoryDrawer, setTerritoryDrawer] = useState<Territory | null>(null);
   // Lot État-A (mandat CEO 2026-08-20, §3.2/§3.3) : état distinct de
   // territoryDrawer — un clic sur l'Atlas sélectionne un territoire pour
@@ -252,29 +193,25 @@ export default function EtatPage() {
   // décisions de démonstration partagent toutes le même decidedAt,
   // cf. commentaire plus bas, donc pas de filtre Période fabriqué dessus).
   const [periodFilter, setPeriodFilter] = useState<string>("all");
-  // Lot État-E (mandat §3.8) : filtre statut/phase propre aux programmes
-  // — le filtre territoire, lui, réutilise selectedTerritoryId (même
-  // Périmètre que le reste de la page, cf. Lot État-B).
-  const [programmeStatusFilter, setProgrammeStatusFilter] = useState<Initiative["status"] | "all">("all");
-  // Lot État-F (mandat §3.7) : filtre urgence propre à Situations à
-  // arbitrer — le filtre territoire réutilise, ici aussi, le Périmètre
-  // partagé (selectedTerritoryId).
-  const [urgenceFilter, setUrgenceFilter] = useState<"all" | "critique" | "haute">("all");
-  // Recherche libre (Lot 2, Refonte Premium XXL, arbitrage CEO Lot 0) :
-  // filtre texte réel sur Situations à arbitrer, en complément du filtre
-  // Urgence et du Périmètre partagé — pas un champ décoratif.
-  const [arbitrageSearch, setArbitrageSearch] = useState("");
   const [situationDrawer, setSituationDrawer] = useState<Situation | null>(null);
   const [missionDrawer, setMissionDrawer] = useState<Mission | null>(null);
-  const [signalDrawerOpen, setSignalDrawerOpen] = useState(false);
+  // programmeStatusFilter/urgenceFilter/arbitrageSearch/signalDrawerOpen
+  // supprimés (correctif "pas de scroll infini", navigation par page,
+  // 2026-08-26) : ces filtres/actions n'ont plus d'interface sur cette
+  // page — ils vivent désormais sur /app/etat/programmes et
+  // /app/etat/arbitrages (registres complets extraits), qui gèrent leur
+  // propre état local. Les garder ici, sans UI pour les faire varier,
+  // aurait été un état mort trompeur (toujours "all"/"", jamais changé).
   // prioritiesTrackRef/prioritiesIndex/prioriteTab (carrousel "Où
   // concentrer l'attention") supprimés avec le Chapitre 5, retiré du
   // premier écran — cf. commentaire de retrait explicite sur place.
 
+  // visits n'est plus lu sur cette page (la ligne "visite(s) planifiée(s)"
+  // vit désormais sur /app/etat/arbitrages, cf. correctif "pas de scroll
+  // infini") — seul cases reste nécessaire ici (openCases, TerritoryDetail).
   const reload = async () => {
-    const [visitsRes, casesRes] = await Promise.all([fetch("/api/ministry/field-visits"), fetch("/api/ministry/vigilance")]);
-    if (visitsRes.ok) setVisits((await visitsRes.json()).visits ?? []);
-    if (casesRes.ok) setCases((await casesRes.json()).cases ?? []);
+    const response = await fetch("/api/ministry/vigilance");
+    if (response.ok) setCases((await response.json()).cases ?? []);
   };
 
   useEffect(() => {
@@ -422,43 +359,35 @@ export default function EtatPage() {
     : "Le réseau reste sous surveillance continue ; les territoires actifs restent consultables sur la carte.";
 
   // Lot État-B — Périmètre réel (mandat §3.1) : réutilise selectedTerritoryId
-  // (même état que le clic Atlas, Lot État-A) plutôt qu'un second
-  // mécanisme de sélection parallèle — un seul territoire "actif" pour
-  // toute la page, quelle que soit son origine (carte ou sélecteur).
-  // Recherche libre (Lot 2, arbitrage CEO Lot 0) : sur titre, prochaine
-  // étape et nom du territoire — les seuls champs texte réellement lisibles
-  // par un décideur sur cette ligne, pas d'index caché ni de champ interne.
-  const arbitrageSearchNormalized = arbitrageSearch.trim().toLowerCase();
+  // (même état que le clic Atlas, Lot État-A) — un seul territoire "actif"
+  // pour toute la page, quelle que soit son origine (carte ou sélecteur).
+  //
+  // Filtre Recherche/Urgence/Statut retirés d'ici (correctif "pas de
+  // scroll infini", navigation par page, 2026-08-26) : ils vivent
+  // désormais sur /app/etat/arbitrages et /app/etat/programmes (registres
+  // complets), qui gèrent leur propre état local — situationsAArbitrer et
+  // filteredProgrammes ne servent plus qu'à calculer les 3 premiers du
+  // teaser correspondant (situationsTeaser/programmesTeaser plus bas),
+  // toujours filtrés par le même Périmètre partagé que le reste du Brief
+  // national. recentDecisions (registre "Décisions", .slice(0,5)) est
+  // retiré : plus aucun consommateur sur cette page, le registre complet
+  // vit désormais sur /app/etat/redevabilite (sans plafond, cf. ce fichier).
   const situationsAArbitrer = state.situations
     .filter((item) =>
       item.status !== "reglee" &&
-      (urgenceFilter === "all" ? (item.priority === "critique" || item.priority === "haute") : item.priority === urgenceFilter) &&
-      (!selectedTerritoryId || item.territoryId === selectedTerritoryId) &&
-      (arbitrageSearchNormalized === "" || [
-        item.title,
-        item.nextStep,
-        state.territories.find((territory) => territory.id === item.territoryId)?.name ?? ""
-      ].some((field) => field.toLowerCase().includes(arbitrageSearchNormalized)))
+      (item.priority === "critique" || item.priority === "haute") &&
+      (!selectedTerritoryId || item.territoryId === selectedTerritoryId)
     )
     .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority]);
-  const recentDecisions = [...state.decisions]
-    .filter((item) => {
-      if (!selectedTerritoryId) return true;
-      const linkedSituation = state.situations.find((situation) => situation.id === item.situationId);
-      return linkedSituation?.territoryId === selectedTerritoryId;
-    })
-    .sort((a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime())
-    .slice(0, 5);
   // Dates calendaires réelles disponibles pour le filtre Période — dérivées
   // des landings (seule donnée avec une vraie dispersion temporelle ici).
   const landingDates = [...new Set(state.landings.map((item) => (item.weighedAt ?? item.arrivedAt ?? "").slice(0, 10)).filter(Boolean))].sort();
 
-  // Lot État-E (mandat §3.8) — portefeuille de programmes filtrable :
-  // toutes les initiatives (plus de limite à 2), filtrées par le
-  // Périmètre partagé (selectedTerritoryId) et par statut/phase.
+  // Lot État-E (mandat §3.8) — même Périmètre partagé que le reste du
+  // Brief national ; le filtre Statut, lui, vit désormais uniquement sur
+  // /app/etat/programmes (cf. remarque ci-dessus).
   const filteredProgrammes = state.initiatives.filter((item) =>
-    (!selectedTerritoryId || item.territoryIds.includes(selectedTerritoryId)) &&
-    (programmeStatusFilter === "all" || item.status === programmeStatusFilter)
+    !selectedTerritoryId || item.territoryIds.includes(selectedTerritoryId)
   );
 
   // Teasers "À arbitrer"/"Programmes à suivre" (mandat "Brief national",
@@ -899,18 +828,31 @@ export default function EtatPage() {
 
       {/* 3 sections sous le fold (mandat "Brief national", §6, mapping
           tranché par le CEO — "À arbitrer"/"Programmes à suivre" en
-          teaser de 3 réels + "Voir tout" vers le registre complet
-          préservé plus bas ; "Ce qui est documenté" en 3 liens de
-          navigation, sans donnée à calculer — la maquette elle-même
-          n'affiche qu'un tiret "—" identique sur ses 3 lignes, pas un
-          chiffre placeholder à reproduire). Pas de section id dédiée :
-          rencontrée au passage en descendant la page, pas une cible de
-          nav à part (cf. commentaire de la nav d'ancrage plus haut). */}
+          teaser de 3 réels + "Voir tout" ; "Ce qui est documenté" en 3
+          liens de navigation, sans donnée à calculer — la maquette
+          elle-même n'affiche qu'un tiret "—" identique sur ses 3 lignes,
+          pas un chiffre placeholder à reproduire).
+
+          Navigation par page (correctif CEO 2026-08-26, "pas de scroll
+          infini") : les 3 destinations pointent désormais vers de vraies
+          routes (/app/etat/arbitrages, /app/etat/programmes,
+          /app/etat/redevabilite) plutôt que des ancres plus bas sur
+          cette même page — les registres complets (table/filtres/
+          recherche pour Arbitrages, portefeuille filtrable pour
+          Programmes, chronologie pour Décisions) ont été extraits vers
+          ces pages, PROPREMENT (composants/constantes partagés déplacés
+          dans src/components/etat/shared.tsx, aucune reconstruction —
+          "Résultats et effets"/"Rapports et redevabilité" restent
+          inchangés, ils pointaient déjà vers de vraies pages
+          (/app/etat/rapport) avant ce correctif. Le Brief national
+          s'arrête ici : carte + brief du jour + synthèse + ces 3
+          teasers, rien de plus en dessous (plus de chapitres complets,
+          plus de bandeau passerelle — cf. suite du fichier). */}
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="etat-panel p-5">
           <div className="flex items-center justify-between gap-2">
             <p className="etat-eyebrow">À arbitrer</p>
-            <a href="#arbitrage-detail" className="flex shrink-0 items-center gap-1 text-xs font-bold text-[var(--etat-navy-800)] hover:text-[var(--etat-navy-600)]">Voir tout <ArrowRight size={12} /></a>
+            <Link href="/app/etat/arbitrages" className="flex shrink-0 items-center gap-1 text-xs font-bold text-[var(--etat-navy-800)] hover:text-[var(--etat-navy-600)]">Voir tout <ArrowRight size={12} /></Link>
           </div>
           <div className="mt-3 space-y-2.5">
             {situationsTeaser.length === 0 ? (
@@ -934,7 +876,7 @@ export default function EtatPage() {
         <div className="etat-panel p-5">
           <div className="flex items-center justify-between gap-2">
             <p className="etat-eyebrow">Programmes à suivre</p>
-            <a href="#programmes-detail" className="flex shrink-0 items-center gap-1 text-xs font-bold text-[var(--etat-navy-800)] hover:text-[var(--etat-navy-600)]">Voir tout <ArrowRight size={12} /></a>
+            <Link href="/app/etat/programmes" className="flex shrink-0 items-center gap-1 text-xs font-bold text-[var(--etat-navy-800)] hover:text-[var(--etat-navy-600)]">Voir tout <ArrowRight size={12} /></Link>
           </div>
           <div className="mt-3 space-y-2.5">
             {programmesTeaser.length === 0 ? (
@@ -949,439 +891,22 @@ export default function EtatPage() {
         </div>
 
         {/* "Ce qui est documenté" : 3 liens, aucune donnée calculée (cf.
-            commentaire ci-dessus). "Décisions récentes" reste sur cette
-            page (#redevabilite, chapitre non touché par ce lot) ;
-            "Résultats et effets"/"Rapports et redevabilité" pointent vers
-            /app/etat/rapport — même raisonnement que le lien de la bande
-            de synthèse plus haut ("seule destination preuve pleinement
-            construite aujourd'hui"). */}
+            commentaire ci-dessus). "Décisions récentes" pointe désormais
+            vers /app/etat/redevabilite (vraie page, correctif "pas de
+            scroll infini") ; "Résultats et effets"/"Rapports et
+            redevabilité" pointent vers /app/etat/rapport, inchangé —
+            même raisonnement que le lien de la bande de synthèse plus
+            haut ("seule destination preuve pleinement construite
+            aujourd'hui"). */}
         <div className="etat-panel p-5">
           <p className="etat-eyebrow">Ce qui est documenté</p>
           <div className="mt-3">
-            <a href="#redevabilite" className="flex items-center justify-between gap-2 border-t border-[var(--etat-line)] py-2.5 text-sm font-semibold text-[var(--etat-navy-950)] first:border-t-0 first:pt-0 hover:text-[var(--etat-navy-600)]">Décisions récentes <ArrowRight size={13} className="shrink-0 text-[var(--etat-stone-400)]" /></a>
+            <Link href="/app/etat/redevabilite" className="flex items-center justify-between gap-2 border-t border-[var(--etat-line)] py-2.5 text-sm font-semibold text-[var(--etat-navy-950)] first:border-t-0 first:pt-0 hover:text-[var(--etat-navy-600)]">Décisions récentes <ArrowRight size={13} className="shrink-0 text-[var(--etat-stone-400)]" /></Link>
             <Link href="/app/etat/rapport" className="flex items-center justify-between gap-2 border-t border-[var(--etat-line)] py-2.5 text-sm font-semibold text-[var(--etat-navy-950)] hover:text-[var(--etat-navy-600)]">Résultats et effets <ArrowRight size={13} className="shrink-0 text-[var(--etat-stone-400)]" /></Link>
             <Link href="/app/etat/rapport" className="flex items-center justify-between gap-2 border-t border-[var(--etat-line)] py-2.5 text-sm font-semibold text-[var(--etat-navy-950)] hover:text-[var(--etat-navy-600)]">Rapports et redevabilité <ArrowRight size={13} className="shrink-0 text-[var(--etat-stone-400)]" /></Link>
           </div>
         </div>
       </div>
-
-      {/* id renommé "arbitrage" → "arbitrage-detail" (mandat "Brief
-          national") : ce chapitre devient une destination secondaire
-          ("ils deviennent une destination secondaire plutôt que le
-          premier écran", arbitrage CEO) — registre complet inchangé
-          (table/filtres/recherche), atteint via "Voir tout" depuis le
-          teaser "À arbitrer" plus haut, plutôt que rencontré en premier
-          en descendant la page. */}
-      <section id="arbitrage-detail" className="scroll-mt-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="etat-eyebrow">Situations à arbitrer — registre complet</p>
-            <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Situations critiques à arbitrer.</h2>
-            <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{situationsAArbitrer.length} situation(s) {urgenceFilter === "all" ? "de risque élevé ou critique" : urgenceFilter === "critique" ? "critiques" : "de risque élevé"} attendent une décision, sur {state.situations.filter((item) => item.status !== "reglee" && (!selectedTerritoryId || item.territoryId === selectedTerritoryId)).length} dossier(s) ouverts{selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}.</p>
-          </div>
-          <div className="flex flex-wrap items-end gap-3">
-            {/* Recherche libre (Lot 2, arbitrage CEO Lot 0) : "il faut la
-                conserver et la rendre plus dynamique" — filtre texte réel,
-                pas décoratif, cf. situationsAArbitrer ci-dessus. */}
-            <label className="block">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Recherche</p>
-              <div className="relative mt-1">
-                <Search size={14} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--etat-stone-400)]" />
-                <input
-                  type="search"
-                  value={arbitrageSearch}
-                  onChange={(event) => setArbitrageSearch(event.target.value)}
-                  placeholder="Titre, étape, territoire…"
-                  className="w-44 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-7 pr-2 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
-                />
-              </div>
-            </label>
-            <label className="block">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Urgence</p>
-              <select
-                value={urgenceFilter}
-                onChange={(event) => setUrgenceFilter(event.target.value as "all" | "critique" | "haute")}
-                className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
-              >
-                <option value="all">Critique + élevé</option>
-                <option value="critique">Critique seulement</option>
-                <option value="haute">Élevé seulement</option>
-              </select>
-            </label>
-            <button className="etat-btn etat-btn-outline" onClick={() => setSignalDrawerOpen(true)}><Radio size={15} /> Signaler une situation</button>
-          </div>
-        </div>
-        {/* Chapitre enveloppé dans .etat-panel (correctif 2026-08-18,
-            vérification par capture) — même doctrine crème/blanc que
-            Résultats de la coordination (cf. commentaire équivalent
-            plus loin). */}
-        <div className="etat-panel mt-5 p-6 lg:p-7">
-        {situationsAArbitrer.length === 0 ? (
-          <p className="text-sm text-[var(--etat-stone-600)]">{arbitrageSearchNormalized ? `Aucune situation ne correspond à « ${arbitrageSearch} » avec ces filtres.` : "Aucune situation de risque élevé ou critique en attente d’arbitrage pour le moment."}</p>
-        ) : (
-          <>
-            {/* Desktop : table — la vraie surface décisionnelle (mandat
-                §5, chapitre 4), même grammaire dual desktop/table + mobile
-                cartes déjà établie dans OpportunitiesExplorer.tsx (P4,
-                audit XXL Public) plutôt qu'un nouveau patron inventé.
-                Échéance/Responsable = Situation.dueAt/responsibleId
-                (champs réels, optionnels — "—" si non renseignés, jamais
-                fabriqués). Bordure/arrondi propres retirés (redondants,
-                désormais imbriqués dans .etat-panel). */}
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--etat-line)] text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">
-                    <th className="px-4 py-3 font-bold">Situation</th>
-                    <th className="px-4 py-3 font-bold">Territoire</th>
-                    <th className="px-4 py-3 font-bold">Urgence</th>
-                    <th className="px-4 py-3 font-bold">Étape</th>
-                    <th className="px-4 py-3 font-bold">Échéance</th>
-                    <th className="px-4 py-3 font-bold">Responsable</th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {situationsAArbitrer.map((situation) => {
-                    const territory = state.territories.find((item) => item.id === situation.territoryId);
-                    const tag = priorityToTag[situation.priority];
-                    const stageLabel = pipelineStages.find((stage) => stage.status === situation.status)?.label ?? situation.status;
-                    const responsable = situation.responsibleId ? state.actors.find((item) => item.id === situation.responsibleId) : undefined;
-                    return (
-                      <tr key={situation.id} className="border-b border-[var(--etat-line)] last:border-b-0" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[tag] }}>
-                        <td className="px-4 py-3"><p className="font-semibold text-[var(--etat-navy-950)]">{situation.title}</p><p className="mt-0.5 text-xs text-[var(--etat-stone-600)]">{situation.nextStep}</p></td>
-                        <td className="px-4 py-3 text-[var(--etat-stone-600)]">{territory?.name ?? situation.territoryId}</td>
-                        <td className="px-4 py-3"><span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : "etat-tag--vigilance"}`}>{priorityLabels[situation.priority]}</span></td>
-                        <td className="px-4 py-3 text-[var(--etat-stone-600)]">{stageLabel}</td>
-                        <td className="px-4 py-3 text-[var(--etat-stone-600)]">{situation.dueAt ? new Date(situation.dueAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) : "—"}</td>
-                        <td className="px-4 py-3 text-[var(--etat-stone-600)]">{responsable?.name ?? "—"}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-2">
-                            <button className="etat-btn etat-btn-outline" style={{ minHeight: 32, padding: "5px 10px", fontSize: 12 }} onClick={() => setMissionDrawer({ key: `situation-${situation.id}`, territoryId: situation.territoryId, territoryLabel: territory?.name ?? situation.territoryId, raison: situation.title, action: situation.nextStep, glyphStatus: tag, suggestedObjective: "verification_vigilance" })}>Visite</button>
-                            <button className="etat-btn etat-btn-primary" style={{ minHeight: 32, padding: "5px 10px", fontSize: 12 }} onClick={() => setSituationDrawer(situation)}>Arbitrer <ArrowRight size={13} /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile : cartes empilées (une table serait illisible sous
-                480px) — même contenu que la table desktop. */}
-            <div className="mt-5 space-y-3 md:hidden">
-              {situationsAArbitrer.map((situation) => {
-                const territory = state.territories.find((item) => item.id === situation.territoryId);
-                const tag = priorityToTag[situation.priority];
-                const stageLabel = pipelineStages.find((stage) => stage.status === situation.status)?.label ?? situation.status;
-                return (
-                  <article key={situation.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--etat-line)] p-4" style={{ borderLeftWidth: 4, borderLeftColor: glyphBorderColor[tag], backgroundColor: arbitrageFillColor[tag] }}>
-                    <div className="flex items-center gap-3">
-                      <TensionGlyph status={tag} size={30} />
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{territory?.name ?? situation.territoryId} · {situation.title}</p><span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : "etat-tag--vigilance"}`}>{priorityLabels[situation.priority]}</span></div>
-                        <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{situation.nextStep}</p>
-                        <p className="mt-1 text-[11px] text-[var(--etat-stone-400)]">Étape {stageLabel.toLowerCase()}</p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button className="etat-btn etat-btn-outline" style={{ minHeight: 36, padding: "6px 14px" }} onClick={() => setMissionDrawer({ key: `situation-${situation.id}`, territoryId: situation.territoryId, territoryLabel: territory?.name ?? situation.territoryId, raison: situation.title, action: situation.nextStep, glyphStatus: tag, suggestedObjective: "verification_vigilance" })}>Planifier une visite</button>
-                      <button className="etat-btn etat-btn-primary" style={{ minHeight: 36, padding: "6px 14px" }} onClick={() => setSituationDrawer(situation)}>Arbitrer <ArrowRight size={15} /></button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </>
-        )}
-        </div>
-        {visits.filter((item) => item.status === "planifiee").length > 0 && <p className="mt-4 text-xs text-[var(--etat-stone-600)]">{visits.filter((item) => item.status === "planifiee").length} visite(s) terrain déjà planifiée(s) par le ministère.</p>}
-      </section>
-
-      {/* Chapitre 3 "Résultats de la coordination" retiré du premier écran
-          (mandat "Brief national", arbitrage explicite CEO 2026-08-23 :
-          "'Résultats et effets' dans 'Ce qui est documenté' pointe vers
-          /app/etat/rapport pour l'instant — seule destination 'preuve'
-          pleinement construite aujourd'hui. Une vraie page /app/etat/
-          performance reste le bon endroit à terme, hors périmètre de ce
-          lot."). Retrait explicite, pas silencieux : les 4 mesures (valeur
-          coordonnée, situations clôturées avec résultat, acteurs
-          impliqués, capacités disponibles) et la courbe/comparaison
-          d'évolution de la valeur coordonnée ne sont plus rendues nulle
-          part sur /app/etat — leur calcul n'est pas repris ici (dead code
-          supprimé avec le JSX : totalValue/executedRatio/engagedValue/
-          closedRatio/closedWithResult/involvedActors/availableCapacity/
-          coordinatedValueTrendPoints/Path/buildTrendPath, tous confirmés
-          sans autre usage sur cette page avant suppression). Le lien
-          "Résultats et effets" pointe vers /app/etat/rapport, qui n'a PAS
-          d'équivalent direct de ces 4 mesures précises aujourd'hui
-          (vérifié — aucune "valeur coordonnée"/"situations clôturées avec
-          résultat" sur cette page) : la destination "preuve" la plus
-          proche disponible, pas un remplacement fonctionnel exact. C'est
-          la vraie page /app/etat/performance, non construite, qui
-          reprendrait cette logique — hors périmètre de ce lot. */}
-
-      {/* Chapitre 4 — Programmes en cours (mandat §3.8, Lot État-E ;
-          repositionné au Lot 2 de la Refonte Premium XXL, cf. commentaire
-          de réordonnancement en tête du composant). Remplace le sous-bloc
-          "Évolution des programmes en cours" (2 initiatives, 1 indicateur
-          chacune) par un vrai portefeuille filtrable : les 9 initiatives,
-          filtre territoire (Périmètre partagé, cf. Lot État-B) + statut/
-          phase, et pour chacune : territoires, responsable, budget/
-          financement (mêmes libellés prudents que /app/etat/rapport,
-          jamais "financement sécurisé"), progression baseline→actuel→
-          cible, prochaine échéance dérivée honnêtement des situations
-          liées (Initiative.situationIds) — aucun champ d'échéance propre
-          au programme n'existe dans le modèle, donc pas de date fabriquée
-          si aucune situation liée n'a de dueAt.
-
-          id renommé "programmes" → "programmes-detail" (mandat "Brief
-          national") : même raisonnement que arbitrage-detail plus haut —
-          registre complet inchangé, devient une destination secondaire
-          atteinte via "Voir tout" depuis le teaser "Programmes à suivre". */}
-      <section id="programmes-detail" className="scroll-mt-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="etat-eyebrow">Programmes en cours — portefeuille complet</p>
-            <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Portefeuille de programmes.</h2>
-            <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{filteredProgrammes.length} programme(s){selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}{programmeStatusFilter !== "all" ? ` · ${initiativeStatusLabel[programmeStatusFilter]}` : ""} sur {state.initiatives.length} au total.</p>
-          </div>
-          <label className="block">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Statut</p>
-            <select
-              value={programmeStatusFilter}
-              onChange={(event) => setProgrammeStatusFilter(event.target.value as Initiative["status"] | "all")}
-              className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
-            >
-              <option value="all">Tous les statuts</option>
-              {(["cadrage", "financee", "execution", "terminee"] as const).map((status) => (
-                <option key={status} value={status}>{initiativeStatusLabel[status]}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div className="etat-panel mt-5 p-6 lg:p-7">
-          {filteredProgrammes.length === 0 ? (
-            <p className="text-sm text-[var(--etat-stone-600)]">Aucun programme ne correspond à ce filtre pour le moment.</p>
-          ) : (
-            <div className="space-y-5">
-              {filteredProgrammes.map((programme) => {
-                const owner = state.actors.find((item) => item.id === programme.ownerId);
-                const territoryNames = programme.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
-                const confirmed = programme.funding.filter((item) => item.status === "confirme").reduce((sum, item) => sum + item.amountFcfa, 0);
-                const totalFunding = programme.funding.reduce((sum, item) => sum + item.amountFcfa, 0);
-                const linkedDueDates = programme.situationIds
-                  .map((id) => state.situations.find((item) => item.id === id)?.dueAt)
-                  .filter((value): value is string => Boolean(value))
-                  .sort();
-                const nextDeadline = linkedDueDates[0];
-                // Progression globale (Lot 2, arbitrage CEO Lot 0) : moyenne
-                // des indicateurs disponibles — la seule règle honnête pour
-                // résumer en un chiffre un programme à 1, 2 ou 3 indicateurs
-                // de nature différente (aucune pondération n'est documentée
-                // dans le modèle). Repli explicite "Aucun indicateur suivi"
-                // pour les programmes sans indicateur (cadrage), jamais 0%
-                // ni un chiffre inventé qui laisserait croire à une mesure.
-                const indicatorsAvgProgress = programme.indicators.length > 0
-                  ? Math.round(programme.indicators.reduce((sum, indicator) => sum + indicatorProgress(indicator), 0) / programme.indicators.length)
-                  : null;
-                return (
-                  <div key={programme.id} className="etat-panel--warm p-5">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-bold text-[var(--etat-navy-950)]">{programme.title}</p>
-                        <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{programme.objective}</p>
-                        <div className="mt-2 flex flex-wrap gap-1.5">{territoryNames.map((name) => <span key={name} className="etat-tag etat-tag--stable">{name}</span>)}</div>
-                      </div>
-                      <span className="etat-tag etat-tag--stable shrink-0">{initiativeStatusLabel[programme.status]}</span>
-                    </div>
-
-                    <div className="mt-4 grid gap-3 border-t border-[var(--etat-line)] pt-4 sm:grid-cols-4">
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Responsable</p>
-                        <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{owner?.name ?? "Non désigné"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Budget / financement</p>
-                        <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{programme.budgetFcfa !== undefined ? formatFcfa(programme.budgetFcfa) : "Budget à estimer"}</p>
-                        <p className="mt-0.5 text-[11px] text-[var(--etat-stone-600)]">{formatFcfa(confirmed)} confirmés{totalFunding > 0 ? ` sur ${formatFcfa(totalFunding)} identifiés` : ""}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Prochaine échéance</p>
-                        <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{nextDeadline ? new Date(nextDeadline).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) : "Aucune échéance documentée"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Progression</p>
-                        <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{indicatorsAvgProgress !== null ? `${indicatorsAvgProgress}% en moyenne` : "Aucun indicateur suivi"}</p>
-                        {indicatorsAvgProgress !== null && <p className="mt-0.5 text-[11px] text-[var(--etat-stone-600)]">{programme.indicators.length} indicateur{programme.indicators.length > 1 ? "s" : ""}</p>}
-                      </div>
-                    </div>
-
-                    {programme.indicators.length > 0 && (
-                      <div className="mt-4 space-y-3 border-t border-[var(--etat-line)] pt-4">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Progression baseline → actuel → cible</p>
-                        {programme.indicators.map((indicator) => (
-                          <div key={indicator.label}>
-                            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-xs">
-                              <span className="font-semibold text-[var(--etat-navy-800)]">{indicator.label}</span>
-                              <span className="text-[var(--etat-stone-600)]">{indicator.baseline}{indicator.unit} → {indicator.current}{indicator.unit} → {indicator.target}{indicator.unit}</span>
-                            </div>
-                            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--etat-line)]"><div className="h-full rounded-full bg-[var(--etat-terracotta)]" style={{ width: `${indicatorProgress(indicator)}%` }} /></div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {programme.funding.length > 0 && (
-                      <div className="mt-4 flex flex-wrap gap-1.5 border-t border-[var(--etat-line)] pt-4">
-                        {programme.funding.map((fund) => {
-                          const partner = state.actors.find((item) => item.id === fund.partnerId);
-                          return <span key={fund.id} className={`etat-tag ${fundingTagClass[fund.status]}`}>{partner?.name ?? fund.partnerId} · {fundingStatusLabel[fund.status]}</span>;
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Chapitre 5 "Où concentrer l'attention ?" (carrousel territorial)
-          retiré du premier écran (mandat "Brief national", arbitrage
-          explicite CEO 2026-08-23 : "Sa fonction trouvera sa place dans
-          la future page dédiée /app/etat/territoires (déjà planifiée, en
-          attente). Pas supprimé définitivement."). Retrait explicite, pas
-          silencieux : prioritized/prioritizedCritique/prioritizedFragile/
-          activePriorityList/prioriteTab/prioritiesIndex/prioritiesTrackRef/
-          territoryZoomStyle ne sont plus utilisés nulle part sur cette
-          page (confirmés sans autre usage avant suppression du JSX et de
-          leur calcul) — territoriesAttention également, seule entrée
-          consommée par prioritized. Rien n'est perdu ailleurs : les 18
-          territoires restent tous cliquables sur la carte du Chapitre 1,
-          exactement comme le notait déjà le commentaire d'origine de ce
-          chapitre. */}
-
-      {/* Lot État-G (mandat §3.9, livrable 6 de la gap analysis) :
-          maintenu comme registre de redevabilité distinct — 13 des 17
-          décisions (76%) ont déjà un engagement terminé avec résultat
-          documenté, une vraie substance, pas un doublon vide avec
-          Situations à arbitrer. Renommé pour le dire explicitement ;
-          statut dérivé affiché sur chaque ligne (jamais masqué quand il
-          n'y a pas encore de résultat — honnêteté du 24% restant).
-          Préfixe numérique "6 ·" retiré (mandat "Brief national") :
-          la séquence 1-7 d'origine a des trous depuis le retrait des
-          Chapitres 3 et 5 — un "6" isolé après "Programmes en cours"
-          (sans numéro) aurait été plus confus qu'utile. Même traitement
-          que arbitrage-detail/programmes-detail plus haut. Section elle-
-          même non touchée par ailleurs : "Décisions récentes" dans
-          "Ce qui est documenté" y renvoie (#redevabilite, inchangé). */}
-      <section id="redevabilite" className="scroll-mt-6">
-        <p className="etat-eyebrow">Décisions exécutées &amp; résultats observés — registre complet</p>
-        <h2 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Décisions exécutées &amp; résultats observés.</h2>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{state.decisions.length} décision(s) enregistrée(s) au total — ce que la coordination a décidé, et ce que cela a produit. Chaque arbitrage institutionnel reste tracé et consultable.</p>
-        {/* Chapitre enveloppé dans .etat-panel (Lot 3) : dernier chapitre
-            de contenu encore posé directement sur le crème sans surface
-            propre — même doctrine que Situations à arbitrer, Résultats de
-            la coordination et Programmes (correctif 2026-08-18 puis Lot 2),
-            appliquée ici pour fermer l'écart. Registre de redevabilité,
-            contenu à fort enjeu institutionnel : mérite la même matérialité
-            que les autres chapitres, pas moins. */}
-        <div className="etat-panel mt-5 p-6 lg:p-7">
-        {recentDecisions.length === 0 ? (
-          <p className="text-sm text-[var(--etat-stone-600)]">Aucune décision enregistrée pour le moment.</p>
-        ) : (
-          <div className="relative ml-5 border-l border-[var(--etat-line)] pl-7">
-            {recentDecisions.map((decision, index) => {
-              const situation = state.situations.find((item) => item.id === decision.situationId);
-              const territory = situation ? state.territories.find((item) => item.id === situation.territoryId) : undefined;
-              const decider = state.actors.find((item) => item.id === decision.decidedByActorId);
-              // "Décision → acteur mobilisé → résultat" (mandat §5,
-              // chapitre 5) : uniquement quand decision.coordinationId
-              // existe et porte des engagements terminés avec un résultat
-              // renseigné — pas de second acteur "proposé par / validé
-              // par" fabriqué (arbitrage CEO 2026-08-17, le modèle n'a
-              // qu'un décideur). Pour les décisions sans coordination
-              // liée, seuls décision → décideur → justification restent
-              // affichés, comme avant.
-              const coordination = decision.coordinationId ? state.coordinationSpaces.find((item) => item.id === decision.coordinationId) : undefined;
-              const completedCommitments = (coordination?.commitments ?? []).filter((item) => item.status === "terminee" && item.result);
-              return (
-                <div key={decision.id} className={index === recentDecisions.length - 1 ? "relative pb-1" : "relative border-b border-[var(--etat-line)] pb-6 mb-6"}>
-                  <span className="absolute -left-[47px] top-0 grid size-10 place-items-center rounded-full" style={{ backgroundColor: "var(--etat-navy-600)" }}><DecisionIcon size={20} color="var(--etat-offwhite)" /></span>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{decisionTypeLabels[decision.type]}{situation ? ` · ${territory?.name ?? situation.territoryId}` : ""}</p>
-                        <span className={`etat-tag ${completedCommitments.length > 0 ? "etat-tag--reel" : "etat-tag--stable"}`}>{completedCommitments.length > 0 ? "Résultat documenté" : "En cours"}</span>
-                      </div>
-                      <p className="mt-1 text-xs leading-5 text-[var(--etat-stone-600)]">{decision.rationale}</p>
-                      <p className="mt-1.5 text-[11px] text-[var(--etat-stone-400)]">{new Date(decision.decidedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}{decider ? ` · ${decider.name}` : ""}</p>
-                      {completedCommitments.length > 0 && (
-                        <div className="mt-2.5 space-y-1 border-t border-[var(--etat-line)] pt-2.5">
-                          {completedCommitments.slice(0, 2).map((commitment) => {
-                            const mobilizedActor = state.actors.find((item) => item.id === commitment.actorId);
-                            return (
-                              <p key={commitment.id} className="text-[11px] leading-4 text-[var(--etat-stone-600)]"><span className="font-bold text-[var(--etat-navy-950)]">Acteur mobilisé · </span>{mobilizedActor?.name ?? commitment.actorId} <span className="font-bold text-[var(--etat-navy-950)]">· Résultat · </span>{commitment.result}</p>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    {situation && <button className="etat-btn etat-btn-outline" style={{ minHeight: 32, padding: "5px 12px", fontSize: 12 }} onClick={() => setSituationDrawer(situation)}>Voir la situation <ArrowRight size={13} /></button>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        </div>
-      </section>
-
-      {/* Fond Passerelle — asset d'illustration réelle (mandat "intégrer
-          2 assets d'illustration réelle", 2026-08-23), remplace
-          InstitutionIllustration à CET emplacement précis. Le composant
-          reste utilisé tel quel ailleurs (Login/Institution, P5 audit
-          XXL Public) — non touché, non propagé, retiré seulement ici.
-          Ce n'est pas un doublon du même type que Compass/Sailboat/Fish
-          au fond Atlas (InstitutionIllustration est un diagramme
-          abstrait tensions→réseau→décision, pas une icône littérale de
-          pirogue/mouette/boussole) : il est retiré parce qu'IllustrationBase
-          peint son propre rectangle de fond marine opaque sur toute sa
-          zone (cf. CoordinationIllustration.tsx) — superposé à la vraie
-          photo, il l'aurait partiellement masquée d'un aplat marine
-          plutôt que de la laisser porter l'ambiance, l'inverse du but de
-          ce lot. .etat-canvas-dark garde son dégradé CSS existant (texte,
-          position: relative) : simplement recouvert par la photo, pas
-          modifié — la classe est partagée avec /app/etat/rapport (bandeau
-          hero, habillé séparément ci-dessous avec son propre fichier),
-          la retoucher globalement aurait propagé ce fond aux deux
-          emplacements avec la même image. */}
-      <section className="etat-canvas-dark relative flex flex-wrap items-center justify-between gap-5 overflow-hidden rounded-[28px] p-7 shadow-lg">
-        <Image
-          src="/images/etat-passerelle-performance-background.webp"
-          alt=""
-          fill
-          sizes="100vw"
-          priority={false}
-          className="pointer-events-none absolute inset-0 object-cover"
-        />
-        {/* Voile (même discipline que le fond Atlas) : le texte se lit
-            déjà sur la zone la plus sombre du fichier (marine, à gauche),
-            mais un léger assombrissement supplémentaire sécurise le
-            contraste du texte le plus fin (etat-offwhite/65) — vérifié
-            par capture, pas présumé. */}
-        <div className="pointer-events-none absolute inset-0 bg-[var(--etat-navy-950)]/25" aria-hidden="true" />
-        <div className="relative z-10">
-          <p className="etat-eyebrow etat-eyebrow--on-dark">Programmes &amp; rapport</p>
-          <h2 className="etat-display mt-2 text-2xl not-italic">Un rapport d’impact prêt à partager.</h2>
-          <p className="mt-2 max-w-xl text-sm text-[var(--etat-offwhite)]/65">Structuré par territoire, exportable, pensé pour vos propres échanges avec les bailleurs et programmes.</p>
-        </div>
-        <Link href="/app/etat/rapport" className="etat-btn etat-btn-primary relative z-10"><FileDown size={15} /> Ouvrir le rapport bailleurs</Link>
-      </section>
       </div>
 
       <Drawer open={!!territoryDrawer} onClose={() => setTerritoryDrawer(null)} eyebrow="Territoire" title={territoryDrawer?.name ?? ""}>
@@ -1405,9 +930,6 @@ export default function EtatPage() {
       <Drawer open={!!situationDrawer} onClose={() => setSituationDrawer(null)} eyebrow="Situation" title={situationDrawer?.title ?? ""}>
         {situationDrawer && <SituationDetail situation={situationDrawer} state={state} onPlanVisit={() => { const territory = state.territories.find((item) => item.id === situationDrawer.territoryId); setSituationDrawer(null); setMissionDrawer({ key: `situation-${situationDrawer.id}`, territoryId: situationDrawer.territoryId, territoryLabel: territory?.name ?? situationDrawer.territoryId, raison: situationDrawer.title, action: situationDrawer.nextStep, glyphStatus: priorityToTag[situationDrawer.priority], suggestedObjective: "verification_vigilance" }); }} />}
       </Drawer>
-      <Drawer open={signalDrawerOpen} onClose={() => setSignalDrawerOpen(false)} eyebrow="Vigilance" title="Signaler une situation">
-        <SignalForm territories={state.territories} onDone={() => { setSignalDrawerOpen(false); void reload(); }} />
-      </Drawer>
       <Drawer open={!!missionDrawer} onClose={() => setMissionDrawer(null)} eyebrow="Terrain" title="Planifier la mission">
         {missionDrawer && <MissionForm mission={missionDrawer} onDone={() => { setMissionDrawer(null); void reload(); }} />}
       </Drawer>
@@ -1415,228 +937,9 @@ export default function EtatPage() {
   );
 }
 
+// severityRank reste local : n'utilisé que par le calcul `dominant` de
+// cette page, comme severityToTag plus haut.
 function severityRank(severity: VigilanceSeverity) {
   return { faible: 0, moyenne: 1, haute: 2, critique: 3 }[severity];
 }
 
-const situationPriorityRank: Record<Situation["priority"], number> = { critique: 3, haute: 2, moyenne: 1, faible: 0 };
-const infraStatusColor: Record<"operationnelle" | "fragile" | "indisponible", string> = { operationnelle: "#1d8a5f", fragile: "var(--etat-ocre)", indisponible: "var(--etat-terracotta)" };
-const infraStatusLabel: Record<"operationnelle" | "fragile" | "indisponible", string> = { operationnelle: "Opérationnelle", fragile: "Fragile", indisponible: "Indisponible" };
-// Lot État-C — mêmes libellés que /app/app/(coordination)/initiatives/page.tsx
-// (page interne, non modifiée) pour ne pas introduire un 2e vocabulaire
-// de statut de programme.
-const initiativeStatusLabel: Record<Initiative["status"], string> = { cadrage: "Cadrage", financee: "Financée", execution: "Exécution", terminee: "Terminée" };
-const commitmentStatusLabel: Record<"a_faire" | "en_cours" | "bloquee" | "terminee", string> = { a_faire: "À faire", en_cours: "En cours", bloquee: "Bloqué", terminee: "Terminé" };
-
-function TerritoryDetail({ territory, cases, onOpenSituation }: { territory: Territory; cases: VigilanceCase[]; onOpenSituation: (situation: Situation) => void }) {
-  const { state } = useProduct();
-  if (!state) return null;
-  const sites = state.sites.filter((item) => item.territoryId === territory.id);
-  const infrastructures = state.infrastructures.filter((item) => item.territoryId === territory.id);
-  const acteurs = state.actors.filter((item) => item.territoryIds.includes(territory.id));
-  const acteursParRole = acteurs.reduce<Record<string, number>>((acc, item) => { acc[item.role] = (acc[item.role] ?? 0) + 1; return acc; }, {});
-  const prioritySituation = state.situations.filter((item) => item.territoryId === territory.id && item.status !== "reglee").sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])[0];
-  // Lot État-C (mandat §3.4) : deux ajouts additifs, données déjà
-  // présentes dans le modèle mais jusqu'ici non lues par cette fiche —
-  // débarquements/flux documentés (via les sites du territoire) et
-  // programmes actifs (Initiative.territoryIds).
-  const siteIds = new Set(sites.map((item) => item.id));
-  const landings = state.landings.filter((item) => siteIds.has(item.siteId));
-  const programmes = state.initiatives.filter((item) => item.territoryIds.includes(territory.id));
-
-  return (
-    <div className="space-y-6">
-      <StatusBadge status={territory.activity} />
-      <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Localisation</p><p className="mt-1 text-sm text-[var(--etat-navy-950)]">{territory.region}</p></div>
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Acteurs actifs · {acteurs.length}</p>
-        {acteurs.length === 0 ? <p className="mt-1.5 text-xs text-[var(--etat-stone-400)]">Aucun acteur rattaché pour le moment.</p> : <div className="mt-1.5 flex flex-wrap gap-1.5">{Object.entries(acteursParRole).map(([role, count]) => <span key={role} className="etat-tag etat-tag--stable capitalize">{role.replaceAll("_", " ")} · {count}</span>)}</div>}
-      </div>
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Infrastructures · {sites.length} site(s), {infrastructures.length} infrastructure(s)</p>
-        {infrastructures.length === 0 ? <p className="mt-1.5 text-xs text-[var(--etat-stone-400)]">Aucune infrastructure recensée.</p> : <div className="mt-1.5 space-y-1.5">{infrastructures.map((infra) => <div key={infra.id} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--etat-line)] bg-white px-3 py-2"><span className="text-xs font-medium capitalize text-[var(--etat-navy-950)]">{infra.type.replaceAll("_", " ")}</span><span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: infraStatusColor[infra.status] }}><span className="size-1.5 rounded-full" style={{ backgroundColor: infraStatusColor[infra.status] }} aria-hidden="true" />{infraStatusLabel[infra.status]}</span></div>)}</div>}
-      </div>
-      {/* Lot État-C : débarquements/flux documentés + programmes actifs —
-          données déjà présentes dans le modèle (landings via les sites
-          du territoire, Initiative.territoryIds), non lues jusqu'ici par
-          cette fiche. Ajout additif, aucune régression sur le reste. */}
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Débarquements documentés · {landings.length}</p>
-        {landings.length === 0 ? <p className="mt-1.5 text-xs text-[var(--etat-stone-400)]">Aucun débarquement documenté pour le moment.</p> : <p className="mt-1.5 text-xs text-[var(--etat-stone-600)]">{landings.filter((item) => item.status === "lots_crees").length} déjà valorisé(s) en lot(s), sur {landings.length} au total.</p>}
-      </div>
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Programmes actifs · {programmes.length}</p>
-        {programmes.length === 0 ? <p className="mt-1.5 text-xs text-[var(--etat-stone-400)]">Aucun programme actif sur ce territoire pour le moment.</p> : <div className="mt-1.5 space-y-1.5">{programmes.map((programme) => <div key={programme.id} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--etat-line)] bg-white px-3 py-2"><span className="text-xs font-medium text-[var(--etat-navy-950)]">{programme.title}</span><span className="etat-tag etat-tag--stable shrink-0">{initiativeStatusLabel[programme.status]}</span></div>)}</div>}
-      </div>
-      {prioritySituation && <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Situation prioritaire</p><div className="mt-2 rounded-lg border border-[var(--etat-line)] bg-white p-3"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{prioritySituation.title}</p><p className="mt-1 text-xs text-[var(--etat-stone-600)]">{prioritySituation.nextStep}</p>{prioritySituation.history.length > 0 && <div className="mt-3 space-y-1.5 border-t border-[var(--etat-line)] pt-3">{prioritySituation.history.slice(0, 2).map((entry) => <div key={entry.id} className="border-l-2 border-[var(--etat-line)] pl-2 text-[11px] leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{entry.label}</span> · {new Date(entry.at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</div>)}</div>}<button onClick={() => onOpenSituation(prioritySituation)} className="etat-btn etat-btn-outline mt-3 w-full justify-center">Entrer dans le dossier <ArrowRight size={15} /></button></div></div>}
-      {cases.length > 0 && <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Signaux sur ce territoire</p><div className="mt-2 space-y-2">{cases.map((item) => <div key={item.id} className="rounded-lg bg-[var(--etat-offwhite)] p-3 text-xs text-[var(--etat-navy-950)]">{vigilanceCategoryLabels[item.category]} — {item.description}</div>)}</div></div>}
-      {/* Repli honnête plutôt qu'un lien vers un 404 (mandat CEO
-          2026-08-18) : ce territoire n'a pas de fiche publique
-          équivalente à retrouver, contrairement à Joal (où un vrai
-          mapping de slug existait) — le bloc reste visible, dans le
-          même gabarit visuel que le lien actif, pour ne pas laisser un
-          vide en bas du panneau, mais explicitement non cliquable et
-          expliqué plutôt que masqué en silence. */}
-      {territoriesWithoutPublicAtlas.has(territory.id) ? (
-        <div className="etat-btn etat-btn-outline pointer-events-none w-full cursor-not-allowed justify-center opacity-50" aria-disabled="true">Pas encore de fiche publique pour ce territoire</div>
-      ) : (
-        <a href={`/atlas/${territoryPublicSlug[territory.id] ?? territory.id}`} target="_blank" rel="noreferrer" className="etat-btn etat-btn-outline w-full justify-center">Fiche territoire complète (site public) <ArrowUpRight size={15} /></a>
-      )}
-    </div>
-  );
-}
-
-function SituationDetail({ situation, state, onPlanVisit }: { situation: Situation; state: NonNullable<ReturnType<typeof useProduct>["state"]>; onPlanVisit: () => void }) {
-  const territory = state.territories.find((item) => item.id === situation.territoryId);
-  const tag = priorityToTag[situation.priority];
-  const stageLabel = pipelineStages.find((stage) => stage.status === situation.status)?.label ?? situation.status;
-  const responsable = situation.responsibleId ? state.actors.find((item) => item.id === situation.responsibleId) : undefined;
-  const relatedDecisions = state.decisions
-    .filter((item) => item.situationId === situation.id)
-    .sort((a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime());
-  // Lot État-C (mandat §3.4, "quelles capacités ou coordinations sont
-  // déjà engagées") : situation.coordinationId existe déjà dans le
-  // modèle et n'était affiché nulle part sur cette fiche.
-  const coordination = situation.coordinationId ? state.coordinationSpaces.find((item) => item.id === situation.coordinationId) : undefined;
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : tag === "vigilance" ? "etat-tag--vigilance" : "etat-tag--stable"}`}>{priorityLabels[situation.priority]}</span>
-        <span className="text-xs text-[var(--etat-stone-600)]">{situation.reference} · {territory?.name ?? situation.territoryId}</span>
-      </div>
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Description</p>
-        <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.description}</p>
-      </div>
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Étape actuelle · {stageLabel}</p>
-        <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.nextStep}</p>
-        {situation.waitingReason && <p className="mt-1 text-xs text-[var(--etat-stone-600)]">Motif d’attente : {situation.waitingReason}</p>}
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Échéance</p>
-          <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.dueAt ? new Date(situation.dueAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) : "Non renseignée"}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Responsable</p>
-          <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{responsable?.name ?? "Non désigné"}</p>
-        </div>
-      </div>
-      {coordination && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Coordination et engagements déjà en cours</p>
-          <div className="mt-2 rounded-lg border border-[var(--etat-line)] bg-white p-3">
-            <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{coordination.title}</p>
-            {coordination.commitments.length === 0 ? (
-              <p className="mt-1 text-xs text-[var(--etat-stone-400)]">Aucun engagement enregistré pour le moment.</p>
-            ) : (
-              <div className="mt-2 space-y-1.5 border-t border-[var(--etat-line)] pt-2">
-                {coordination.commitments.map((commitment) => {
-                  const actor = state.actors.find((item) => item.id === commitment.actorId);
-                  return <p key={commitment.id} className="text-xs leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{actor?.name ?? commitment.actorId}</span> — {commitment.label} <span className="text-[var(--etat-stone-400)]">({commitmentStatusLabel[commitment.status]})</span></p>;
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      {(situation.result ?? situation.confirmation) && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Résultat</p>
-          {situation.result && <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.result}</p>}
-          {situation.confirmation && <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{situation.confirmation}</p>}
-        </div>
-      )}
-      {situation.history.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Historique</p>
-          <div className="mt-2 space-y-1.5 border-l border-[var(--etat-line)] pl-3">
-            {situation.history.map((entry) => (
-              <div key={entry.id} className="text-xs leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{entry.label}</span> · {new Date(entry.at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}</div>
-            ))}
-          </div>
-        </div>
-      )}
-      {relatedDecisions.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Décisions liées · {relatedDecisions.length}</p>
-          <div className="mt-2 space-y-2">
-            {relatedDecisions.map((decision) => (
-              <div key={decision.id} className="rounded-lg border border-[var(--etat-line)] bg-white p-3">
-                <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{decisionTypeLabels[decision.type]}</p>
-                <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{decision.rationale}</p>
-                <p className="mt-1 text-[11px] text-[var(--etat-stone-400)]">{new Date(decision.decidedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      <button onClick={onPlanVisit} className="etat-btn etat-btn-primary w-full justify-center">Planifier une visite <ArrowRight size={15} /></button>
-    </div>
-  );
-}
-
-function SignalForm({ territories, onDone }: { territories: Territory[]; onDone: () => void }) {
-  const [category, setCategory] = useState<VigilanceCategory>("immigration_clandestine");
-  const [territoryId, setTerritoryId] = useState("");
-  const [severity, setSeverity] = useState<VigilanceSeverity>("moyenne");
-  const [description, setDescription] = useState("");
-  const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setError("");
-    setPending(true);
-    try {
-      const response = await fetch("/api/ministry/vigilance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ category, territoryId, severity, description }) });
-      const payload = await response.json();
-      if (!response.ok) { setError(payload.error ?? "Impossible d’enregistrer ce signalement."); return; }
-      onDone();
-    } finally { setPending(false); }
-  };
-
-  return (
-    <form onSubmit={submit} className="space-y-4">
-      <label className="block text-xs font-semibold text-[var(--etat-navy-950)]">Catégorie<select value={category} onChange={(event) => setCategory(event.target.value as VigilanceCategory)} className="mt-1.5 w-full rounded-md border border-[var(--etat-line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--etat-navy-600)]">{Object.entries(vigilanceCategoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-      <label className="block text-xs font-semibold text-[var(--etat-navy-950)]">Territoire<select required value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 w-full rounded-md border border-[var(--etat-line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--etat-navy-600)]"><option value="">Sélectionner…</option>{territories.map((territory) => <option key={territory.id} value={territory.id}>{territory.name}</option>)}</select></label>
-      <label className="block text-xs font-semibold text-[var(--etat-navy-950)]">Gravité<select value={severity} onChange={(event) => setSeverity(event.target.value as VigilanceSeverity)} className="mt-1.5 w-full rounded-md border border-[var(--etat-line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--etat-navy-600)]">{Object.entries(vigilanceSeverityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-      <label className="block text-xs font-semibold text-[var(--etat-navy-950)]">Description<textarea required rows={3} value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1.5 w-full rounded-md border border-[var(--etat-line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--etat-navy-600)]" placeholder="Ce qui a été observé, où et par qui." /></label>
-      {error && <p className="text-xs font-semibold text-[var(--etat-terracotta)]">{error}</p>}
-      <button disabled={pending} className="etat-btn etat-btn-primary w-full justify-center disabled:opacity-60">Signaler <Send size={15} /></button>
-    </form>
-  );
-}
-
-function MissionForm({ mission, onDone }: { mission: Mission; onDone: () => void }) {
-  const [title, setTitle] = useState(`${fieldVisitObjectiveLabels[mission.suggestedObjective]} — ${mission.territoryLabel}`);
-  const [plannedAt, setPlannedAt] = useState("");
-  const [notes, setNotes] = useState("");
-  const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setError("");
-    setPending(true);
-    try {
-      const response = await fetch("/api/ministry/field-visits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, territoryId: mission.territoryId, objective: mission.suggestedObjective, plannedAt, notes: notes || undefined }) });
-      const payload = await response.json();
-      if (!response.ok) { setError(payload.error ?? "Impossible de planifier cette mission."); return; }
-      onDone();
-    } finally { setPending(false); }
-  };
-
-  return (
-    <form onSubmit={submit} className="space-y-4">
-      <div className="rounded-lg bg-[var(--etat-offwhite)] p-3.5 text-xs leading-5 text-[var(--etat-navy-950)]"><strong>{mission.territoryLabel}</strong> — {mission.raison}</div>
-      <label className="block text-xs font-semibold text-[var(--etat-navy-950)]">Titre<input required value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1.5 w-full rounded-md border border-[var(--etat-line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--etat-navy-600)]" /></label>
-      <label className="block text-xs font-semibold text-[var(--etat-navy-950)]">Date prévue<input required type="date" value={plannedAt} onChange={(event) => setPlannedAt(event.target.value)} className="mt-1.5 w-full rounded-md border border-[var(--etat-line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--etat-navy-600)]" /></label>
-      <label className="block text-xs font-semibold text-[var(--etat-navy-950)]">Notes (facultatif)<textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} className="mt-1.5 w-full rounded-md border border-[var(--etat-line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--etat-navy-600)]" /></label>
-      {error && <p className="text-xs font-semibold text-[var(--etat-terracotta)]">{error}</p>}
-      <button disabled={pending} className="etat-btn etat-btn-primary w-full justify-center disabled:opacity-60">Planifier la mission <ArrowRight size={15} /></button>
-    </form>
-  );
-}
