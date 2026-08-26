@@ -53,7 +53,8 @@ export function CoastlineTerritoryMap({
   selectedId,
   onSelect,
   colors,
-  viewBox
+  viewBox,
+  landFillOpacity
 }: {
   territories: MapTerritory[];
   selectedId?: string;
@@ -67,8 +68,19 @@ export function CoastlineTerritoryMap({
   // intouchés : le viewBox n'est qu'une fenêtre sur ce même espace de
   // coordonnées, jamais une nouvelle géométrie.
   viewBox?: string;
+  // Correctif CEO ("l'Atlas se superpose avec la terre pleine de
+  // l'arrière-plan", mandat "Brief national") : le remplissage "terre" en
+  // aplat opaque masquait la texture de l'asset d'illustration réel posé
+  // en fond sur /app/etat (fond Atlas, lot précédent) — couture visible à
+  // la frontière terre/eau. Prop additive, défaut 1 (opaque, comportement
+  // EXACT d'avant) : /app/pilotage, seul autre appelant, ne passe pas ce
+  // prop et n'est donc affecté en rien — même discipline que `colors`/
+  // `viewBox` ci-dessus, un changement scopé à /app/etat via une prop
+  // plutôt qu'un changement du défaut partagé.
+  landFillOpacity?: number;
 }) {
   const tone: CoastlineTerritoryMapColors = { ...defaultColors, ...colors };
+  const resolvedLandFillOpacity = landFillOpacity ?? 1;
   const effectiveViewBox = viewBox ?? coastlineViewBox;
   // Compensation de zoom (correctif CEO 2026-08-22, caméra Atlas) : les
   // marqueurs/labels sont dessinés en unités SVG absolues, calibrées pour
@@ -87,7 +99,7 @@ export function CoastlineTerritoryMap({
   return (
     <svg viewBox={effectiveViewBox} preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label="Carte illustrative du littoral sénégalais et des territoires suivis par le réseau">
       <title>Littoral du Sénégal — territoires suivis par Mbàmbulaan</title>
-      <path d={coastlinePath} fill={tone.land} stroke={tone.landStroke} strokeOpacity="0.3" strokeWidth={scale(4)} strokeLinejoin="round" />
+      <path d={coastlinePath} fill={tone.land} fillOpacity={resolvedLandFillOpacity} stroke={tone.landStroke} strokeOpacity="0.3" strokeWidth={scale(4)} strokeLinejoin="round" />
       {territories.map((territory) => {
         const position = territoryMapPositions[territory.id];
         if (!position) return null;

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Clock, Compass, Factory, FileDown, Flag, ListChecks, Minus, Plus, Radio, Sailboat, Search, Send, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, Clock, Compass, Factory, FileDown, Flag, ListChecks, Minus, Plus, Radio, Sailboat, Search, Send } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
@@ -490,69 +490,23 @@ export default function EtatPage() {
 
   return (
     <div className="etat-scope bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
-      {/* Correctif 2 (CEO 2026-08-22) : la mesure directe du CEO a montré
-          qu'au-delà du bandeau doctrine/eyebrow/toolbar déjà resserrés
-          individuellement (correctif 1), l'espace CUMULÉ avant la carte
-          restait excessif — trois interstices de 64px (space-y-16 du
-          conteneur racine, appliqué uniformément à tous ses enfants
-          directs, y compris entre doctrine/nav/toolbar) ajoutaient à eux
-          seuls 192px. space-y-16 retiré du conteneur racine ; ce trio
-          (doctrine/nav/toolbar) forme désormais son propre groupe à
-          espacement resserré (space-y-2), et les chapitres eux-mêmes
-          (#terrain et suivants) sont regroupés dans un second conteneur
-          qui reprend exactement le même space-y-16 qu'avant — seul
-          l'espacement AVANT la carte change, le rythme entre chapitres
-          reste identique à ce qui était déjà validé. */}
-      <div className="space-y-2">
-        {/* Correctif (CEO 2026-08-22) : ce bandeau de doctrine consommait
-            ~70px de hauteur (icône + paragraphe deux lignes, bordure
-            pleine largeur) avant même la nav, absent de la référence —
-            retiré purement, pas seulement raccourci : la maquette ne le
-            montre à aucun endroit de ce premier viewport, et son contenu
-            (portée institutionnelle "qualifie et signale, ne décide pas")
-            reste disponible ailleurs sur le produit (bandeau d'accueil,
-            mentions). Réduit ici à une seule ligne fine, sans bordure
-            pleine largeur ni icône séparée — garde le rappel de portée
-            sans le coût vertical. */}
-        <p className="flex items-center gap-1.5 text-xs text-[var(--etat-stone-600)]">
-          <ShieldCheck size={13} className="shrink-0 text-[var(--etat-navy-600)]" />
-          Mbàmbulaan qualifie et signale les situations remontées du terrain — la décision relève des autorités compétentes.
-        </p>
-
-        {/* Menu secondaire discret (mandat "Brief national", 2026-08-23) :
-            "Navigation détaillée discrète dans le header ou un menu
-            secondaire, à toi de proposer où" — le header reste explicitement
-            "unchanged" (§1 du mandat), donc pas d'ajout là. Cette nav
-            d'ancrage existait déjà (Lot État-B) et remplit exactement ce
-            rôle, pas un rail permanent façon sidebar. Items alignés sur les
-            ancres réellement présentes après ce lot : #performance et
-            #territoires n'existent plus sur cette page (Chapitres 3 et 5
-            retirés, arbitrage CEO — futures pages dédiées /app/etat/
-            performance et /app/etat/territoires, non construites) — gardés
-            ici désactivés plutôt que supprimés, même discipline que
-            EtatSidebar.tsx pour ne pas présenter une structure différente
-            entre les deux surfaces de navigation. Arbitrages/Programmes
-            pointent vers les registres complets (-detail) : ce sont eux la
-            vraie destination de navigation, la bande de synthèse teaser
-            juste en dessous du repli est de toute façon rencontrée au
-            passage en scrollant. */}
-        <nav className="-mx-1 flex gap-1 overflow-x-auto border-b border-[var(--etat-line)] pb-3 text-sm">
-          {[
-            { href: "#terrain", label: "Vue d’ensemble" },
-            { href: "#arbitrage-detail", label: "Arbitrages" },
-            { href: "#programmes-detail", label: "Programmes" },
-            { href: "#redevabilite", label: "Rapports & redevabilité" },
-            { label: "Territoires", disabled: true },
-            { label: "Performance & impact", disabled: true }
-          ].map((item) =>
-            "disabled" in item && item.disabled ? (
-              <span key={item.label} className="shrink-0 cursor-not-allowed whitespace-nowrap rounded-full px-3 py-1.5 font-semibold text-[var(--etat-stone-400)]" title="Page dédiée à venir">{item.label}</span>
-            ) : (
-              <a key={item.href} href={item.href} className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 font-semibold text-[var(--etat-navy-800)] transition hover:bg-[var(--etat-offwhite)]">{item.label}</a>
-            )
-          )}
-        </nav>
-      </div>
+      {/* Correctif CEO (retour "la page ne ressemble toujours pas au
+          concept") : bandeau doctrine ET nav d'ancrage retirés ensemble
+          de ce premier écran — les deux constats du CEO tenaient à la
+          même cause (contenu ajouté avant le titre, absent de la
+          référence). Bandeau doctrine : son contenu reste disponible
+          ailleurs sur le produit (bandeau d'accueil Public, mentions
+          légales), rien n'est perdu en le retirant d'ici. Nav d'ancrage :
+          le CEO est explicite sur l'ERREUR précise du lot précédent —
+          "remplacer une sidebar verticale par une nav horizontale qui
+          montre toujours les 6 mêmes destinations ne respecte que la
+          lettre de la décision, pas son esprit". Retirée plutôt que
+          réduite : n'importe quelle rangée de liens en avant-plan
+          juste sous le header aurait reproduit le même problème visuel.
+          Les sections restent atteignables par défilement et par "Voir
+          tout" (teasers plus bas) ; /app/etat/rapport garde sa sidebar
+          complète, seule surface où une navigation permanente a été
+          explicitement validée. */}
 
       {/* Titre + filtres (mandat "Brief national", §2 : "~104px de haut",
           mesure directe du CEO sur la maquette, pas une estimation
@@ -772,12 +726,19 @@ export default function EtatPage() {
               </button>
             </div>
 
-            <div className="relative aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full lg:min-h-[520px]">
+            {/* lg:min-h-[520px] retiré (correctif CEO, compression du lot
+                précédent) : reliquat du gabarit 520px d'avant ce lot,
+                incohérent avec la ligne de grille désormais fixée à
+                lg:h-[390px] plus haut — sans effet visuel observé
+                (overflow-hidden du conteneur .etat-panel absorbait déjà
+                l'écart) mais trompeur à la lecture, nettoyé. */}
+            <div className="relative aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full">
               <CoastlineTerritoryMap
                 territories={state.territories}
                 selectedId={selectedTerritoryId ?? undefined}
                 onSelect={(id) => { setSelectedTerritoryId(id); setCameraForcedNational(false); }}
                 viewBox={cameraViewBox}
+                landFillOpacity={0.18}
               />
             </div>
           </div>
