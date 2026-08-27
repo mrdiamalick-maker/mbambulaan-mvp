@@ -54,7 +54,8 @@ export function CoastlineTerritoryMap({
   onSelect,
   colors,
   viewBox,
-  landFillOpacity
+  landFillOpacity,
+  backgroundImageSrc
 }: {
   territories: MapTerritory[];
   selectedId?: string;
@@ -78,6 +79,24 @@ export function CoastlineTerritoryMap({
   // `viewBox` ci-dessus, un changement scopé à /app/etat via une prop
   // plutôt qu'un changement du défaut partagé.
   landFillOpacity?: number;
+  // Correctif "l'image de fond ne suit pas la caméra" (mandat CEO
+  // 2026-08-27, diagnostic confirmé : le fond était un <img> next/image
+  // posé au-dessus du SVG, totalement déconnecté du viewBox animé — les
+  // deux couches se désynchronisaient dès qu'on zoomait/paniquait sur un
+  // territoire). Prop additive, défaut undefined (aucune image rendue,
+  // comportement EXACT d'avant) : /app/pilotage, seul autre appelant, ne
+  // passe pas ce prop et n'est donc affecté en rien — même discipline que
+  // `colors`/`viewBox`/`landFillOpacity` ci-dessus. Rendue comme <image>
+  // DANS ce même <svg viewBox=...>, pas comme calque DOM séparé : un seul
+  // système de coordonnées (le viewBox partagé avec coastlinePath et
+  // territoryMapPositions) pilote l'image ET le tracé — pas de transform
+  // CSS équivalente à recalculer séparément par breakpoint, pas de
+  // seconde interpolation à garder synchronisée avec useAnimatedViewBox.
+  // Coût assumé (signalé au CEO, approuvé) : perte de l'optimisation
+  // next/image (négociation de format, srcset responsive) pour cette
+  // image précise — impact limité, l'asset est déjà un WebP pré-compressé
+  // et purement décoratif (priority={false} côté appelant).
+  backgroundImageSrc?: string;
 }) {
   const tone: CoastlineTerritoryMapColors = { ...defaultColors, ...colors };
   const resolvedLandFillOpacity = landFillOpacity ?? 1;
@@ -93,12 +112,23 @@ export function CoastlineTerritoryMap({
   // `viewBox`) et pour la vue nationale d'État — aucune régression sur
   // les deux usages déjà validés.
   const [, , effectiveWidth] = effectiveViewBox.split(" ").map(Number);
-  const [, , nationalWidth] = coastlineViewBox.split(" ").map(Number);
+  const [nationalX, nationalY, nationalWidth, nationalHeight] = coastlineViewBox.split(" ").map(Number);
   const zoomRatio = nationalWidth / effectiveWidth;
   const scale = (value: number) => value / zoomRatio;
   return (
     <svg viewBox={effectiveViewBox} preserveAspectRatio="xMidYMid meet" className="h-full w-full" role="img" aria-label="Carte illustrative du littoral sénégalais et des territoires suivis par le réseau">
       <title>Littoral du Sénégal — territoires suivis par Mbàmbulaan</title>
+      {backgroundImageSrc && (
+        // Ancrée sur la boîte NATIONALE (coastlineViewBox), pas sur
+        // effectiveViewBox : l'image reste fixe dans l'espace de
+        // coordonnées partagé, c'est le viewBox du <svg> lui-même (animé
+        // par useAnimatedViewBox côté appelant) qui la pan/zoome — exactement
+        // le même mécanisme que pour coastlinePath et territoryMapPositions,
+        // jamais un second calcul de position. preserveAspectRatio="slice"
+        // (recadre, ne bande pas) pour reproduire le comportement
+        // object-cover du <Image> next/image qu'elle remplace.
+        <image href={backgroundImageSrc} x={nationalX} y={nationalY} width={nationalWidth} height={nationalHeight} preserveAspectRatio="xMidYMid slice" />
+      )}
       <path d={coastlinePath} fill={tone.land} fillOpacity={resolvedLandFillOpacity} stroke={tone.landStroke} strokeOpacity="0.3" strokeWidth={scale(4)} strokeLinejoin="round" />
       {territories.map((territory) => {
         const position = territoryMapPositions[territory.id];

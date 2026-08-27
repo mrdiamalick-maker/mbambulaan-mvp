@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, ArrowRight, Clock, Compass, Factory, Flag, ListChecks, Minus, Plus, Sailboat } from "lucide-react";
@@ -533,31 +532,26 @@ export default function EtatPage() {
               aquarellés, reproduire ces mêmes motifs en Lucide par-dessus
               aurait doublé le geste et non plus servi de "richesse
               visuelle" (le rôle exact que ces icônes tenaient avant).
-              CoastlineTerritoryMap.tsx n'est pas touché : le fond n'est
-              qu'un habillage sous le SVG, jamais une couche géographique
-              — path/territoryMapPositions restent la seule référence de
-              positionnement (voir plus bas, viewBox inchangé).
 
-              object-cover plein cadre, pas de recadrage manuel : le
-              panneau garde son propre aspect-ratio (aspect-[4/5] →
-              lg:h-full), l'image se contente de le remplir. next/image
-              (fill) suit le patron déjà en place ailleurs sur le produit
-              (HeroBackgroundImage.tsx) — optimisation automatique de
-              Next.js en plus de la compression manuelle en amont
-              (2,6 Mo PNG fourni → 114 Ko WebP, qualité 78, aucune perte
-              visible constatée à la capture). alt="" : purement
-              atmosphérique, aucune information non redondante avec le
-              contenu (la carte elle-même porte déjà son propre
-              role="img"/aria-label). */}
+              Correctif "l'image de fond ne suit pas la caméra" (mandat CEO
+              2026-08-27) : CoastlineTerritoryMap.tsx EST désormais touché,
+              contrairement à ce que ce commentaire affirmait jusqu'ici —
+              c'était justement le problème. L'image vivait en <Image
+              next/image fill> au-dessus du SVG, un calque DOM totalement
+              déconnecté du viewBox animé (cameraViewBox) : elle ne
+              bougeait jamais quand la caméra zoomait/paniquait sur un
+              territoire, donnant l'impression de "deux composants"
+              (confirmé par capture comparée zoomé/national, cf. diagnostic
+              transmis au CEO). Elle est maintenant passée en prop
+              (backgroundImageSrc) à CoastlineTerritoryMap, qui la rend
+              comme <image> DANS le même <svg viewBox=...> que
+              coastlinePath/territoryMapPositions — un seul système de
+              coordonnées pilote les deux couches, pas une transform CSS
+              équivalente à recalculer par breakpoint. Coût assumé et
+              approuvé par le CEO : perte de l'optimisation next/image
+              (négociation de format, srcset) pour cette image précise —
+              impact limité, asset déjà WebP pré-compressé et décoratif. */}
           <div className="etat-panel relative overflow-hidden">
-            <Image
-              src="/images/etat-atlas-ocean-background.webp"
-              alt=""
-              fill
-              sizes="(min-width: 1024px) 62vw, 100vw"
-              priority={false}
-              className="pointer-events-none absolute inset-0 object-cover"
-            />
             {/* Lisibilité (mandat point 6 : "priorité fonctionnelle,
                 l'esthétique ne doit jamais nuire") : voile clair
                 translucide entre la photo et le tracé/les libellés — le
@@ -668,6 +662,7 @@ export default function EtatPage() {
                 onSelect={(id) => { setSelectedTerritoryId(id); setCameraForcedNational(false); }}
                 viewBox={cameraViewBox}
                 landFillOpacity={0.18}
+                backgroundImageSrc="/images/etat-atlas-ocean-background.webp"
               />
             </div>
           </div>
