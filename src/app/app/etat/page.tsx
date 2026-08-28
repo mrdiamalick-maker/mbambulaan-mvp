@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowRight, Clock, Compass, Factory, Flag, ListChecks, Minus, Plus, Sailboat } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, ArrowRight, Clock, Factory, Flag, ListChecks, Sailboat } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
 import { SituationIcon } from "@/components/etat/MotifIcons";
-import { CoastlineTerritoryMap } from "@/components/territories/CoastlineTerritoryMap";
-import { coastlineViewBox, territoryMapPositions } from "@/domain/territory-map-positions";
+import { AtlasImageMap } from "@/components/etat/AtlasImageMap";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import {
   Mission,
@@ -45,7 +44,13 @@ import { vigilanceCategoryLabels, type VigilanceCase, type VigilanceSeverity } f
 // par le CEO pour le point d'attention "carte" (cf. gap analysis). La
 // carte réutilise la géométrie calibrée de PublicAtlasWorkspace.tsx via
 // CoastlineTerritoryMap/territory-map-positions.ts — fichiers neufs, le
-// Public n'est ni modifié ni affecté. AtlasExecutiveSummary
+// Public n'est ni modifié ni affecté. Superseded 2026-08-27 (mandat
+// "simplifier l'Atlas /app/etat") : cette page utilise désormais
+// AtlasImageMap/territory-map-image-positions.ts, plus CoastlineTerritoryMap
+// — les fichiers cités ici restent réels et utilisés par /app/pilotage,
+// simplement plus par CETTE page. Paragraphe gardé tel quel comme
+// historique du choix d'origine, pas mis à jour rétroactivement.
+// AtlasExecutiveSummary
 // (variant="institution") est retiré de cette page : composant partagé
 // avec /app/atlas Pro (variant="coordinateur"), non modifié, seulement
 // plus utilisé ici — ses 2 métriques encore non relogées (situations à
@@ -66,88 +71,20 @@ import { vigilanceCategoryLabels, type VigilanceCase, type VigilanceSeverity } f
 // cette page (aucun autre consommateur, pas déplacé vers shared.tsx).
 const severityToTag: Record<VigilanceSeverity, "stable" | "vigilance" | "critique"> = { faible: "stable", moyenne: "vigilance", haute: "vigilance", critique: "critique" };
 
-// viewBoxMinX/Y ne servaient qu'à territoryZoomStyle (mini-cartes du
-// Chapitre 5 "Où concentrer l'attention", retiré du premier écran —
-// mandat "Brief national", 2026-08-23) : la fonction elle-même est
-// supprimée avec son seul appelant. viewBoxWidth/viewBoxHeight restent
-// nécessaires ci-dessous (NATIONAL_ASPECT, caméra Atlas).
-const [, , viewBoxWidth, viewBoxHeight] = coastlineViewBox.split(" ").map(Number);
-
-// Caméra Atlas (Lot 1, Refonte Premium XXL Espace État, mandat CEO
-// 2026-08-21, faisabilité confirmée dans le dispatch du 2026-08-20) :
-// "Vue nationale" = coastlineViewBox inchangé ; un territoire sélectionné
-// = une fenêtre resserrée autour de sa position calibrée, dans le même
-// espace de coordonnées — territoryMapPositions et coastlinePath ne sont
-// jamais recalculés ni retouchés, seule la fenêtre de lecture change.
-//
-// REGIONAL_WINDOW_HALF_HEIGHT calibré par script sur les 18 positions
-// réelles (écarts nord-sud entre voisins : 32 à 115 unités, cf. gap
-// analysis) : une demi-hauteur de 200 (fenêtre de 400 unités) inclut,
-// pour chaque territoire testé, 3 à 9 voisins immédiats selon la densité
-// locale — jamais un territoire isolé seul dans le cadre, jamais non plus
-// un cadrage si large qu'il ne se distingue plus de la vue nationale.
-// La largeur de fenêtre conserve le ratio du viewBox national (704/1122)
-// pour rester cohérente avec le conteneur existant (aspect-[4/5] puis
-// aspect-auto en desktop) — pas un nouveau ratio inventé.
-const NATIONAL_ASPECT = viewBoxWidth / viewBoxHeight;
-const REGIONAL_WINDOW_HALF_HEIGHT = 200;
-function cameraWindowFor(territoryId: string | null): string {
-  if (!territoryId) return coastlineViewBox;
-  const position = territoryMapPositions[territoryId];
-  if (!position) return coastlineViewBox;
-  const [x, y] = position;
-  const height = REGIONAL_WINDOW_HALF_HEIGHT * 2;
-  const width = height * NATIONAL_ASPECT;
-  return `${(x - width / 2).toFixed(1)} ${(y - height / 2).toFixed(1)} ${width.toFixed(1)} ${height.toFixed(1)}`;
-}
-
-// Zoom +/- (mandat "nouvelle DA Vue d'ensemble", faisabilité confirmée au
-// Lot 0) : redimensionne une fenêtre viewBox autour de son propre centre
-// — jamais autour d'une position territoriale recalculée séparément, pour
-// rester exactement dans le même espace de coordonnées que
-// cameraWindowFor. factor < 1 resserre (zoom avant), > 1 élargit (zoom
-// arrière). Composé APRÈS cameraWindowFor, AVANT useAnimatedViewBox : le
-// zoom s'anime par la même interpolation rAF, pas un second mécanisme.
-function scaleViewBox(viewBox: string, factor: number): string {
-  if (factor === 1) return viewBox;
-  const [x, y, width, height] = viewBox.split(" ").map(Number);
-  const cx = x + width / 2;
-  const cy = y + height / 2;
-  const newWidth = width * factor;
-  const newHeight = height * factor;
-  return `${(cx - newWidth / 2).toFixed(1)} ${(cy - newHeight / 2).toFixed(1)} ${newWidth.toFixed(1)} ${newHeight.toFixed(1)}`;
-}
-
-// Interpolation JS (requestAnimationFrame), tranchée par le CEO le
-// 2026-08-20 plutôt qu'un transform CSS (l'approche qu'utilisait alors
-// territoryZoomStyle, depuis supprimé) : l'attribut SVG viewBox n'est pas fiablement
-// animable par une transition CSS pure sur tous les navigateurs. Grain
-// simple (easing ease-out cubic), ~420ms — "transition courte, calme,
-// premium" (mandat §6). Aucune dépendance nouvelle : interpolation
-// manuelle des 4 nombres du viewBox, arrondie pour un rendu stable.
-function useAnimatedViewBox(target: string, durationMs = 420): string {
-  const [current, setCurrent] = useState(target);
-  const frameRef = useRef<number | null>(null);
-  useEffect(() => {
-    const from = current.split(" ").map(Number);
-    const to = target.split(" ").map(Number);
-    if (from.every((value, index) => value === to[index])) return;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const elapsed = Math.min(1, (now - start) / durationMs);
-      const eased = 1 - Math.pow(1 - elapsed, 3);
-      const interpolated = from.map((value, index) => value + (to[index] - value) * eased);
-      setCurrent(interpolated.map((value) => value.toFixed(1)).join(" "));
-      if (elapsed < 1) frameRef.current = requestAnimationFrame(tick);
-    };
-    frameRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target]);
-  return current;
-}
+// Caméra Atlas SVG (cameraWindowFor/scaleViewBox/useAnimatedViewBox)
+// retirée ici — pas fusionnée avec Lot C, une vraie suppression (mandat
+// CEO "simplifier l'Atlas /app/etat : image + marqueurs en pourcentage,
+// pas de SVG calibré", 2026-08-27, Lot B) : ces 3 fonctions calculaient
+// une fenêtre dans l'espace de coordonnées de coastlineViewBox, abandonné
+// pour cette page. Elles ne sont pas réutilisables telles quelles pour la
+// caméra CSS transform du Lot C (à venir), qui travaillera dans un espace
+// de coordonnées différent (pourcentage de l'image, territory-map-image-
+// positions.ts) — un nouveau calcul, pas un renommage. "Vue nationale" et
+// le zoom +/- sont donc temporairement retirés de l'interface avec ce
+// lot (cf. plus bas, JSX) : pas de bouton dont le clic ne ferait plus
+// rien. Restaurés fonctionnellement par le Lot C, déjà planifié et
+// approuvé par le CEO — signalé explicitement, pas une régression
+// silencieuse.
 
 export default function EtatPage() {
   const { state, actorId } = useProduct();
@@ -169,23 +106,10 @@ export default function EtatPage() {
   // false dès qu'une sélection explicite est faite, pour ne pas bloquer
   // la caméra sur le national après un choix réel.
   const [cameraForcedNational, setCameraForcedNational] = useState(false);
-  // Zoom +/- (mandat "nouvelle DA Vue d'ensemble", faisabilité confirmée
-  // au Lot 0) : facteur multiplicatif appliqué à la fenêtre de la caméra
-  // (cameraWindowFor), pas un second système de cadrage — le zoom vient
-  // resserrer/élargir autour du MÊME centre, dans le MÊME espace de
-  // coordonnées, avant interpolation par useAnimatedViewBox (aucune
-  // nouvelle géométrie, aucun nouveau moteur). 1 = fenêtre non modifiée.
-  // Bornes : 0.4 (le plus resserré, évite un cadrage plus étroit que les
-  // marqueurs eux-mêmes) à 2.2 (le plus large, dépasse légèrement la
-  // fenêtre régionale par défaut sans jamais atteindre la vue nationale
-  // complète — "Vue nationale" reste le seul moyen d'y revenir
-  // explicitement, cohérent avec son propre bouton). Réinitialisé à 1 sur
-  // tout changement de cible caméra (nouveau territoire ou national) :
-  // le zoom est un réglage ponctuel de LA lecture en cours, pas un état
-  // qui doit "suivre" d'un territoire à l'autre.
-  const [zoomFactor, setZoomFactor] = useState(1);
-  const ZOOM_MIN = 0.4;
-  const ZOOM_MAX = 2.2;
+  // zoomFactor/ZOOM_MIN/ZOOM_MAX retirés avec la caméra SVG (mandat
+  // "simplifier l'Atlas /app/etat", Lot B, 2026-08-27) : le zoom +/-
+  // agissait sur cameraWindowFor/scaleViewBox, retirés au même lot. Le
+  // Lot C réintroduira un zoom équivalent sur la caméra CSS transform.
   // Lot État-B (mandat §3.1, §4.2) : filtre Période réel, restreint aux
   // dates calendaires réellement présentes dans les landings (seule
   // donnée temporelle avec une vraie dispersion sur cette page — les
@@ -234,20 +158,10 @@ export default function EtatPage() {
   // dominant dès le chargement, pas seulement après un clic explicite —
   // "carte et panneau doivent déjà raconter la même chose au premier
   // coup d'œil". Même expression que dominantTerritoryId plus bas
-  // (réutilisée telle quelle, cf. const dominantTerritoryId), calculée
-  // ici — avant le garde-fou `if (!state) return null` — parce que
-  // useAnimatedViewBox est un hook et doit s'exécuter inconditionnellement
-  // à chaque rendu ; dominant (déjà un memo) suffit à la déterminer sans
-  // avoir besoin de state après le garde-fou.
+  // (réutilisée telle quelle, cf. const dominantTerritoryId). Reste
+  // nécessaire même sans caméra visuelle (Lot B) : c'est ce qui détermine
+  // le territoire mis en avant dans "À décider aujourd'hui" par défaut.
   const cameraTargetId = cameraForcedNational ? null : (selectedTerritoryId ?? (dominant.kind === "territoire" ? dominant.territory.id : dominant.kind === "signal" ? dominant.case.territoryId : null));
-  const cameraViewBox = useAnimatedViewBox(scaleViewBox(cameraWindowFor(cameraTargetId), zoomFactor));
-  // Reset du zoom sur changement de cible caméra (hook, doit s'exécuter
-  // inconditionnellement — placé ici, avant le garde-fou, pour la même
-  // raison que useAnimatedViewBox juste au-dessus).
-  useEffect(() => {
-    setZoomFactor(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cameraTargetId]);
 
   if (!state) return null;
 
@@ -526,31 +440,27 @@ export default function EtatPage() {
               l'habillage CSS/SVG précédent (dégradés "eau" + motif de
               vagues en <pattern> + Compass/Sailboat/Fish décoratifs,
               ajoutés au Lot 1 faute d'illustration réelle disponible à
-              l'époque). Le mandat est explicite : "sans le recréer en
-              CSS/SVG et sans l'interpréter" — le fichier fourni intègre
-              déjà sa propre boussole, ses barques et ses poissons
-              aquarellés, reproduire ces mêmes motifs en Lucide par-dessus
-              aurait doublé le geste et non plus servi de "richesse
-              visuelle" (le rôle exact que ces icônes tenaient avant).
+              l'époque).
 
-              Correctif "l'image de fond ne suit pas la caméra" (mandat CEO
-              2026-08-27) : CoastlineTerritoryMap.tsx EST désormais touché,
-              contrairement à ce que ce commentaire affirmait jusqu'ici —
-              c'était justement le problème. L'image vivait en <Image
-              next/image fill> au-dessus du SVG, un calque DOM totalement
-              déconnecté du viewBox animé (cameraViewBox) : elle ne
-              bougeait jamais quand la caméra zoomait/paniquait sur un
-              territoire, donnant l'impression de "deux composants"
-              (confirmé par capture comparée zoomé/national, cf. diagnostic
-              transmis au CEO). Elle est maintenant passée en prop
-              (backgroundImageSrc) à CoastlineTerritoryMap, qui la rend
-              comme <image> DANS le même <svg viewBox=...> que
-              coastlinePath/territoryMapPositions — un seul système de
-              coordonnées pilote les deux couches, pas une transform CSS
-              équivalente à recalculer par breakpoint. Coût assumé et
-              approuvé par le CEO : perte de l'optimisation next/image
-              (négociation de format, srcset) pour cette image précise —
-              impact limité, asset déjà WebP pré-compressé et décoratif. */}
+              Simplification Atlas (mandat CEO "image + marqueurs en
+              pourcentage, pas de SVG calibré", 2026-08-27) : le polygone
+              SVG calibré (CoastlineTerritoryMap, coastlinePath/
+              territoryMapPositions) est abandonné pour CETTE page —
+              décision stratégique du CEO de ne pas sur-investir dans la
+              précision d'un Atlas stylisé destiné à être remplacé par une
+              vraie API cartographique. Remplacé par AtlasImageMap,
+              nouveau composant dédié : l'image ET les marqueurs
+              (territory-map-image-positions.ts, calibré et vérifié Lot A)
+              partagent désormais une seule référence — l'image elle-même,
+              plus de polygone à synchroniser avec elle. /app/pilotage
+              n'est pas concerné, CoastlineTerritoryMap.tsx reste utilisé
+              là-bas tel quel.
+
+              Lot B (ce lot) : composant statique, sans caméra — "Vue
+              nationale" et le zoom +/- sont retirés temporairement de
+              l'interface plus bas (cf. commentaires sur place), restaurés
+              par le Lot C (caméra en transform CSS), déjà planifié et
+              approuvé par le CEO. */}
           <div className="etat-panel relative overflow-hidden">
             {/* Lisibilité (mandat point 6 : "priorité fonctionnelle,
                 l'esthétique ne doit jamais nuire") : voile clair
@@ -575,16 +485,16 @@ export default function EtatPage() {
                   sémantique (H1 de ce chapitre), texte aligné sur la
                   nouvelle référence. */}
               <p className="etat-eyebrow rounded-full bg-white/90 px-3 py-1.5">Atlas de supervision</p>
-              {/* Caméra Atlas (Lot 1, correctif CEO 2026-08-22) : contrôle de
-                  retour explicite, visible dès qu'un cadrage régional est
-                  actif — y compris par défaut au chargement (territoire
-                  dominant), pas seulement après un clic. Condition sur
-                  cameraTargetId (pas selectedTerritoryId) : la caméra peut
-                  être resserrée sans sélection explicite (calcul dominant),
-                  il faut quand même pouvoir en sortir. */}
-              {cameraTargetId && (
-                <button onClick={() => { setSelectedTerritoryId(null); setCameraForcedNational(true); }} className="etat-btn etat-btn-outline shrink-0 bg-white/90 text-xs"><Compass size={13} /> Vue nationale</button>
-              )}
+              {/* Bouton "Vue nationale" retiré ici (mandat "simplifier
+                  l'Atlas /app/etat", Lot B, 2026-08-27) : il pilotait
+                  cameraForcedNational, qui n'a plus d'effet visuel sans
+                  caméra (AtlasImageMap n'a pas encore de fenêtre de
+                  cadrage — carte toujours en vue nationale complète dans
+                  ce lot). Pas de bouton dont le clic ne changerait rien à
+                  l'écran. Restauré par le Lot C avec la caméra CSS
+                  transform. cameraForcedNational/setCameraForcedNational
+                  restent déclarés (cameraTargetId en dépend, cf. plus
+                  haut, encore utile pour "À décider aujourd'hui"). */}
             </div>
 
             {/* Légende "Niveau d'attention" (mandat "nouvelle DA Vue
@@ -621,33 +531,11 @@ export default function EtatPage() {
               </div>
             </div>
 
-            {/* Zoom +/- (mandat "nouvelle DA Vue d'ensemble", faisabilité
-                confirmée au Lot 0) : agit sur zoomFactor, composé avec la
-                fenêtre caméra existante via scaleViewBox() — même
-                interpolation rAF que le reste de la caméra, aucun nouveau
-                mécanisme d'animation. Bornes désactivent visuellement le
-                bouton correspondant plutôt que de le laisser sans effet
-                silencieux. */}
-            <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1">
-              <button
-                aria-label="Zoom avant"
-                disabled={zoomFactor <= ZOOM_MIN}
-                onClick={() => setZoomFactor((value) => Math.max(ZOOM_MIN, +(value - 0.3).toFixed(2)))}
-                className="etat-btn etat-btn-outline bg-white/95 disabled:cursor-not-allowed disabled:opacity-40"
-                style={{ minHeight: 32, minWidth: 32, padding: 0 }}
-              >
-                <Plus size={15} />
-              </button>
-              <button
-                aria-label="Zoom arrière"
-                disabled={zoomFactor >= ZOOM_MAX}
-                onClick={() => setZoomFactor((value) => Math.min(ZOOM_MAX, +(value + 0.3).toFixed(2)))}
-                className="etat-btn etat-btn-outline bg-white/95 disabled:cursor-not-allowed disabled:opacity-40"
-                style={{ minHeight: 32, minWidth: 32, padding: 0 }}
-              >
-                <Minus size={15} />
-              </button>
-            </div>
+            {/* Zoom +/- retiré ici (mandat "simplifier l'Atlas /app/etat",
+                Lot B, 2026-08-27) : pilotait zoomFactor/scaleViewBox,
+                retirés au même lot avec la caméra SVG. AtlasImageMap n'a
+                pas encore de fenêtre de cadrage à resserrer/élargir dans
+                ce lot — restauré par le Lot C. */}
 
             {/* lg:min-h-[520px] retiré (correctif CEO, compression du lot
                 précédent) : reliquat du gabarit 520px d'avant ce lot,
@@ -656,13 +544,10 @@ export default function EtatPage() {
                 (overflow-hidden du conteneur .etat-panel absorbait déjà
                 l'écart) mais trompeur à la lecture, nettoyé. */}
             <div className="relative aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full">
-              <CoastlineTerritoryMap
+              <AtlasImageMap
                 territories={state.territories}
                 selectedId={selectedTerritoryId ?? undefined}
                 onSelect={(id) => { setSelectedTerritoryId(id); setCameraForcedNational(false); }}
-                viewBox={cameraViewBox}
-                landFillOpacity={0.18}
-                backgroundImageSrc="/images/etat-atlas-ocean-background.webp"
               />
             </div>
           </div>
