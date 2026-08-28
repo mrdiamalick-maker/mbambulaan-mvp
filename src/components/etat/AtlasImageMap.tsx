@@ -1,6 +1,5 @@
 // Carte Atlas en pourcentage — mandat CEO "simplifier l'Atlas /app/etat :
-// image + marqueurs en pourcentage, pas de SVG calibré" (2026-08-27), Lot B
-// (composant, sans caméra — cf. Lot C pour le pan/zoom transform CSS).
+// image + marqueurs en pourcentage, pas de SVG calibré" (2026-08-27).
 // Remplace CoastlineTerritoryMap pour /app/etat UNIQUEMENT : ce composant
 // est nouveau, CoastlineTerritoryMap.tsx et territory-map-positions.ts
 // restent intouchés (/app/pilotage en dépend toujours, hors mandat).
@@ -9,9 +8,21 @@
 // pixel par pixel + visuellement sur cette image précise — jamais réutilisé
 // depuis ProfessionalAtlasWorkspace.positions, calibré contre une silhouette
 // CSS différente).
+//
+// Caméra (Lot C) : transform CSS scale()/translate(), pas de viewBox SVG à
+// synchroniser — cf. correctif "l'image de fond ne suit pas la caméra"
+// (2026-08-27) et diagnostic transmis au CEO sur le désalignement structurel
+// que ce changement de fond élimine. Architecture à deux couches, approuvée
+// par le CEO avant implémentation : l'image reçoit la transform CSS,
+// les marqueurs sont positionnés INDÉPENDAMMENT (même état de caméra,
+// recalculé pour chaque marqueur, jamais un transform hérité) pour garder
+// une taille CSS constante — évite de reproduire le bug de labels/points
+// qui grossissent au zoom, déjà rencontré et corrigé une fois côté SVG
+// (CoastlineTerritoryMap.scale()).
 "use client";
 
 import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 import { territoryMapImagePositions } from "@/domain/territory-map-image-positions";
 
 export type AtlasMapActivity = "stable" | "vigilance" | "critique";
@@ -51,30 +62,137 @@ const activityColor: Record<AtlasMapActivity, string> = {
 // l'image, à n'importe quelle taille de conteneur.
 const IMAGE_ASPECT = "1536 / 1024";
 
+// BASE_ZOOM_SCALE calibré par script sur le VRAI besoin (pas par analogie
+// avec l'ancienne fenêtre SVG) : le problème concret à résoudre était
+// l'écart minimal mesuré entre 2 marqueurs à l'écran (7,2px, Rufisque-
+// Bargny/Popenguine, mobile 390px, cf. constat transmis au CEO en fin de
+// Lot B) — pas "garder 3 à 9 voisins visibles" comme l'ancienne caméra SVG
+// (un critère hérité d'un système de fenêtre rectangulaire, pas transposé
+// tel quel). Le zoom étant une homothétie uniforme centrée sur la cible
+// (cf. cameraFor plus bas), la distance à l'écran entre 2 points croît
+// linéairement avec l'échelle : à 7,2px non zoomé, une échelle de 5
+// porte cet écart à ~36px — nettement au-dessus des 20px de la zone de
+// clic (cf. AtlasImageMap, span invisible), avec une marge de sécurité
+// réelle, pas juste suffisante. Vérifié empiriquement après implémentation
+// (pas seulement par ce calcul) : les 8 marqueurs qui échouaient au clic
+// individuel en fin de Lot B redeviennent cliquables un par un une fois
+// zoomés — cf. script de vérification Lot C.
+const BASE_ZOOM_SCALE = 5;
+
+// zoomFactor : même sémantique que l'ancienne caméra SVG (0,4 = le plus
+// resserré, 2,2 = le plus large) — division plutôt que multiplication
+// puisque l'ancien système appliquait le facteur à la TAILLE de la
+// fenêtre (petit facteur = fenêtre plus petite = zoom avant), alors que
+// celui-ci l'applique à une ÉCHELLE (petit facteur = échelle plus grande
+// = zoom avant) : effet identique côté utilisateur, formule inversée en
+// conséquence du changement de représentation (fenêtre → échelle).
+function cameraFor(targetId: string | null | undefined, zoomFactor: number): { cx: number; cy: number; scale: number } {
+  if (!targetId) return { cx: 50, cy: 50, scale: 1 };
+  const position = territoryMapImagePositions[targetId];
+  if (!position) return { cx: 50, cy: 50, scale: 1 };
+  const [cx, cy] = position;
+  return { cx, cy, scale: BASE_ZOOM_SCALE / zoomFactor };
+}
+
+// Interpolation JS (requestAnimationFrame) — même technique et mêmes
+// réglages que l'ancienne useAnimatedViewBox (rAF, easing ease-out
+// cubique, ~420ms), adaptée pour interpoler {cx, cy, scale} au lieu des
+// 4 nombres d'un viewBox SVG. Reprise du même principe, pas une nouvelle
+// interpolation inventée : le CEO a explicitement demandé de garder
+// requestAnimationFrame plutôt qu'une transition CSS native pour ce
+// premier lot caméra CSS, "ne pas cumuler les risques" (changement
+// d'architecture + nouveau mécanisme d'animation en même temps).
+function useAnimatedCamera(target: { cx: number; cy: number; scale: number }, durationMs = 420) {
+  const [current, setCurrent] = useState(target);
+  const frameRef = useRef<number | null>(null);
+  useEffect(() => {
+    const from = current;
+    const to = target;
+    if (from.cx === to.cx && from.cy === to.cy && from.scale === to.scale) return;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const elapsed = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - Math.pow(1 - elapsed, 3);
+      setCurrent({
+        cx: from.cx + (to.cx - from.cx) * eased,
+        cy: from.cy + (to.cy - from.cy) * eased,
+        scale: from.scale + (to.scale - from.scale) * eased
+      });
+      if (elapsed < 1) frameRef.current = requestAnimationFrame(tick);
+    };
+    frameRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target.cx, target.cy, target.scale]);
+  return current;
+}
+
 export function AtlasImageMap({
   territories,
   selectedId,
-  onSelect
+  onSelect,
+  cameraTargetId,
+  zoomFactor = 1
 }: {
   territories: AtlasImageMapTerritory[];
   selectedId?: string;
   onSelect?: (id: string) => void;
+  // Additifs, défaut = vue nationale figée (cameraTargetId absent ⇒
+  // {cx:50, cy:50, scale:1}, identité) : un appelant qui ne les passe
+  // pas obtient exactement le comportement du Lot B.
+  cameraTargetId?: string | null;
+  zoomFactor?: number;
 }) {
+  const targetCamera = cameraFor(cameraTargetId, zoomFactor);
+  const { cx, cy, scale } = useAnimatedCamera(targetCamera);
+
   return (
     <div className="relative h-full w-full">
-      <div className="absolute inset-0 m-auto max-h-full max-w-full" style={{ aspectRatio: IMAGE_ASPECT }}>
-        <Image
-          src="/images/etat-atlas-ocean-background.webp"
-          alt=""
-          fill
-          sizes="(min-width: 1024px) 62vw, 100vw"
-          priority={false}
-          className="pointer-events-none object-cover"
-        />
+      <div className="absolute inset-0 m-auto max-h-full max-w-full overflow-hidden" style={{ aspectRatio: IMAGE_ASPECT }}>
+        {/* Couche image — reçoit la transform CSS. translate() en % est
+            résolu contre la boîte D'ORIGINE de cet élément (pas affecté
+            par son propre scale()), combiné à transformOrigin={cx,cy} :
+            recette standard "zoom vers un point" (translate appliqué
+            dans l'espace déjà mis à l'échelle par la composition des
+            fonctions transform, lues de droite à gauche). Même formule
+            que l'historique territoryZoomStyle (mini-cartes du carrousel
+            "Où concentrer l'attention", retiré, retrouvé dans l'historique
+            git à la demande du CEO — "réutiliser plutôt que réinventer"),
+            adaptée : ici cx/cy viennent directement de
+            territoryMapImagePositions (déjà en %), plus besoin de
+            convertir depuis un viewBox SVG comme le faisait l'original. */}
+        <div
+          className="absolute inset-0"
+          style={{ transform: `translate(${50 - cx}%, ${50 - cy}%) scale(${scale})`, transformOrigin: `${cx}% ${cy}%` }}
+        >
+          <Image
+            src="/images/etat-atlas-ocean-background.webp"
+            alt=""
+            fill
+            sizes="(min-width: 1024px) 62vw, 100vw"
+            priority={false}
+            className="pointer-events-none object-cover"
+          />
+        </div>
         {territories.map((territory) => {
           const position = territoryMapImagePositions[territory.id];
           if (!position) return null;
-          const [left, top] = position;
+          const [px, py] = position;
+          // Couche marqueurs — PAS d'transform héritée de l'image :
+          // chaque position est recalculée depuis {cx, cy, scale}, la
+          // MÊME homothétie que celle appliquée à l'image (formule
+          // dérivée directement de translate+scale+transform-origin
+          // ci-dessus : un point (px,py) devient (50+(px-cx)*scale,
+          // 50+(py-cy)*scale) dans le référentiel de la boîte), mais la
+          // TAILLE du marqueur (span, dot, texte) reste en pixels CSS
+          // fixes, non affectée par scale — c'est ce qui garde les points
+          // et libellés à taille constante au zoom (architecture à deux
+          // couches approuvée par le CEO), sans quoi ils grossiraient
+          // avec l'image comme le ferait un enfant transformé hérité.
+          const left = 50 + (px - cx) * scale;
+          const top = 50 + (py - cy) * scale;
           const active = territory.id === selectedId;
           const color = activityColor[territory.activity];
           const clickable = Boolean(onSelect);
@@ -94,17 +212,11 @@ export function AtlasImageMap({
                   size-9/36px à l'origine) : mesuré par script sur cette
                   page réelle (pas supposé), l'écart minimal entre 2
                   marqueurs voisins descend à 7px à l'écran (Rufisque-
-                  Bargny/Popenguine, cluster Dakar, mobile 390px) — un
-                  cercle de clic de 36px de diamètre volait silencieusement
-                  les clics du mauvais territoire sur plusieurs paires
-                  denses (confirmé : un clic visant Joal-Fadiouth
-                  atteignait en réalité Foundiougne). Réduit à 20px
-                  (size-5), qui reste le geste normal du composant mais
-                  réduit nettement les vols de clic sans les éliminer
-                  totalement pour les paires les plus denses — limite
-                  assumée et signalée au CEO : sans caméra (Lot C, à
-                  venir), aucune taille fixe ne peut lever toute ambiguïté
-                  pour des marqueurs à 7-12px d'écart réel. */}
+                  Bargny/Popenguine, cluster Dakar, mobile 390px, à
+                  l'échelle 1 — sans caméra). Réduit à 20px (size-5).
+                  Depuis ce lot, la caméra (BASE_ZOOM_SCALE ci-dessus)
+                  résout ce chevauchement une fois un territoire de ce
+                  cluster ciblé — vérifié empiriquement, pas supposé. */}
               <span className="absolute left-1/2 top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full" />
               {territory.activity === "critique" && (
                 <span className="absolute left-1/2 top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 animate-ping rounded-full opacity-40" style={{ backgroundColor: color }} />

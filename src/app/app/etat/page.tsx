@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight, Clock, Factory, Flag, ListChecks, Sailboat } from "lucide-react";
+import { AlertTriangle, ArrowRight, Clock, Compass, Factory, Flag, ListChecks, Minus, Plus, Sailboat } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
@@ -106,10 +106,16 @@ export default function EtatPage() {
   // false dès qu'une sélection explicite est faite, pour ne pas bloquer
   // la caméra sur le national après un choix réel.
   const [cameraForcedNational, setCameraForcedNational] = useState(false);
-  // zoomFactor/ZOOM_MIN/ZOOM_MAX retirés avec la caméra SVG (mandat
-  // "simplifier l'Atlas /app/etat", Lot B, 2026-08-27) : le zoom +/-
-  // agissait sur cameraWindowFor/scaleViewBox, retirés au même lot. Le
-  // Lot C réintroduira un zoom équivalent sur la caméra CSS transform.
+  // Zoom +/- (mandat "simplifier l'Atlas /app/etat", Lot C, 2026-08-27) :
+  // même sémantique et mêmes bornes que l'ancienne caméra SVG (retirée au
+  // Lot B) — facteur multiplicatif composé avec BASE_ZOOM_SCALE côté
+  // AtlasImageMap (cameraFor). Réinitialisé à 1 sur tout changement de
+  // cible caméra (effet plus bas), même raison qu'avant : un réglage
+  // ponctuel de LA lecture en cours, pas un état qui "suit" d'un
+  // territoire à l'autre.
+  const [zoomFactor, setZoomFactor] = useState(1);
+  const ZOOM_MIN = 0.4;
+  const ZOOM_MAX = 2.2;
   // Lot État-B (mandat §3.1, §4.2) : filtre Période réel, restreint aux
   // dates calendaires réellement présentes dans les landings (seule
   // donnée temporelle avec une vraie dispersion sur cette page — les
@@ -162,6 +168,12 @@ export default function EtatPage() {
   // nécessaire même sans caméra visuelle (Lot B) : c'est ce qui détermine
   // le territoire mis en avant dans "À décider aujourd'hui" par défaut.
   const cameraTargetId = cameraForcedNational ? null : (selectedTerritoryId ?? (dominant.kind === "territoire" ? dominant.territory.id : dominant.kind === "signal" ? dominant.case.territoryId : null));
+  // Reset du zoom sur changement de cible caméra (hook, doit s'exécuter
+  // inconditionnellement — placé ici, avant le garde-fou, même raison que
+  // pour cameraTargetId juste au-dessus).
+  useEffect(() => {
+    setZoomFactor(1);
+  }, [cameraTargetId]);
 
   if (!state) return null;
 
@@ -485,16 +497,18 @@ export default function EtatPage() {
                   sémantique (H1 de ce chapitre), texte aligné sur la
                   nouvelle référence. */}
               <p className="etat-eyebrow rounded-full bg-white/90 px-3 py-1.5">Atlas de supervision</p>
-              {/* Bouton "Vue nationale" retiré ici (mandat "simplifier
-                  l'Atlas /app/etat", Lot B, 2026-08-27) : il pilotait
-                  cameraForcedNational, qui n'a plus d'effet visuel sans
-                  caméra (AtlasImageMap n'a pas encore de fenêtre de
-                  cadrage — carte toujours en vue nationale complète dans
-                  ce lot). Pas de bouton dont le clic ne changerait rien à
-                  l'écran. Restauré par le Lot C avec la caméra CSS
-                  transform. cameraForcedNational/setCameraForcedNational
-                  restent déclarés (cameraTargetId en dépend, cf. plus
-                  haut, encore utile pour "À décider aujourd'hui"). */}
+              {/* Caméra Atlas (restauré Lot C, mandat "simplifier l'Atlas
+                  /app/etat", 2026-08-27 — retiré temporairement au Lot B
+                  le temps de construire AtlasImageMap sans caméra, cf.
+                  historique). Même comportement qu'avant la simplification :
+                  visible dès qu'un cadrage régional est actif, y compris
+                  par défaut au chargement (territoire dominant). Condition
+                  sur cameraTargetId (pas selectedTerritoryId) : la caméra
+                  peut être resserrée sans sélection explicite (calcul
+                  dominant), il faut quand même pouvoir en sortir. */}
+              {cameraTargetId && (
+                <button onClick={() => { setSelectedTerritoryId(null); setCameraForcedNational(true); }} className="etat-btn etat-btn-outline shrink-0 bg-white/90 text-xs"><Compass size={13} /> Vue nationale</button>
+              )}
             </div>
 
             {/* Légende "Niveau d'attention" (mandat "nouvelle DA Vue
@@ -531,11 +545,32 @@ export default function EtatPage() {
               </div>
             </div>
 
-            {/* Zoom +/- retiré ici (mandat "simplifier l'Atlas /app/etat",
-                Lot B, 2026-08-27) : pilotait zoomFactor/scaleViewBox,
-                retirés au même lot avec la caméra SVG. AtlasImageMap n'a
-                pas encore de fenêtre de cadrage à resserrer/élargir dans
-                ce lot — restauré par le Lot C. */}
+            {/* Zoom +/- (restauré Lot C) : agit sur zoomFactor, composé
+                avec BASE_ZOOM_SCALE côté AtlasImageMap (cameraFor) — même
+                interpolation rAF que le reste de la caméra (useAnimatedCamera),
+                aucun nouveau mécanisme d'animation. Bornes désactivent
+                visuellement le bouton correspondant plutôt que de le
+                laisser sans effet silencieux. */}
+            <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1">
+              <button
+                aria-label="Zoom avant"
+                disabled={zoomFactor <= ZOOM_MIN}
+                onClick={() => setZoomFactor((value) => Math.max(ZOOM_MIN, +(value - 0.3).toFixed(2)))}
+                className="etat-btn etat-btn-outline bg-white/95 disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ minHeight: 32, minWidth: 32, padding: 0 }}
+              >
+                <Plus size={15} />
+              </button>
+              <button
+                aria-label="Zoom arrière"
+                disabled={zoomFactor >= ZOOM_MAX}
+                onClick={() => setZoomFactor((value) => Math.min(ZOOM_MAX, +(value + 0.3).toFixed(2)))}
+                className="etat-btn etat-btn-outline bg-white/95 disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ minHeight: 32, minWidth: 32, padding: 0 }}
+              >
+                <Minus size={15} />
+              </button>
+            </div>
 
             {/* lg:min-h-[520px] retiré (correctif CEO, compression du lot
                 précédent) : reliquat du gabarit 520px d'avant ce lot,
@@ -548,6 +583,8 @@ export default function EtatPage() {
                 territories={state.territories}
                 selectedId={selectedTerritoryId ?? undefined}
                 onSelect={(id) => { setSelectedTerritoryId(id); setCameraForcedNational(false); }}
+                cameraTargetId={cameraTargetId}
+                zoomFactor={zoomFactor}
               />
             </div>
           </div>
