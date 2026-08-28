@@ -62,22 +62,26 @@ const activityColor: Record<AtlasMapActivity, string> = {
 // l'image, à n'importe quelle taille de conteneur.
 const IMAGE_ASPECT = "1536 / 1024";
 
-// BASE_ZOOM_SCALE calibré par script sur le VRAI besoin (pas par analogie
-// avec l'ancienne fenêtre SVG) : le problème concret à résoudre était
-// l'écart minimal mesuré entre 2 marqueurs à l'écran (7,2px, Rufisque-
-// Bargny/Popenguine, mobile 390px, cf. constat transmis au CEO en fin de
-// Lot B) — pas "garder 3 à 9 voisins visibles" comme l'ancienne caméra SVG
-// (un critère hérité d'un système de fenêtre rectangulaire, pas transposé
-// tel quel). Le zoom étant une homothétie uniforme centrée sur la cible
-// (cf. cameraFor plus bas), la distance à l'écran entre 2 points croît
-// linéairement avec l'échelle : à 7,2px non zoomé, une échelle de 5
-// porte cet écart à ~36px — nettement au-dessus des 20px de la zone de
-// clic (cf. AtlasImageMap, span invisible), avec une marge de sécurité
-// réelle, pas juste suffisante. Vérifié empiriquement après implémentation
-// (pas seulement par ce calcul) : les 8 marqueurs qui échouaient au clic
-// individuel en fin de Lot B redeviennent cliquables un par un une fois
-// zoomés — cf. script de vérification Lot C.
-const BASE_ZOOM_SCALE = 5;
+// BASE_ZOOM_SCALE — recalibré (correctif CEO, "Hann invisible par défaut,
+// cadrage trop resserré", 2026-08-28) après un premier calibrage (S=5) qui
+// s'est révélé insuffisant : calibré uniquement contre la séparation au
+// clic (l'écart minimal mesuré, 7,2px, cf. historique), sans le recroiser
+// avec l'exigence de CONTEXTE de l'ancienne caméra SVG ("jamais un
+// territoire isolé seul dans le cadre... 3 à 9 voisins immédiats",
+// REGIONAL_WINDOW_HALF_HEIGHT). Vérifié précisément (pas supposé) :
+// à S=5, depuis N'IMPORTE quel territoire ciblé, 13 à 17 des 17 autres
+// tombaient hors du cadre visible (overflow-hidden) — un problème
+// systémique, pas propre à un territoire. S=2 restaure EXACTEMENT le
+// critère déjà validé de l'ancien système (script de calibrage : à S=2,
+// chaque territoire garde entre 3 et 10 voisins visibles, moyenne 7,9 —
+// correspond à "3 à 9 voisins"), pas une nouvelle valeur approximée.
+// Coût assumé : la paire la plus dense (7,2px non zoomée) ne descend
+// plus qu'à ~14,4px à l'échelle par défaut, sous les 20px de la zone de
+// clic — la boucle "clic → zoom manuel → clic corrigé", déjà vérifiée
+// fonctionnelle au Lot C, reste le filet de sécurité pour ce cas,
+// désormais sollicitée dès l'état par défaut sur les paires les plus
+// denses plutôt qu'en cas isolé.
+const BASE_ZOOM_SCALE = 2;
 
 // zoomFactor : même sémantique que l'ancienne caméra SVG (0,4 = le plus
 // resserré, 2,2 = le plus large) — division plutôt que multiplication
