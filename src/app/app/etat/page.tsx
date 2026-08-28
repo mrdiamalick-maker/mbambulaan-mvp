@@ -114,8 +114,28 @@ export default function EtatPage() {
   // ponctuel de LA lecture en cours, pas un état qui "suit" d'un
   // territoire à l'autre.
   const [zoomFactor, setZoomFactor] = useState(1);
-  const ZOOM_MIN = 0.4;
+  // ZOOM_MIN recalibré (correctif CEO, "4 des 8 marqueurs mobiles échouent
+  // toujours après le Lot C") : 0,4 d'origine (échelle max 12,5) poussait
+  // hors-champ des paires géographiquement modérément espacées (Lompoul/
+  // Fass Boye, 5,1 points de %, et Kayar/Fass Boye, 7,7 points) — vérifié
+  // par script (calibrate-zoom-min) : au zoom maximal, le rayon visible
+  // (50/échelle) tombait à 4%, sous ces distances réelles. La cause
+  // n'était PAS le calibrage Lot A (positions inchangées, toujours
+  // vérifiées) ni le cluster Dakar (résolu dès l'échelle par défaut,
+  // sans aucun zoom manuel — vérifié séparément) : uniquement la borne
+  // haute du zoom manuel, trop agressive pour des paires moins denses que
+  // le cluster Dakar. Recalibré à 0,8 (échelle max 6,25, rayon visible
+  // 8% — au-dessus du pire cas réel hors valeurs aberrantes isolées comme
+  // Saint-Louis, dont le plus proche voisin à 13,2% n'a pas besoin de
+  // rester visible : rien de comparable à proximité dans la réalité
+  // géographique). Repas de 0,3 à 0,1 pour le zoom avant (la plage
+  // disponible est désormais plus étroite, 0,3 aurait atteint le
+  // plancher en un seul clic) — le zoom arrière (ZOOM_MAX, non concerné
+  // par ce problème) garde son pas de 0,3.
+  const ZOOM_MIN = 0.8;
   const ZOOM_MAX = 2.2;
+  const ZOOM_STEP_IN = 0.1;
+  const ZOOM_STEP_OUT = 0.3;
   // Lot État-B (mandat §3.1, §4.2) : filtre Période réel, restreint aux
   // dates calendaires réellement présentes dans les landings (seule
   // donnée temporelle avec une vraie dispersion sur cette page — les
@@ -555,7 +575,7 @@ export default function EtatPage() {
               <button
                 aria-label="Zoom avant"
                 disabled={zoomFactor <= ZOOM_MIN}
-                onClick={() => setZoomFactor((value) => Math.max(ZOOM_MIN, +(value - 0.3).toFixed(2)))}
+                onClick={() => setZoomFactor((value) => Math.max(ZOOM_MIN, +(value - ZOOM_STEP_IN).toFixed(2)))}
                 className="etat-btn etat-btn-outline bg-white/95 disabled:cursor-not-allowed disabled:opacity-40"
                 style={{ minHeight: 32, minWidth: 32, padding: 0 }}
               >
@@ -564,7 +584,7 @@ export default function EtatPage() {
               <button
                 aria-label="Zoom arrière"
                 disabled={zoomFactor >= ZOOM_MAX}
-                onClick={() => setZoomFactor((value) => Math.min(ZOOM_MAX, +(value + 0.3).toFixed(2)))}
+                onClick={() => setZoomFactor((value) => Math.min(ZOOM_MAX, +(value + ZOOM_STEP_OUT).toFixed(2)))}
                 className="etat-btn etat-btn-outline bg-white/95 disabled:cursor-not-allowed disabled:opacity-40"
                 style={{ minHeight: 32, minWidth: 32, padding: 0 }}
               >
