@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileCheck2, Home, LayoutGrid, LineChart, LogOut, MapPin, Scale, Settings } from "lucide-react";
+import { FileCheck2, Home, LayoutGrid, LogOut, MapPin, Scale, Settings } from "lucide-react";
 
 // Sidebar permanente Espace État (mandat CEO "nouvelle DA Vue d'ensemble",
 // arbitrage Lot 0 2026-08-23, Décision 1 : "A14 est renversé
@@ -27,15 +27,22 @@ import { FileCheck2, Home, LayoutGrid, LineChart, LogOut, MapPin, Scale, Setting
 // récentes") plutôt que depuis ce rail — pas un oubli, un choix pour ne
 // pas dépasser les 6 items déjà nommés par le mandat d'origine.
 //
-// Territoires et Performance & impact (mandat "Brief national",
-// 2026-08-23) : futures pages dédiées non construites — items gardés
-// présents mais désactivés, même discipline que "Réglages" ci-dessous.
+// Territoires (mandat "2 changements décidés", 2026-08-28) : page dédiée
+// construite (/app/etat/territoires, registre des 18 territoires +
+// TerritoryDetail réutilisé tel quel) — item activé, plus de disabled.
+//
+// Performance & impact retiré de ce rail (même mandat, décision CEO
+// explicite) : "un menu à 6 entrées dont une visiblement désactivée
+// n'est pas acceptable pour une présentation au Ministère — mieux vaut
+// 5 entrées toutes fonctionnelles". Retrait complet de l'entrée, pas un
+// masquage CSS — reste dans le backlog produit (pas dans ce fichier)
+// pour un sprint de raffinement post-rencontre, pas supprimé du projet,
+// juste plus une ligne grisée ici tant qu'aucune page ne l'accompagne.
 const navItems = [
   { href: "/app/etat", label: "Vue d’ensemble", icon: Home },
-  { label: "Territoires", icon: MapPin, disabled: true },
+  { href: "/app/etat/territoires", label: "Territoires", icon: MapPin },
   { href: "/app/etat/arbitrages", label: "Arbitrages", icon: Scale },
   { href: "/app/etat/programmes", label: "Programmes", icon: LayoutGrid },
-  { label: "Performance & impact", icon: LineChart, disabled: true },
   { href: "/app/etat/rapport", label: "Rapports & redevabilité", icon: FileCheck2 }
 ] as const;
 
@@ -74,17 +81,13 @@ export function EtatSidebar({ onLogout }: { onLogout: () => void }) {
     <aside className="hidden w-56 shrink-0 flex-col bg-white p-3 lg:flex" style={{ borderRight: `1px solid ${D9.line}` }}>
       <nav className="flex flex-1 flex-col gap-0.5">
         {navItems.map((item) => {
-          if (!("href" in item)) {
-            return (
-              <span key={item.label} className="flex cursor-not-allowed items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold" style={{ color: D9.stone400, borderLeft: "3px solid transparent" }} aria-disabled="true" title="Page dédiée à venir">
-                <item.icon size={17} />
-                {item.label}
-              </span>
-            );
-          }
           // Actif = route courante exacte, un vrai test de pathname
           // désormais (ce sont de vraies pages, plus des ancres sur une
-          // page qu'on ne rend jamais soi-même).
+          // page qu'on ne rend jamais soi-même). Plus de branche
+          // "désactivé" ici (mandat "2 changements décidés", 2026-08-28) :
+          // Territoires est devenu une vraie page, Performance & impact a
+          // été retiré entièrement — tous les items de navItems ont
+          // désormais un href réel.
           const active = pathname === item.href;
           return (
             <Link
