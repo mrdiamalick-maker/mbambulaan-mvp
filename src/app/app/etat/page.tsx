@@ -23,7 +23,8 @@ import {
   situationPriorityRank,
   statusTagLabel
 } from "@/components/etat/shared";
-import { type Situation, type Territory } from "@/domain/types";
+import { type CommunityPost, type Signal, type Situation, type Territory } from "@/domain/types";
+import { channelMeta } from "@/lib/status-tokens";
 import { vigilanceCategoryLabels, type VigilanceCase, type VigilanceSeverity } from "@/domain/ministry/vigilance";
 
 // Audit DA Premium XXL v2 (mandat CEO 2026-08-17). Cette page adopte
@@ -197,6 +198,33 @@ export default function EtatPage() {
   if (!state) return null;
 
   const territoiresActifs = state.territories.length;
+
+  // Bloc "Le pouls de la filière" (mandat CEO "reconstruire l'Espace État
+  // autour de la capture de signal", Lot B, 2026-08-29) : Mbàmbulaan capte
+  // tout signal quel que soit le canal — donnée déjà réelle dans
+  // ProductState (state.signals/communityPosts/incomingMessages), jamais
+  // affichée sur cette page jusqu'ici. Ordre des canaux décroissant par
+  // effectif réel (pas l'ordre arbitraire de channelMeta) — lecture "du
+  // plus au moins fréquent", vérifié indépendamment avant ce lot : 30
+  // signaux (terrain 18, poste_quai 7, téléphone 3, whatsapp_structure 2).
+  const signalsByChannel = (Object.keys(channelMeta) as Array<Signal["channel"]>)
+    .map((channel) => ({ channel, count: state.signals.filter((item) => item.channel === channel).length }))
+    .sort((a, b) => b.count - a.count);
+  const totalSignalsCaptes = state.signals.length;
+  // Pont public↔privé : CommunityPost.status==="transforme" +
+  // convertedObjectId pointent déjà vers une vraie Situation (13/13
+  // résolus, vérifié) — jamais montré. .filter Boolean plutôt que supposé
+  // toujours résolu : si un futur post transformé ne résout à rien, il
+  // disparaît silencieusement de la liste d'exemples plutôt que de
+  // planter ou d'afficher un exemple cassé.
+  const transformedPosts = state.communityPosts.filter((item) => item.status === "transforme");
+  const transformedExamples = transformedPosts
+    .map((post) => ({ post, situation: state.situations.find((item) => item.id === post.convertedObjectId) }))
+    .filter((item): item is { post: CommunityPost; situation: Situation } => Boolean(item.situation))
+    .slice(0, 3);
+  // File de capture brute : IncomingMessage.status==="nouveau" (4 dans le
+  // jeu réel, vérifié) — pas encore convertis en signal qualifié.
+  const newIncomingMessages = state.incomingMessages.filter((item) => item.status === "nouveau");
 
   // Synthèse nationale (Lot 1, Refonte Premium XXL, mandat §9) : bande
   // fine à 5 chiffres, remplace l'ancien triptyque "Territoires suivis /
@@ -434,6 +462,75 @@ export default function EtatPage() {
           de space-y-16 hérités du bandeau/nav/toolbar), le rythme entre
           #terrain et les chapitres suivants reste identique à avant. */}
       <div className="mt-4 space-y-16">
+      {/* Bloc "Le pouls de la filière" (mandat CEO "reconstruire l'Espace
+          État autour de la capture de signal", Lot B, 2026-08-29) : avant
+          la carte/le brief du jour, montrer d'où vient l'information —
+          Mbàmbulaan capte tout signal, quel que soit le canal, c'est
+          l'infrastructure de confiance vendue. Chiffres inline (pas de
+          graphique décoratif, consigne explicite du mandat). Exemples
+          transformés cliquables : ouvrent SituationDetail dans le même
+          drawer que le reste de la page (situationDrawer, déjà déclaré
+          plus haut) — l'Institution ne quitte jamais /app/etat, même
+          discipline que partout ailleurs sur cette page. */}
+      <section id="pouls" className="scroll-mt-6">
+        <div className="etat-panel p-6 lg:p-7">
+          <p className="etat-eyebrow">Le pouls de la filière</p>
+          <h2 className="etat-display mt-2 text-xl not-italic text-[var(--etat-navy-950)]">Capter tout signal, quel que soit le canal.</h2>
+          <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]"><span className="etat-display not-italic font-semibold"><NumberTicker value={totalSignalsCaptes} /></span> signaux captés à ce jour, tous canaux confondus — chaque situation suivie par le réseau en découle.</p>
+
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {signalsByChannel.map(({ channel, count }) => {
+              const Icon = channelMeta[channel].icon;
+              return (
+                <div key={channel} className="rounded-lg border border-[var(--etat-line)] bg-white p-3">
+                  <div className="flex items-center gap-1.5 text-[var(--etat-navy-600)]">
+                    <Icon size={13} className="shrink-0" />
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">{channelMeta[channel].label}</p>
+                  </div>
+                  <p className="etat-display mt-1 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={count} /></p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Pont public ↔ privé (mandat) : preuve concrète, pas une
+              affirmation — CommunityPost.status==="transforme" +
+              convertedObjectId pointent déjà vers une vraie Situation,
+              jamais montré ailleurs dans le produit sous cette forme. */}
+          <div className="mt-6 border-t border-[var(--etat-line)] pt-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Le pont public ↔ privé</p>
+            <p className="mt-1.5 text-sm text-[var(--etat-navy-950)]">{state.communityPosts.length} publication(s) de l’espace public reçue(s), dont <span className="font-bold">{transformedPosts.length} transformée(s)</span> en situation(s) suivie(s).</p>
+            {transformedExamples.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {transformedExamples.map(({ post, situation }) => (
+                  <button key={post.id} onClick={() => setSituationDrawer(situation)} className="flex w-full items-center justify-between gap-3 rounded-lg border border-[var(--etat-line)] bg-white p-3 text-left transition hover:border-[var(--etat-navy-600)]">
+                    <div className="min-w-0">
+                      <p className="truncate text-xs text-[var(--etat-stone-600)]">« {post.title} »</p>
+                      <p className="mt-0.5 truncate text-sm font-semibold text-[var(--etat-navy-950)]">devenu {situation.title}</p>
+                    </div>
+                    <ArrowRight size={14} className="shrink-0 text-[var(--etat-stone-400)]" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* File d'attente de capture brute (mandat, "si pertinent") :
+              n'apparaît que si non vide — 4 messages dans le jeu réel,
+              tous "nouveau", vérifié. */}
+          {newIncomingMessages.length > 0 && (
+            <div className="mt-5 border-t border-[var(--etat-line)] pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">File d’attente de capture brute · {newIncomingMessages.length}</p>
+              <div className="mt-2 space-y-1.5">
+                {newIncomingMessages.map((message) => (
+                  <p key={message.id} className="rounded-lg border border-[var(--etat-line)] bg-white p-2.5 text-xs leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{channelMeta[message.channel].label}</span> · {message.reportedBy} — {message.body}</p>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Chapitre 1 — Atlas + brief territorial (mandat §5, Lot B ;
           recomposé Lot 1 correctif CEO 2026-08-22 ; recomposé une 2e fois
           "Brief national" 2026-08-23). Historique : le H1 pleine largeur
