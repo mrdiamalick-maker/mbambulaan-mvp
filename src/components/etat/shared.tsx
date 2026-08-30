@@ -13,6 +13,7 @@ import { FormEvent, useState } from "react";
 import { ArrowRight, ArrowUpRight, Send } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { decisionTypeLabels, type Situation, type Territory } from "@/domain/types";
+import { channelMeta } from "@/lib/status-tokens";
 import { fieldVisitObjectiveLabels, type FieldVisitObjective } from "@/domain/ministry/field-visit";
 import {
   vigilanceCategoryLabels,
@@ -156,6 +157,19 @@ export function SituationDetail({ situation, state, onPlanVisit }: { situation: 
   // déjà engagées") : situation.coordinationId existe déjà dans le
   // modèle et n'était affiché nulle part sur cette fiche.
   const coordination = situation.coordinationId ? state.coordinationSpaces.find((item) => item.id === situation.coordinationId) : undefined;
+  // Traçabilité (mandat CEO "reconstruire l'Espace État autour de la
+  // capture de signal", Lot A, 2026-08-29) : Situation.signalIds pointe
+  // déjà vers un signal réel (0 situation sans origine traçable sur les
+  // 30 du jeu de démonstration, vérifié) — jamais affiché sur cette
+  // fiche jusqu'ici. Même canal/vocabulaire que SituationRoom.tsx
+  // (poste de travail Coordinateur, déjà en production) : channelMeta
+  // depuis @/lib/status-tokens, pas un 2e vocabulaire de canaux inventé
+  // pour l'Espace État. reportedBy absent sur la majorité des signaux
+  // du jeu réel (5/30 seulement, champ optionnel par conception) — ne
+  // s'affiche que quand présent, pas de repli fabriqué.
+  const signal = state.signals.find((item) => situation.signalIds.includes(item.id));
+  const signalCapturedBy = signal ? state.actors.find((item) => item.id === signal.actorId) : undefined;
+  const ChannelIcon = signal ? channelMeta[signal.channel].icon : undefined;
 
   return (
     <div className="space-y-6">
@@ -163,6 +177,23 @@ export function SituationDetail({ situation, state, onPlanVisit }: { situation: 
         <span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : tag === "vigilance" ? "etat-tag--vigilance" : "etat-tag--stable"}`}>{priorityLabels[situation.priority]}</span>
         <span className="text-xs text-[var(--etat-stone-600)]">{situation.reference} · {territory?.name ?? situation.territoryId}</span>
       </div>
+      {signal && ChannelIcon && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Origine du signal</p>
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <ChannelIcon size={14} className="shrink-0 text-[var(--etat-navy-600)]" />
+            <span className="text-sm font-semibold text-[var(--etat-navy-950)]">{channelMeta[signal.channel].label}</span>
+            <span className="text-xs text-[var(--etat-stone-400)]">· {new Date(signal.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</span>
+          </div>
+          {(signal.reportedBy || signalCapturedBy) && (
+            <p className="mt-1 text-xs text-[var(--etat-stone-600)]">
+              {signal.reportedBy ? `Rapporté par ${signal.reportedBy}` : ""}
+              {signal.reportedBy && signalCapturedBy ? " · " : ""}
+              {signalCapturedBy ? `Saisi par ${signalCapturedBy.name}` : ""}
+            </p>
+          )}
+        </div>
+      )}
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Description</p>
         <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.description}</p>
