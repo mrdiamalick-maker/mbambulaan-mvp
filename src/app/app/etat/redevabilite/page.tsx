@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Drawer } from "@/components/etat/Drawer";
+import { EtatRegistryHeader } from "@/components/etat/EtatRegistryHeader";
 import { DecisionIcon } from "@/components/etat/MotifIcons";
 import { Mission, MissionForm, SituationDetail, priorityToTag } from "@/components/etat/shared";
 import { decisionTypeLabels, type Situation } from "@/domain/types";
@@ -33,17 +33,26 @@ export default function RedevabilitePage() {
       return linkedSituation?.territoryId === selectedTerritoryId;
     })
     .sort((a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime());
+  const documentedResultCount = decisions.filter((decision) => {
+    const coordination = decision.coordinationId ? state.coordinationSpaces.find((item) => item.id === decision.coordinationId) : undefined;
+    return (coordination?.commitments ?? []).some((item) => item.status === "terminee" && item.result);
+  }).length;
+  const coveredTerritoriesCount = new Set(decisions.map((decision) => state.situations.find((item) => item.id === decision.situationId)?.territoryId).filter(Boolean)).size;
+  const latestDecisionAt = decisions[0]?.decidedAt;
 
   return (
-    <div className="etat-scope bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
-      <Link href="/app/etat" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--etat-navy-800)]"><ArrowLeft size={15} /> Retour au Brief national</Link>
-
-      <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="etat-eyebrow">Décisions exécutées &amp; résultats observés — registre complet</p>
-          <h1 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Décisions exécutées &amp; résultats observés.</h1>
-          <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{decisions.length} décision(s){selectedTerritoryId ? " sur ce territoire" : " enregistrée(s) au total"} — ce que la coordination a décidé, et ce que cela a produit. Chaque arbitrage institutionnel reste tracé et consultable.</p>
-        </div>
+    <div className="etat-scope min-h-screen bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
+      <EtatRegistryHeader
+        eyebrow="Décisions exécutées & résultats observés — registre complet"
+        title="Rendre chaque décision traçable jusqu’au résultat."
+        description={<>{decisions.length} décision(s){selectedTerritoryId ? " sur ce territoire" : " enregistrée(s) au total"}. Ce registre relie arbitrage, acteur mobilisé et résultat documenté sans confondre décision prise et effet effectivement observé.</>}
+        metrics={[
+          { label: "Décisions enregistrées", value: decisions.length },
+          { label: "Résultats documentés", value: documentedResultCount, detail: `${decisions.length - documentedResultCount} encore en cours`, tone: documentedResultCount > 0 ? "positive" : "neutral" },
+          { label: "Territoires concernés", value: coveredTerritoriesCount },
+          { label: "Dernière décision", value: latestDecisionAt ? new Date(latestDecisionAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) : "—", detail: latestDecisionAt ? new Date(latestDecisionAt).toLocaleDateString("fr-FR", { year: "numeric" }) : "Aucune décision" }
+        ]}
+      >
         <label className="block">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>
           <select
@@ -57,7 +66,7 @@ export default function RedevabilitePage() {
             ))}
           </select>
         </label>
-      </div>
+      </EtatRegistryHeader>
 
       <div className="etat-panel mt-5 p-6 lg:p-7">
       {decisions.length === 0 ? (

@@ -162,4 +162,39 @@
     background: var(--background);
     color: var(--foreground);
   }
+
+  /* Les espaces privés partagent désormais une toile claire et neutre.
+     Les panneaux navy restent disponibles pour les moments de décision,
+     mais ne constituent plus le fond permanent de l'expérience. */
+  .private-shell {
+    --background: #f7f8f7;
+    --muted: #f0f3f2;
+    --border: #dbe2e3;
+    --input: #dbe2e3;
+    background: var(--background);
+  }
+
+  /* Navigation métier claire : le bleu marine reste dans les contenus
+     qui portent une vraie priorité, pas sur toute la hauteur de travail. */
+  .private-sidebar {
+    --sidebar: #ffffff;
+    --sidebar-foreground: #102944;
+    --sidebar-primary: #b6522f;
+    --sidebar-primary-foreground: #fff8f2;
+    --sidebar-accent: #f4ebe5;
+    --sidebar-accent-foreground: #8a4024;
+    --sidebar-border: #dde3e5;
+    --sidebar-ring: #b6522f;
+    /* Les alias Tailwind sont eux-mêmes des variables héritées. On les
+       rescope aussi ici pour qu'ils ne conservent pas leur valeur calculée
+       depuis :root avant d'entrer dans le rail clair. */
+    --color-sidebar: #ffffff;
+    --color-sidebar-foreground: #102944;
+    --color-sidebar-primary: #b6522f;
+    --color-sidebar-primary-foreground: #fff8f2;
+    --color-sidebar-accent: #f4ebe5;
+    --color-sidebar-accent-foreground: #8a4024;
+    --color-sidebar-border: #dde3e5;
+    --color-sidebar-ring: #b6522f;
+  }
 }

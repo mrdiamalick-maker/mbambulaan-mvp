@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
+import { EtatRegistryHeader } from "@/components/etat/EtatRegistryHeader";
 import {
   formatFcfa,
   fundingStatusLabel,
@@ -30,18 +29,25 @@ export default function ProgrammesPage() {
     (!selectedTerritoryId || item.territoryIds.includes(selectedTerritoryId)) &&
     (programmeStatusFilter === "all" || item.status === programmeStatusFilter)
   );
+  const activeProgrammesCount = filteredProgrammes.filter((item) => item.status !== "terminee").length;
+  const confirmedFunding = filteredProgrammes.reduce((sum, item) => sum + item.funding.filter((fund) => fund.status === "confirme").reduce((fundingSum, fund) => fundingSum + fund.amountFcfa, 0), 0);
+  const confirmedFundingCompact = `${new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 1 }).format(confirmedFunding)} FCFA`;
+  const coveredTerritoriesCount = new Set(filteredProgrammes.flatMap((item) => item.territoryIds)).size;
+  const trackedIndicatorsCount = filteredProgrammes.reduce((sum, item) => sum + item.indicators.length, 0);
 
   return (
-    <div className="etat-scope bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
-      <Link href="/app/etat" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--etat-navy-800)]"><ArrowLeft size={15} /> Retour au Brief national</Link>
-
-      <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="etat-eyebrow">Programmes en cours — portefeuille complet</p>
-          <h1 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Portefeuille de programmes.</h1>
-          <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{filteredProgrammes.length} programme(s){selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}{programmeStatusFilter !== "all" ? ` · ${initiativeStatusLabel[programmeStatusFilter]}` : ""} sur {state.initiatives.length} au total.</p>
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
+    <div className="etat-scope min-h-screen bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
+      <EtatRegistryHeader
+        eyebrow="Programmes en cours — portefeuille complet"
+        title="Relier les priorités territoriales aux moyens mobilisables."
+        description={<>{filteredProgrammes.length} programme(s){selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}{programmeStatusFilter !== "all" ? ` · ${initiativeStatusLabel[programmeStatusFilter]}` : ""} sur {state.initiatives.length} au total. Les montants distinguent explicitement financements identifiés et financements confirmés.</>}
+        metrics={[
+          { label: "Programmes actifs", value: activeProgrammesCount, detail: `${filteredProgrammes.length} affiché(s)` },
+          { label: "Financements confirmés", value: confirmedFundingCompact, detail: formatFcfa(confirmedFunding), tone: confirmedFunding > 0 ? "positive" : "neutral" },
+          { label: "Territoires couverts", value: coveredTerritoriesCount },
+          { label: "Indicateurs suivis", value: trackedIndicatorsCount, detail: "Baseline, actuel et cible" }
+        ]}
+      >
           <label className="block">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>
             <select
@@ -68,8 +74,7 @@ export default function ProgrammesPage() {
               ))}
             </select>
           </label>
-        </div>
-      </div>
+      </EtatRegistryHeader>
 
       <div className="etat-panel mt-5 p-6 lg:p-7">
         {filteredProgrammes.length === 0 ? (

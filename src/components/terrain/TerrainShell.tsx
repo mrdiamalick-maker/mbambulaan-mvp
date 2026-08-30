@@ -49,7 +49,7 @@ export function TerrainShell({
     // texte, aucune donnée, ne change rien à la structure mobile-first
     // (D9) ni aux gestes déjà en place.
     <div
-      className="shadcn-scope flex min-h-screen flex-col bg-background"
+      className="shadcn-scope private-shell flex min-h-screen flex-col bg-background"
       style={{ backgroundImage: "url(/images/terrain-background-texture.svg)", backgroundRepeat: "repeat" }}
     >
       <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-sidebar px-4 text-sidebar-foreground">

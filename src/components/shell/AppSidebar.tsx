@@ -159,8 +159,8 @@ export function AppSidebar({ role, modules, orgName }: { role: Role; modules: Pl
   const groups: NavGroup[] = isMinistry ? [etatGroup] : operationalGroups;
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
+    <Sidebar collapsible="icon" className="private-sidebar">
+      <SidebarHeader className="text-[#102944]">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
@@ -175,7 +175,7 @@ export function AppSidebar({ role, modules, orgName }: { role: Role; modules: Pl
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="text-[#102944]">
         {groups.map((group) => {
           const items = group.items.filter((item) => canSee(item, role, modules));
           if (items.length === 0) return null;
@@ -199,7 +199,7 @@ export function AppSidebar({ role, modules, orgName }: { role: Role; modules: Pl
         })}
       </SidebarContent>
       {role === "administrateur" && (
-        <SidebarFooter>
+        <SidebarFooter className="text-[#102944]">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith("/app/administration")} tooltip="Administration">

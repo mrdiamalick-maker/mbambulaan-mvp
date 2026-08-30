@@ -39,7 +39,7 @@ export function AppShell({
   showLoading: boolean;
 }) {
   return (
-    <SidebarProvider className="shadcn-scope">
+    <SidebarProvider className="shadcn-scope private-shell">
       <AppSidebar role={role} modules={modules} orgName={orgName} />
       <SidebarInset>
         {/* planName masqué pour tous les rôles sauf administrateur (revue

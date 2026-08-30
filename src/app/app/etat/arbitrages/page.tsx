@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Radio, Search } from "lucide-react";
+import { ArrowRight, Radio, Search } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
+import { EtatRegistryHeader } from "@/components/etat/EtatRegistryHeader";
 import {
   Mission,
   MissionForm,
@@ -63,18 +63,24 @@ export default function ArbitragesPage() {
       ].some((field) => field.toLowerCase().includes(arbitrageSearchNormalized)))
     )
     .sort((a, b) => (({ critique: 3, haute: 2, moyenne: 1, faible: 0 } as const)[b.priority] - ({ critique: 3, haute: 2, moyenne: 1, faible: 0 } as const)[a.priority]));
+  const criticalCount = situationsAArbitrer.filter((item) => item.priority === "critique").length;
+  const highCount = situationsAArbitrer.filter((item) => item.priority === "haute").length;
+  const openCount = state.situations.filter((item) => item.status !== "reglee" && (!selectedTerritoryId || item.territoryId === selectedTerritoryId)).length;
+  const plannedVisitCount = visits.filter((item) => item.status === "planifiee" && (!selectedTerritoryId || item.territoryId === selectedTerritoryId)).length;
 
   return (
-    <div className="etat-scope bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
-      <Link href="/app/etat" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--etat-navy-800)]"><ArrowLeft size={15} /> Retour au Brief national</Link>
-
-      <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="etat-eyebrow">Situations à arbitrer — registre complet</p>
-          <h1 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Situations critiques à arbitrer.</h1>
-          <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{situationsAArbitrer.length} situation(s) {urgenceFilter === "all" ? "de risque élevé ou critique" : urgenceFilter === "critique" ? "critiques" : "de risque élevé"} attendent une décision, sur {state.situations.filter((item) => item.status !== "reglee" && (!selectedTerritoryId || item.territoryId === selectedTerritoryId)).length} dossier(s) ouverts{selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}.</p>
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
+    <div className="etat-scope min-h-screen bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
+      <EtatRegistryHeader
+        eyebrow="Situations à arbitrer — registre complet"
+        title="Décider sur les situations qui ne peuvent plus attendre."
+        description={<>{situationsAArbitrer.length} situation(s) {urgenceFilter === "all" ? "de risque élevé ou critique" : urgenceFilter === "critique" ? "critiques" : "de risque élevé"} attendent une décision, sur {openCount} dossier(s) ouverts{selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}.</>}
+        metrics={[
+          { label: "À arbitrer", value: situationsAArbitrer.length, detail: "Selon les filtres actifs", tone: situationsAArbitrer.length > 0 ? "attention" : "positive" },
+          { label: "Critiques", value: criticalCount, detail: "Attention immédiate", tone: criticalCount > 0 ? "critical" : "positive" },
+          { label: "Risque élevé", value: highCount, tone: highCount > 0 ? "attention" : "positive" },
+          { label: "Visites planifiées", value: plannedVisitCount, detail: "Vérification terrain", tone: plannedVisitCount > 0 ? "positive" : "neutral" }
+        ]}
+      >
           <label className="block">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>
             <select
@@ -114,8 +120,7 @@ export default function ArbitragesPage() {
             </select>
           </label>
           <button className="etat-btn etat-btn-outline" onClick={() => setSignalDrawerOpen(true)}><Radio size={15} /> Signaler une situation</button>
-        </div>
-      </div>
+      </EtatRegistryHeader>
 
       <div className="etat-panel mt-5 p-6 lg:p-7">
       {situationsAArbitrer.length === 0 ? (

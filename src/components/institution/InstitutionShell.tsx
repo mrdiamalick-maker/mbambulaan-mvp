@@ -59,7 +59,7 @@ export function InstitutionShell({
 }) {
   const { start } = usePresentationGuide();
   return (
-    <div className="shadcn-scope flex min-h-screen flex-col bg-background">
+    <div className="shadcn-scope private-shell flex min-h-screen flex-col bg-background">
       <header className="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 bg-sidebar px-5 text-sidebar-foreground lg:px-8">
         {/* Lot 1 (Refonte Premium XXL, mandat §2) : wordmark "Mbàmbulaan"
             (même patron que AppSidebar.tsx, cohérence inter-shells) +

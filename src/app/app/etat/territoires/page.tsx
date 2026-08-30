@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Drawer } from "@/components/etat/Drawer";
+import { EtatRegistryHeader } from "@/components/etat/EtatRegistryHeader";
 import {
   Mission,
   MissionForm,
@@ -61,18 +61,25 @@ export default function TerritoiresPage() {
   const filteredTerritories = state.territories
     .filter((item) => (regionFilter === "all" || item.region === regionFilter) && (activityFilter === "all" || item.activity === activityFilter))
     .sort((a, b) => a.name.localeCompare(b.name));
+  const filteredTerritoryIds = new Set(filteredTerritories.map((item) => item.id));
+  const openSituationsCount = state.situations.filter((item) => filteredTerritoryIds.has(item.territoryId) && item.status !== "reglee").length;
+  const fragileInfrastructureCount = state.infrastructures.filter((item) => filteredTerritoryIds.has(item.territoryId) && item.status !== "operationnelle").length;
+  const vigilanceCount = filteredTerritories.filter((item) => item.activity === "vigilance").length;
+  const criticalCount = filteredTerritories.filter((item) => item.activity === "critique").length;
 
   return (
-    <div className="etat-scope bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
-      <Link href="/app/etat" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--etat-navy-800)]"><ArrowLeft size={15} /> Retour au Brief national</Link>
-
-      <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="etat-eyebrow">Territoires suivis — registre complet</p>
-          <h1 className="etat-display mt-2 text-2xl not-italic text-[var(--etat-navy-950)]">Territoires.</h1>
-          <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]">{filteredTerritories.length} territoire(s){regionFilter !== "all" ? ` · ${regionFilter}` : ""}{activityFilter !== "all" ? ` · ${statusTagLabel[activityFilter]}` : ""} sur {state.territories.length} au total.</p>
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
+    <div className="etat-scope min-h-screen bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
+      <EtatRegistryHeader
+        eyebrow="Territoires suivis — registre complet"
+        title="Comprendre où agir, territoire par territoire."
+        description={<>{filteredTerritories.length} territoire(s){regionFilter !== "all" ? ` · ${regionFilter}` : ""}{activityFilter !== "all" ? ` · ${statusTagLabel[activityFilter]}` : ""} sur {state.territories.length} au total. La lecture associe niveau d’attention, situations ouvertes et capacités fragiles sans créer de score artificiel.</>}
+        metrics={[
+          { label: "Territoires affichés", value: filteredTerritories.length, detail: `${state.territories.length} suivis au total` },
+          { label: "Situations ouvertes", value: openSituationsCount, tone: openSituationsCount > 0 ? "attention" : "positive" },
+          { label: "En vigilance", value: vigilanceCount, detail: `${criticalCount} critique(s)`, tone: criticalCount > 0 ? "critical" : vigilanceCount > 0 ? "attention" : "positive" },
+          { label: "Capacités fragiles", value: fragileInfrastructureCount, detail: "Fragiles ou indisponibles", tone: fragileInfrastructureCount > 0 ? "attention" : "positive" }
+        ]}
+      >
           <label className="block">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Région</p>
             <select
@@ -99,8 +106,7 @@ export default function TerritoiresPage() {
               <option value="critique">Critique</option>
             </select>
           </label>
-        </div>
-      </div>
+      </EtatRegistryHeader>
 
       <div className="etat-panel mt-5 p-6 lg:p-7">
       {filteredTerritories.length === 0 ? (
