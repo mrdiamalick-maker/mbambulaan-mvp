@@ -226,6 +226,38 @@ export default function EtatPage() {
   // jeu réel, vérifié) — pas encore convertis en signal qualifié.
   const newIncomingMessages = state.incomingMessages.filter((item) => item.status === "nouveau");
 
+  // Bloc "De la capture à la décision" (mandat CEO "reconstruire l'Espace
+  // État autour de la capture de signal", Lot C, 2026-08-30) : le même
+  // récit que la boucle de coordination canonique déjà nommée ailleurs
+  // dans le produit (MotifIcons.tsx, en-tête de fichier : Signal →
+  // Qualification → Situation → Décision → Engagement → Exécution →
+  // Preuve → Résultat → Apprentissage) — 5 de ces 9 étapes, celles que le
+  // mandat demande explicitement de raconter ici avec de vrais effectifs,
+  // pas un lexique. Point le plus important, arbitré explicitement par le
+  // CEO dans le feu vert conjoint : ne jamais visualiser un rétrécissement
+  // fabriqué à l'étape Signal → Qualification — 1:1 dans ce jeu de
+  // données, vérifié indépendamment (Lot A/B, à nouveau ici). Le vrai
+  // rétrécissement commence à l'étape Situation.
+  const situationsQualifiees = state.situations.length; // 30 — 1:1 avec les signaux (signalIds toujours résolu, vérifié Lot A)
+  // "Situation" (3e étape) = situations réellement engagées dans la boucle
+  // de coordination, au-delà du seul accueil/qualification initiale.
+  // SituationStatus (domain/types.ts) ordonne déjà recue → qualification →
+  // priorisee → coordination → intervention → attente → resultat → reglee
+  // — cette étape compte tout ce qui a dépassé qualification (priorisee et
+  // au-delà, 26/30), pas un seuil fabriqué pour ce bloc : lecture directe
+  // et littérale de l'ordre du champ de statut réel.
+  const preQualificationStatuses = new Set<Situation["status"]>(["recue", "qualification"]);
+  const situationsEngagees = state.situations.filter((item) => !preQualificationStatuses.has(item.status)).length;
+  // "Décision" = situations avec au moins une Decision rattachée — une
+  // situation peut recevoir plusieurs décisions au fil du temps (17
+  // décisions au total sur 15 situations distinctes, vérifié).
+  const situationIdsAvecDecision = new Set(state.decisions.map((item) => item.situationId));
+  const situationsDecidees = situationIdsAvecDecision.size;
+  const totalDecisions = state.decisions.length;
+  // "Résultat" = situations dont le statut atteint resultat/reglee — un
+  // résultat a été constaté et consigné, pas seulement décidé.
+  const situationsAvecResultat = state.situations.filter((item) => item.status === "resultat" || item.status === "reglee").length;
+
   // Synthèse nationale (Lot 1, Refonte Premium XXL, mandat §9) : bande
   // fine à 5 chiffres, remplace l'ancien triptyque "Territoires suivis /
   // En vigilance / En critique" (redondant avec la lecture par couleur
@@ -528,6 +560,66 @@ export default function EtatPage() {
               </div>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Bloc "De la capture à la décision" (mandat CEO "reconstruire
+          l'Espace État autour de la capture de signal", Lot C, 2026-08-30) :
+          la même boucle canonique que MotifIcons.tsx, racontée en prose
+          avec de vrais effectifs à chaque étape, puis en chiffres. Tuiles
+          .etat-metric/.etat-metric--{tone} réutilisées telles quelles
+          (nouveau socle Codex Working, fdbd8bc "poser le socle clair des
+          espaces privés", déjà utilisées par EtatRegistryHeader sur les 4
+          pages registre) — même vocabulaire visuel plutôt qu'un 2e système
+          de tuiles inventé pour ce bloc. Grille propre (pas
+          .etat-metric-strip, qui fixe 2/4 colonnes en CSS partagé) pour
+          tenir 5 étapes sans toucher un fichier CSS que Codex Working fait
+          encore évoluer en parallèle. Palette : terracotta réservé à
+          l'étape Décision (doctrine confirmée par le CEO, "socle clair",
+          2026-08-30) ; ocre "attention" pour Situation (premier vrai
+          rétrécissement) ; vert "positive" pour Résultat — les 3 tons déjà
+          définis par .etat-metric, aucune teinte inventée ici. */}
+      <section id="pipeline" className="scroll-mt-6">
+        <div className="etat-panel p-6 lg:p-7">
+          <p className="etat-eyebrow">De la capture à la décision</p>
+          <h2 className="etat-display mt-2 text-xl not-italic text-[var(--etat-navy-950)]">Chaque signal suit le même chemin, jusqu’à la décision.</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--etat-stone-600)]">
+            Les {totalSignalsCaptes} signaux captés donnent {situationsQualifiees} situations qualifiées — aucune perte à cette étape. {situationsEngagees} sont activement engagées dans la boucle de coordination ; {situationsDecidees} portent déjà au moins une décision documentée ({totalDecisions} décisions au total), et {situationsAvecResultat} affichent un résultat constaté sur le terrain.
+          </p>
+
+          {/* grid-cols-1 jusqu'à lg (correctif vérifié sur capture mobile) :
+              5 étapes ne se divisent proprement ni par 2 ni par 3 — un
+              grid-cols-2/3 intermédiaire laissait une cellule vide (fond
+              --etat-line nu, sans .etat-metric dedans) en bas de grille.
+              Empilement simple en dessous de lg, rangée unique de 5
+              seulement à partir de lg (seul diviseur propre). */}
+          <div className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-[var(--etat-line)] bg-[var(--etat-line)] lg:grid-cols-5" aria-label="De la capture à la décision, par étape">
+            <div className="etat-metric">
+              <p className="etat-metric-value"><NumberTicker value={totalSignalsCaptes} /></p>
+              <p className="etat-metric-label">Signal</p>
+              <p className="etat-metric-detail">Captés, tous canaux confondus</p>
+            </div>
+            <div className="etat-metric">
+              <p className="etat-metric-value"><NumberTicker value={situationsQualifiees} /></p>
+              <p className="etat-metric-label">Qualification</p>
+              <p className="etat-metric-detail">Devenus une situation suivie</p>
+            </div>
+            <div className="etat-metric etat-metric--attention">
+              <p className="etat-metric-value"><NumberTicker value={situationsEngagees} /></p>
+              <p className="etat-metric-label">Situation</p>
+              <p className="etat-metric-detail">Engagées dans la boucle de coordination</p>
+            </div>
+            <div className="etat-metric etat-metric--critical">
+              <p className="etat-metric-value"><NumberTicker value={situationsDecidees} /></p>
+              <p className="etat-metric-label">Décision</p>
+              <p className="etat-metric-detail">{totalDecisions} décisions documentées</p>
+            </div>
+            <div className="etat-metric etat-metric--positive">
+              <p className="etat-metric-value"><NumberTicker value={situationsAvecResultat} /></p>
+              <p className="etat-metric-label">Résultat</p>
+              <p className="etat-metric-detail">Constaté et consigné sur le terrain</p>
+            </div>
+          </div>
         </div>
       </section>
 
