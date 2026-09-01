@@ -1186,6 +1186,18 @@ export function createDemoState(): ProductState {
     promotedToSituationId: "sit-joal-glace-recurrence"
   };
 
+  // LOT 1 (mandat "Vertical Slice Joal") — la chaîne cible REALITY → SIGNALS
+  // → FINDING → SITUATION → DECISION → COORDINATION → COMMITMENTS/ACTION →
+  // RESULT → VALUE s'arrêtait jusqu'ici à SITUATION pour cette chaîne (le
+  // Finding décrit explicitement une récurrence distincte de la panne déjà
+  // qualifiée sit-glace — cf. joalFinding.statement — donc pas question de
+  // réutiliser coord-froid/dec-glace-*, qui appartiennent à cet autre
+  // dossier, déjà clos par sa propre décision). Une décision et une
+  // coordination dédiées complètent honnêtement les étapes DECISION et
+  // COORDINATION/COMMITMENTS : une maintenance préventive programmée,
+  // "à faire" (aucune preuve ni résultat fabriqués — §14 du mandat, ce que
+  // la démonstration ne peut pas prouver reste explicitement non prouvé).
+  const joalRecurrenceDecidedAt = "2026-07-30T09:30:00.000Z";
   const joalFindingSituation: Situation = {
     id: "sit-joal-glace-recurrence",
     reference: "MBA-SIT-JOALR",
@@ -1193,21 +1205,49 @@ export function createDemoState(): ProductState {
     territoryId: "joal",
     title: joalFinding.title,
     description: joalFinding.statement,
-    status: "qualification",
+    status: "coordination",
     priority: "haute",
     trust: "observee",
     visibility: "organisation",
+    responsibleId: "act-coordinateur",
+    dueAt: joalRecurrenceDecidedAt,
     nextStep: joalFinding.nextStep,
     findingId: joalFinding.id,
+    coordinationId: "coord-joal-recurrence",
     history: [
       { id: "hist-sit-joal-glace-recurrence-1", at: now, actor: "act-relais-joal", label: "Constat confirmé", detail: joalFinding.explanation },
-      { id: "hist-sit-joal-glace-recurrence-2", at: now, actor: "act-coordinateur", label: "Situation créée depuis un constat confirmé", detail: joalFinding.statement }
+      { id: "hist-sit-joal-glace-recurrence-2", at: now, actor: "act-coordinateur", label: "Situation créée depuis un constat confirmé", detail: joalFinding.statement },
+      { id: "hist-sit-joal-glace-recurrence-3", at: joalRecurrenceDecidedAt, actor: "act-coordinateur", label: "Décision prise — coordination ouverte", detail: "Maintenance préventive programmée plutôt que d'attendre une nouvelle panne complète." }
     ]
   };
   // Le Finding reste "confirmed" avec promotedToSituationId renseigné
   // (cf. ci-dessus) — reflet exact du comportement réel de
   // promote_finding_to_situation depuis la correction Product Review
   // (knowledge-pipeline.ts), pas un raccourci propre à la démonstration.
+
+  const joalRecurrenceCoordination: ProductState["coordinationSpaces"][number] = {
+    id: "coord-joal-recurrence",
+    situationId: "sit-joal-glace-recurrence",
+    title: "Fiabilisation de la production de glace — Joal",
+    participantIds: ["act-coordinateur", "act-prestataire", "act-relais-joal"],
+    objective: "Éviter qu'un ralentissement intermittent ne redevienne une panne complète après la remise en service de la machine.",
+    decision: "Programmer une maintenance préventive de la machine à glace et un suivi rapproché du poste de quai pendant deux semaines.",
+    commitments: [
+      { id: "eng-joal-recurrence-1", actorId: "act-prestataire", label: "Réaliser une maintenance préventive complète de la machine à glace", dueAt: "2026-08-06T16:00:00.000Z", status: "a_faire" },
+      { id: "eng-joal-recurrence-2", actorId: "act-relais-joal", label: "Signaler tout nouveau ralentissement dans les 24h suivant la maintenance", dueAt: "2026-08-13T16:00:00.000Z", status: "a_faire" }
+    ],
+    risks: ["Récidive si la cause profonde n'est pas identifiée par la maintenance", "Créneau de maintenance en concurrence avec l'activité de débarquement"],
+    nextReviewAt: "2026-08-13T16:00:00.000Z"
+  };
+  const joalRecurrenceDecision: ProductState["decisions"][number] = {
+    id: "dec-joal-recurrence-1",
+    situationId: "sit-joal-glace-recurrence",
+    type: "ouvrir_coordination",
+    rationale: "Récurrence confirmée par un constat croisant deux signaux distincts : programmer une maintenance préventive plutôt que d'attendre une nouvelle panne complète.",
+    decidedByActorId: "act-coordinateur",
+    decidedAt: joalRecurrenceDecidedAt,
+    coordinationId: "coord-joal-recurrence"
+  };
 
   // KAYAR — plusieurs Signals/ServiceRequests de motorisation → Finding de
   // récurrence → CollectiveNeed, sans ProgramOpportunity ni Initiative
@@ -1653,9 +1693,11 @@ export function createDemoState(): ProductState {
         risks: ["Fenêtre de conservation courte", "Acceptation de l’acheteur alternatif non garantie"],
         nextReviewAt: tomorrow
       },
+      joalRecurrenceCoordination,
       ...generatedCoordinationSpaces
     ],
     decisions: [
+      joalRecurrenceDecision,
       {
         id: "dec-glace-1",
         situationId: "sit-glace",

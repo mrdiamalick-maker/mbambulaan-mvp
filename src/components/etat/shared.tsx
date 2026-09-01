@@ -10,11 +10,20 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ArrowRight, ArrowUpRight, Send } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Compass, HelpCircle, Send, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
-import { decisionTypeLabels, type Situation, type Territory } from "@/domain/types";
-import { channelMeta } from "@/lib/status-tokens";
+import { decisionTypeLabels, evidenceTypeLabels, signalDispositionLabels, type Situation, type Territory } from "@/domain/types";
+import { channelMeta, trustLabels } from "@/lib/status-tokens";
 import { fieldVisitObjectiveLabels, type FieldVisitObjective } from "@/domain/ministry/field-visit";
+import {
+  buildValueTrail,
+  collectSituationSignals,
+  describeFindingTrust,
+  findKnowledgeGapForSituation,
+  relatedDecisionsForSituation,
+  resolveFindingForSituation,
+  resolveSourceRefDisplay
+} from "@/domain/situation-narrative";
 import {
   vigilanceCategoryLabels,
   vigilanceSeverityLabels,
@@ -145,31 +154,62 @@ export function TerritoryDetail({ territory, cases, onOpenSituation }: { territo
   );
 }
 
+// SituationDetail — dossier de lecture institutionnel d'une Situation
+// (LOT 1, mandat "Vertical Slice Joal") : le même composant sert désormais
+// de "Situation Room" pour l'Espace État (§10/§11 du mandat — l'État
+// descend dans le détail sans devenir un poste de travail Coordinateur,
+// cf. SituationRoom.tsx, non touché). Étendu en place plutôt que dupliqué
+// (mandat §10 : "si une surface existe déjà, la faire évoluer") — les 4
+// pages qui l'utilisent (/app/etat, /arbitrages, /redevabilite,
+// /territoires) en bénéficient toutes sans code supplémentaire.
 export function SituationDetail({ situation, state, onPlanVisit }: { situation: Situation; state: NonNullable<ReturnType<typeof useProduct>["state"]>; onPlanVisit: () => void }) {
   const territory = state.territories.find((item) => item.id === situation.territoryId);
   const tag = priorityToTag[situation.priority];
   const stageLabel = pipelineStages.find((stage) => stage.status === situation.status)?.label ?? situation.status;
   const responsable = situation.responsibleId ? state.actors.find((item) => item.id === situation.responsibleId) : undefined;
-  const relatedDecisions = state.decisions
-    .filter((item) => item.situationId === situation.id)
-    .sort((a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime());
+  const relatedDecisions = relatedDecisionsForSituation(state, situation);
   // Lot État-C (mandat §3.4, "quelles capacités ou coordinations sont
   // déjà engagées") : situation.coordinationId existe déjà dans le
   // modèle et n'était affiché nulle part sur cette fiche.
   const coordination = situation.coordinationId ? state.coordinationSpaces.find((item) => item.id === situation.coordinationId) : undefined;
+  // Signature produit "pourquoi Mbàmbulaan vous le signale" (§7 du mandat)
+  // — n'apparaît que si la Situation résout à un Finding réel. Les
+  // situations issues des wrappers legacy (report_signal_and_open_situation,
+  // convert_message_to_signal_and_situation, convert_post) n'en ont pas :
+  // pas de texte fabriqué pour combler l'absence, la signature s'efface
+  // simplement plutôt que d'inventer une explication.
+  const finding = resolveFindingForSituation(state, situation);
+  const sourceElements = finding ? finding.sourceRefs.map((ref) => resolveSourceRefDisplay(state, ref)).filter((item): item is NonNullable<typeof item> => Boolean(item)) : [];
+  const knowledgeGap = findKnowledgeGapForSituation(state, situation);
   // Traçabilité (mandat CEO "reconstruire l'Espace État autour de la
-  // capture de signal", Lot A, 2026-08-29) : Situation.signalIds pointe
-  // déjà vers un signal réel (0 situation sans origine traçable sur les
-  // 30 du jeu de démonstration, vérifié) — jamais affiché sur cette
-  // fiche jusqu'ici. Même canal/vocabulaire que SituationRoom.tsx
-  // (poste de travail Coordinateur, déjà en production) : channelMeta
-  // depuis @/lib/status-tokens, pas un 2e vocabulaire de canaux inventé
-  // pour l'Espace État. reportedBy absent sur la majorité des signaux
-  // du jeu réel (5/30 seulement, champ optionnel par conception) — ne
-  // s'affiche que quand présent, pas de repli fabriqué.
-  const signal = state.signals.find((item) => situation.signalIds.includes(item.id));
-  const signalCapturedBy = signal ? state.actors.find((item) => item.id === signal.actorId) : undefined;
-  const ChannelIcon = signal ? channelMeta[signal.channel].icon : undefined;
+  // capture de signal", Lot A, 2026-08-29 ; étendu §9 du mandat LOT 1 —
+  // « ne plus afficher uniquement le premier ») : tous les Signals
+  // pertinents, pas un seul. channelMeta/trustLabels depuis
+  // @/lib/status-tokens, même vocabulaire que SituationRoom.tsx.
+  const signals = collectSituationSignals(state, situation);
+  const evidences = state.evidences
+    .filter((item) => item.situationId === situation.id)
+    .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime());
+  const valueTrail = buildValueTrail(state, situation);
+
+  // "Pourquoi c'est important" (§10) — effet potentiel dérivé de données
+  // réelles du territoire (infrastructures fragiles, activité documentée),
+  // jamais un montant de pertes fabriqué (garde-fou §14). Générique : ne
+  // suppose aucun territoire précis.
+  const territoryInfra = state.infrastructures.filter((item) => item.territoryId === situation.territoryId);
+  const fragileInfra = territoryInfra.filter((item) => item.status !== "operationnelle");
+  const territorySiteIds = new Set(state.sites.filter((item) => item.territoryId === situation.territoryId).map((item) => item.id));
+  const territoryLandings = state.landings.filter((item) => territorySiteIds.has(item.siteId));
+
+  // "Qui peut agir" (§10) — acteurs opérationnels du territoire et
+  // capacités déjà disponibles localement (distinct de "capacité
+  // mobilisable ailleurs", SituationRoom.tsx, qui répond à une autre
+  // question — ici, qui peut agir sur place).
+  const territoryActors = state.actors.filter((item) => item.territoryIds.includes(situation.territoryId) && item.role !== "institution");
+  const territoryCapacities = state.capacities
+    .filter((item) => item.status === "disponible")
+    .map((item) => ({ capacity: item, infra: state.infrastructures.find((infraItem) => infraItem.id === item.infrastructureId) }))
+    .filter((item) => item.infra?.territoryId === situation.territoryId);
 
   return (
     <div className="space-y-6">
@@ -177,23 +217,74 @@ export function SituationDetail({ situation, state, onPlanVisit }: { situation: 
         <span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : tag === "vigilance" ? "etat-tag--vigilance" : "etat-tag--stable"}`}>{priorityLabels[situation.priority]}</span>
         <span className="text-xs text-[var(--etat-stone-600)]">{situation.reference} · {territory?.name ?? situation.territoryId}</span>
       </div>
-      {signal && ChannelIcon && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Origine du signal</p>
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <ChannelIcon size={14} className="shrink-0 text-[var(--etat-navy-600)]" />
-            <span className="text-sm font-semibold text-[var(--etat-navy-950)]">{channelMeta[signal.channel].label}</span>
-            <span className="text-xs text-[var(--etat-stone-400)]">· {new Date(signal.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</span>
+
+      {finding && (
+        <div className="rounded-xl border border-[var(--etat-line)] bg-[var(--etat-offwhite)] p-4">
+          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-[var(--etat-navy-800)]"><Sparkles size={13} /> Pourquoi Mbàmbulaan vous le signale</p>
+          <div className="mt-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Ce que Mbàmbulaan a compris</p>
+            <p className="mt-1 text-sm font-medium leading-6 text-[var(--etat-navy-950)]">{finding.statement}</p>
           </div>
-          {(signal.reportedBy || signalCapturedBy) && (
-            <p className="mt-1 text-xs text-[var(--etat-stone-600)]">
-              {signal.reportedBy ? `Rapporté par ${signal.reportedBy}` : ""}
-              {signal.reportedBy && signalCapturedBy ? " · " : ""}
-              {signalCapturedBy ? `Saisi par ${signalCapturedBy.name}` : ""}
-            </p>
+          <div className="mt-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Pourquoi</p>
+            <p className="mt-1 text-sm leading-6 text-[var(--etat-stone-600)]">{finding.explanation}</p>
+          </div>
+          {sourceElements.length > 0 && (
+            <div className="mt-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Éléments utilisés</p>
+              <ul className="mt-1.5 space-y-1">
+                {sourceElements.map((item) => (
+                  <li key={`${item.ref.objectType}-${item.ref.objectId}`} className="text-xs leading-4 text-[var(--etat-navy-950)]">
+                    <span className="font-semibold">{item.label}</span>{item.detail ? <span className="text-[var(--etat-stone-600)]"> — {item.detail}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
+          <div className="mt-3 flex items-start gap-1.5 border-t border-[var(--etat-line)] pt-3">
+            <ShieldCheck size={13} className="mt-0.5 shrink-0 text-[var(--etat-navy-600)]" />
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Niveau de confiance</p>
+              <p className="mt-0.5 text-xs leading-4 text-[var(--etat-navy-950)]">{describeFindingTrust(finding)}</p>
+            </div>
+          </div>
         </div>
       )}
+
+      {signals.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Ce que nous savons · {signals.length} signal{signals.length > 1 ? "aux" : ""}</p>
+          <div className="mt-2 space-y-2">
+            {signals.map((item) => {
+              const ChannelIcon = channelMeta[item.channel].icon;
+              const capturedBy = state.actors.find((actor) => actor.id === item.actorId);
+              return (
+                <div key={item.id} className="rounded-lg border border-[var(--etat-line)] bg-white p-2.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <ChannelIcon size={13} className="shrink-0 text-[var(--etat-navy-600)]" />
+                    <span className="text-xs font-semibold text-[var(--etat-navy-950)]">{channelMeta[item.channel].label}</span>
+                    <span className="text-[11px] text-[var(--etat-stone-400)]">· {new Date(item.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long" })}</span>
+                    <span className="ml-auto text-[10px] font-semibold text-[var(--etat-stone-400)]">{trustLabels[item.trust]}</span>
+                  </div>
+                  <p className="mt-1 text-xs leading-4 text-[var(--etat-stone-600)]">{item.description}</p>
+                  <p className="mt-1 text-[11px] text-[var(--etat-stone-400)]">
+                    {item.reportedBy ? `Rapporté par ${item.reportedBy}` : capturedBy ? `Saisi par ${capturedBy.name}` : item.source}
+                    {" · "}{signalDispositionLabels[item.disposition]}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]"><HelpCircle size={13} /> Ce que nous ne savons pas</p>
+        <p className="mt-1.5 text-sm leading-6 text-[var(--etat-navy-950)]">
+          {knowledgeGap ? knowledgeGap.statement : "Aucun angle mort critique identifié dans le dossier actuel — cela ne garantit pas l’exhaustivité de la connaissance disponible."}
+        </p>
+      </div>
+
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Description</p>
         <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.description}</p>
@@ -213,9 +304,61 @@ export function SituationDetail({ situation, state, onPlanVisit }: { situation: 
           <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{responsable?.name ?? "Non désigné"}</p>
         </div>
       </div>
+
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Pourquoi c’est important</p>
+        <p className="mt-1.5 text-sm leading-6 text-[var(--etat-navy-950)]">
+          {fragileInfra.length > 0
+            ? `${fragileInfra.length} infrastructure${fragileInfra.length > 1 ? "s" : ""} fragile(s) ou indisponible(s) sur ce territoire, dont ${fragileInfra[0].name}. `
+            : "Aucune infrastructure fragile ou indisponible recensée sur ce territoire à ce stade. "}
+          {territoryLandings.length > 0
+            ? `${territoryLandings.length} débarquement(s) documenté(s) — l’activité se poursuit pendant que la situation est traitée.`
+            : "Aucun débarquement documenté sur ce territoire pour le moment."}
+        </p>
+      </div>
+
+      {(territoryActors.length > 0 || territoryCapacities.length > 0) && (
+        <div>
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]"><UsersRound size={13} /> Qui peut agir</p>
+          {territoryActors.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {territoryActors.slice(0, 6).map((actor) => <span key={actor.id} className="etat-tag etat-tag--stable capitalize">{actor.name} · {actor.role.replaceAll("_", " ")}</span>)}
+            </div>
+          )}
+          {territoryCapacities.length > 0 && (
+            <div className="mt-2 space-y-1.5">
+              {territoryCapacities.map(({ capacity, infra }) => (
+                <p key={capacity.id} className="text-xs leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{infra?.name}</span> — {capacity.availableQuantity} {capacity.unit} disponible(s)</p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div>
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]"><Compass size={13} /> Recommandation</p>
+        <p className="mt-1.5 text-sm leading-6 text-[var(--etat-navy-950)]">{finding?.nextStep ?? situation.nextStep}</p>
+        <p className="mt-1 text-[11px] text-[var(--etat-stone-400)]">Une orientation proposée — distincte d’une décision effectivement prise (ci-dessous).</p>
+      </div>
+
+      {relatedDecisions.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Décision · {relatedDecisions.length}</p>
+          <div className="mt-2 space-y-2">
+            {relatedDecisions.map((decision) => (
+              <div key={decision.id} className="rounded-lg border border-[var(--etat-line)] bg-white p-3">
+                <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{decisionTypeLabels[decision.type]}</p>
+                <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{decision.rationale}</p>
+                <p className="mt-1 text-[11px] text-[var(--etat-stone-400)]">{new Date(decision.decidedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {coordination && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Coordination et engagements déjà en cours</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Engagements</p>
           <div className="mt-2 rounded-lg border border-[var(--etat-line)] bg-white p-3">
             <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{coordination.title}</p>
             {coordination.commitments.length === 0 ? (
@@ -231,33 +374,53 @@ export function SituationDetail({ situation, state, onPlanVisit }: { situation: 
           </div>
         </div>
       )}
-      {(situation.result ?? situation.confirmation) && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Résultat</p>
-          {situation.result && <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.result}</p>}
-          {situation.confirmation && <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{situation.confirmation}</p>}
+
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Preuves</p>
+        {evidences.length === 0 ? (
+          <p className="mt-1.5 text-sm text-[var(--etat-stone-400)]">Aucune preuve enregistrée pour cette situation pour le moment.</p>
+        ) : (
+          <div className="mt-2 space-y-1.5">
+            {evidences.map((evidence) => (
+              <p key={evidence.id} className="text-xs leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{evidenceTypeLabels[evidence.type]}</span> — {evidence.label}</p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Résultat</p>
+        {situation.result ? (
+          <>
+            <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.result}</p>
+            {situation.confirmation && <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{situation.confirmation}</p>}
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-[var(--etat-stone-400)]">Effet à confirmer — aucun résultat constaté pour le moment.</p>
+        )}
+      </div>
+
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Chaîne de valeur</p>
+        <div className="mt-2 space-y-1.5">
+          {valueTrail.map((step, index) => (
+            <div key={step.key} className="flex items-start gap-2">
+              <span className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${step.proven ? "bg-[var(--etat-navy-600)] text-white" : "border border-dashed border-[var(--etat-stone-400)] text-[var(--etat-stone-400)]"}`}>{index + 1}</span>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-[var(--etat-navy-950)]">{step.label}{!step.proven && <span className="ml-1.5 font-normal text-[var(--etat-stone-400)]">— à confirmer</span>}</p>
+                <p className="text-[11px] leading-4 text-[var(--etat-stone-600)]">{step.detail}</p>
+              </div>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
+
       {situation.history.length > 0 && (
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Historique</p>
           <div className="mt-2 space-y-1.5 border-l border-[var(--etat-line)] pl-3">
             {situation.history.map((entry) => (
               <div key={entry.id} className="text-xs leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{entry.label}</span> · {new Date(entry.at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}</div>
-            ))}
-          </div>
-        </div>
-      )}
-      {relatedDecisions.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Décisions liées · {relatedDecisions.length}</p>
-          <div className="mt-2 space-y-2">
-            {relatedDecisions.map((decision) => (
-              <div key={decision.id} className="rounded-lg border border-[var(--etat-line)] bg-white p-3">
-                <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{decisionTypeLabels[decision.type]}</p>
-                <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{decision.rationale}</p>
-                <p className="mt-1 text-[11px] text-[var(--etat-stone-400)]">{new Date(decision.decidedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</p>
-              </div>
             ))}
           </div>
         </div>

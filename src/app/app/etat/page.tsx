@@ -25,6 +25,7 @@ import {
 } from "@/components/etat/shared";
 import { type CommunityPost, type Signal, type Situation, type Territory } from "@/domain/types";
 import { channelMeta } from "@/lib/status-tokens";
+import { findFocusSituation, resolveFindingForSituation } from "@/domain/situation-narrative";
 import { vigilanceCategoryLabels, type VigilanceCase, type VigilanceSeverity } from "@/domain/ministry/vigilance";
 
 // Audit DA Premium XXL v2 (mandat CEO 2026-08-17). Cette page adopte
@@ -199,6 +200,25 @@ export default function EtatPage() {
 
   const territoiresActifs = state.territories.length;
 
+  // Chapitre 1 — "Comment va la filière ?" (mandat "Vertical Slice Joal",
+  // §5) : une phrase d'état général dérivée du même calcul `dominant` qui
+  // pilote déjà la carte et le panneau ci-dessous (§9 du mandat LOT 1 —
+  // « les surfaces État et Coordination consomment la même réalité Core »,
+  // ici appliqué à l'intérieur même de la page). Jamais figée : "aucune
+  // tension" quand `dominant.kind === "calme"`, sinon le territoire et le
+  // dossier réels qui justifient l'attention — aucun `if joal`, ce texte
+  // s'écrirait identiquement pour n'importe quel autre territoire dominant.
+  // Le titre d'une Situation mentionne déjà le plus souvent son territoire
+  // (ex. "... à Joal") — ne jamais répéter dominant.territory.name à la
+  // suite pour éviter une redondance de lecture ("... à Joal ... à
+  // Joal-Fadiouth") : le territoire est nommé une seule fois, en tête.
+  const nationalFocusSituation = dominant.kind === "territoire" ? findFocusSituation(state, dominant.territory.id) : undefined;
+  const etatGeneralSentence = dominant.kind === "territoire" && nationalFocusSituation
+    ? `Situation globalement maîtrisée — ${dominant.territory.name} concentre l’attention du réseau : ${nationalFocusSituation.title}.`
+    : dominant.kind === "signal"
+      ? `Situation globalement maîtrisée — ${dominant.case.territoryLabel} concentre l’attention du réseau : ${vigilanceCategoryLabels[dominant.case.category]}.`
+      : "Situation globalement maîtrisée — aucune tension prioritaire ne nécessite une attention immédiate à ce jour.";
+
   // Bloc "Le pouls de la filière" (mandat CEO "reconstruire l'Espace État
   // autour de la capture de signal", Lot B, 2026-08-29) : Mbàmbulaan capte
   // tout signal quel que soit le canal — donnée déjà réelle dans
@@ -280,6 +300,11 @@ export default function EtatPage() {
   // des programmes (pas la "valeur coordonnée" du Chapitre 2, qui mesure
   // autre chose — un lot pêché, pas un financement de programme).
   const situationsOuvertesTotal = state.situations.filter((item) => item.status !== "reglee").length;
+  // Situations critiques/hautes (mandat "Vertical Slice Joal", §5 —
+  // "quelques métriques qui répondent à une vraie question", exemple
+  // explicitement cité) : sous-ensemble de situationsOuvertesTotal, pas un
+  // second calcul indépendant.
+  const situationsCritiquesHautesTotal = state.situations.filter((item) => item.status !== "reglee" && (item.priority === "critique" || item.priority === "haute")).length;
   const capacitesFragilesTotal = state.infrastructures.filter((item) => item.status !== "operationnelle").length;
   const financementEngageTotal = state.initiatives.reduce((sum, item) => sum + item.funding.filter((fund) => fund.status === "confirme" || fund.status === "en_instruction").reduce((fundSum, fund) => fundSum + fund.amountFcfa, 0), 0);
   const programmesActifsTotal = state.initiatives.filter((item) => item.status !== "terminee").length;
@@ -298,7 +323,15 @@ export default function EtatPage() {
   const focusTerritory = dominantTerritoryId ? state.territories.find((item) => item.id === dominantTerritoryId) : undefined;
   const dominantOpenSituations = dominantTerritoryId ? state.situations.filter((item) => item.territoryId === dominantTerritoryId && item.status !== "reglee") : [];
   const dominantFragileInfra = dominantTerritoryId ? state.infrastructures.filter((item) => item.territoryId === dominantTerritoryId && item.status !== "operationnelle").length : 0;
-  const dominantPrioritySituation = [...dominantOpenSituations].sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])[0];
+  // findFocusSituation (LOT 1, mandat "Vertical Slice Joal", §7) : préfère,
+  // parmi les situations ouvertes du territoire, celle adossée à un Finding
+  // — donc explicable ("pourquoi Mbàmbulaan vous le signale") — avant de
+  // retomber sur le simple tri par priorité (comportement historique,
+  // préservé pour tout territoire sans Finding). Règle générique, aucun
+  // `if joal` : Joal n'est mis en avant que parce qu'il porte aujourd'hui
+  // la seule Situation du jeu de démonstration reliée à un Finding.
+  const dominantPrioritySituation = dominantTerritoryId ? findFocusSituation(state, dominantTerritoryId) : undefined;
+  const dominantFinding = dominantPrioritySituation ? resolveFindingForSituation(state, dominantPrioritySituation) : undefined;
 
   // Titre adaptatif du panneau quand un territoire est sélectionné
   // explicitement (mandat §3.3) : "À décider aujourd'hui" seulement
@@ -465,7 +498,7 @@ export default function EtatPage() {
       <div className="etat-panel mt-3 flex flex-wrap items-center justify-between gap-6 px-5 py-4">
         <div>
           <h1 className="etat-display text-3xl not-italic text-[var(--etat-navy-950)]">Brief national</h1>
-          <p className="mt-1 text-sm text-[var(--etat-stone-600)]">Filière pêche artisanale — supervision au service de la décision.</p>
+          <p className="mt-1 text-sm text-[var(--etat-stone-600)]">{etatGeneralSentence}</p>
         </div>
         <div className="flex flex-wrap items-end gap-6">
           <label className="block">
@@ -916,7 +949,11 @@ export default function EtatPage() {
                 page. */}
             <div className="mt-5 flex flex-1 flex-col justify-end gap-2">
               {dominantPrioritySituation ? (
-                <button onClick={() => setSituationDrawer(dominantPrioritySituation)} className="etat-btn etat-btn-outline justify-center">Voir la situation <ArrowRight size={15} /></button>
+                // CTA (mandat "Vertical Slice Joal", §7) : "Comprendre
+                // pourquoi" quand le dossier résout à un vrai Finding — la
+                // signature produit centrale de ce lot — sinon "Examiner la
+                // situation", jamais un "Voir détail" générique.
+                <button onClick={() => setSituationDrawer(dominantPrioritySituation)} className="etat-btn etat-btn-outline justify-center">{dominantFinding ? "Comprendre pourquoi" : "Examiner la situation"} <ArrowRight size={15} /></button>
               ) : (
                 <a href="#arbitrage-detail" className="etat-btn etat-btn-outline justify-center">Voir les situations à arbitrer <ArrowRight size={15} /></a>
               )}
@@ -940,6 +977,10 @@ export default function EtatPage() {
           <div className="pl-0">
             <p className="etat-display text-lg not-italic text-[var(--etat-navy-950)]"><NumberTicker value={situationsOuvertesTotal} /></p>
             <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Situations ouvertes</p>
+          </div>
+          <div className="pl-8">
+            <p className="etat-display text-lg not-italic text-[var(--etat-navy-950)]"><NumberTicker value={situationsCritiquesHautesTotal} /></p>
+            <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Critiques/hautes</p>
           </div>
           <div className="pl-8">
             <p className="etat-display text-lg not-italic text-[var(--etat-navy-950)]"><NumberTicker value={territoiresActifs} /></p>
@@ -1062,7 +1103,7 @@ export default function EtatPage() {
           (pas le poste de travail complet de SituationRoom.tsx, pensé
           pour le Coordinateur) — cohérent avec le rôle décisionnel de
           l'Institution. */}
-      <Drawer open={!!situationDrawer} onClose={() => setSituationDrawer(null)} eyebrow="Situation" title={situationDrawer?.title ?? ""}>
+      <Drawer open={!!situationDrawer} onClose={() => setSituationDrawer(null)} eyebrow="Situation" title={situationDrawer?.title ?? ""} size="lg">
         {situationDrawer && <SituationDetail situation={situationDrawer} state={state} onPlanVisit={() => { const territory = state.territories.find((item) => item.id === situationDrawer.territoryId); setSituationDrawer(null); setMissionDrawer({ key: `situation-${situationDrawer.id}`, territoryId: situationDrawer.territoryId, territoryLabel: territory?.name ?? situationDrawer.territoryId, raison: situationDrawer.title, action: situationDrawer.nextStep, glyphStatus: priorityToTag[situationDrawer.priority], suggestedObjective: "verification_vigilance" }); }} />}
       </Drawer>
       <Drawer open={!!missionDrawer} onClose={() => setMissionDrawer(null)} eyebrow="Terrain" title="Planifier la mission">

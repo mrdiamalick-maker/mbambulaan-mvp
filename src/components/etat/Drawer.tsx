@@ -7,7 +7,13 @@ import { useEffect } from "react";
 // planification d'une mission) à l'intérieur du même parcours plutôt que
 // de forcer un changement de page — l'espace doit rester vivant, pas un
 // enchaînement d'écrans.
-export function Drawer({ open, onClose, title, eyebrow, children }: { open: boolean; onClose: () => void; title: string; eyebrow?: string; children: React.ReactNode }) {
+// size (LOT 1, mandat "Vertical Slice Joal") : le dossier Situation, une
+// fois enrichi (signature "pourquoi Mbàmbulaan vous le signale", timeline
+// de Signals, Value Trail…), ne tient plus confortablement dans le
+// max-w-md historique — un contenu plus riche mérite plus de largeur,
+// pas un nouveau composant. "md" (comportement inchangé) reste le défaut
+// pour Territoire/Mission/Vigilance, qui n'ont pas grossi.
+export function Drawer({ open, onClose, title, eyebrow, size = "md", children }: { open: boolean; onClose: () => void; title: string; eyebrow?: string; size?: "md" | "lg"; children: React.ReactNode }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
@@ -19,7 +25,7 @@ export function Drawer({ open, onClose, title, eyebrow, children }: { open: bool
   return (
     <div className="fixed inset-0 z-[80]">
       <button aria-label="Fermer" className="absolute inset-0 bg-[var(--etat-navy-950)]/55 backdrop-blur-[2px]" onClick={onClose} />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-[-30px_0_70px_rgba(7,22,39,.25)]">
+      <aside className={`absolute right-0 top-0 flex h-full w-full ${size === "lg" ? "max-w-2xl" : "max-w-md"} flex-col bg-white shadow-[-30px_0_70px_rgba(7,22,39,.25)]`}>
         <div className="flex items-start justify-between border-b border-[var(--etat-line)] p-6">
           <div>
             {eyebrow && <p className="etat-eyebrow">{eyebrow}</p>}
