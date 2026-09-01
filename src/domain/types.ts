@@ -344,6 +344,21 @@ export interface Signal {
   dispositionNote?: string;
 }
 
+// Étiquettes lisibles pour Signal["category"] — réutilisées par
+// FieldMissionForm (LOT 3, micro-correctif "catégorie du signal terrain")
+// pour choisir explicitement le sujet métier d'une mission plutôt que de
+// le déduire arbitrairement à l'enregistrement d'une observation. N'existait
+// jusqu'ici qu'en local dans CoordinationWorkspace.tsx (non réutilisable) —
+// export centralisé plutôt que dupliqué.
+export const signalCategoryLabels: Record<Signal["category"], string> = {
+  infrastructure: "Infrastructure",
+  production: "Production",
+  marche: "Marché",
+  qualite: "Qualité",
+  securite: "Sécurité",
+  conformite: "Conformité"
+};
+
 // IncomingMessage — file de messages entrants simulés (arbitrage CEO
 // 13/08/2026, gap analysis "Messages entrants"), pas une intégration
 // WhatsApp/SMS/téléphonie réelle : rend visible dans le vrai Produit la
@@ -709,6 +724,15 @@ export interface FieldMission {
   responsibleActorId?: string;
   dueAt?: string;
   status: FieldMissionStatus;
+  // Micro-correctif Product (post-LOT 3, "catégorie du Signal terrain") :
+  // sujet métier de la mission, choisi explicitement à la création plutôt
+  // que déduit arbitrairement lors de chaque observation — Terrain est
+  // transversal, "infrastructure" ne peut pas rester la seule valeur
+  // possible. Réutilise la taxonomie Signal["category"] existante (pas de
+  // nouvelle taxonomie) ; toute Observation de cette mission produit un
+  // Signal qui reprend telle quelle cette catégorie (record_observation
+  // ne la déduit jamais).
+  signalCategory: Signal["category"];
   // Consignes d'observation (mandat §4 : "axes d'observation, pas des
   // conclusions préétablies") — texte libre, un axe par entrée.
   observationPoints: string[];
@@ -1189,6 +1213,9 @@ export type Command =
       reason: string;
       responsibleActorId?: string;
       dueAt?: string;
+      // Micro-correctif Product (post-LOT 3) : choisi explicitement à la
+      // création, jamais déduit ensuite — cf. FieldMission.signalCategory.
+      signalCategory: Signal["category"];
       observationPoints: string[];
       knowledgeGapFindingId?: string;
       findingId?: string;
@@ -1205,6 +1232,13 @@ export type Command =
       type: "record_observation";
       actorId: string;
       missionId: string;
+      // Micro-correctif Product (post-LOT 3, "territoire réel de
+      // l'observation") : le territoire sur lequel l'observation a
+      // réellement été réalisée, obligatoirement l'un de
+      // mission.territoryIds — plus de repli implicite sur
+      // territoryIds[0], qui perdait l'information dès qu'une mission
+      // couvre plusieurs territoires.
+      territoryId: string;
       content: string;
       nature: ObservationNature;
       trust: TrustLevel;

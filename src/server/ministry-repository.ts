@@ -141,6 +141,20 @@ async function bridgeFieldCommitment(input: FieldVisitInput): Promise<{ commitme
   }
 }
 
+// Micro-correctif Product (post-LOT 3, "catégorie du signal terrain") :
+// table statique FieldVisitObjective -> Signal["category"], glue explicite
+// entre 2 taxonomies déjà existantes (pas une nouvelle taxonomie) — décidée
+// une fois ici, à la construction de la commande, jamais déduite dans
+// record_observation.
+const FIELD_VISIT_OBJECTIVE_TO_SIGNAL_CATEGORY: Record<FieldVisitInput["objective"], "infrastructure" | "production" | "marche" | "qualite" | "securite" | "conformite"> = {
+  rencontre_pecheurs: "production",
+  point_infrastructure: "infrastructure",
+  sensibilisation_securite: "securite",
+  reconversion_revenus: "marche",
+  verification_vigilance: "securite",
+  autre: "infrastructure"
+};
+
 // LOT 3 (mandat "Terrain — observer, vérifier et fiabiliser la réalité",
 // §6/§27) : en plus du Commitment ci-dessus (chemin existant, inchangé —
 // "Mission ≠ Commitment" reste une dette assumée pour ce chemin legacy,
@@ -160,6 +174,7 @@ async function bridgeFieldMission(input: FieldVisitInput): Promise<{ missionId?:
         objective: fieldVisitObjectiveLabels[input.objective],
         territoryIds: [input.territoryId],
         reason: input.notes?.trim() || fieldVisitObjectiveLabels[input.objective],
+        signalCategory: FIELD_VISIT_OBJECTIVE_TO_SIGNAL_CATEGORY[input.objective],
         responsibleActorId: input.createdByActorId,
         dueAt: input.plannedAt,
         observationPoints: [fieldVisitObjectiveLabels[input.objective]]

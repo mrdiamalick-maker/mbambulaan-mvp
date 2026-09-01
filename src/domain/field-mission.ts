@@ -71,6 +71,7 @@ function applyCreateFieldMission(state: ProductState, command: Extract<Command, 
     responsibleActorId: command.responsibleActorId,
     dueAt: command.dueAt,
     status: "planifiee",
+    signalCategory: command.signalCategory,
     observationPoints: command.observationPoints.map((point) => point.trim()).filter(Boolean),
     knowledgeGapFindingId: command.knowledgeGapFindingId,
     findingId: command.findingId,
@@ -126,22 +127,32 @@ function applyRecordObservation(state: ProductState, command: Extract<Command, {
   if (!mission) throw new Error("Mission terrain introuvable.");
   if (mission.status !== "en_cours") throw new Error("Une observation ne peut être enregistrée que sur une mission en cours.");
   if (!command.content.trim()) throw new Error("Le contenu de l'observation est obligatoire.");
+  // Micro-correctif Product (post-LOT 3, "territoire réel de
+  // l'observation") : le territoire doit appartenir à la mission — plus de
+  // repli implicite sur territoryIds[0], qui perdait l'information dès
+  // qu'une mission couvre plusieurs territoires (mandat, mission
+  // multi-territoires).
+  if (!mission.territoryIds.includes(command.territoryId)) {
+    throw new Error("Le territoire choisi n'appartient pas à cette mission.");
+  }
 
-  const territoryId = mission.territoryIds[0];
+  const territoryId = command.territoryId;
   const observationId = id("obsv");
   const suffix = crypto.randomUUID().slice(0, 8);
   const signalId = `obs-${suffix}`;
 
   // Signal terrain canonique — provenance préservée explicitement dans le
   // libellé "source" (mandat §12, "aucune perte de source") plutôt que
-  // seulement portée par un lien implicite.
+  // seulement portée par un lien implicite. Catégorie reprise telle quelle
+  // depuis la mission (micro-correctif Product, "catégorie du signal
+  // terrain") — jamais déduite ici, jamais un hardcode générique.
   const signal: Signal = {
     id: signalId,
     territoryId,
     actorId: command.actorId,
     createdAt: timestamp(),
     channel: "terrain",
-    category: "infrastructure",
+    category: mission.signalCategory,
     title: `Observation terrain — ${mission.title}`,
     description: command.content.trim(),
     trust: command.trust,

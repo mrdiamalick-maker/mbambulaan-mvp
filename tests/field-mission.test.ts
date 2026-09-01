@@ -23,6 +23,11 @@ function createKayarMission(state = createDemoState()) {
     territoryIds: ["kayar", "fass-boye"],
     reason: "Connaissance manquante identifiée — cause dominante non établie (constat fnd-kayar-motorisation-connaissance-manquante)",
     responsibleActorId: "act-operateur",
+    // "infrastructure" reflète réellement le sujet moteur/équipement de ce
+    // dossier (même catégorie que les Signals Kayar existants du Demo
+    // World) — choisi explicitement ici, jamais déduit par
+    // record_observation (micro-correctif Product post-LOT 3).
+    signalCategory: "infrastructure",
     observationPoints: [
       "État des moteurs",
       "Fréquence et nature des pannes",
@@ -81,6 +86,7 @@ test("TEST D — démarrer une mission change son statut ; observer avant démar
       type: "record_observation",
       actorId: "act-operateur",
       missionId: mission.id,
+      territoryId: mission.territoryIds[0],
       content: "Tentative avant démarrage",
       nature: "insuffisant",
       trust: "declaree"
@@ -103,6 +109,7 @@ test("TEST E — l'observation enregistrée est reliée à sa mission", () => {
     type: "record_observation",
     actorId: "act-operateur",
     missionId: mission.id,
+    territoryId: mission.territoryIds[0],
     content: "Les moteurs examinés à Kayar montrent une usure au-delà de l'attendu pour leur âge déclaré ; plusieurs capitaines mentionnent un carburant de qualité variable.",
     nature: "nuance",
     trust: "observee"
@@ -121,6 +128,7 @@ test("TEST F — l'observation produit un Signal terrain canonique", () => {
     type: "record_observation",
     actorId: "act-operateur",
     missionId: mission.id,
+    territoryId: mission.territoryIds[0],
     content: "Aucun réparateur agréé disponible à moins de 40 km, ce qui rallonge chaque immobilisation.",
     nature: "confirme",
     trust: "observee"
@@ -141,6 +149,7 @@ test("TEST G — enregistrer une observation ne crée aucune Situation automatiq
     type: "record_observation",
     actorId: "act-operateur",
     missionId: mission.id,
+    territoryId: mission.territoryIds[0],
     content: "Observation neutre, ne permet pas de conclure à ce stade.",
     nature: "insuffisant",
     trust: "declaree"
@@ -157,6 +166,7 @@ test("TEST H — la provenance (mission, agent, territoire) est intégralement p
     type: "record_observation",
     actorId: "act-operateur",
     missionId: mission.id,
+    territoryId: mission.territoryIds[0],
     content: "Les pratiques d'entretien varient fortement d'un capitaine à l'autre.",
     nature: "nuance",
     trust: "observee"
@@ -178,6 +188,7 @@ test("TEST I — une preuve jointe à l'observation est reliée (Evidence réuti
     type: "record_observation",
     actorId: "act-operateur",
     missionId: mission.id,
+    territoryId: mission.territoryIds[0],
     content: "Trois moteurs présentent une corrosion visible sur le bloc.",
     nature: "confirme",
     trust: "observee",
@@ -215,6 +226,7 @@ test("TEST K — le Knowledge Gap reste ouvert après l'observation, sauf décis
     type: "record_observation",
     actorId: "act-operateur",
     missionId: mission.id,
+    territoryId: mission.territoryIds[0],
     content: "Éléments nouveaux reçus, ne permettent pas encore de trancher entre les hypothèses.",
     nature: "nuance",
     trust: "observee"
@@ -229,6 +241,129 @@ test("TEST K — le Knowledge Gap reste ouvert après l'observation, sauf décis
   // connaissance, LOT 0.)
   const superseded = applyCommand(next, { type: "update_finding_status", actorId: "act-coordinateur", findingId: KAYAR_GAP_FINDING_ID, status: "superseded", note: "Éclairé par la mission terrain — remplacé par un constat plus précis sur la cause dominante" });
   assert.equal(superseded.findings.find((item) => item.id === KAYAR_GAP_FINDING_ID)!.status, "superseded");
+});
+
+// --- Micro-correctif Product (post-LOT 3) : territoire réel de
+// l'observation + catégorie du signal terrain ---
+
+// Mission mono-territoire dédiée aux tests ci-dessous — la mission Kayar
+// standard (createKayarMission) est déjà multi-territoires (kayar +
+// fass-boye), utile pour les tests multi-territoires, mais il faut aussi
+// couvrir le cas mono-territoire explicitement (mandat : "mission
+// mono-territoire → territoire correct").
+function createMonoTerritoryMission(state = createDemoState()) {
+  const next = applyCommand(state, {
+    type: "create_field_mission",
+    actorId: "act-coordinateur",
+    title: "Vérification ciblée — Joal",
+    objective: "Confirmer un point précis sur un seul territoire",
+    territoryIds: ["joal"],
+    reason: "Test dédié mono-territoire",
+    signalCategory: "qualite",
+    observationPoints: ["Point à vérifier"]
+  });
+  const mission = next.fieldMissions[0];
+  return { state: next, mission };
+}
+
+test("Micro-correctif territoire — mission mono-territoire : l'observation porte le bon territoire", () => {
+  const { state, mission } = createMonoTerritoryMission();
+  const started = startMission(state, mission.id);
+  const next = applyCommand(started, {
+    type: "record_observation",
+    actorId: "act-operateur",
+    missionId: mission.id,
+    territoryId: "joal",
+    content: "Point vérifié sur place.",
+    nature: "confirme",
+    trust: "observee"
+  });
+  const observation = next.observations[0];
+  const signal = next.signals.find((item) => item.id === observation.signalId)!;
+  assert.equal(observation.territoryId, "joal");
+  assert.equal(signal.territoryId, "joal");
+});
+
+test("Micro-correctif territoire — mission multi-territoires : l'observation sur le second territoire est correctement enregistrée", () => {
+  const { state, mission } = createKayarMission();
+  assert.deepEqual(mission.territoryIds, ["kayar", "fass-boye"]);
+  const started = startMission(state, mission.id);
+  const next = applyCommand(started, {
+    type: "record_observation",
+    actorId: "act-operateur",
+    missionId: mission.id,
+    territoryId: "fass-boye",
+    content: "À Fass Boye spécifiquement, l'accès aux pièces est plus limité qu'à Kayar.",
+    nature: "nuance",
+    trust: "observee"
+  });
+  const observation = next.observations[0];
+  const signal = next.signals.find((item) => item.id === observation.signalId)!;
+  assert.equal(observation.territoryId, "fass-boye");
+  assert.equal(signal.territoryId, "fass-boye");
+  assert.notEqual(observation.territoryId, mission.territoryIds[0], "ne doit plus retomber implicitement sur territoryIds[0]");
+});
+
+test("Micro-correctif territoire — un territoire extérieur à la mission est refusé", () => {
+  const { state, mission } = createKayarMission();
+  const started = startMission(state, mission.id);
+  assert.throws(() =>
+    applyCommand(started, {
+      type: "record_observation",
+      actorId: "act-operateur",
+      missionId: mission.id,
+      territoryId: "joal",
+      content: "Territoire hors mission.",
+      nature: "insuffisant",
+      trust: "declaree"
+    })
+  );
+});
+
+test("Micro-correctif catégorie — le Signal d'une mission « infrastructure » porte la catégorie infrastructure", () => {
+  const { state, mission } = createKayarMission();
+  assert.equal(mission.signalCategory, "infrastructure");
+  const started = startMission(state, mission.id);
+  const next = applyCommand(started, {
+    type: "record_observation",
+    actorId: "act-operateur",
+    missionId: mission.id,
+    territoryId: mission.territoryIds[0],
+    content: "Observation catégorie infrastructure.",
+    nature: "confirme",
+    trust: "observee"
+  });
+  const observation = next.observations[0];
+  const signal = next.signals.find((item) => item.id === observation.signalId)!;
+  assert.equal(signal.category, "infrastructure");
+});
+
+test("Micro-correctif catégorie — une mission d'un autre sujet conserve réellement sa propre catégorie (pas de hardcode infrastructure)", () => {
+  const { state, mission } = createMonoTerritoryMission();
+  assert.equal(mission.signalCategory, "qualite");
+  const started = startMission(state, mission.id);
+  const next = applyCommand(started, {
+    type: "record_observation",
+    actorId: "act-operateur",
+    missionId: mission.id,
+    territoryId: "joal",
+    content: "Observation catégorie qualité, pas infrastructure.",
+    nature: "confirme",
+    trust: "observee"
+  });
+  const observation = next.observations[0];
+  const signal = next.signals.find((item) => item.id === observation.signalId)!;
+  assert.equal(signal.category, "qualite");
+  assert.notEqual(signal.category, "infrastructure");
+});
+
+test("Micro-correctif catégorie — aucun hardcode générique « infrastructure » dans applyRecordObservation", () => {
+  const source = readFileSync(new URL("../src/domain/field-mission.ts", import.meta.url), "utf8");
+  const start = source.indexOf("function applyRecordObservation");
+  const end = source.indexOf("\nfunction applyFieldMissionCommand", start);
+  const functionBody = source.slice(start, end === -1 ? undefined : end);
+  assert.doesNotMatch(functionBody, /category:\s*"infrastructure"/, "la catégorie du Signal doit venir de mission.signalCategory, jamais d'un littéral codé en dur");
+  assert.match(functionBody, /category:\s*mission\.signalCategory/);
 });
 
 // TEST L — le parcours générique capitaine "Signaler un problème" utilise
@@ -257,6 +392,7 @@ test("TEST M — create_field_mission peut référencer la Situation Joal réell
     objective: "Confirmer que la maintenance programmée réduit bien la récurrence des pannes de glace",
     territoryIds: [joalSituation.territoryId],
     reason: "Suite à la décision de maintenance préventive, vérification de terrain possible plutôt qu'attendre une nouvelle panne",
+    signalCategory: "infrastructure",
     observationPoints: ["État du dispositif de production de glace", "Respect du calendrier de maintenance"],
     situationId: joalSituation.id
   });

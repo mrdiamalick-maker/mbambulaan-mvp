@@ -13,7 +13,8 @@
 import { FormEvent, useState } from "react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Button } from "@/components/ui/button";
-import type { CollectiveNeed, Finding, ProductState } from "@/domain/types";
+import type { CollectiveNeed, Finding, ProductState, Signal } from "@/domain/types";
+import { signalCategoryLabels } from "@/domain/types";
 
 function linesToList(value: string): string[] {
   return value.split("\n").map((line) => line.trim()).filter(Boolean);
@@ -49,6 +50,12 @@ export function FieldMissionForm({
   const [objective, setObjective] = useState(knowledgeGap.nextStep || "Comprendre la cause dominante avant de concevoir une intervention.");
   const [reason, setReason] = useState(knowledgeGap.statement);
   const [observationPoints, setObservationPoints] = useState(DEFAULT_OBSERVATION_POINTS);
+  // Micro-correctif Product (post-LOT 3, "catégorie du signal terrain") :
+  // choix explicite à la création, jamais déduit à l'enregistrement d'une
+  // observation. "infrastructure" préremplie par défaut (dossier source
+  // motorisation/équipement) — modifiable, pas un hardcode : le
+  // coordinateur peut choisir toute catégorie de la taxonomie existante.
+  const [signalCategory, setSignalCategory] = useState<Signal["category"]>("infrastructure");
   const [responsibleActorId, setResponsibleActorId] = useState(agents[0]?.id ?? "");
   const [dueAt, setDueAt] = useState("");
   const [error, setError] = useState("");
@@ -71,6 +78,7 @@ export function FieldMissionForm({
         reason: reason.trim(),
         responsibleActorId: responsibleActorId || undefined,
         dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
+        signalCategory,
         observationPoints: points,
         knowledgeGapFindingId: knowledgeGap.id,
         collectiveNeedId: need.id
@@ -103,6 +111,12 @@ export function FieldMissionForm({
       <label className="block text-xs font-semibold">
         Axes d’observation — un par ligne, pas des conclusions
         <textarea required rows={6} value={observationPoints} onChange={(event) => setObservationPoints(event.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+      </label>
+      <label className="block text-xs font-semibold">
+        Sujet du signal terrain — catégorie réellement observée
+        <select value={signalCategory} onChange={(event) => setSignalCategory(event.target.value as Signal["category"])} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary">
+          {Object.entries(signalCategoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
       </label>
       <label className="block text-xs font-semibold">
         Responsable de la mission

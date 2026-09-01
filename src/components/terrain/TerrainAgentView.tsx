@@ -174,7 +174,7 @@ function MissionCard({ state, mission }: { state: ProductState; mission: FieldMi
           </Button>
         ) : (
           <>
-            <ObservationForm mission={mission} />
+            <ObservationForm mission={mission} state={state} />
             <Button variant="outline" className="w-full" disabled={finishing} onClick={() => void finishMission()}>
               <CheckCircle2 size={15} /> {finishing ? "Confirmation…" : "Terminer la mission"}
             </Button>
@@ -206,10 +206,15 @@ function MissionCard({ state, mission }: { state: ProductState; mission: FieldMi
 // (preuve facultative, réutilise Evidence). "Déclaration" vs "Observation
 // documentée" (mandat §13) : une simple bascule plutôt que 2 parcours
 // séparés — documentée exige une preuve, déclaration n'en exige aucune.
-function ObservationForm({ mission }: { mission: FieldMission }) {
+function ObservationForm({ mission, state }: { mission: FieldMission; state: ProductState }) {
   const { run } = useProduct();
   const [content, setContent] = useState("");
   const [nature, setNature] = useState<ObservationNature | "">("");
+  // Micro-correctif Product (post-LOT 3, "territoire réel de
+  // l'observation") : mission mono-territoire → préremplie, cachée à
+  // l'agent (expérience extrêmement simple) ; multi-territoires → choix
+  // explicite obligatoire avant d'enregistrer.
+  const [territoryId, setTerritoryId] = useState(mission.territoryIds.length === 1 ? mission.territoryIds[0] : "");
   const [documented, setDocumented] = useState(false);
   const [evidenceType, setEvidenceType] = useState<EvidenceType>("photo");
   const [evidenceLabel, setEvidenceLabel] = useState("");
@@ -223,6 +228,7 @@ function ObservationForm({ mission }: { mission: FieldMission }) {
     setError("");
     if (!content.trim()) { setError("Décrivez ce que vous constatez."); return; }
     if (!nature) { setError("Précisez ce que cette observation apporte (confirme, nuance, contredit, ou ne permet pas de conclure)."); return; }
+    if (!territoryId) { setError("Précisez le territoire sur lequel cette observation a été réalisée."); return; }
     if (documented && (!evidenceLabel.trim() || !evidenceDetail.trim())) { setError("Une observation documentée doit préciser la preuve jointe (libellé et détail)."); return; }
 
     setPending(true);
@@ -230,6 +236,7 @@ function ObservationForm({ mission }: { mission: FieldMission }) {
       const ok = await run({
         type: "record_observation",
         missionId: mission.id,
+        territoryId,
         content: content.trim(),
         nature,
         trust: documented ? "observee" : "declaree",
@@ -250,6 +257,16 @@ function ObservationForm({ mission }: { mission: FieldMission }) {
 
   return (
     <form onSubmit={submit} className="space-y-3 rounded-lg border bg-muted/20 p-4">
+      {mission.territoryIds.length > 1 && (
+        <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          Territoire de cette observation
+          <select required value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2.5 text-sm font-normal normal-case outline-none focus:border-primary">
+            <option value="">Choisir…</option>
+            {mission.territoryIds.map((id) => <option key={id} value={id}>{state.territories.find((item) => item.id === id)?.name ?? id}</option>)}
+          </select>
+        </label>
+      )}
+
       <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Observer</p>
       <textarea required rows={3} value={content} onChange={(event) => { setContent(event.target.value); setJustSent(false); }} placeholder="Que constatez-vous ?" className="w-full rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary" />
 
