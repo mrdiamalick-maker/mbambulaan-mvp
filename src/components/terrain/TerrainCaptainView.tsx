@@ -68,11 +68,15 @@ export function TerrainCaptainView({ state, actorId }: { state: ProductState; ac
   const submitSignal = async () => {
     if (!territory || !signalTitle.trim() || !signalDetail.trim()) return;
     const ok = await run({
-      // LOT 0.1 : create_signal ne crée plus qu'un Signal — ce parcours
-      // ("signaler un problème depuis le terrain") exprime réellement
-      // l'intention d'ouvrir un dossier tout de suite, wrapper legacy
-      // documenté (mandat §5) plutôt que découplé silencieusement.
-      type: "report_signal_and_open_situation",
+      // Correction LOT 3 (mandat §17) : "Signaler un problème" depuis le
+      // terrain redevient le pipeline normal (create_signal, qualifié
+      // ensuite par un coordinateur), plutôt que le wrapper couplé
+      // report_signal_and_open_situation utilisé jusqu'ici. Ce geste
+      // générique n'exprime pas d'urgence particulière — l'UX ne promet
+      // nulle part une ouverture immédiate de dossier ; seule une voie
+      // explicitement urgente justifierait de conserver le wrapper
+      // (aucune n'existe dans ce composant).
+      type: "create_signal",
       territoryId: territory.id,
       title: signalTitle.trim(),
       description: signalDetail.trim(),

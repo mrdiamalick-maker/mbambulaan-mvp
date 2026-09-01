@@ -655,16 +655,107 @@ export const evidenceTypeLabels: Record<EvidenceType, string> = {
   bordereau: "Bordereau"
 };
 
+// situationId optionnel (LOT 3, mandat "Terrain — observer, vérifier et
+// fiabiliser la réalité", §13 : "réutiliser l'objet Evidence, ne pas créer
+// FieldEvidence") : une preuve peut désormais naître d'une Observation de
+// mission terrain plutôt que d'une Situation — missionId/observationId
+// portent cette origine, jamais les deux origines à la fois en pratique
+// (une Evidence de mission n'a pas de Situation, et réciproquement),
+// mais rien ne l'interdit structurellement pour ne pas fermer une
+// convergence future légitime (une mission menée en réponse directe à une
+// Situation, par ex.).
 export interface Evidence {
   id: string;
-  situationId: string;
+  situationId?: string;
   commitmentId?: string;
+  missionId?: string;
+  observationId?: string;
   type: EvidenceType;
   label: string;
   detail: string;
   recordedByActorId: string;
   recordedAt: string;
   trust: TrustLevel;
+}
+
+// FieldMission / Observation (LOT 3, mandat "Terrain — observer, vérifier
+// et fiabiliser la réalité") — troisième capacité fondamentale : Mbàmbulaan
+// peut aller vérifier la réalité, pas seulement attendre qu'elle lui soit
+// signalée. Distinct de Commitment (mandat §8, "Mission ≠ Commitment") :
+// la Mission décrit LE TRAVAIL terrain (quoi vérifier, pourquoi, où),
+// jamais l'engagement d'un acteur à le faire — create_field_mission ne
+// crée donc aucun Commitment automatiquement, contrairement à l'ancien
+// plan_field_commitment (Ministry, conservé tel quel pour compatibilité,
+// cf. commentaire sur bridgeFieldCommitment).
+export type FieldMissionStatus = "a_preparer" | "planifiee" | "en_cours" | "realisee" | "annulee";
+
+export const fieldMissionStatusLabels: Record<FieldMissionStatus, string> = {
+  a_preparer: "À préparer",
+  planifiee: "Planifiée",
+  en_cours: "En cours",
+  realisee: "Réalisée",
+  annulee: "Annulée"
+};
+
+export interface FieldMission {
+  id: string;
+  title: string;
+  objective: string;
+  territoryIds: string[];
+  // "raison / source" (mandat §7) — pourquoi cette mission existe. Texte
+  // libre : la traçabilité structurée réelle vit dans les 4 champs de
+  // référence ci-dessous, ce champ reste la phrase lisible par un humain.
+  reason: string;
+  responsibleActorId?: string;
+  dueAt?: string;
+  status: FieldMissionStatus;
+  // Consignes d'observation (mandat §4 : "axes d'observation, pas des
+  // conclusions préétablies") — texte libre, un axe par entrée.
+  observationPoints: string[];
+  // Traçabilité vers ce qui a justifié la mission — tous optionnels,
+  // aucun n'implique les autres (une mission peut naître d'un seul
+  // Knowledge Gap, sans CollectiveNeed ni Situation, par ex.).
+  knowledgeGapFindingId?: string;
+  findingId?: string;
+  collectiveNeedId?: string;
+  situationId?: string;
+  createdAt: string;
+  createdByActorId: string;
+  history: HistoryEntry[];
+}
+
+// Nature de l'appréciation d'une Observation vis-à-vis de ce qu'elle
+// vérifie (mandat §10/§11) — jamais un score, une catégorisation qualitative
+// assumée par l'auteur de l'observation lui-même.
+export type ObservationNature = "confirme" | "nuance" | "contredit" | "insuffisant";
+
+export const observationNatureLabels: Record<ObservationNature, string> = {
+  confirme: "Confirme",
+  nuance: "Nuance",
+  contredit: "Contredit",
+  insuffisant: "Insuffisant pour conclure"
+};
+
+// Observation — l'entrée la plus légère possible pour représenter "ce
+// qu'un agent/relais autorisé a effectivement constaté dans le cadre
+// d'une mission" (mandat §11). Jamais transformée automatiquement en
+// Finding — record_observation (knowledge-pipeline.ts) ne touche jamais
+// state.findings, cf. TEST K du mandat ("le Knowledge Gap reste ouvert
+// après Observation sauf transition explicite").
+export interface Observation {
+  id: string;
+  missionId: string;
+  territoryId: string;
+  authorActorId: string;
+  createdAt: string;
+  content: string;
+  nature: ObservationNature;
+  trust: TrustLevel;
+  // Traçabilité systématique (mandat §12 : "Observation → Signal terrain
+  // → qualification" — jamais de Signal orphelin d'Observation, ni
+  // d'Observation qui ne produise pas de Signal canonique).
+  signalId: string;
+  evidenceId?: string;
 }
 
 // Communication — objet de première classe (§5.10) reliant une situation,
@@ -897,6 +988,10 @@ export interface ProductState {
   findings: Finding[];
   collectiveNeeds: CollectiveNeed[];
   programOpportunities: ProgramOpportunity[];
+  // FieldMission/Observation (LOT 3) — additifs, même discipline que
+  // findings/collectiveNeeds/programOpportunities ci-dessus.
+  fieldMissions: FieldMission[];
+  observations: Observation[];
   situations: Situation[];
   coordinationSpaces: CoordinationSpace[];
   decisions: Decision[];
@@ -1077,6 +1172,44 @@ export type Command =
       maturity: ProgramOpportunityMaturity;
     }
   | { type: "update_program_opportunity_status"; programOpportunityId: string; actorId: string; status: Exclude<ProgramOpportunityStatus, "detected" | "converted_to_program">; note?: string }
+  // --- LOT 3 — Terrain (mandat "observer, vérifier et fiabiliser la
+  // réalité") : create_field_mission ne crée jamais de Commitment (mandat
+  // §8, "Mission ≠ Commitment" — contrairement à l'ancien
+  // plan_field_commitment, Ministry, conservé tel quel). status omis à la
+  // création : toujours "planifiee" (les champs obligatoires du mandat —
+  // titre, objectif, territoire, raison, consignes — sont déjà réunis dès
+  // la création explicite, il n'existe pas de geste "juste à préparer"
+  // distinct dans ce lot).
+  | {
+      type: "create_field_mission";
+      actorId: string;
+      title: string;
+      objective: string;
+      territoryIds: string[];
+      reason: string;
+      responsibleActorId?: string;
+      dueAt?: string;
+      observationPoints: string[];
+      knowledgeGapFindingId?: string;
+      findingId?: string;
+      collectiveNeedId?: string;
+      situationId?: string;
+    }
+  | { type: "update_field_mission_status"; missionId: string; actorId: string; status: Exclude<FieldMissionStatus, "a_preparer">; note?: string }
+  // record_observation — mission.status doit être "en_cours" (l'agent a
+  // explicitement démarré la mission avant d'observer, TEST D/E du
+  // mandat). Produit toujours un Signal canonique (mandat §12) ; evidence
+  // facultative (mandat §13, "une preuve textuelle/documentée peut
+  // suffire").
+  | {
+      type: "record_observation";
+      actorId: string;
+      missionId: string;
+      content: string;
+      nature: ObservationNature;
+      trust: TrustLevel;
+      evidence?: { evidenceType: EvidenceType; label: string; detail: string };
+    }
   | { type: "reset_demo"; actorId: string };
 
 export type CommandInput = Command extends infer Item

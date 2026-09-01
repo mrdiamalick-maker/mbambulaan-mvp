@@ -59,6 +59,11 @@ async function ensureSchema() {
       coordination_id text
     )
   `;
+  // LOT 3 — colonne additive, jamais destructive (mandat §27) : ajoutée
+  // séparément par migration idempotente plutôt qu'insérée dans le
+  // create table ci-dessus, pour ne rien changer au comportement d'une
+  // base déjà provisionnée par une version antérieure.
+  await db`alter table mbambulaan_field_visits add column if not exists mission_id text`;
   await db`
     create table if not exists mbambulaan_vigilance_cases (
       id text primary key,
@@ -136,16 +141,49 @@ async function bridgeFieldCommitment(input: FieldVisitInput): Promise<{ commitme
   }
 }
 
+// LOT 3 (mandat "Terrain — observer, vérifier et fiabiliser la réalité",
+// §6/§27) : en plus du Commitment ci-dessus (chemin existant, inchangé —
+// "Mission ≠ Commitment" reste une dette assumée pour ce chemin legacy,
+// non résolue dans ce lot), une visite ministère dispatche désormais
+// AUSSI create_field_mission en parallèle, best-effort et indépendant du
+// bridge Commitment (l'échec de l'un ne bloque jamais l'autre). Ceci fait
+// progressivement de FieldVisit une projection/un canal de la capacité
+// Terrain, sans rien retirer à son propre enregistrement (source de
+// vérité de l'écran Espace État).
+async function bridgeFieldMission(input: FieldVisitInput): Promise<{ missionId?: string }> {
+  try {
+    const next = await dispatch(
+      {
+        type: "create_field_mission",
+        actorId: input.createdByActorId,
+        title: input.title,
+        objective: fieldVisitObjectiveLabels[input.objective],
+        territoryIds: [input.territoryId],
+        reason: input.notes?.trim() || fieldVisitObjectiveLabels[input.objective],
+        responsibleActorId: input.createdByActorId,
+        dueAt: input.plannedAt,
+        observationPoints: [fieldVisitObjectiveLabels[input.objective]]
+      },
+      crypto.randomUUID()
+    );
+    return { missionId: next.fieldMissions[0]?.id };
+  } catch (error) {
+    console.warn("bridgeFieldMission: échec de la répercussion dans le modèle unifié", error);
+    return {};
+  }
+}
+
 export async function createFieldVisit(input: FieldVisitInput): Promise<FieldVisit> {
-  const bridge = await bridgeFieldCommitment(input);
+  const [commitmentBridge, missionBridge] = await Promise.all([bridgeFieldCommitment(input), bridgeFieldMission(input)]);
   const visit: FieldVisit = {
     ...input,
     tenantId: input.tenantId ?? "tenant-demo",
     id: crypto.randomUUID(),
     status: "planifiee",
     createdAt: new Date().toISOString(),
-    commitmentId: bridge.commitmentId,
-    coordinationId: bridge.coordinationId
+    commitmentId: commitmentBridge.commitmentId,
+    coordinationId: commitmentBridge.coordinationId,
+    missionId: missionBridge.missionId
   };
   const db = database();
   if (!db) {
@@ -155,10 +193,10 @@ export async function createFieldVisit(input: FieldVisitInput): Promise<FieldVis
   await ensureSchema();
   await db`
     insert into mbambulaan_field_visits (
-      id, tenant_id, title, territory_id, territory_label, objective, planned_at, notes, status, created_by_actor_id, created_by_name, created_at, commitment_id, coordination_id
+      id, tenant_id, title, territory_id, territory_label, objective, planned_at, notes, status, created_by_actor_id, created_by_name, created_at, commitment_id, coordination_id, mission_id
     ) values (
       ${visit.id}, ${visit.tenantId ?? "tenant-demo"}, ${visit.title}, ${visit.territoryId}, ${visit.territoryLabel}, ${visit.objective}, ${visit.plannedAt},
-      ${visit.notes ?? null}, ${visit.status}, ${visit.createdByActorId}, ${visit.createdByName}, ${visit.createdAt}, ${visit.commitmentId ?? null}, ${visit.coordinationId ?? null}
+      ${visit.notes ?? null}, ${visit.status}, ${visit.createdByActorId}, ${visit.createdByName}, ${visit.createdAt}, ${visit.commitmentId ?? null}, ${visit.coordinationId ?? null}, ${visit.missionId ?? null}
     )
   `;
   return visit;
@@ -171,13 +209,13 @@ export async function listFieldVisits(): Promise<FieldVisit[]> {
   const rows = await db<Array<{
     id: string; tenant_id: string; title: string; territory_id: string; territory_label: string; objective: FieldVisit["objective"];
     planned_at: string; notes: string | null; status: FieldVisitStatus; created_by_actor_id: string; created_by_name: string; created_at: string;
-    commitment_id: string | null; coordination_id: string | null;
+    commitment_id: string | null; coordination_id: string | null; mission_id: string | null;
   }>>`select * from mbambulaan_field_visits order by planned_at asc`;
   return rows.map((row) => ({
     id: row.id, tenantId: row.tenant_id, title: row.title, territoryId: row.territory_id, territoryLabel: row.territory_label,
     objective: row.objective, plannedAt: row.planned_at, notes: row.notes ?? undefined, status: row.status,
     createdByActorId: row.created_by_actor_id, createdByName: row.created_by_name, createdAt: row.created_at,
-    commitmentId: row.commitment_id ?? undefined, coordinationId: row.coordination_id ?? undefined
+    commitmentId: row.commitment_id ?? undefined, coordinationId: row.coordination_id ?? undefined, missionId: row.mission_id ?? undefined
   }));
 }
 

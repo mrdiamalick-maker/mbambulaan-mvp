@@ -20,6 +20,7 @@ import type {
 } from "./types";
 import { communicationChannelLabels, decisionTypeLabels, evidenceTypeLabels } from "./types";
 import { applyKnowledgePipelineCommand, promoteSignalToSituation } from "./knowledge-pipeline";
+import { applyFieldMissionCommand } from "./field-mission";
 
 // Le moteur de rapprochement Lot ↔ ServiceRequest (§5.11) ne concerne que
 // les intentions d'approvisionnement : une demande de formation ou de
@@ -83,6 +84,9 @@ const transitions: Record<
     | "create_service_request"
     | "plan_field_commitment"
     | "create_initiative"
+    | "create_field_mission"
+    | "update_field_mission_status"
+    | "record_observation"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -821,6 +825,13 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   if (command.type === "plan_field_commitment") {
     return applyFieldCommitmentCommand(state, command);
   }
+  if (
+    command.type === "create_field_mission" ||
+    command.type === "update_field_mission_status" ||
+    command.type === "record_observation"
+  ) {
+    return applyFieldMissionCommand(state, command);
+  }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
   }
@@ -1016,6 +1027,9 @@ export type WorkflowAction = Exclude<
   | "create_service_request"
   | "plan_field_commitment"
   | "create_initiative"
+  | "create_field_mission"
+  | "update_field_mission_status"
+  | "record_observation"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {

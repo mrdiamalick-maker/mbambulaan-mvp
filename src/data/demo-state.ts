@@ -1450,6 +1450,15 @@ export function createDemoState(): ProductState {
     // conversion elle-même reste une décision explicite, exercée par les
     // tests (create_program_opportunity) plutôt que figée dans ce jeu.
     programOpportunities: [],
+    // LOT 3 — Terrain (mandat §26/mandat "pas de pré-remplissage
+    // automatique de ce qui est démontré") : aucune Mission ni Observation
+    // n'est pré-créée au chargement du monde de démonstration. La mission
+    // Kayar (issue du Knowledge Gap fnd-kayar-motorisation-connaissance-
+    // manquante) et son Observation sont créées par une action humaine
+    // explicite, exercée par les tests (create_field_mission /
+    // record_observation) plutôt que figées dans ce jeu.
+    fieldMissions: [],
+    observations: [],
     // LOT 0 — chaîne de référence Joal (Signal → Finding → Situation,
     // mandat §20) : sit-joal-glace-recurrence s'ajoute aux 30 situations
     // existantes sans en modifier aucune. La chaîne Kayar s'arrête avant

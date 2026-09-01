@@ -10,7 +10,7 @@ import { FormEvent, useState } from "react";
 import { CheckCircle2, Compass } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import type { ProductState, ProgramOpportunity } from "@/domain/types";
-import { programOpportunityMaturityLabels, programOpportunityStatusLabels } from "@/domain/types";
+import { fieldMissionStatusLabels, observationNatureLabels, programOpportunityMaturityLabels, programOpportunityStatusLabels } from "@/domain/types";
 import { resolveSourceRefDisplay } from "@/domain/situation-narrative";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,10 @@ export function ProgramOpportunityDossier({ opportunity, state, onDone }: { oppo
   const [qualifyFormOpen, setQualifyFormOpen] = useState(false);
   const territories = opportunity.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
   const evidence = opportunity.evidenceRefs.map((ref) => resolveSourceRefDisplay(state, ref)).filter((item): item is NonNullable<typeof item> => Boolean(item));
+  // LOT 3 (mandat §15) : l'opportunité accède aux nouvelles preuves
+  // terrain sans duplication manuelle — même filtrage par
+  // collectiveNeedId que CollectiveNeedDossier, aucune copie locale.
+  const relatedMissions = state.fieldMissions.filter((item) => item.collectiveNeedId === opportunity.collectiveNeedId);
 
   if (constituting) {
     return <InitiativeForm programOpportunity={opportunity} state={state} onDone={onDone} onCancel={() => setConstituting(false)} />;
@@ -94,6 +98,36 @@ export function ProgramOpportunityDossier({ opportunity, state, onDone }: { oppo
           <ul className="mt-1.5 list-disc space-y-1 pl-4 text-sm italic leading-5 text-muted-foreground">
             {opportunity.knowledgeGaps.map((item) => <li key={item}>{item}</li>)}
           </ul>
+        </div>
+      )}
+
+      {relatedMissions.length > 0 && (
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Nouveaux éléments terrain</p>
+          <div className="mt-2 space-y-3">
+            {relatedMissions.map((mission) => {
+              const missionObservations = state.observations.filter((item) => item.missionId === mission.id);
+              return (
+                <div key={mission.id} className="rounded-lg border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium leading-5">{mission.title}</p>
+                    <Badge variant="outline">{fieldMissionStatusLabels[mission.status]}</Badge>
+                  </div>
+                  {missionObservations.length > 0 ? (
+                    <ul className="mt-2 space-y-1.5">
+                      {missionObservations.map((observation) => (
+                        <li key={observation.id} className="text-xs leading-5 text-muted-foreground">
+                          <span className="font-semibold text-foreground">{observationNatureLabels[observation.nature]}</span> — {observation.content}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-1.5 text-xs text-muted-foreground">Aucune observation enregistrée pour l’instant.</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

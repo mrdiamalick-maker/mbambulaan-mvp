@@ -27,7 +27,11 @@ test("le tenant de démonstration relie les objets sans référence orpheline", 
     if (decision.coordinationId) assert.ok(state.coordinationSpaces.some((space) => space.id === decision.coordinationId));
   }
   for (const evidence of state.evidences) {
-    assert.ok(situationIds.has(evidence.situationId));
+    // situationId optionnel depuis LOT 3 (Evidence peut naître d'une
+    // Observation de mission terrain) — le jeu de démonstration historique
+    // continue de la renseigner pour toute Evidence liée à une Situation,
+    // vérifié quand elle est présente.
+    if (evidence.situationId) assert.ok(situationIds.has(evidence.situationId));
     assert.ok(actorIds.has(evidence.recordedByActorId));
     if (evidence.commitmentId) {
       assert.ok(

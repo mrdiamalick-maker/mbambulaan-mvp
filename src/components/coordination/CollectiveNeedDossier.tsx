@@ -10,13 +10,14 @@
 // (mandat §20) : "Besoin collectif", "Constat Mbàmbulaan", jamais
 // "CollectiveNeed"/"Finding" à l'écran.
 import { useState } from "react";
-import { CircleHelp, Compass, Sparkles, UsersRound } from "lucide-react";
+import { CircleHelp, Compass, MapPinned, Sparkles, UsersRound } from "lucide-react";
 import type { CollectiveNeed, ProductState } from "@/domain/types";
-import { collectiveNeedStatusLabels } from "@/domain/types";
+import { collectiveNeedStatusLabels, fieldMissionStatusLabels, observationNatureLabels } from "@/domain/types";
 import { describeFindingTrust, findingsReferencedBy, resolveFindings, resolveSourceRefDisplay } from "@/domain/situation-narrative";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgramOpportunityForm } from "@/components/coordination/ProgramOpportunityForm";
+import { FieldMissionForm } from "@/components/coordination/FieldMissionForm";
 
 // Traduction métier du statut (mandat §6 : "traduit en métier", pas
 // l'identifiant technique brut) — distincte de collectiveNeedStatusLabels
@@ -42,6 +43,7 @@ const statusBadgeVariant: Record<CollectiveNeed["status"], "marine" | "amber" | 
 
 export function CollectiveNeedDossier({ need, state, onDone }: { need: CollectiveNeed; state: ProductState; onDone: () => void }) {
   const [openingOpportunity, setOpeningOpportunity] = useState(false);
+  const [organizingMission, setOrganizingMission] = useState(false);
   const territories = need.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
   const explainingFindings = findingsReferencedBy(state, need.sourceRefs);
   const sources = need.sourceRefs.map((ref) => resolveSourceRefDisplay(state, ref)).filter((item): item is NonNullable<typeof item> => Boolean(item));
@@ -51,9 +53,16 @@ export function CollectiveNeedDossier({ need, state, onDone }: { need: Collectiv
   // seulement s'il n'existe aucun Finding de ce type, jamais les deux à la
   // fois (pas de duplication de la même information sous deux formes).
   const knowledgeGapFindings = resolveFindings(state, need.knowledgeGapFindingIds);
+  // LOT 3 — missions terrain déjà organisées pour ce besoin, lues à la
+  // demande (filtrage sur collectiveNeedId), aucune duplication locale des
+  // données de mission dans CollectiveNeed lui-même (mandat §26).
+  const relatedMissions = state.fieldMissions.filter((item) => item.collectiveNeedId === need.id);
 
   if (openingOpportunity) {
     return <ProgramOpportunityForm need={need} state={state} onDone={onDone} onCancel={() => setOpeningOpportunity(false)} />;
+  }
+  if (organizingMission && knowledgeGapFindings[0]) {
+    return <FieldMissionForm need={need} knowledgeGap={knowledgeGapFindings[0]} state={state} onDone={() => setOrganizingMission(false)} onCancel={() => setOrganizingMission(false)} />;
   }
 
   return (
@@ -129,15 +138,13 @@ export function CollectiveNeedDossier({ need, state, onDone }: { need: Collectiv
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">{finding.explanation}</p>
               </div>
             ))}
-            {/* Signature produit (mandat §9) : Mbàmbulaan ne propose pas une
-                opportunité au prétexte qu'un problème existe — il sait
-                explicitement ce qu'il ne sait pas encore. Pas de CTA
-                planification terrain ici : aucun parcours de mission
-                existant ne se rattache proprement à un CollectiveNeed sans
-                détourner un mécanisme conçu pour les Situations
-                (MissionForm/VigilanceCase) — texte honnête plutôt qu'un
-                CTA mort (mandat §9, repli explicitement autorisé). */}
             <p className="text-xs font-semibold text-muted-foreground">Qualification nécessaire avant conception d’une intervention.</p>
+            {/* LOT 3 (mandat §4/§5/§9) : la vérification terrain devient un
+                vrai parcours plutôt qu'un texte honnête sans suite — sur
+                décision humaine explicite seulement, jamais automatique. */}
+            <Button variant="outline" className="w-full" onClick={() => setOrganizingMission(true)}>
+              <MapPinned size={15} /> Organiser une vérification terrain
+            </Button>
           </div>
         ) : need.knowledgeGaps.length > 0 ? (
           <ul className="mt-1.5 list-disc space-y-1 pl-4 text-sm leading-5 text-muted-foreground">
@@ -147,6 +154,36 @@ export function CollectiveNeedDossier({ need, state, onDone }: { need: Collectiv
           <p className="mt-1.5 text-sm text-muted-foreground">Aucun angle mort formalisé pour ce dossier à ce stade.</p>
         )}
       </div>
+
+      {relatedMissions.length > 0 && (
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Nouveaux éléments terrain</p>
+          <div className="mt-2 space-y-3">
+            {relatedMissions.map((mission) => {
+              const missionObservations = state.observations.filter((item) => item.missionId === mission.id);
+              return (
+                <div key={mission.id} className="rounded-lg border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium leading-5">{mission.title}</p>
+                    <Badge variant="outline">{fieldMissionStatusLabels[mission.status]}</Badge>
+                  </div>
+                  {missionObservations.length > 0 ? (
+                    <ul className="mt-2 space-y-1.5">
+                      {missionObservations.map((observation) => (
+                        <li key={observation.id} className="text-xs leading-5 text-muted-foreground">
+                          <span className="font-semibold text-foreground">{observationNatureLabels[observation.nature]}</span> — {observation.content}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-1.5 text-xs text-muted-foreground">Aucune observation enregistrée pour l’instant.</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-3 border-t pt-4">
         <div>

@@ -51,4 +51,12 @@ export interface FieldVisit extends FieldVisitInput {
   createdAt: string;
   commitmentId?: string;
   coordinationId?: string;
+  // LOT 3 (mandat "Terrain — observer, vérifier et fiabiliser la
+  // réalité", §6/§27) : champ additif, jamais destructif — FieldVisit
+  // n'est pas remplacé par le Core FieldMission, il devient
+  // progressivement une projection/un canal de la capacité Terrain
+  // (bridgeFieldCommitment, ministry-repository.ts) qui dispatche
+  // désormais aussi create_field_mission en parallèle de
+  // plan_field_commitment, sans rien changer au chemin existant.
+  missionId?: string;
 }

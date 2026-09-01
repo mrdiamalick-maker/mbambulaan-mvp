@@ -46,6 +46,14 @@ const all: Command["type"][] = [
   "update_collective_need_status",
   "create_program_opportunity",
   "update_program_opportunity_status",
+  // LOT 3 — Terrain (mandat "observer, vérifier et fiabiliser la
+  // réalité") : create_field_mission suit le même mandat que
+  // plan_field_commitment/create_initiative (décision de coordination) ;
+  // update_field_mission_status/record_observation sont les gestes de
+  // l'agent qui exécute réellement la mission sur le terrain.
+  "create_field_mission",
+  "update_field_mission_status",
+  "record_observation",
   "reset_demo"
 ];
 
@@ -78,7 +86,16 @@ const allowed: Record<Role, Command["type"][]> = {
     // nom propre" — ces deux commandes ne lui sont ouvertes que pour
     // relayer, via onBehalfOfActorId (cf. RELAY_ROLES ci-dessous).
     "accept_opportunity",
-    "complete_logistics"
+    "complete_logistics",
+    // LOT 3 — Terrain : "operateur" porte désormais aussi la Fonction
+    // Terrain Mbàmbulaan (agent/relais, distincte de l'Acteur de la
+    // filière — mandat §2), réutilisé plutôt qu'un nouveau rôle (même
+    // discipline que le reste du produit : pas de churn de schéma de
+    // permission sans nécessité). Il exécute la mission (démarrer,
+    // observer) mais ne la crée pas — la création reste un geste de
+    // coordination (create_field_mission, hors de cette liste).
+    "update_field_mission_status",
+    "record_observation"
   ],
   // log_communication ajouté au Lot 6 : le capitaine simule désormais
   // lui-même un appel/WhatsApp depuis /app/terrain (§11.1 du spec
@@ -111,7 +128,12 @@ const allowed: Record<Role, Command["type"][]> = {
     "accept_opportunity",
     "complete_logistics",
     "create_community_post",
-    "convert_post"
+    "convert_post",
+    // LOT 3 — même mandat que plan_field_commitment déjà ouvert à ce rôle
+    // (décision de coordination), pas d'exécution de mission (réservée à
+    // "operateur").
+    "create_field_mission",
+    "update_field_mission_status"
   ],
   coordinateur: all,
   institution: [
@@ -134,6 +156,9 @@ const allowed: Record<Role, Command["type"][]> = {
     "plan_field_commitment",
     "close",
     "flag_price",
+    // LOT 3 — même mandat que plan_field_commitment, déjà ouvert à ce rôle.
+    "create_field_mission",
+    "update_field_mission_status",
     "reset_demo"
   ],
   partenaire: ["create_community_post"]
