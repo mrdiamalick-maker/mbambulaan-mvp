@@ -1177,7 +1177,13 @@ export function createDemoState(): ProductState {
     createdByActorId: "act-coordinateur",
     reviewedByActorId: "act-coordinateur",
     reviewedAt: now,
-    reviewNote: "Confirmé après recoupement des deux signaux par le coordinateur"
+    reviewNote: "Confirmé après recoupement des deux signaux par le coordinateur",
+    // promotedToSituationId (correction Product Review, LOT 0, 2026-09-01) :
+    // le Finding reste "confirmed" ET trace sa promotion — reflète
+    // exactement le comportement réel de promote_finding_to_situation
+    // (knowledge-pipeline.ts) depuis la correction, pas un état
+    // simplifié propre à la démonstration.
+    promotedToSituationId: "sit-joal-glace-recurrence"
   };
 
   const joalFindingSituation: Situation = {
@@ -1198,12 +1204,10 @@ export function createDemoState(): ProductState {
       { id: "hist-sit-joal-glace-recurrence-2", at: now, actor: "act-coordinateur", label: "Situation créée depuis un constat confirmé", detail: joalFinding.statement }
     ]
   };
-  // Le Finding reste "confirmed" plutôt que "superseded" dans ce jeu figé
-  // (contrairement à applyPromoteFindingToSituation en exécution réelle,
-  // cf. knowledge-pipeline.ts) : ce jeu de démonstration montre l'état
-  // "juste après confirmation, sur le point d'être orienté", pas l'état
-  // post-transition — les deux sont représentables, celui-ci raconte
-  // mieux la boucle complète en un coup d'œil pour la démonstration.
+  // Le Finding reste "confirmed" avec promotedToSituationId renseigné
+  // (cf. ci-dessus) — reflet exact du comportement réel de
+  // promote_finding_to_situation depuis la correction Product Review
+  // (knowledge-pipeline.ts), pas un raccourci propre à la démonstration.
 
   // KAYAR — plusieurs Signals/ServiceRequests de motorisation → Finding de
   // récurrence → CollectiveNeed, sans ProgramOpportunity ni Initiative

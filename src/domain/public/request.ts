@@ -71,9 +71,22 @@ export interface PublicRequestInput {
   attachmentNote?: string;
 }
 
+// coreSignalStatus (Correction Product Review, LOT 0, 2026-09-01) : "Toute
+// demande reçue sur le site Public est un Signal entrant vers Mbàmbulaan"
+// — décision produit ferme, plus un best-effort silencieux. "pending" tant
+// que le Signal Core n'est pas confirmé créé ; "synced" une fois confirmé
+// (coreSignalId renseigné). Jamais de statut "failed" terminal : un échec
+// temporaire reste "pending", donc détectable et rejouable (cf.
+// getUnsyncedPublicRequests/syncPendingPublicRequestSignals,
+// src/server/public-repository.ts) — la demande elle-même n'est jamais
+// perdue, seule sa convergence vers le Core peut être en retard.
+export type PublicRequestCoreSignalStatus = "pending" | "synced";
+
 export interface PublicRequest extends PublicRequestInput {
   id: string;
   reference: string;
   status: PublicRequestStatus;
   createdAt: string;
+  coreSignalStatus: PublicRequestCoreSignalStatus;
+  coreSignalId?: string;
 }

@@ -2,7 +2,38 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createDemoState } from "../src/data/demo-state";
 import { applyCommand } from "../src/domain/rules";
-import { publicRequestSourceToSignalChannel, resolvePublicRequestTerritoryId } from "../src/domain/public-request-signal-bridge";
+import type { Command, ProductState } from "../src/domain/types";
+import { attemptPublicRequestSignalSync, publicRequestSourceToSignalChannel, resolvePublicRequestTerritoryId } from "../src/domain/public-request-signal-bridge";
+
+// Fake Core (getState/dispatch) reproduisant le vrai mécanisme
+// d'idempotence de src/server/repository.ts (Set de clés déjà rejouées +
+// applyCommand) sans dépendre de "server-only" — permet de tester
+// attemptPublicRequestSignalSync (src/domain/public-request-signal-bridge.ts)
+// dans les mêmes conditions réelles que le serveur, y compris
+// l'idempotence et un échec Core simulé.
+function makeFakeCore(initial: ProductState) {
+  let state = initial;
+  const usedKeys = new Set<string>();
+  let forceFailNextDispatch = false;
+  return {
+    getState: async () => state,
+    dispatch: async (command: Command, idempotencyKey: string) => {
+      if (forceFailNextDispatch) {
+        forceFailNextDispatch = false;
+        throw new Error("Core temporairement indisponible (simulation de test).");
+      }
+      if (!usedKeys.has(idempotencyKey)) {
+        usedKeys.add(idempotencyKey);
+        state = applyCommand(state, command);
+      }
+      return state;
+    },
+    failNextDispatch: () => {
+      forceFailNextDispatch = true;
+    },
+    getCurrentState: () => state
+  };
+}
 
 // TEST D (mandat "aligner le Core métier avec le Blueprint V1", LOT 0.4) —
 // partie domaine (résolution canal/territoire), testée ici directement :
@@ -54,4 +85,72 @@ test("le Signal produit par la composition canal/territoire du pont Public entre
   assert.equal(next.signals[0].territoryId, "joal");
   assert.equal(next.signals[0].channel, "espace_public");
   assert.equal(next.signals[0].reportedBy, undefined);
+});
+
+// Correction Product Review (LOT 0, 2026-09-01, "PublicRequest → Core
+// Signal doit être garanti") : attemptPublicRequestSignalSync
+// (src/domain/public-request-signal-bridge.ts) est le coeur testable de
+// la garantie de convergence — injecté avec un faux Core reproduisant le
+// vrai mécanisme d'idempotence (cf. makeFakeCore ci-dessus). La partie
+// persistance réelle (src/server/public-repository.ts, "server-only")
+// est vérifiée en conditions réelles via le serveur de développement,
+// cf. rapport de lot.
+const baseRequest = {
+  id: "pr-test-1",
+  territory: "Joal-Fadiouth",
+  source: "web" as const,
+  intent: "sourcing",
+  description: "Recherche de volumes de sardinelle pour une nouvelle unité de transformation.",
+  createdAt: new Date().toISOString()
+};
+
+test("attemptPublicRequestSignalSync crée un Signal et renvoie son id de façon fiable (via l'audit)", async () => {
+  const core = makeFakeCore(createDemoState());
+  const signalsBefore = core.getCurrentState().signals.length;
+
+  const { signalId } = await attemptPublicRequestSignalSync(baseRequest, core);
+
+  assert.ok(signalId);
+  assert.equal(core.getCurrentState().signals.length, signalsBefore + 1);
+  assert.equal(core.getCurrentState().signals.find((item) => item.id === signalId)?.channel, "espace_public");
+  assert.equal(core.getCurrentState().signals.find((item) => item.id === signalId)?.territoryId, "joal");
+  assert.equal(core.getCurrentState().situations.length, createDemoState().situations.length, "aucune situation automatique");
+});
+
+test("idempotence obligatoire : deux tentatives pour la même PublicRequest ne créent jamais un second Signal", async () => {
+  const core = makeFakeCore(createDemoState());
+  const signalsBefore = core.getCurrentState().signals.length;
+
+  const first = await attemptPublicRequestSignalSync(baseRequest, core);
+  const second = await attemptPublicRequestSignalSync(baseRequest, core);
+
+  assert.ok(first.signalId);
+  assert.equal(core.getCurrentState().signals.length, signalsBefore + 1, "un seul Signal, quel que soit le nombre de tentatives");
+  // second.signalId peut différer (dispatch court-circuite, l'audit ne
+  // pointe plus vers ce signal précis — cf. commentaire dans
+  // public-request-signal-bridge.ts) mais aucun second Signal n'existe.
+  void second;
+});
+
+test("un échec temporaire Core ne fait jamais perdre la demande : attemptPublicRequestSignalSync ne lève jamais, renvoie signalId absent", async () => {
+  const core = makeFakeCore(createDemoState());
+  core.failNextDispatch();
+
+  const result = await attemptPublicRequestSignalSync(baseRequest, core);
+
+  assert.equal(result.signalId, undefined);
+  assert.equal(core.getCurrentState().signals.length, createDemoState().signals.length, "aucun Signal partiel n'a été créé");
+});
+
+test("l'état non synchronisé est rejouable : un échec temporaire suivi d'un retry converge sans duplication", async () => {
+  const core = makeFakeCore(createDemoState());
+  core.failNextDispatch();
+
+  const failed = await attemptPublicRequestSignalSync(baseRequest, core);
+  assert.equal(failed.signalId, undefined); // reste "pending", détectable.
+
+  const retried = await attemptPublicRequestSignalSync(baseRequest, core); // rejeu (même id de PublicRequest, même clé d'idempotence).
+  assert.ok(retried.signalId); // converge.
+
+  assert.equal(core.getCurrentState().signals.length, createDemoState().signals.length + 1, "un seul Signal au total, malgré l'échec puis le retry");
 });

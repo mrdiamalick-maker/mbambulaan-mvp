@@ -4,7 +4,7 @@ import postgres from "postgres";
 import type { PublicRequest, PublicRequestInput } from "@/domain/public/request";
 import type { PublicContribution, PublicContributionInput } from "@/domain/public/contribution";
 import { dispatch, getState } from "@/server/repository";
-import { publicRequestSourceToSignalChannel, resolvePublicRequestTerritoryId } from "@/domain/public-request-signal-bridge";
+import { attemptPublicRequestSignalSync } from "@/domain/public-request-signal-bridge";
 
 // Persistance des demandes et contributions publiques, volontairement isolée
 // du store du Produit professionnel (src/server/repository.ts). Aucune table
@@ -15,10 +15,23 @@ import { publicRequestSourceToSignalChannel, resolvePublicRequestTerritoryId } f
 // isolation de persistance reste inchangée (la table mbambulaan_public_requests
 // demeure la source de vérité pour le Public), mais chaque nouvelle
 // PublicRequest alimente désormais aussi le Core sous forme d'un Signal
-// entrant — cf. bridgePublicRequestSignal ci-dessous, même discipline
-// best-effort que bridgeVigilanceSignal (src/server/ministry-repository.ts) :
-// si le pont échoue, la PublicRequest reste créée, son store dédié reste
-// la source de vérité pour le Public.
+// entrant — cf. bridgePublicRequestSignal ci-dessous.
+//
+// Correction Product Review (LOT 0, 2026-09-01) : "toute demande reçue sur
+// le site Public est un Signal entrant vers Mbàmbulaan" est une décision
+// produit ferme, pas un best-effort qui peut silencieusement perdre la
+// convergence. La tentative de pont reste immédiate et best-effort (un
+// échec ne doit jamais faire perdre la PublicRequest elle-même, ni
+// bloquer sa création), mais son résultat est désormais tracé sur la
+// PublicRequest (coreSignalStatus/coreSignalId, cf. domain/public/request.ts)
+// plutôt que jeté — "pending" reste détectable (getUnsyncedPublicRequests)
+// et rejouable (syncPendingPublicRequestSignals), jusqu'à convergence
+// réelle. Idempotent par construction : la clé de dispatch dérive de
+// l'id de la PublicRequest, un rejeu ne peut jamais dupliquer le Signal.
+// Pas de nouvelle table ni d'architecture de persistance : 2 colonnes
+// ajoutées à la table existante, même discipline best-effort que
+// bridgeVigilanceSignal (src/server/ministry-repository.ts) côté Ministry
+// — hors périmètre de cette correction, explicitement.
 
 declare global {
   var mbambulaanPublicRequests: PublicRequest[] | undefined;
@@ -65,9 +78,17 @@ async function ensureSchema() {
       preferred_channel text not null,
       consent boolean not null default false,
       attachment_note text,
-      status text not null default 'recue'
+      status text not null default 'recue',
+      core_signal_status text not null default 'pending',
+      core_signal_id text
     )
   `;
+  // Correction Product Review (LOT 0, 2026-09-01) : ADD COLUMN IF NOT
+  // EXISTS pour une table déjà déployée avant cette correction — le
+  // "create table if not exists" ci-dessus ne touche pas une table
+  // existante. Pas une migration générale, 2 colonnes additives.
+  await db`alter table mbambulaan_public_requests add column if not exists core_signal_status text not null default 'pending'`;
+  await db`alter table mbambulaan_public_requests add column if not exists core_signal_id text`;
   await db`
     create table if not exists mbambulaan_public_contributions (
       id text primary key,
@@ -96,41 +117,53 @@ function makeReference(prefix: "REQ" | "CTB") {
 }
 
 // bridgePublicRequestSignal (LOT 0.4, mandat "Public Request → Core
-// Signal") : Signal seul (create_signal, décloué de Situation par LOT 0.1)
-// — "PublicRequest → Signal ne doit PAS produire automatiquement une
-// Situation. Elle entre dans le pipeline : Signal — à qualifier." Best-
-// effort, même discipline que bridgeVigilanceSignal (ministry-repository.ts) :
-// si le pont échoue, la PublicRequest reste créée. Idempotence : la clé
-// de dispatch est dérivée de l'id de la PublicRequest elle-même — un
-// retry sur cette même requête ne peut jamais produire un second Signal.
-// Logique de résolution (canal, territoire) extraite dans
-// src/domain/public-request-signal-bridge.ts, sans "server-only" —
-// unitairement testable (tests/finding.test.ts,
-// tests/public-request-signal.test.ts), contrairement à ce fichier.
+// Signal") : tentative de pont — Signal seul (create_signal, découplé de
+// Situation par LOT 0.1) — "PublicRequest → Signal ne doit PAS produire
+// automatiquement une Situation. Elle entre dans le pipeline : Signal — à
+// qualifier." Idempotence : la clé de dispatch est dérivée de l'id de la
+// PublicRequest elle-même — un rejeu sur cette même requête (retry manuel
+// ou syncPendingPublicRequestSignals ci-dessous) ne peut jamais produire
+// un second Signal. Logique de résolution (canal, territoire) extraite
+// dans src/domain/public-request-signal-bridge.ts, sans "server-only" —
+// unitairement testable, contrairement à ce fichier.
+//
+// Ne lève jamais : l'appelant (persistPublicRequestSignalResult) décide
+// quoi faire du résultat (synced si signalId présent, sinon reste
+// "pending" — jamais un échec qui remonte jusqu'à createPublicRequest et
+// ferait perdre la demande elle-même).
+// Enveloppe fine autour de attemptPublicRequestSignalSync
+// (src/domain/public-request-signal-bridge.ts, sans "server-only") : la
+// logique de convergence elle-même (canal/territoire, clé d'idempotence,
+// lecture du signal résultant) y est unitairement testée avec des
+// doubles de getState/dispatch (tests/public-request-signal.test.ts) —
+// ce fichier ne fait qu'y injecter les vraies getState/dispatch.
 async function bridgePublicRequestSignal(request: PublicRequest): Promise<{ signalId?: string }> {
-  try {
-    const state = await getState();
-    const territoryId = resolvePublicRequestTerritoryId(state.territories, request.territory);
-
-    const next = await dispatch(
-      {
-        type: "create_signal",
-        actorId: "act-espace-public",
-        territoryId,
-        title: `${request.intent} — demande de l'espace public`,
-        description: request.description,
-        channel: publicRequestSourceToSignalChannel(request.source)
-      },
-      `public-request:${request.id}`
-    );
-    // dispatch() est idempotent sur cette clé : sur un retry, next.signals[0]
-    // n'est plus nécessairement CE signal — sans conséquence ici, ce
-    // retour n'est qu'informatif (aucun appelant ne le persiste).
-    return { signalId: next.signals[0]?.id };
-  } catch (error) {
-    console.warn("bridgePublicRequestSignal: échec de la répercussion dans le Core", error);
-    return {};
+  const result = await attemptPublicRequestSignalSync(request, { getState, dispatch });
+  if (!result.signalId) {
+    console.warn(`bridgePublicRequestSignal: convergence Core non confirmée pour la PublicRequest ${request.id} — reste "pending", rejouable.`);
   }
+  return result;
+}
+
+// persistPublicRequestSignalResult (Correction Product Review, LOT 0,
+// 2026-09-01) : trace le résultat du pont sur la PublicRequest elle-même
+// — "synced" + coreSignalId si un Signal a été confirmé créé, sinon reste
+// "pending" (détectable, rejouable). Écrit dans le même store que
+// createPublicRequest/markPublicRequestInStudy (mémoire ou Postgres selon
+// l'environnement), jamais dans le store du Core.
+async function persistPublicRequestSignalResult(id: string, signalId: string | undefined): Promise<void> {
+  if (!signalId) return; // reste "pending" par défaut, rien à écrire.
+  const db = database();
+  if (!db) {
+    const request = memoryRequests.find((item) => item.id === id);
+    if (request) {
+      request.coreSignalStatus = "synced";
+      request.coreSignalId = signalId;
+    }
+    return;
+  }
+  await ensureSchema();
+  await db`update mbambulaan_public_requests set core_signal_status = 'synced', core_signal_id = ${signalId} where id = ${id}`;
 }
 
 export async function createPublicRequest(input: PublicRequestInput): Promise<PublicRequest> {
@@ -139,13 +172,19 @@ export async function createPublicRequest(input: PublicRequestInput): Promise<Pu
     id: crypto.randomUUID(),
     reference: makeReference("REQ"),
     status: "recue",
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    coreSignalStatus: "pending"
   };
 
   const db = database();
   if (!db) {
     memoryRequests.unshift(request);
-    await bridgePublicRequestSignal(request);
+    const { signalId } = await bridgePublicRequestSignal(request);
+    await persistPublicRequestSignalResult(request.id, signalId);
+    if (signalId) {
+      request.coreSignalStatus = "synced";
+      request.coreSignalId = signalId;
+    }
     return request;
   }
 
@@ -154,18 +193,62 @@ export async function createPublicRequest(input: PublicRequestInput): Promise<Pu
     insert into mbambulaan_public_requests (
       id, reference, created_at, source, context, intent, category, territory,
       description, actor_type, organization, contact_name, phone, email,
-      preferred_channel, consent, attachment_note, status
+      preferred_channel, consent, attachment_note, status, core_signal_status
     ) values (
       ${request.id}, ${request.reference}, ${request.createdAt}, ${request.source},
       ${request.context ? db.json(request.context as never) : null}, ${request.intent},
       ${request.category ?? null}, ${request.territory ?? null}, ${request.description},
       ${request.actorType}, ${request.organization ?? null}, ${request.contactName},
       ${request.phone}, ${request.email ?? null}, ${request.preferredChannel},
-      ${request.consent}, ${request.attachmentNote ?? null}, ${request.status}
+      ${request.consent}, ${request.attachmentNote ?? null}, ${request.status}, ${request.coreSignalStatus}
     )
   `;
-  await bridgePublicRequestSignal(request);
+  const { signalId } = await bridgePublicRequestSignal(request);
+  await persistPublicRequestSignalResult(request.id, signalId);
+  if (signalId) {
+    request.coreSignalStatus = "synced";
+    request.coreSignalId = signalId;
+  }
   return request;
+}
+
+// getUnsyncedPublicRequests / syncPendingPublicRequestSignals (Correction
+// Product Review, LOT 0, 2026-09-01) : la partie "détectable/rejouable"
+// du mécanisme — un échec temporaire du bridge au moment de la création
+// (Core indisponible, etc.) laisse la PublicRequest "pending" plutôt que
+// perdue ; ces deux fonctions permettent de la retrouver et de rejouer la
+// convergence, idempotent (même clé de dispatch qu'à la création).
+export async function getUnsyncedPublicRequests(): Promise<PublicRequest[]> {
+  const db = database();
+  if (!db) {
+    return memoryRequests.filter((item) => item.coreSignalStatus === "pending");
+  }
+  await ensureSchema();
+  const rows = await db<PublicRequest[]>`
+    select
+      id, reference, created_at as "createdAt", source, context, intent, category, territory,
+      description, actor_type as "actorType", organization, contact_name as "contactName",
+      phone, email, preferred_channel as "preferredChannel", consent,
+      attachment_note as "attachmentNote", status,
+      core_signal_status as "coreSignalStatus", core_signal_id as "coreSignalId"
+    from mbambulaan_public_requests
+    where core_signal_status = 'pending'
+    order by created_at asc
+  `;
+  return rows;
+}
+
+export async function syncPendingPublicRequestSignals(): Promise<{ attempted: number; synced: number }> {
+  const pending = await getUnsyncedPublicRequests();
+  let synced = 0;
+  for (const request of pending) {
+    const { signalId } = await bridgePublicRequestSignal(request);
+    if (signalId) {
+      await persistPublicRequestSignalResult(request.id, signalId);
+      synced += 1;
+    }
+  }
+  return { attempted: pending.length, synced };
 }
 
 export async function createPublicContribution(input: PublicContributionInput): Promise<PublicContribution> {
@@ -206,7 +289,20 @@ export async function createPublicContribution(input: PublicContributionInput): 
 // (constat vérifié, gap analysis du 2026-08-12). Lecture seule, jamais
 // d'écriture depuis le Produit vers ce store en dehors des deux fonctions
 // ci-dessous — le Produit lit le Public, il ne le pilote pas (A17).
+// Auto-guérison (Correction Product Review, LOT 0, 2026-09-01) : chaque
+// lecture des demandes en attente rejoue d'abord la convergence Core pour
+// les demandes encore "pending" — point d'entrée déjà existant, lu à
+// chaque ouverture de l'onglet "Demandes publiques" de
+// CoordinationWorkspace.tsx, sans nouvelle route ni nouvelle UI. Best-
+// effort (jamais bloquant : une erreur ici ne doit jamais empêcher
+// d'afficher les demandes elles-mêmes).
 export async function getPendingPublicRequests(): Promise<PublicRequest[]> {
+  try {
+    await syncPendingPublicRequestSignals();
+  } catch (error) {
+    console.warn("getPendingPublicRequests: échec de la synchronisation opportuniste", error);
+  }
+
   const db = database();
   if (!db) {
     return memoryRequests.filter((item) => item.status === "recue");
@@ -218,7 +314,8 @@ export async function getPendingPublicRequests(): Promise<PublicRequest[]> {
       id, reference, created_at as "createdAt", source, context, intent, category, territory,
       description, actor_type as "actorType", organization, contact_name as "contactName",
       phone, email, preferred_channel as "preferredChannel", consent,
-      attachment_note as "attachmentNote", status
+      attachment_note as "attachmentNote", status,
+      core_signal_status as "coreSignalStatus", core_signal_id as "coreSignalId"
     from mbambulaan_public_requests
     where status = 'recue'
     order by created_at desc

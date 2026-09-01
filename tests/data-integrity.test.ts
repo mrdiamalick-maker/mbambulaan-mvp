@@ -144,6 +144,13 @@ test("les chaînes de référence Joal et Kayar (LOT 0) sont représentées sans
 
   for (const situation of state.situations) {
     if (situation.findingId) assert.ok(findingIds.has(situation.findingId), `Situation ${situation.id} référence un Finding introuvable`);
+    // Correction Product Review (LOT 0, 2026-09-01) : cohérence
+    // bidirectionnelle Finding.promotedToSituationId ↔ Situation.findingId.
+    if (situation.findingId) {
+      const originFinding = state.findings.find((item) => item.id === situation.findingId);
+      assert.equal(originFinding?.promotedToSituationId, situation.id, `Finding ${situation.findingId} doit tracer sa promotion vers ${situation.id}`);
+      assert.equal(originFinding?.status, "confirmed", `Finding ${situation.findingId} doit rester confirmé après promotion`);
+    }
   }
 
   // Chaîne Joal : preuve que les Signals peuvent exister sans Situation

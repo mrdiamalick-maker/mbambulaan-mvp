@@ -483,6 +483,15 @@ export interface Finding {
   reviewedByActorId?: string;
   reviewedAt?: string;
   reviewNote?: string;
+  // Correction Product Review (LOT 0, 2026-09-01) : une Situation est une
+  // conséquence opérationnelle d'un Finding confirmé, elle ne le
+  // remplace pas — "superseded" reste réservé au cas où un Finding est
+  // effectivement remplacé/corrigé par un autre Finding (cf.
+  // update_finding_status). Ce champ trace la promotion sans dupliquer
+  // l'information déjà portée par Situation.findingId (relation
+  // bidirectionnelle légère, pas un objet de liaison séparé) et sert de
+  // garde-fou contre une double promotion du même Finding.
+  promotedToSituationId?: string;
 }
 
 // CollectiveNeed (LOT 0.3) — un problème partagé ou récurrent qui dépasse

@@ -87,6 +87,76 @@ test("create_collective_need exige un territoire réel et au moins une source r�
   );
 });
 
+// Correction Product Review (LOT 0, 2026-09-01, "referential integrity
+// des KnowledgeSourceRef") : le même garde-fou que record_finding
+// s'applique à CollectiveNeed.sourceRefs et ProgramOpportunity.evidenceRefs.
+test("create_collective_need refuse une source qui ne résout à aucun objet réel", () => {
+  const state = createDemoState();
+  assert.throws(
+    () =>
+      applyCommand(state, {
+        type: "create_collective_need",
+        actorId: "act-coordinateur",
+        title: "Titre",
+        territoryIds: ["kayar"],
+        affectedPopulation: "Population",
+        sourceRefs: [{ objectType: "service_request", objectId: "need-inexistante" }],
+        consequences: [],
+        hypotheses: [],
+        knowledgeGaps: []
+      }),
+    /référence service_request:need-inexistante, introuvable/
+  );
+});
+
+test("create_program_opportunity refuse une preuve (evidenceRef) qui ne résout à aucun objet réel", () => {
+  const state = createDemoState();
+  const need = state.collectiveNeeds.find((item) => item.id === "cn-kayar-motorisation")!;
+
+  assert.throws(
+    () =>
+      applyCommand(state, {
+        type: "create_program_opportunity",
+        actorId: "act-coordinateur",
+        collectiveNeedId: need.id,
+        problem: "Problème",
+        justification: "Justification",
+        territoryIds: need.territoryIds,
+        potentialBeneficiaries: "Population",
+        evidenceRefs: [{ objectType: "signal", objectId: "sig-inexistant" }],
+        hypotheses: [],
+        knowledgeGaps: [],
+        possibleInterventions: [],
+        desiredOutcomes: [],
+        possibleIndicators: [],
+        maturity: "faible"
+      }),
+    /référence signal:sig-inexistant, introuvable/
+  );
+});
+
+// Non-régression Demo World : les sourceRefs réelles de
+// cn-kayar-motorisation (createDemoState()) restent acceptées si
+// rejouées via create_collective_need lui-même.
+test("non-régression Demo World : les sourceRefs réelles de cn-kayar-motorisation sont acceptées par create_collective_need", () => {
+  const state = createDemoState();
+  const need = state.collectiveNeeds.find((item) => item.id === "cn-kayar-motorisation")!;
+
+  const next = applyCommand(state, {
+    type: "create_collective_need",
+    actorId: "act-coordinateur",
+    title: `${need.title} (rejoué)`,
+    territoryIds: need.territoryIds,
+    affectedPopulation: need.affectedPopulation,
+    sourceRefs: need.sourceRefs,
+    consequences: need.consequences,
+    hypotheses: need.hypotheses,
+    knowledgeGaps: need.knowledgeGaps,
+    knowledgeGapFindingIds: need.knowledgeGapFindingIds
+  });
+  assert.equal(next.collectiveNeeds[0].status, "emerging");
+});
+
 // TEST F (mandat §21) : CollectiveNeed qualifié → ProgramOpportunity créée,
 // aucun budget obligatoire — ProgramOpportunity n'a d'ailleurs aucun champ
 // de budget dans le modèle (le budget n'entre en jeu qu'à la conversion

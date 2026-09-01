@@ -43,6 +43,50 @@ function requireSourceRefs(sourceRefs: KnowledgeSourceRef[], label: string) {
   if (sourceRefs.length === 0) throw new Error(`${label} doit citer au moins une source réelle — aucune compréhension ne se construit sans base.`);
 }
 
+// Correction Product Review (LOT 0, "referential integrity des
+// KnowledgeSourceRef") : la présence d'au moins une source ne suffit pas
+// — chaque référence doit résoudre vers un objet réellement présent dans
+// ProductState. Validateur centralisé plutôt que dupliqué à chaque appel
+// (record_finding, create_collective_need, create_program_opportunity) :
+// "Every claim must be traceable" s'applique identiquement partout où un
+// KnowledgeSourceRef apparaît.
+function resolveKnowledgeSourceRef(state: ProductState, ref: KnowledgeSourceRef): boolean {
+  switch (ref.objectType) {
+    case "signal":
+      return state.signals.some((item) => item.id === ref.objectId);
+    case "situation":
+      return state.situations.some((item) => item.id === ref.objectId);
+    case "finding":
+      return state.findings.some((item) => item.id === ref.objectId);
+    case "service_request":
+      return state.serviceRequests.some((item) => item.id === ref.objectId);
+    case "evidence":
+      return state.evidences.some((item) => item.id === ref.objectId);
+    case "infrastructure":
+      return state.infrastructures.some((item) => item.id === ref.objectId);
+    case "vessel":
+      return state.vessels.some((item) => item.id === ref.objectId);
+    case "fishing_trip":
+      return state.trips.some((item) => item.id === ref.objectId);
+    case "landing":
+      return state.landings.some((item) => item.id === ref.objectId);
+    case "capacity":
+      return state.capacities.some((item) => item.id === ref.objectId);
+    case "territory":
+      return state.territories.some((item) => item.id === ref.objectId);
+    case "site":
+      return state.sites.some((item) => item.id === ref.objectId);
+  }
+}
+
+function requireResolvedSourceRefs(state: ProductState, sourceRefs: KnowledgeSourceRef[], label: string) {
+  for (const ref of sourceRefs) {
+    if (!resolveKnowledgeSourceRef(state, ref)) {
+      throw new Error(`${label} référence ${ref.objectType}:${ref.objectId}, introuvable — une source doit exister réellement pour être citée.`);
+    }
+  }
+}
+
 // promoteSignalToSituation — coeur partagé par la commande
 // promote_signal_to_situation ET par les wrappers legacy
 // (report_signal_and_open_situation, convert_message_to_signal_and_situation
@@ -126,6 +170,7 @@ function applyRecordFinding(state: ProductState, command: Extract<Command, { typ
   if (!command.nextStep.trim()) throw new Error("La prochaine étape proposée est obligatoire.");
   requireTerritories(state, command.territoryIds, "Un constat");
   requireSourceRefs(command.sourceRefs, "Un constat");
+  requireResolvedSourceRefs(state, command.sourceRefs, "Un constat");
   if (command.provenance === "rule" && (!command.ruleId || command.ruleVersion === undefined)) {
     throw new Error("Un constat issu d'une règle doit citer l'identifiant et la version de cette règle.");
   }
@@ -189,10 +234,20 @@ function applyUpdateFindingStatus(state: ProductState, command: Extract<Command,
 // traçabilité vers le Finding (findingId) ET vers les Signals sources
 // (signalIds, dérivés des sourceRefs de type "signal") — "pourquoi cette
 // Situation existe-t-elle ?" doit toujours pouvoir remonter jusqu'ici.
+//
+// Correction Product Review (LOT 0, 2026-09-01) : une Situation est une
+// conséquence opérationnelle d'un Finding confirmé, elle ne le remplace
+// pas — le Finding reste "confirmed" après promotion (traçabilité cible :
+// Signals → Finding confirmé → Situation). "superseded" reste réservé au
+// remplacement effectif d'un Finding par un autre (update_finding_status).
+// promotedToSituationId trace la relation sans dupliquer l'information
+// déjà portée par Situation.findingId, et sert de garde-fou contre une
+// double promotion du même Finding.
 function applyPromoteFindingToSituation(state: ProductState, command: Extract<Command, { type: "promote_finding_to_situation" }>): ProductState {
   const finding = state.findings.find((item) => item.id === command.findingId);
   if (!finding) throw new Error("Constat introuvable.");
   if (finding.status !== "confirmed") throw new Error("Seul un constat confirmé peut être orienté vers une situation.");
+  if (finding.promotedToSituationId) throw new Error("Ce constat a déjà donné lieu à une situation.");
 
   const territoryId = command.territoryId ?? finding.territoryIds[0];
   if (!territoryId) throw new Error("Ce constat n'a pas de territoire résolu — précisez-en un explicitement.");
@@ -222,7 +277,9 @@ function applyPromoteFindingToSituation(state: ProductState, command: Extract<Co
   const relatedSignalIds = new Set(signalIds);
   const next: ProductState = {
     ...state,
-    findings: state.findings.map((item) => (item.id === finding.id ? { ...item, status: "superseded" as const, reviewNote: `Orienté vers la situation ${situationId}` } : item)),
+    // Le Finding reste "confirmed" (correction Product Review) — seul
+    // promotedToSituationId change, la trace de promotion.
+    findings: state.findings.map((item) => (item.id === finding.id ? { ...item, promotedToSituationId: situationId } : item)),
     signals: state.signals.map((item) =>
       relatedSignalIds.has(item.id) ? { ...item, disposition: "oriente_situation" as const, dispositionNote: `Orienté vers la situation ${situationId} via le constat ${finding.id}` } : item
     ),
@@ -239,6 +296,7 @@ function applyCreateCollectiveNeed(state: ProductState, command: Extract<Command
   if (!command.affectedPopulation.trim()) throw new Error("La population ou les acteurs concernés sont obligatoires.");
   requireTerritories(state, command.territoryIds, "Un besoin collectif");
   requireSourceRefs(command.sourceRefs, "Un besoin collectif");
+  requireResolvedSourceRefs(state, command.sourceRefs, "Un besoin collectif");
   if (command.knowledgeGapFindingIds?.some((findingId) => !state.findings.some((item) => item.id === findingId))) {
     throw new Error("Une connaissance manquante référencée est introuvable.");
   }
@@ -288,6 +346,11 @@ function applyCreateProgramOpportunity(state: ProductState, command: Extract<Com
   if (!command.justification.trim()) throw new Error("La justification est obligatoire.");
   if (!command.potentialBeneficiaries.trim()) throw new Error("Les bénéficiaires potentiels sont obligatoires.");
   requireTerritories(state, command.territoryIds, "Une opportunité de programme");
+  // evidenceRefs peut légitimement être vide (aucune preuve n'existe pas
+  // encore), contrairement à sourceRefs d'un Finding/CollectiveNeed —
+  // requireSourceRefs n'est donc pas appliqué ici, seule la résolution
+  // des références réellement citées est vérifiée.
+  requireResolvedSourceRefs(state, command.evidenceRefs, "Une opportunité de programme");
 
   const opportunity: ProgramOpportunity = {
     id: id("popp"),
