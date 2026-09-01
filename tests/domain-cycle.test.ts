@@ -68,10 +68,35 @@ test("le cycle complet impose ses validations et conserve son historique", () =>
   validateSituation(state.situations[0]);
 });
 
-test("un nouveau signal reçoit des identifiants uniques et reste déclaratif", () => {
+// LOT 0.1 (mandat "aligner le Core métier avec le Blueprint V1", TEST A) :
+// create_signal ne crée plus qu'un Signal — comportement canonique du
+// Core devenu "Signal ≠ Situation".
+test("un nouveau signal reçoit des identifiants uniques, reste déclaratif, et ne crée plus de situation (TEST A)", () => {
   const state = createDemoState();
+  const situationsBefore = state.situations.length;
   const command = {
     type: "create_signal" as const,
+    actorId: "act-operateur",
+    territoryId: "joal",
+    title: "Nouvelle difficulté terrain",
+    description: "Information recueillie au poste de quai",
+    channel: "poste_quai" as const
+  };
+  const first = applyCommand(state, command);
+  const second = applyCommand(first, command);
+  assert.equal(second.situations.length, situationsBefore, "create_signal ne doit créer aucune situation");
+  assert.notEqual(first.signals[0].id, second.signals[0].id);
+  assert.equal(second.signals[0].trust, "declaree");
+  assert.equal(second.signals[0].disposition, "nouveau");
+});
+
+// Wrapper legacy explicite (mandat §5) : reproduit l'ancien comportement
+// couplé, à l'identique, pour les parcours qui expriment réellement
+// l'intention d'ouvrir un dossier tout de suite.
+test("report_signal_and_open_situation reproduit le comportement couplé legacy (Signal + Situation)", () => {
+  const state = createDemoState();
+  const command = {
+    type: "report_signal_and_open_situation" as const,
     actorId: "act-operateur",
     territoryId: "joal",
     title: "Nouvelle difficulté terrain",
@@ -84,6 +109,8 @@ test("un nouveau signal reçoit des identifiants uniques et reste déclaratif", 
   assert.notEqual(first.signals[0].id, second.signals[0].id);
   assert.equal(second.situations[0].trust, "declaree");
   assert.equal(second.situations[0].status, "recue");
+  assert.equal(second.signals[0].disposition, "oriente_situation");
+  assert.deepEqual(second.situations[0].signalIds, [second.signals[0].id]);
 });
 
 test("un message entrant simulé se convertit en signal en conservant l'auteur apparent (reportedBy)", () => {

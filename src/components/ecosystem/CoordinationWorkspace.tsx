@@ -84,7 +84,11 @@ const messageChannelLabel: Record<IncomingMessage["channel"], string> = {
   terrain: "Terrain",
   telephone: "Téléphone",
   whatsapp_structure: "WhatsApp",
-  poste_quai: "Poste de quai"
+  poste_quai: "Poste de quai",
+  // espace_public (LOT 0.4) : jamais produit par un IncomingMessage réel
+  // (réservé aux signaux issus d'une PublicRequest) — présent uniquement
+  // parce que IncomingMessage.channel partage le type Signal["channel"].
+  espace_public: "Espace public"
 };
 
 // Catégories Signal, y compris "conformite" (arbitrage CEO 13/08/2026) —
@@ -835,8 +839,12 @@ function IncomingMessageThread({
     setError("");
     setPending(true);
     try {
+      // LOT 0.1 : convert_message_to_signal ne crée plus qu'un Signal —
+      // ce parcours ("convertir un message entrant") exprime réellement
+      // l'intention d'ouvrir un dossier tout de suite, wrapper legacy
+      // documenté (mandat §5) plutôt que découplé silencieusement.
       const ok = await run({
-        type: "convert_message_to_signal",
+        type: "convert_message_to_signal_and_situation",
         messageId: message.id,
         territoryId,
         category,

@@ -27,6 +27,25 @@ const all: Command["type"][] = [
   "convert_post",
   "flag_price",
   "create_initiative",
+  // LOT 0 — pipeline de connaissance (mandat "aligner le Core métier avec
+  // le Blueprint V1"). report_signal_and_open_situation/
+  // convert_message_to_signal_and_situation reprennent respectivement les
+  // mêmes mandats que create_signal/convert_message_to_signal (wrappers
+  // legacy du même geste) ; les commandes du pipeline lui-même
+  // (disposition, Finding, CollectiveNeed, ProgramOpportunity) suivent le
+  // même mandat que create_decision/create_initiative — la qualification
+  // et la promotion restent des gestes de coordination.
+  "report_signal_and_open_situation",
+  "convert_message_to_signal_and_situation",
+  "update_signal_disposition",
+  "promote_signal_to_situation",
+  "record_finding",
+  "update_finding_status",
+  "promote_finding_to_situation",
+  "create_collective_need",
+  "update_collective_need_status",
+  "create_program_opportunity",
+  "update_program_opportunity_status",
   "reset_demo"
 ];
 
@@ -35,6 +54,13 @@ const allowed: Record<Role, Command["type"][]> = {
   operateur: [
     "create_signal",
     "convert_message_to_signal",
+    "report_signal_and_open_situation",
+    "convert_message_to_signal_and_situation",
+    "update_signal_disposition",
+    "promote_signal_to_situation",
+    "record_finding",
+    "update_finding_status",
+    "promote_finding_to_situation",
     "qualify",
     "confirm_arrival",
     "record_landing",
@@ -58,7 +84,7 @@ const allowed: Record<Role, Command["type"][]> = {
   // lui-même un appel/WhatsApp depuis /app/terrain (§11.1 du spec
   // maître), plutôt que ce geste ne soit réservé qu'aux rôles de
   // coordination.
-  capitaine: ["announce_return", "create_signal", "log_communication", "create_community_post"],
+  capitaine: ["announce_return", "create_signal", "report_signal_and_open_situation", "log_communication", "create_community_post"],
   mareyeur: ["accept_opportunity", "complete_logistics", "create_service_request", "create_community_post", "convert_post"],
   transformateur: ["accept_opportunity", "complete_logistics", "create_service_request", "create_community_post", "convert_post"],
   prestataire: ["start_intervention", "wait", "resume", "record_result", "record_evidence", "create_community_post"],
@@ -68,9 +94,48 @@ const allowed: Record<Role, Command["type"][]> = {
   // (Besoin → Capacité → Engagement → Résultat, cf. bande C13 de
   // CoordinationWorkspace.tsx) — il pouvait valider l'engagement mais
   // jamais confirmer le résultat de la même opportunité.
-  gestionnaire_organisation: ["prioritize", "coordinate", "create_decision", "create_initiative", "accept_opportunity", "complete_logistics", "create_community_post", "convert_post"],
+  gestionnaire_organisation: [
+    "prioritize",
+    "coordinate",
+    "create_decision",
+    "create_initiative",
+    "update_signal_disposition",
+    "promote_signal_to_situation",
+    "record_finding",
+    "update_finding_status",
+    "promote_finding_to_situation",
+    "create_collective_need",
+    "update_collective_need_status",
+    "create_program_opportunity",
+    "update_program_opportunity_status",
+    "accept_opportunity",
+    "complete_logistics",
+    "create_community_post",
+    "convert_post"
+  ],
   coordinateur: all,
-  institution: ["create_signal", "prioritize", "coordinate", "create_decision", "create_initiative", "log_communication", "plan_field_commitment", "close", "flag_price", "reset_demo"],
+  institution: [
+    "create_signal",
+    "report_signal_and_open_situation",
+    "prioritize",
+    "coordinate",
+    "create_decision",
+    "create_initiative",
+    "update_signal_disposition",
+    "promote_signal_to_situation",
+    "record_finding",
+    "update_finding_status",
+    "promote_finding_to_situation",
+    "create_collective_need",
+    "update_collective_need_status",
+    "create_program_opportunity",
+    "update_program_opportunity_status",
+    "log_communication",
+    "plan_field_commitment",
+    "close",
+    "flag_price",
+    "reset_demo"
+  ],
   partenaire: ["create_community_post"]
 };
 

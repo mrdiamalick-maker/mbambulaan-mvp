@@ -1,4 +1,4 @@
-import type { ProductState, Role, Situation, SituationStatus, TrustLevel } from "@/domain/types";
+import type { CollectiveNeed, Finding, ProductState, Role, Signal, Situation, SituationStatus, TrustLevel } from "@/domain/types";
 
 const now = "2026-07-29T08:30:00.000Z";
 const tomorrow = "2026-07-30T16:00:00.000Z";
@@ -129,6 +129,18 @@ export function createDemoState(): ProductState {
     actor("act-coordinateur", "Mamadou Fall", "coordinateur", "org-coordination", territoryRows.map(([id]) => id)),
     actor("act-institution", "Fatou Ndiaye", "institution", "org-coordination", territoryRows.map(([id]) => id)),
     actor("act-partenaire", "Sophie Martin", "partenaire", "org-partner", territoryRows.map(([id]) => id)),
+    // Acteur système (LOT 0.4, mandat "Public Request → Core Signal") :
+    // porte les Signal.actorId des signaux créés depuis une PublicRequest,
+    // jamais un compte qui se connecte ni n'exécute de commande en son nom
+    // (aucune permission particulière requise). Role "operateur" retenu
+    // comme valeur la plus neutre du Role existant — pas de nouvelle
+    // valeur ajoutée à ce type fermé pour un acteur qui n'authentifie
+    // jamais (aurait dû ricocher dans 3 Record<Role,...> exhaustifs pour
+    // un bénéfice nul). Le déclarant réel reste tracé via
+    // Signal.reportedBy (nom du contact de la PublicRequest), jamais
+    // confondu avec cet acteur technique — même distinction auteur/
+    // saisisseur qu'ailleurs (Signal.reportedBy, arbitrage CEO 13/08/2026).
+    actor("act-espace-public", "Espace public — Mbàmbulaan", "operateur", "org-coordination", []),
     // Lot 1 (R&D, arbitrage CEO 13/08/2026) : Yoff et Foundiougne n'étaient
     // couverts par aucun acteur mareyeur/transformateur dédié.
     actor("act-mareyeuse-yoff", "Ndèye Fatou Diagne", "mareyeur", "org-mareyeurs", ["yoff"]),
@@ -483,7 +495,17 @@ export function createDemoState(): ProductState {
     // pour une seule fiche isolée.
     { id: "need-formation-mbour", reference: "MBA-SR-FORMATION-MBOUR", channel: "web", actorId: "act-transform", territoryId: "mbour", speciesId: "sp-sardinelle", quantityKg: 400, quality: "B", intent: "formation", status: "ouvert", priority: "moyenne", createdAt: now, source: "Demande de formation en manipulation et hygiène post-capture" },
     { id: "need-formation-joal", reference: "MBA-SR-FORMATION-JOAL", channel: "terrain", actorId: "act-gestionnaire", territoryId: "joal", speciesId: "sp-thiof", quantityKg: 350, quality: "B", intent: "formation", status: "ouvert", priority: "moyenne", createdAt: now, source: "Demande de formation en manipulation et hygiène post-capture" },
-    { id: "need-formation-saint-louis", reference: "MBA-SR-FORMATION-SAINT-LOUIS", channel: "telephone", actorId: "act-mareyeur-nord", territoryId: "saint-louis", speciesId: "sp-mulet", quantityKg: 300, quality: "B", intent: "formation", status: "ouvert", priority: "moyenne", createdAt: now, source: "Demande de formation en manipulation et hygiène post-capture" }
+    { id: "need-formation-saint-louis", reference: "MBA-SR-FORMATION-SAINT-LOUIS", channel: "telephone", actorId: "act-mareyeur-nord", territoryId: "saint-louis", speciesId: "sp-mulet", quantityKg: 300, quality: "B", intent: "formation", status: "ouvert", priority: "moyenne", createdAt: now, source: "Demande de formation en manipulation et hygiène post-capture" },
+    // Grappe "motorisation" Kayar/Fass Boye (LOT 0, mandat "aligner le
+    // Core métier avec le Blueprint V1", §20, chaîne de référence Kayar) :
+    // 3 demandes distinctes, même intention (maintenance), 2 territoires
+    // voisins — alimente lot0Findings/lot0CollectiveNeeds ci-dessous.
+    // speciesId/quantityKg/quality forcés par le modèle ServiceRequest
+    // (même compromis déjà accepté pour la grappe "formation" ci-dessus,
+    // pas spécifique à cette grappe).
+    { id: "need-motorisation-kayar-1", reference: "MBA-SR-MOTORISATION-KAYAR-1", channel: "terrain", actorId: "act-capitaine-kayar", territoryId: "kayar", speciesId: "sp-thiof", quantityKg: 100, quality: "B", intent: "maintenance", status: "ouvert", priority: "haute", createdAt: now, source: "Panne moteur récurrente signalée par un capitaine" },
+    { id: "need-motorisation-kayar-2", reference: "MBA-SR-MOTORISATION-KAYAR-2", channel: "whatsapp", actorId: "act-mareyeur-nord", territoryId: "kayar", speciesId: "sp-thiof", quantityKg: 100, quality: "B", intent: "maintenance", status: "ouvert", priority: "haute", createdAt: now, source: "Difficulté d’entretien moteur relayée par une mareyeuse" },
+    { id: "need-motorisation-fass-boye", reference: "MBA-SR-MOTORISATION-FASS-BOYE", channel: "terrain", actorId: "act-relais-fass-boye", territoryId: "fass-boye", speciesId: "sp-sardinelle", quantityKg: 100, quality: "B", intent: "maintenance", status: "ouvert", priority: "haute", createdAt: now, source: "Panne moteur récurrente signalée par le relais territorial" }
   ];
 
   const generatedServiceRequests: ProductState["serviceRequests"] = territoryRows.flatMap(([territoryId], index) => {
@@ -1075,6 +1097,227 @@ export function createDemoState(): ProductState {
     };
   });
 
+  // LOT 0 — chaînes de référence Joal et Kayar (mandat "aligner le Core
+  // métier avec le Blueprint V1", §20). Construites séparément plutôt que
+  // mélangées à `situations`/`serviceRequests` ci-dessus : ces 2 tableaux
+  // alimentent aussi `signals: situations.map(...)` plus bas (dérivation
+  // 1:1 signal ← situation, mécanisme préexistant, non modifié) — les
+  // signaux de ces 2 chaînes n'ont justement PAS cette relation 1:1 (c'est
+  // tout le point de la démonstration : des signaux qui existent sans
+  // situation, ou qui convergent plusieurs vers une seule). Volontairement
+  // petit (mandat : "la cohérence relationnelle est plus importante que
+  // le volume") — 2 chaînes, pas des dizaines de fixtures.
+
+  // JOAL — plusieurs Signals → Finding → Situation (démontre que les
+  // Signals peuvent exister avant la Situation). 2 signaux distincts du
+  // même thème (récurrence de ralentissement de la production de glace,
+  // distinct de sit-glace — panne ponctuelle déjà qualifiée), + 1 signal
+  // qui reste volontairement à l'état brut (aucune situation, aucun
+  // Finding) pour prouver qu'un signal peut aussi ne jamais être promu.
+  const joalRecurrenceSignal1: Signal = {
+    id: "sig-joal-glace-recurrence-1",
+    territoryId: "joal",
+    actorId: "act-relais-joal",
+    createdAt: now,
+    channel: "poste_quai",
+    category: "infrastructure",
+    title: "Production de glace ralentie à plusieurs reprises cette semaine",
+    description: "Deuxième ralentissement de la production de glace en une semaine, distinct de la panne déjà qualifiée — même machine, symptôme intermittent plutôt qu'un arrêt franc.",
+    trust: "observee",
+    source: "Poste de quai de Joal",
+    disposition: "rattache_finding",
+    dispositionNote: "Rattaché au constat fnd-joal-glace-recurrence"
+  };
+  const joalRecurrenceSignal2: Signal = {
+    id: "sig-joal-glace-recurrence-2",
+    territoryId: "joal",
+    actorId: "act-operateur",
+    createdAt: now,
+    channel: "terrain",
+    category: "infrastructure",
+    title: "Deux pirogues en attente de glace au chargement",
+    description: "Constat direct au quai : deux pirogues ont attendu la glace avant de pouvoir charger, sans que la machine ne soit officiellement déclarée en panne.",
+    trust: "observee",
+    source: "Constat terrain",
+    disposition: "rattache_finding",
+    dispositionNote: "Rattaché au constat fnd-joal-glace-recurrence"
+  };
+  // Signal laissé à l'état brut (disposition "nouveau") : preuve que le
+  // Core n'oblige aucun signal à devenir autre chose.
+  const joalStandaloneSignal: Signal = {
+    id: "sig-joal-veille-quai",
+    territoryId: "joal",
+    actorId: "act-relais-joal",
+    createdAt: now,
+    channel: "poste_quai",
+    category: "production",
+    title: "Affluence inhabituelle au quai en fin de matinée",
+    description: "Affluence plus dense que d'habitude constatée au quai en fin de matinée, sans lien établi avec un problème particulier — à garder en tête, rien de plus pour l'instant.",
+    trust: "declaree",
+    source: "Poste de quai de Joal",
+    disposition: "nouveau"
+  };
+
+  const joalFinding: Finding = {
+    id: "fnd-joal-glace-recurrence",
+    type: "recurrence",
+    title: "Récurrence de ralentissement de la production de glace à Joal",
+    statement: "Deux signaux distincts en une semaine décrivent un ralentissement intermittent de la production de glace au quai de Joal, en plus de la panne déjà qualifiée (sit-glace) — un problème structurel plus large que l'incident ponctuel pourrait être en cause.",
+    territoryIds: ["joal"],
+    sourceRefs: [
+      { objectType: "signal", objectId: joalRecurrenceSignal1.id },
+      { objectType: "signal", objectId: joalRecurrenceSignal2.id }
+    ],
+    explanation: "Deux constats indépendants (poste de quai, agent terrain) décrivent le même symptôme à deux moments distincts de la même semaine — la récurrence, pas un incident isolé, justifie un constat séparé de la panne déjà qualifiée.",
+    trust: "observee",
+    status: "confirmed",
+    provenance: "human",
+    nextStep: "Qualifier la situation ouverte avec le relais territorial et le prestataire froid",
+    createdAt: now,
+    createdByActorId: "act-coordinateur",
+    reviewedByActorId: "act-coordinateur",
+    reviewedAt: now,
+    reviewNote: "Confirmé après recoupement des deux signaux par le coordinateur"
+  };
+
+  const joalFindingSituation: Situation = {
+    id: "sit-joal-glace-recurrence",
+    reference: "MBA-SIT-JOALR",
+    signalIds: [joalRecurrenceSignal1.id, joalRecurrenceSignal2.id],
+    territoryId: "joal",
+    title: joalFinding.title,
+    description: joalFinding.statement,
+    status: "qualification",
+    priority: "haute",
+    trust: "observee",
+    visibility: "organisation",
+    nextStep: joalFinding.nextStep,
+    findingId: joalFinding.id,
+    history: [
+      { id: "hist-sit-joal-glace-recurrence-1", at: now, actor: "act-relais-joal", label: "Constat confirmé", detail: joalFinding.explanation },
+      { id: "hist-sit-joal-glace-recurrence-2", at: now, actor: "act-coordinateur", label: "Situation créée depuis un constat confirmé", detail: joalFinding.statement }
+    ]
+  };
+  // Le Finding reste "confirmed" plutôt que "superseded" dans ce jeu figé
+  // (contrairement à applyPromoteFindingToSituation en exécution réelle,
+  // cf. knowledge-pipeline.ts) : ce jeu de démonstration montre l'état
+  // "juste après confirmation, sur le point d'être orienté", pas l'état
+  // post-transition — les deux sont représentables, celui-ci raconte
+  // mieux la boucle complète en un coup d'œil pour la démonstration.
+
+  // KAYAR — plusieurs Signals/ServiceRequests de motorisation → Finding de
+  // récurrence → CollectiveNeed, sans ProgramOpportunity ni Initiative
+  // pré-créées : la conversion reste une décision explicite, démontrable
+  // en exécution réelle (record_finding est déjà exercé côté Joal,
+  // create_program_opportunity/create_initiative sont exercées par les
+  // tests plutôt que figées ici — cf. tests/collective-need.test.ts).
+  const kayarMotorisationSignal1: Signal = {
+    id: "sig-kayar-motorisation-1",
+    territoryId: "kayar",
+    actorId: "act-capitaine-kayar",
+    createdAt: now,
+    channel: "terrain",
+    category: "infrastructure",
+    title: "Panne moteur récurrente signalée par un capitaine",
+    description: "Troisième panne moteur du mois pour la même pirogue — le capitaine évoque une pièce qui cède systématiquement après quelques sorties.",
+    trust: "declaree",
+    source: "Constat terrain",
+    reportedBy: "Moustapha Ndour (capitaine)",
+    disposition: "rattache_finding",
+    dispositionNote: "Rattaché au constat fnd-kayar-motorisation"
+  };
+  const kayarMotorisationSignal2: Signal = {
+    id: "sig-kayar-motorisation-2",
+    territoryId: "kayar",
+    actorId: "act-mareyeur-nord",
+    createdAt: now,
+    channel: "whatsapp_structure",
+    category: "infrastructure",
+    title: "Difficulté d'entretien moteur relayée par une mareyeuse",
+    description: "Plusieurs capitaines du quai évoquent la même difficulté à trouver une pièce d'entretien moteur localement, sans qu'aucun ne l'ait formellement déclaré comme panne.",
+    trust: "declaree",
+    source: "Message WhatsApp Business structuré",
+    disposition: "rattache_finding",
+    dispositionNote: "Rattaché au constat fnd-kayar-motorisation"
+  };
+
+  const kayarFinding: Finding = {
+    id: "fnd-kayar-motorisation",
+    type: "recurrence",
+    title: "Récurrence de pannes et difficultés d'entretien moteur à Kayar/Fass Boye",
+    statement: "2 signaux et 3 demandes de service distincts, sur 2 territoires voisins, décrivent la même difficulté : pannes moteur récurrentes et accès limité à l'entretien/aux pièces — un problème partagé, pas un incident isolé.",
+    territoryIds: ["kayar", "fass-boye"],
+    sourceRefs: [
+      { objectType: "signal", objectId: kayarMotorisationSignal1.id },
+      { objectType: "signal", objectId: kayarMotorisationSignal2.id },
+      { objectType: "service_request", objectId: "need-motorisation-kayar-1" },
+      { objectType: "service_request", objectId: "need-motorisation-kayar-2" },
+      { objectType: "service_request", objectId: "need-motorisation-fass-boye" }
+    ],
+    explanation: "2 signaux indépendants et 3 demandes de service de même intention (maintenance), sur 2 territoires voisins, décrivent le même symptôme — la récurrence et la dispersion des sources justifient un constat de portée collective plutôt qu'un traitement au cas par cas.",
+    trust: "observee",
+    status: "confirmed",
+    provenance: "human",
+    nextStep: "Qualifier l'ampleur réelle du besoin avant d'envisager une intervention structurée",
+    createdAt: now,
+    createdByActorId: "act-coordinateur",
+    reviewedByActorId: "act-coordinateur",
+    reviewedAt: now,
+    reviewNote: "Confirmé après recoupement des signaux et des demandes de service par le coordinateur"
+  };
+
+  const kayarKnowledgeGapFinding: Finding = {
+    id: "fnd-kayar-motorisation-connaissance-manquante",
+    type: "knowledge_gap",
+    title: "Cause dominante des difficultés de motorisation à Kayar non établie",
+    statement: "Nous ne disposons pas d'informations suffisamment récentes pour déterminer la cause dominante des difficultés de motorisation à Kayar : usure normale, qualité du carburant, disponibilité des pièces, ou pratique d'entretien.",
+    territoryIds: ["kayar", "fass-boye"],
+    sourceRefs: [{ objectType: "finding", objectId: kayarFinding.id }],
+    explanation: "Les signaux et demandes disponibles décrivent le symptôme (pannes, entretien difficile) mais aucune source actuelle ne permet d'en isoler la cause dominante — une vérification terrain ou une enquête ciblée serait nécessaire avant de concevoir une intervention.",
+    trust: "declaree",
+    status: "confirmed",
+    provenance: "human",
+    nextStep: "Programmer une mission terrain ou une enquête ciblée avant conception d'intervention",
+    createdAt: now,
+    createdByActorId: "act-coordinateur"
+  };
+
+  const kayarCollectiveNeed: CollectiveNeed = {
+    id: "cn-kayar-motorisation",
+    title: "Difficultés récurrentes de motorisation — Kayar et Fass Boye",
+    territoryIds: ["kayar", "fass-boye"],
+    affectedPopulation: "Capitaines et mareyeurs des quais de Kayar et Fass Boye ayant signalé une panne ou une difficulté d'entretien moteur — nombre exact non établi, non fabriqué ici.",
+    sourceRefs: [
+      { objectType: "finding", objectId: kayarFinding.id },
+      { objectType: "signal", objectId: kayarMotorisationSignal1.id },
+      { objectType: "signal", objectId: kayarMotorisationSignal2.id },
+      { objectType: "service_request", objectId: "need-motorisation-kayar-1" },
+      { objectType: "service_request", objectId: "need-motorisation-kayar-2" },
+      { objectType: "service_request", objectId: "need-motorisation-fass-boye" }
+    ],
+    consequences: [
+      "Sorties en mer annulées ou raccourcies le temps de la réparation",
+      "Recours à des solutions de dépannage informelles faute de pièces disponibles localement"
+    ],
+    hypotheses: [
+      "Usure accélérée par un usage intensif sur de petites embarcations",
+      "Accès limité aux pièces d'entretien de qualité sur ces 2 territoires"
+    ],
+    knowledgeGaps: ["Cause dominante non établie (usure, carburant, pièces, pratique d'entretien) — cf. constat fnd-kayar-motorisation-connaissance-manquante"],
+    knowledgeGapFindingIds: [kayarKnowledgeGapFinding.id],
+    status: "qualified",
+    createdAt: now,
+    history: [
+      { id: "hist-cn-kayar-1", at: now, actor: "act-coordinateur", label: "Besoin collectif identifié", detail: kayarFinding.statement },
+      { id: "hist-cn-kayar-2", at: now, actor: "act-coordinateur", label: "Statut du besoin collectif mis à jour", detail: "Qualifié — signaux et demandes de service recoupés, connaissance manquante documentée" }
+    ]
+  };
+
+  const lot0Signals: Signal[] = [joalRecurrenceSignal1, joalRecurrenceSignal2, joalStandaloneSignal, kayarMotorisationSignal1, kayarMotorisationSignal2];
+  const lot0Situations: Situation[] = [joalFindingSituation];
+  const lot0Findings: Finding[] = [joalFinding, kayarFinding, kayarKnowledgeGapFinding];
+  const lot0CollectiveNeeds: CollectiveNeed[] = [kayarCollectiveNeed];
+
   return {
     revision: 1,
     tenant: { id: "tenant-demo", name: "Démonstration nationale Mbàmbulaan", mode: "demonstration" },
@@ -1121,20 +1364,42 @@ export function createDemoState(): ProductState {
     // Condition Lot 3 (référentiel D9, intake omnicanal) : au moins un
     // signal du scénario canonique reçu par téléphone/WhatsApp, visible
     // avec son origine et son niveau de confiance propre.
-    signals: situations.map((item) => ({
-      id: `obs-${item.id}`,
-      territoryId: item.territoryId,
-      actorId: "act-operateur",
-      createdAt: now,
-      channel: "terrain",
-      category: "production",
-      title: item.title,
-      description: item.description,
-      trust: item.trust,
-      source: "Relais territorial",
-      ...signalOverridesById[item.id]
-    })),
-    situations,
+    // disposition "oriente_situation" par défaut (LOT 0.1) : ces 30 signaux
+    // sont, dans ce jeu figé, déjà à l'origine de la situation qu'ils
+    // précèdent (1:1, vérifié) — l'état final honnête d'un signal qui a
+    // déjà été promu, pas "nouveau" comme s'il attendait encore d'être
+    // qualifié.
+    signals: [
+      ...situations.map((item) => ({
+        id: `obs-${item.id}`,
+        territoryId: item.territoryId,
+        actorId: "act-operateur",
+        createdAt: now,
+        channel: "terrain" as const,
+        category: "production" as const,
+        title: item.title,
+        description: item.description,
+        trust: item.trust,
+        source: "Relais territorial",
+        disposition: "oriente_situation" as const,
+        dispositionNote: `Orienté vers la situation ${item.id}`,
+        ...signalOverridesById[item.id]
+      })),
+      ...lot0Signals
+    ],
+    findings: lot0Findings,
+    collectiveNeeds: lot0CollectiveNeeds,
+    // Aucune ProgramOpportunity pré-créée (mandat §20) : cn-kayar-motorisation
+    // est déjà "qualified", prêt à devenir une ProgramOpportunity — la
+    // conversion elle-même reste une décision explicite, exercée par les
+    // tests (create_program_opportunity) plutôt que figée dans ce jeu.
+    programOpportunities: [],
+    // LOT 0 — chaîne de référence Joal (Signal → Finding → Situation,
+    // mandat §20) : sit-joal-glace-recurrence s'ajoute aux 30 situations
+    // existantes sans en modifier aucune. La chaîne Kayar s'arrête avant
+    // Situation (CollectiveNeed uniquement, cf. findings/collectiveNeeds
+    // ci-dessus) — aucune situation supplémentaire de ce côté.
+    situations: [...situations, ...lot0Situations],
     coordinationSpaces: [
       {
         id: "coord-froid",

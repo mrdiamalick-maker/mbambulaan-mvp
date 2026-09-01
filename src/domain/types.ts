@@ -282,12 +282,48 @@ export interface HistoryEntry {
 // le fait brut qui déclenche la boucle de coordination, avant qualification.
 // Même forme qu'avant le renommage — pas de migration de données requise
 // (le tenant de démonstration est régénéré, jamais persisté durablement).
+//
+// disposition (LOT 0.1, mandat "aligner le Core métier avec le Blueprint
+// V1") : un Signal n'implique plus automatiquement une Situation — cette
+// disposition trace explicitement où en est sa qualification, sans
+// obligation de passer par toutes les étapes ni dans un ordre fixe.
+// "nouveau" par défaut à la création. Toujours présent (pas optionnel) :
+// un signal sans disposition connue serait un état ambigu que le modèle
+// ne doit jamais représenter.
+export type SignalDisposition =
+  | "nouveau"
+  | "qualifie"
+  | "rattache_finding"
+  | "oriente_situation"
+  | "en_observation"
+  | "ecarte";
+
+export const signalDispositionLabels: Record<SignalDisposition, string> = {
+  nouveau: "Nouveau",
+  qualifie: "Qualifié",
+  rattache_finding: "Rattaché à un constat",
+  oriente_situation: "Orienté vers une situation",
+  en_observation: "Maintenu en observation",
+  ecarte: "Écarté"
+};
+
 export interface Signal {
   id: string;
-  territoryId: string;
+  // Optionnel (LOT 0.4, mandat "Public Request → Core Signal") : une
+  // PublicRequest peut déclarer un territoire en texte libre qui ne
+  // résout à aucun Territory réel (même principe qu'IncomingMessage.
+  // territoryHint) — absent plutôt que fabriqué. Tous les signaux du
+  // Produit (create_signal, convert_message_to_signal, événements,
+  // jeu de démonstration) continuent de renseigner un territoire réel ;
+  // seule la voie Public peut laisser ce champ vide.
+  territoryId?: string;
   actorId: string;
   createdAt: string;
-  channel: "terrain" | "telephone" | "whatsapp_structure" | "poste_quai";
+  // "espace_public" (LOT 0.4) : un signal issu d'une PublicRequest
+  // (web/partenaire/événement) n'a pas d'équivalent honnête parmi les 4
+  // canaux terrain existants — les y rattacher aurait fabriqué une
+  // provenance de canal inexacte.
+  channel: "terrain" | "telephone" | "whatsapp_structure" | "poste_quai" | "espace_public";
   category: "infrastructure" | "production" | "marche" | "qualite" | "securite" | "conformite";
   title: string;
   description: string;
@@ -301,6 +337,11 @@ export interface Signal {
   // canal brut. Absent : le déclarant et le saisisseur sont la même
   // personne (cas majoritaire, aucune migration requise).
   reportedBy?: string;
+  disposition: SignalDisposition;
+  // Note libre associée à la disposition courante (motif d'écartement,
+  // référence du Finding de rattachement...) — optionnelle, jamais
+  // fabriquée si l'acteur n'en a saisi aucune.
+  dispositionNote?: string;
 }
 
 // IncomingMessage — file de messages entrants simulés (arbitrage CEO
@@ -345,6 +386,190 @@ export interface Situation {
   confirmation?: string;
   coordinationId?: string;
   initiativeId?: string;
+  // Optionnel (LOT 0.1/0.2, mandat "aligner le Core métier avec le
+  // Blueprint V1") : quand une Situation naît d'une promotion explicite
+  // de Finding (promote_finding_to_situation) plutôt que du wrapper
+  // legacy Signal+Situation, ce champ trace la compréhension qui l'a
+  // justifiée — répond à "pourquoi cette Situation existe-t-elle ?" au
+  // même titre que signalIds. Absent pour les situations issues d'un
+  // wrapper legacy (report_signal_and_open_situation,
+  // convert_message_to_signal_and_situation, convert_post) : leur
+  // origine reste tracée via signalIds seul, comme avant ce lot.
+  findingId?: string;
+  history: HistoryEntry[];
+}
+
+// Finding (LOT 0.2, mandat "aligner le Core métier avec le Blueprint V1") —
+// ce que Mbàmbulaan pense avoir compris à partir d'un ou plusieurs éléments
+// de connaissance (Signal, Situation, ServiceRequest, Evidence...). Ni un
+// Signal brut, ni une décision, ni nécessairement une Situation : un palier
+// intermédiaire de compréhension, explicable et traçable, avant toute
+// promotion vers l'action.
+export type FindingType =
+  | "recurrence"
+  | "contradiction"
+  | "corroboration_gap"
+  | "infrastructure_fragile_active_site"
+  | "retour_attendu_depasse"
+  | "knowledge_gap"
+  | "autre";
+
+export const findingTypeLabels: Record<FindingType, string> = {
+  recurrence: "Récurrence",
+  contradiction: "Contradiction entre sources",
+  corroboration_gap: "Déficit de corroboration",
+  infrastructure_fragile_active_site: "Infrastructure fragilisée sur site actif",
+  retour_attendu_depasse: "Retour attendu dépassé",
+  knowledge_gap: "Connaissance manquante",
+  autre: "Autre"
+};
+
+// Provenance de l'interprétation — l'architecture reste extensible à un
+// futur moteur statistique ou ML sans qu'aucun des deux n'existe dans ce
+// lot (aucune IA introduite ici, cf. mandat §6).
+export type FindingSourceKind = "rule" | "human" | "llm" | "statistical" | "ml";
+
+export type FindingStatus = "proposed" | "under_review" | "confirmed" | "rejected" | "superseded";
+
+export const findingStatusLabels: Record<FindingStatus, string> = {
+  proposed: "Proposé",
+  under_review: "En cours de revue",
+  confirmed: "Confirmé",
+  rejected: "Rejeté",
+  superseded: "Remplacé"
+};
+
+// Référence typée vers un objet source — même esprit que
+// SignalCrossingSourceRef (src/domain/signal-crossing.ts), généralisée
+// pour couvrir toutes les origines possibles d'un Finding, d'un
+// CollectiveNeed ou d'une ProgramOpportunity plutôt que de dupliquer un
+// type quasi identique pour chacun.
+export type KnowledgeSourceRef =
+  | { objectType: "signal"; objectId: string }
+  | { objectType: "situation"; objectId: string }
+  | { objectType: "finding"; objectId: string }
+  | { objectType: "service_request"; objectId: string }
+  | { objectType: "evidence"; objectId: string }
+  | { objectType: "infrastructure"; objectId: string }
+  | { objectType: "vessel"; objectId: string }
+  | { objectType: "fishing_trip"; objectId: string }
+  | { objectType: "landing"; objectId: string }
+  | { objectType: "capacity"; objectId: string }
+  | { objectType: "territory"; objectId: string }
+  | { objectType: "site"; objectId: string };
+
+export interface Finding {
+  id: string;
+  type: FindingType;
+  title: string;
+  // "statement" du mandat (§6) : l'affirmation de compréhension elle-même,
+  // distincte de l'explication qui la justifie.
+  statement: string;
+  territoryIds: string[];
+  sourceRefs: KnowledgeSourceRef[];
+  explanation: string;
+  trust: TrustLevel;
+  status: FindingStatus;
+  provenance: FindingSourceKind;
+  // Renseignés uniquement quand provenance === "rule" — trace la règle
+  // déterministe de src/domain/signal-crossing.ts à l'origine du constat
+  // (mandat §7 : faire converger Signal Crossing vers Finding sans perdre
+  // ruleId/version).
+  ruleId?: string;
+  ruleVersion?: number;
+  nextStep: string;
+  createdAt: string;
+  createdByActorId?: string;
+  reviewedByActorId?: string;
+  reviewedAt?: string;
+  reviewNote?: string;
+}
+
+// CollectiveNeed (LOT 0.3) — un problème partagé ou récurrent qui dépasse
+// un besoin individuel et mérite une qualification collective. N'a besoin
+// ni de budget, ni de partenaire, ni de solution prédéfinie : ce n'est pas
+// encore un Programme (mandat §9).
+export type CollectiveNeedStatus = "emerging" | "qualifying" | "qualified" | "not_confirmed" | "converted" | "monitored";
+
+export const collectiveNeedStatusLabels: Record<CollectiveNeedStatus, string> = {
+  emerging: "Émergent",
+  qualifying: "En cours de qualification",
+  qualified: "Qualifié",
+  not_confirmed: "Non confirmé",
+  converted: "Converti en opportunité de programme",
+  monitored: "Maintenu sous observation"
+};
+
+export interface CollectiveNeed {
+  id: string;
+  title: string;
+  territoryIds: string[];
+  // Population ou acteurs concernés — texte libre volontairement : un
+  // décompte fabriqué (ex. "1 240 pêcheurs") serait une fausse précision
+  // que rien dans le modèle ne permet de vérifier à ce stade.
+  affectedPopulation: string;
+  sourceRefs: KnowledgeSourceRef[];
+  consequences: string[];
+  hypotheses: string[];
+  // Connaissances manquantes — texte libre (mandat §10 : "un Knowledge Gap
+  // peut être une classification légère compatible avec le modèle").
+  knowledgeGaps: string[];
+  // Renseigné seulement quand une connaissance manquante a été formalisée
+  // en Finding de type "knowledge_gap" — lien plus fort que le texte libre
+  // ci-dessus, jamais obligatoire.
+  knowledgeGapFindingIds?: string[];
+  status: CollectiveNeedStatus;
+  createdAt: string;
+  history: HistoryEntry[];
+}
+
+// ProgramOpportunity (LOT 0.3) — un CollectiveNeed suffisamment qualifié
+// pour envisager une intervention structurée de développement. Distinct de
+// l'Opportunity existante (matching économique lot ↔ demande) : ne la
+// remplace pas, ne la généralise pas (mandat §11, contrainte explicite).
+export type ProgramOpportunityStatus =
+  | "detected"
+  | "qualifying"
+  | "qualified"
+  | "designing"
+  | "converted_to_program"
+  | "rejected"
+  | "paused";
+
+export const programOpportunityStatusLabels: Record<ProgramOpportunityStatus, string> = {
+  detected: "Détectée",
+  qualifying: "En cours de qualification",
+  qualified: "Qualifiée",
+  designing: "En conception",
+  converted_to_program: "Convertie en programme",
+  rejected: "Rejetée",
+  paused: "En pause"
+};
+
+export type ProgramOpportunityMaturity = "faible" | "moyenne" | "elevee";
+
+export const programOpportunityMaturityLabels: Record<ProgramOpportunityMaturity, string> = {
+  faible: "Faible",
+  moyenne: "Moyenne",
+  elevee: "Élevée"
+};
+
+export interface ProgramOpportunity {
+  id: string;
+  collectiveNeedId: string;
+  problem: string;
+  justification: string;
+  territoryIds: string[];
+  potentialBeneficiaries: string;
+  evidenceRefs: KnowledgeSourceRef[];
+  hypotheses: string[];
+  knowledgeGaps: string[];
+  possibleInterventions: string[];
+  desiredOutcomes: string[];
+  possibleIndicators: Array<{ label: string; unit: string }>;
+  maturity: ProgramOpportunityMaturity;
+  status: ProgramOpportunityStatus;
+  createdAt: string;
   history: HistoryEntry[];
 }
 
@@ -568,6 +793,14 @@ export interface Initiative {
   budgetStatus: "a_estimer" | "estime" | "valide";
   funding: Funding[];
   indicators: Array<{ label: string; baseline: number; target: number; current: number; unit: string }>;
+  // Traçabilité de l'origine (LOT 0.3, mandat "aligner le Core métier avec
+  // le Blueprint V1") : au plus une des deux, selon la voie de création
+  // (cf. create_initiative, rules.ts). serviceRequestIds n'existait pas
+  // avant ce lot — create_initiative marquait les demandes "couvert" sans
+  // garder trace du regroupement lui-même une fois le Programme créé ;
+  // additif, ne migre aucune donnée existante.
+  programOpportunityId?: string;
+  serviceRequestIds?: string[];
 }
 
 export interface Learning {
@@ -648,6 +881,13 @@ export interface ProductState {
   opportunities: Opportunity[];
   signals: Signal[];
   incomingMessages: IncomingMessage[];
+  // Finding/CollectiveNeed/ProgramOpportunity (LOT 0.2/0.3) — nouveaux
+  // paliers du pipeline de connaissance, entre le Signal brut et la
+  // Situation/le Programme. Additifs : aucune migration des tableaux
+  // existants.
+  findings: Finding[];
+  collectiveNeeds: CollectiveNeed[];
+  programOpportunities: ProgramOpportunity[];
   situations: Situation[];
   coordinationSpaces: CoordinationSpace[];
   decisions: Decision[];
@@ -668,7 +908,12 @@ export interface ProductState {
 }
 
 export type Command =
-  | { type: "create_signal"; actorId: string; territoryId: string; title: string; description: string; channel: Signal["channel"] }
+  // territoryId optionnel (LOT 0.4, mandat "Public Request → Core Signal") :
+  // seul create_signal (Signal seul) peut laisser le territoire non
+  // résolu — le wrapper report_signal_and_open_situation, qui construit
+  // une Situation, continue d'en exiger un (Situation.territoryId reste
+  // obligatoire, non modifié).
+  | { type: "create_signal"; actorId: string; territoryId?: string; title: string; description: string; channel: Signal["channel"] }
   | { type: "convert_message_to_signal"; actorId: string; messageId: string; territoryId: string; category: Signal["category"]; title: string; description: string }
   | { type: "qualify"; situationId: string; actorId: string }
   | { type: "prioritize"; situationId: string; actorId: string }
@@ -721,16 +966,108 @@ export type Command =
   | { type: "accept_opportunity"; opportunityId: string; actorId: string; onBehalfOfActorId?: string }
   | { type: "complete_logistics"; opportunityId: string; actorId: string; onBehalfOfActorId?: string }
   | { type: "create_community_post"; actorId: string; territoryId: string; category: CommunityPost["category"]; title: string; body: string }
+  // convert_post reste couplé Signal+Situation (chemin legacy préservé
+  // tel quel, LOT 0.1) : CommunityPost.convertedObjectId pointe déjà vers
+  // une Situation réelle et alimente le bloc "pont public ↔ privé" de
+  // l'Espace État (déjà livré, déjà vérifié) — le découpler aurait cassé
+  // cette traçabilité sans bénéfice pour ce lot. Documenté explicitement
+  // ici plutôt que découplé silencieusement.
   | { type: "convert_post"; postId: string; actorId: string }
   | { type: "flag_price"; priceId: string; actorId: string }
+  // create_initiative (LOT 0.3, mandat §12/§13) : XOR entre les deux voies
+  // de création plutôt que 2 commandes séparées — un seul objet technique
+  // (Initiative), une seule commande de création, cohérent avec "ne
+  // multiplie pas les abstractions sans nécessité". serviceRequestIds =
+  // voie legacy (regroupement direct, comportement corrigé : budget
+  // optionnel, plus d'auto-couverture) ; programOpportunityId = voie
+  // canonique (conversion explicite depuis une ProgramOpportunity
+  // qualifiée). budgetFcfa désormais optionnel (§13 : le cadrage n'exige
+  // pas un budget chiffré) ; budgetStatus explicite, "a_estimer" par
+  // défaut si budgetFcfa est absent.
   | {
       type: "create_initiative";
       actorId: string;
       title: string;
       objective: string;
-      budgetFcfa: number;
-      serviceRequestIds: string[];
+      budgetFcfa?: number;
+      budgetStatus?: "a_estimer" | "estime" | "valide";
+      serviceRequestIds?: string[];
+      programOpportunityId?: string;
     }
+  // --- LOT 0 — pipeline de connaissance (Signal → Finding → Situation /
+  // CollectiveNeed → ProgramOpportunity → Initiative), mandat "aligner le
+  // Core métier avec le Blueprint V1" ---
+  //
+  // report_signal_and_open_situation / convert_message_to_signal_and_situation
+  // (wrappers legacy explicites, §5 du mandat : "les parcours qui
+  // expriment réellement l'intention de créer directement une Situation
+  // peuvent disposer d'un wrapper") — même effet net que l'ancien
+  // create_signal / convert_message_to_signal couplés, utilisés par les
+  // 3 parcours UI/bridge qui promettent déjà cette immédiateté à
+  // l'utilisateur (TerrainCaptainView, CoordinatorSignalForm,
+  // bridgeVigilanceSignal côté Ministère).
+  | { type: "report_signal_and_open_situation"; actorId: string; territoryId: string; title: string; description: string; channel: Signal["channel"] }
+  | { type: "convert_message_to_signal_and_situation"; actorId: string; messageId: string; territoryId: string; category: Signal["category"]; title: string; description: string }
+  // update_signal_disposition consolide qualifier/écarter/maintenir en
+  // observation en une seule commande à transitions validées (même
+  // idiome que `transitions` pour Situation, rules.ts) plutôt que 3
+  // commandes quasi identiques.
+  | { type: "update_signal_disposition"; signalId: string; actorId: string; disposition: Exclude<SignalDisposition, "nouveau" | "rattache_finding" | "oriente_situation">; note?: string }
+  // territoryId (optionnel) : résout explicitement le territoire quand le
+  // Signal n'en porte pas (voie Public, Signal.territoryId optionnel,
+  // LOT 0.4) — même principe que la conversion d'IncomingMessage, qui
+  // exige déjà un choix explicite plutôt qu'un territoire fabriqué.
+  | { type: "promote_signal_to_situation"; signalId: string; actorId: string; territoryId?: string; title?: string; description?: string; priority?: Priority; visibility?: Visibility }
+  | {
+      type: "record_finding";
+      actorId: string;
+      findingType: FindingType;
+      title: string;
+      statement: string;
+      territoryIds: string[];
+      sourceRefs: KnowledgeSourceRef[];
+      explanation: string;
+      trust: TrustLevel;
+      provenance: FindingSourceKind;
+      nextStep: string;
+      ruleId?: string;
+      ruleVersion?: number;
+    }
+  | { type: "update_finding_status"; findingId: string; actorId: string; status: Exclude<FindingStatus, "proposed">; note?: string }
+  // territoryId (optionnel) : résout explicitement le territoire principal
+  // quand le Finding en couvre plusieurs (territoryIds.length > 1) —
+  // sinon le premier territoire du Finding est retenu.
+  | { type: "promote_finding_to_situation"; findingId: string; actorId: string; territoryId?: string; priority?: Priority; visibility?: Visibility }
+  | {
+      type: "create_collective_need";
+      actorId: string;
+      title: string;
+      territoryIds: string[];
+      affectedPopulation: string;
+      sourceRefs: KnowledgeSourceRef[];
+      consequences: string[];
+      hypotheses: string[];
+      knowledgeGaps: string[];
+      knowledgeGapFindingIds?: string[];
+    }
+  | { type: "update_collective_need_status"; collectiveNeedId: string; actorId: string; status: Exclude<CollectiveNeedStatus, "emerging" | "converted">; note?: string }
+  | {
+      type: "create_program_opportunity";
+      actorId: string;
+      collectiveNeedId: string;
+      problem: string;
+      justification: string;
+      territoryIds: string[];
+      potentialBeneficiaries: string;
+      evidenceRefs: KnowledgeSourceRef[];
+      hypotheses: string[];
+      knowledgeGaps: string[];
+      possibleInterventions: string[];
+      desiredOutcomes: string[];
+      possibleIndicators: Array<{ label: string; unit: string }>;
+      maturity: ProgramOpportunityMaturity;
+    }
+  | { type: "update_program_opportunity_status"; programOpportunityId: string; actorId: string; status: Exclude<ProgramOpportunityStatus, "detected" | "converted_to_program">; note?: string }
   | { type: "reset_demo"; actorId: string };
 
 export type CommandInput = Command extends infer Item

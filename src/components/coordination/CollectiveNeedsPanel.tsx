@@ -70,7 +70,12 @@ export function CollectiveNeedsPanel({ state }: { state: ProductState }) {
         <SheetContent className="overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Créer un programme{activeIntent ? ` · ${serviceRequestIntentLabels[activeIntent]}` : ""}</SheetTitle>
-            <SheetDescription>Les demandes regroupées sont rattachées au programme et marquées « couvertes ».</SheetDescription>
+            {/* Texte corrigé (LOT 0.3, mandat "aligner le Core métier avec
+                le Blueprint V1", §12) : créer un programme ne couvre plus
+                automatiquement les demandes regroupées — elles ne le
+                deviennent que lorsqu'une intervention y répond
+                effectivement. */}
+            <SheetDescription>Les demandes regroupées sont rattachées au programme ; elles restent ouvertes tant qu’aucune intervention n’y répond effectivement.</SheetDescription>
           </SheetHeader>
           {activeIntent && (
             <InitiativeForm requests={activeRequests} state={state} onDone={() => setActiveIntent(null)} />

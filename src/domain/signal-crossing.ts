@@ -1,4 +1,4 @@
-import type { ProductState, TrustLevel } from "@/domain/types";
+import type { FindingSourceKind, FindingType, KnowledgeSourceRef, ProductState, TrustLevel } from "@/domain/types";
 
 export const SIGNAL_CROSSING_DISCLAIMER =
   "Détection automatique — règle de croisement, mode démonstration." as const;
@@ -339,6 +339,64 @@ export function detectPriorityCorroborationAlerts(state: ProductState): SignalCr
   return state.tenant.mode === "demonstration" && referenceAt
     ? detectPriorityCorroborationAlertsAt(state, referenceAt)
     : [];
+}
+
+// Convergence Signal Crossing → Finding (LOT 0.2, mandat "aligner le Core
+// métier avec le Blueprint V1", §7) : "faire converger progressivement le
+// résultat de Signal Crossing vers Finding, directement ou via une couche
+// d'adaptation propre" — couche d'adaptation, pas une fusion des deux
+// types. SignalCrossingAlert reste le format natif du moteur déterministe
+// (règles, ruleId/version, facts inchangés) ; cette fonction ne fait que
+// façonner un brouillon compatible avec la commande record_finding
+// (knowledge-pipeline.ts), jamais persisté automatiquement — "un Finding
+// ne doit PAS automatiquement ouvrir une Situation dans LOT 0" s'applique
+// a fortiori à sa simple proposition : aucun appel ici ne modifie l'état,
+// c'est un humain (ou un futur lot) qui décide d'appeler record_finding
+// avec ce brouillon.
+const RULE_TO_FINDING_TYPE: Record<SignalCrossingRuleId, FindingType> = {
+  [SIGNAL_CROSSING_RULE_IDS.lateVessel]: "retour_attendu_depasse",
+  [SIGNAL_CROSSING_RULE_IDS.impairedInfrastructureOnActiveSite]: "infrastructure_fragile_active_site",
+  [SIGNAL_CROSSING_RULE_IDS.priorityCorroborationGap]: "corroboration_gap"
+};
+
+export interface FindingDraftFromAlert {
+  findingType: FindingType;
+  title: string;
+  statement: string;
+  territoryIds: string[];
+  sourceRefs: KnowledgeSourceRef[];
+  explanation: string;
+  trust: TrustLevel;
+  provenance: FindingSourceKind;
+  nextStep: string;
+  ruleId: string;
+  ruleVersion: number;
+}
+
+export function signalCrossingAlertToFindingDraft(alert: SignalCrossingAlert): FindingDraftFromAlert {
+  // SignalCrossingSourceType est un sous-ensemble exact des objectType de
+  // KnowledgeSourceRef (vérifié à la définition des deux types) — aucune
+  // conversion de valeur nécessaire, seulement d'assembler la liste.
+  const sourceRefs = alert.sourceRefs.map((ref) => ref as KnowledgeSourceRef);
+  const factsSummary = alert.facts.map((fact) => `${fact.label} : ${fact.value}${fact.unit ? ` ${fact.unit}` : ""}`).join(" · ");
+  return {
+    findingType: RULE_TO_FINDING_TYPE[alert.ruleId],
+    title: alert.title,
+    statement: alert.description,
+    territoryIds: [alert.territoryId],
+    sourceRefs,
+    explanation: factsSummary ? `${SIGNAL_CROSSING_DISCLAIMER} ${factsSummary}` : SIGNAL_CROSSING_DISCLAIMER,
+    // "observee" : ni déclaré (c'est une règle déterministe sur des
+    // données déjà présentes, pas une simple déclaration), ni vérifié
+    // (aucune corroboration humaine n'a encore eu lieu) — cf.
+    // SIGNAL_CROSSING_DECISION_BOUNDARY, jamais présenté comme une
+    // certitude.
+    trust: "observee",
+    provenance: "rule",
+    nextStep: SIGNAL_CROSSING_DECISION_BOUNDARY,
+    ruleId: alert.ruleId,
+    ruleVersion: alert.ruleVersion
+  };
 }
 
 export function computeSignalCrossingAlerts(state: ProductState): SignalCrossingAlert[] {

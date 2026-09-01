@@ -17,8 +17,11 @@ const event: MbambulaanEvent = {
   channel: "poste_quai"
 };
 
-test("un événement terrain crée un signal et une situation actionnable", () => {
+// LOT 0.1 (mandat "aligner le Core métier avec le Blueprint V1") :
+// applyEvent ne crée plus qu'un Signal — plus de situation automatique.
+test("un événement terrain crée un signal actionnable, sans situation automatique", () => {
   const state = createDemoState();
+  const situationsBefore = state.situations.length;
   const next = applyEvent(state, event);
 
   assert.equal(next.revision, state.revision + 1);
@@ -26,14 +29,11 @@ test("un événement terrain crée un signal et une situation actionnable", () =
   assert.equal(next.signals[0].territoryId, "joal");
   assert.equal(next.signals[0].channel, "poste_quai");
   assert.equal(next.signals[0].category, "infrastructure");
+  assert.equal(next.signals[0].disposition, "nouveau");
 
-  assert.equal(next.situations[0].id, `sit-${event.id}`);
-  assert.equal(next.situations[0].status, "recue");
-  assert.equal(next.situations[0].priority, "critique");
-  assert.match(next.situations[0].nextStep, /solution de remplacement/);
-  assert.deepEqual(next.situations[0].signalIds, [`obs-${event.id}`]);
+  assert.equal(next.situations.length, situationsBefore, "applyEvent ne doit créer aucune situation");
 
-  assert.equal(next.audit[0].objectId, event.id);
+  assert.equal(next.audit[0].objectId, `obs-${event.id}`);
   assert.equal(next.audit[0].action, "event_received");
 });
 
@@ -43,5 +43,4 @@ test("le même événement ne crée pas de doublon", () => {
 
   assert.equal(second.revision, first.revision);
   assert.equal(second.signals.filter((item) => item.id === `obs-${event.id}`).length, 1);
-  assert.equal(second.situations.filter((item) => item.id === `sit-${event.id}`).length, 1);
 });

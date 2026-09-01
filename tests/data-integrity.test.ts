@@ -108,3 +108,61 @@ test("la migration contient le stockage tenant et l'idempotence des commandes", 
   assert.match(sql, /mbambulaan_outbox/);
   assert.match(sql, /idempotency_key text primary key/);
 });
+
+// LOT 0 (mandat "aligner le Core métier avec le Blueprint V1", TEST J) :
+// les chaînes de référence Joal et Kayar doivent être représentables par
+// le même modèle canonique, sans référence orpheline — même discipline
+// de non-régression que le test principal ci-dessus, étendue aux 3
+// nouveaux tableaux (findings/collectiveNeeds/programOpportunities).
+test("les chaînes de référence Joal et Kayar (LOT 0) sont représentées sans référence orpheline (TEST J)", () => {
+  const state = createDemoState();
+  const territoryIds = new Set(state.territories.map((item) => item.id));
+  const signalIds = new Set(state.signals.map((item) => item.id));
+  const situationIds = new Set(state.situations.map((item) => item.id));
+  const serviceRequestIds = new Set(state.serviceRequests.map((item) => item.id));
+  const findingIds = new Set(state.findings.map((item) => item.id));
+
+  const resolvesSourceRef = (ref: { objectType: string; objectId: string }) => {
+    if (ref.objectType === "signal") return signalIds.has(ref.objectId);
+    if (ref.objectType === "situation") return situationIds.has(ref.objectId);
+    if (ref.objectType === "service_request") return serviceRequestIds.has(ref.objectId);
+    if (ref.objectType === "finding") return findingIds.has(ref.objectId);
+    return true; // autres types (infrastructure/vessel/...) non exercés par ces 2 chaînes.
+  };
+
+  for (const finding of state.findings) {
+    finding.territoryIds.forEach((id) => assert.ok(territoryIds.has(id), `Finding ${finding.id} référence un territoire inconnu`));
+    assert.ok(finding.sourceRefs.length > 0, `Finding ${finding.id} doit citer au moins une source`);
+    finding.sourceRefs.forEach((ref) => assert.ok(resolvesSourceRef(ref), `Finding ${finding.id} référence ${ref.objectType}:${ref.objectId}, introuvable`));
+  }
+
+  for (const need of state.collectiveNeeds) {
+    need.territoryIds.forEach((id) => assert.ok(territoryIds.has(id), `CollectiveNeed ${need.id} référence un territoire inconnu`));
+    need.sourceRefs.forEach((ref) => assert.ok(resolvesSourceRef(ref), `CollectiveNeed ${need.id} référence ${ref.objectType}:${ref.objectId}, introuvable`));
+    (need.knowledgeGapFindingIds ?? []).forEach((id) => assert.ok(findingIds.has(id), `CollectiveNeed ${need.id} référence un Finding de connaissance manquante introuvable`));
+  }
+
+  for (const situation of state.situations) {
+    if (situation.findingId) assert.ok(findingIds.has(situation.findingId), `Situation ${situation.id} référence un Finding introuvable`);
+  }
+
+  // Chaîne Joal : preuve que les Signals peuvent exister sans Situation
+  // (un Signal encore "nouveau"), ET qu'une Situation peut exister avec
+  // sa traçabilité Finding + Signals sources intacte.
+  const joalStandalone = state.signals.find((item) => item.id === "sig-joal-veille-quai");
+  assert.ok(joalStandalone);
+  assert.equal(joalStandalone!.disposition, "nouveau");
+  assert.equal(state.situations.some((item) => item.signalIds.includes(joalStandalone!.id)), false);
+
+  const joalSituation = state.situations.find((item) => item.id === "sit-joal-glace-recurrence");
+  assert.ok(joalSituation);
+  assert.equal(joalSituation!.findingId, "fnd-joal-glace-recurrence");
+  assert.ok(joalSituation!.signalIds.length >= 2);
+
+  // Chaîne Kayar : CollectiveNeed qualifié, aucune ProgramOpportunity ni
+  // Initiative pré-créée (conversion réservée à une décision explicite).
+  const kayarNeed = state.collectiveNeeds.find((item) => item.id === "cn-kayar-motorisation");
+  assert.ok(kayarNeed);
+  assert.equal(kayarNeed!.status, "qualified");
+  assert.equal(state.programOpportunities.length, 0);
+});

@@ -4,8 +4,11 @@ import { createDemoState } from "../src/data/demo-state";
 import type { MbambulaanEvent } from "../src/domain/events";
 import { applyEvent } from "../src/runtime/event-engine";
 
-test("un événement de retour annoncé crée un signal et une situation opérationnelle", () => {
+// LOT 0.1 (mandat "aligner le Core métier avec le Blueprint V1") :
+// applyEvent ne crée plus qu'un Signal — plus de situation automatique.
+test("un événement de retour annoncé crée un signal opérationnel, sans situation automatique", () => {
   const state = createDemoState();
+  const situationsBefore = state.situations.length;
   const event: MbambulaanEvent = {
     id: "evt-retour-jambar",
     type: "fishing_trip_return_announced",
@@ -23,8 +26,7 @@ test("un événement de retour annoncé crée un signal et une situation opérat
   assert.equal(next.revision, state.revision + 1);
   assert.equal(next.signals[0].id, "obs-evt-retour-jambar");
   assert.equal(next.signals[0].channel, "telephone");
-  assert.equal(next.situations[0].id, "sit-evt-retour-jambar");
-  assert.equal(next.situations[0].title, "Retour de pêche annoncé");
-  assert.equal(next.situations[0].priority, "haute");
-  assert.match(next.situations[0].nextStep, /glace/);
+  assert.equal(next.signals[0].title, "Retour de pêche annoncé");
+  assert.equal(next.signals[0].disposition, "nouveau");
+  assert.equal(next.situations.length, situationsBefore, "applyEvent ne doit créer aucune situation");
 });

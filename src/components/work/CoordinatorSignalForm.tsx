@@ -26,7 +26,11 @@ export function CoordinatorSignalForm({ territories, onDone }: { territories: Te
     event.preventDefault();
     setPending(true);
     try {
-      const ok = await run({ type: "create_signal", territoryId, title, description, channel });
+      // LOT 0.1 : create_signal ne crée plus qu'un Signal — ce formulaire
+      // exprime réellement l'intention d'ouvrir un dossier tout de suite,
+      // wrapper legacy documenté (mandat §5) plutôt que découplé
+      // silencieusement.
+      const ok = await run({ type: "report_signal_and_open_situation", territoryId, title, description, channel });
       if (ok) onDone();
     } finally {
       setPending(false);

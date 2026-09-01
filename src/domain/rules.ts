@@ -11,6 +11,7 @@ import type {
   Lot,
   Opportunity,
   ProductState,
+  ProgramOpportunity,
   ServiceRequest,
   ServiceRequestIntent,
   Signal,
@@ -18,6 +19,7 @@ import type {
   SituationStatus
 } from "./types";
 import { communicationChannelLabels, decisionTypeLabels, evidenceTypeLabels } from "./types";
+import { applyKnowledgePipelineCommand, promoteSignalToSituation } from "./knowledge-pipeline";
 
 // Le moteur de rapprochement Lot ↔ ServiceRequest (§5.11) ne concerne que
 // les intentions d'approvisionnement : une demande de formation ou de
@@ -33,9 +35,33 @@ const SOURCING_INTENTS: ReadonlySet<ServiceRequestIntent> = new Set([
   "sourcing"
 ]);
 
+// Commandes du pipeline de connaissance (LOT 0 : Signal → Finding →
+// CollectiveNeed → ProgramOpportunity, cf.
+// src/domain/knowledge-pipeline.ts) — aucune ne transite un statut de
+// Situation ni ne fait partie des actions de workflow exposées par
+// availableAction. Facteur commun aux deux listes ci-dessous, qui
+// divergent ensuite exactement comme avant ce lot (cf. leurs commentaires
+// respectifs) : ne pas les fusionner en une seule, "resume" doit rester
+// exclu de `transitions` (traité à part, hors du tableau générique) mais
+// PAS de `WorkflowAction` (valeur de retour légitime d'availableAction).
+const KNOWLEDGE_PIPELINE_COMMAND_TYPES = [
+  "report_signal_and_open_situation",
+  "convert_message_to_signal_and_situation",
+  "update_signal_disposition",
+  "promote_signal_to_situation",
+  "record_finding",
+  "update_finding_status",
+  "promote_finding_to_situation",
+  "create_collective_need",
+  "update_collective_need_status",
+  "create_program_opportunity",
+  "update_program_opportunity_status"
+] as const;
+
 const transitions: Record<
   Exclude<
     Command["type"],
+    | (typeof KNOWLEDGE_PIPELINE_COMMAND_TYPES)[number]
     | "reset_demo"
     | "create_signal"
     | "convert_message_to_signal"
@@ -68,19 +94,22 @@ const transitions: Record<
   close: ["resultat", "reglee"]
 };
 
-function id(prefix: string) {
+// id/timestamp/history/withAudit exportées (LOT 0) : réutilisées telles
+// quelles par src/domain/knowledge-pipeline.ts, plutôt que dupliquées —
+// même discipline de non-duplication que le reste de ce fichier.
+export function id(prefix: string) {
   return `${prefix}-${crypto.randomUUID().slice(0, 10)}`;
 }
 
-function timestamp() {
+export function timestamp() {
   return new Date().toISOString();
 }
 
-function history(actorId: string, label: string, detail: string): HistoryEntry {
+export function history(actorId: string, label: string, detail: string): HistoryEntry {
   return { id: id("hist"), at: timestamp(), actor: actorId, label, detail };
 }
 
-function withAudit(
+export function withAudit(
   state: ProductState,
   actorId: string,
   objectType: string,
@@ -357,7 +386,12 @@ function applyCommunityCommand(state: ProductState, command: Extract<Command, { 
         title: post.title,
         description: post.body,
         trust: "declaree",
-        source: `Community · ${post.community}`
+        source: `Community · ${post.community}`,
+        // convert_post reste couplé Signal+Situation (chemin legacy
+        // documenté, LOT 0.1 — cf. commentaire sur la commande) : le
+        // signal qu'il produit est immédiatement orienté vers une
+        // situation dans le même geste, jamais "nouveau".
+        disposition: "oriente_situation"
       },
       ...state.signals
     ],
@@ -553,35 +587,78 @@ function applyServiceRequestCommand(state: ProductState, command: Extract<Comman
   return withAudit(next, command.actorId, "demande", serviceRequest.id, command.type, `${serviceRequest.quantityKg} kg — ${serviceRequest.intent}`);
 }
 
-// Initiative — besoin collectif → programme (Lot 5). Jusqu'ici Initiative
-// n'existait que côté données de démonstration : create_initiative promeut
-// un regroupement de ServiceRequest ouvertes de même intention (seuil ≥ 2
-// demandes distinctes approuvé) en programme réel, en cadrage, sans
-// financement ni indicateur au départ — cela viendra des commandes déjà
-// existantes de suivi de programme (hors périmètre de cette commande de
-// création). Les demandes d'origine passent "couvert" pour ne pas rester
-// doublement visibles comme besoin non traité une fois le programme ouvert.
+// Initiative — besoin collectif → programme (Lot 5, comportement corrigé
+// LOT 0.3, mandat "aligner le Core métier avec le Blueprint V1", §12/§13).
+//
+// Deux voies de création, mutuellement exclusives (XOR sur
+// serviceRequestIds / programOpportunityId — une seule commande, cf.
+// commentaire sur le type Command) :
+// - serviceRequestIds : voie legacy, regroupement direct de ServiceRequest
+//   ouvertes de même intention (seuil ≥ 2 demandes distinctes, inchangé).
+// - programOpportunityId : voie canonique, conversion explicite d'une
+//   ProgramOpportunity qualifiée ou en conception — la chaîne cible du
+//   mandat (ServiceRequests/Signals/Findings → CollectiveNeed →
+//   ProgramOpportunity → décision humaine → Initiative).
+//
+// Deux corrections de comportement, valables pour LES DEUX voies (§12/§13,
+// règles générales, pas seulement pour la nouvelle voie) :
+// 1. Budget optionnel — "La création d'un Programme en phase de cadrage ne
+//    doit pas nécessiter un budget strictement positif." budgetStatus
+//    explicite ("a_estimer" par défaut si budgetFcfa absent) plutôt que
+//    "valide" imposé.
+// 2. Plus d'auto-couverture — "Créer un Programme ne signifie PAS que les
+//    demandes d'origine sont couvertes. Elles ne deviennent couvertes que
+//    lorsqu'une intervention/résolution répond effectivement au besoin."
+//    Critère obligatoire du mandat : les ServiceRequests regroupées (voie
+//    legacy) restent "ouvert", plus jamais marquées "couvert" ici.
 function applyInitiativeCommand(state: ProductState, command: Extract<Command, { type: "create_initiative" }>) {
   if (!command.title.trim()) throw new Error("Le titre du programme est obligatoire.");
   if (!command.objective.trim()) throw new Error("L'objectif du programme est obligatoire.");
-  if (!Number.isFinite(command.budgetFcfa) || command.budgetFcfa <= 0) throw new Error("Le budget doit être positif.");
-
-  const uniqueIds = Array.from(new Set(command.serviceRequestIds));
-  if (uniqueIds.length < 2) throw new Error("Un programme doit regrouper au moins deux demandes distinctes.");
-
-  const requests = uniqueIds.map((requestId) => {
-    const request = state.serviceRequests.find((item) => item.id === requestId);
-    if (!request) throw new Error("Demande de service introuvable.");
-    if (request.status !== "ouvert") throw new Error(`La demande ${request.reference} n'est plus ouverte.`);
-    return request;
-  });
-
-  const [firstRequest, ...otherRequests] = requests;
-  if (otherRequests.some((request) => request.intent !== firstRequest.intent)) {
-    throw new Error("Un programme ne peut regrouper que des demandes de même intention.");
+  if (command.budgetFcfa !== undefined && (!Number.isFinite(command.budgetFcfa) || command.budgetFcfa <= 0)) {
+    throw new Error("Le budget, s'il est renseigné, doit être positif.");
+  }
+  if (Boolean(command.serviceRequestIds) === Boolean(command.programOpportunityId)) {
+    throw new Error("Un programme se crée soit depuis des demandes regroupées, soit depuis une opportunité de programme — jamais les deux ni aucune des deux.");
   }
 
-  const territoryIds = Array.from(new Set(requests.map((request) => request.territoryId)));
+  const budgetStatus = command.budgetStatus ?? (command.budgetFcfa !== undefined ? "estime" : "a_estimer");
+  if (budgetStatus !== "a_estimer" && command.budgetFcfa === undefined) {
+    throw new Error("Un budget « estimé » ou « validé » exige un montant chiffré.");
+  }
+
+  let territoryIds: string[];
+  let serviceRequestIds: string[] | undefined;
+  let programOpportunity: ProgramOpportunity | undefined;
+  let detail: string;
+
+  if (command.serviceRequestIds) {
+    const uniqueIds = Array.from(new Set(command.serviceRequestIds));
+    if (uniqueIds.length < 2) throw new Error("Un programme doit regrouper au moins deux demandes distinctes.");
+
+    const requests = uniqueIds.map((requestId) => {
+      const request = state.serviceRequests.find((item) => item.id === requestId);
+      if (!request) throw new Error("Demande de service introuvable.");
+      if (request.status !== "ouvert") throw new Error(`La demande ${request.reference} n'est plus ouverte.`);
+      return request;
+    });
+
+    const [firstRequest, ...otherRequests] = requests;
+    if (otherRequests.some((request) => request.intent !== firstRequest.intent)) {
+      throw new Error("Un programme ne peut regrouper que des demandes de même intention.");
+    }
+
+    territoryIds = Array.from(new Set(requests.map((request) => request.territoryId)));
+    serviceRequestIds = uniqueIds;
+    detail = `${command.title.trim()} — ${uniqueIds.length} demandes regroupées`;
+  } else {
+    programOpportunity = state.programOpportunities.find((item) => item.id === command.programOpportunityId);
+    if (!programOpportunity) throw new Error("Opportunité de programme introuvable.");
+    if (!["qualified", "designing"].includes(programOpportunity.status)) {
+      throw new Error("Cette opportunité de programme n'est pas encore prête à devenir un programme (qualifiée ou en conception requis).");
+    }
+    territoryIds = programOpportunity.territoryIds;
+    detail = `${command.title.trim()} — depuis l'opportunité de programme ${programOpportunity.id}`;
+  }
 
   const initiative: Initiative = {
     id: id("init"),
@@ -591,23 +668,29 @@ function applyInitiativeCommand(state: ProductState, command: Extract<Command, {
     objective: command.objective.trim(),
     status: "cadrage",
     ownerId: command.actorId,
-    // Ce chemin de création (regroupement de demandes déjà ouvertes) exige
-    // toujours un budget chiffré (cf. validation ci-dessus) — le statut
-    // "a_estimer" ne concerne que les programmes en phase de cadrage pur,
-    // représentés pour l'instant côté données de démonstration.
     budgetFcfa: command.budgetFcfa,
-    budgetStatus: "valide",
+    budgetStatus,
     funding: [],
-    indicators: []
+    indicators: [],
+    serviceRequestIds,
+    programOpportunityId: programOpportunity?.id
   };
 
-  const requestIdSet = new Set(uniqueIds);
+  // Plus d'auto-couverture (§12) : state.serviceRequests n'est
+  // volontairement pas réécrit ici — les demandes regroupées restent
+  // "ouvert", seule une intervention/résolution réelle les couvre.
   const next: ProductState = {
     ...state,
     initiatives: [initiative, ...state.initiatives],
-    serviceRequests: state.serviceRequests.map((item) => (requestIdSet.has(item.id) ? { ...item, status: "couvert" as const } : item))
+    programOpportunities: programOpportunity
+      ? state.programOpportunities.map((item) =>
+          item.id === programOpportunity!.id
+            ? { ...item, status: "converted_to_program" as const, history: [history(command.actorId, "Convertie en programme", initiative.title), ...item.history] }
+            : item
+        )
+      : state.programOpportunities
   };
-  return withAudit(next, command.actorId, "initiative", initiative.id, command.type, `${initiative.title} — ${uniqueIds.length} demandes regroupées`);
+  return withAudit(next, command.actorId, "initiative", initiative.id, command.type, detail);
 }
 
 // Mission terrain → Commitment (D2, refonte de l'Espace État dans le modèle
@@ -650,6 +733,71 @@ function applyFieldCommitmentCommand(state: ProductState, command: Extract<Comma
     coordinationSpaces: [coordination, ...state.coordinationSpaces]
   };
   return withAudit(next, command.actorId, "commitment", commitment.id, command.type, `${command.title.trim()} — ${command.territoryId}`);
+}
+
+// applySignalOnlyCreation / applyMessageToSignalOnly (LOT 0.1) : le coeur
+// décapé de l'ancien create_signal / convert_message_to_signal, sans la
+// création de Situation qu'ils imposaient — cf. commentaires sur les
+// commandes correspondantes dans applyCommand.
+function applySignalOnlyCreation(state: ProductState, command: Extract<Command, { type: "create_signal" }>): ProductState {
+  if (!command.title.trim() || !command.description.trim()) throw new Error("Le titre et la description sont obligatoires.");
+  // territoryId optionnel (LOT 0.4) : n'est validé que s'il est fourni —
+  // absent (voie Public, territoire non résolu), rien à valider.
+  if (command.territoryId && !state.territories.some((item) => item.id === command.territoryId)) throw new Error("Territoire inconnu.");
+  const suffix = crypto.randomUUID().slice(0, 8);
+  const signalId = `obs-${suffix}`;
+  const signal: Signal = {
+    id: signalId,
+    territoryId: command.territoryId,
+    actorId: command.actorId,
+    createdAt: timestamp(),
+    channel: command.channel,
+    category: "infrastructure",
+    title: command.title.trim(),
+    description: command.description.trim(),
+    trust: "declaree",
+    source: command.channel === "poste_quai" ? "Poste de quai" : "Déclaration terrain",
+    disposition: "nouveau"
+  };
+  const next: ProductState = { ...state, signals: [signal, ...state.signals] };
+  return withAudit(next, command.actorId, "signal", signalId, command.type, command.title.trim());
+}
+
+function applyMessageToSignalOnly(state: ProductState, command: Extract<Command, { type: "convert_message_to_signal" }>): ProductState {
+  if (!command.title.trim() || !command.description.trim()) throw new Error("Le titre et la description sont obligatoires.");
+  if (!state.territories.some((item) => item.id === command.territoryId)) throw new Error("Territoire inconnu.");
+  const message = state.incomingMessages.find((item) => item.id === command.messageId);
+  if (!message) throw new Error("Message introuvable.");
+  if (message.status === "converti") throw new Error("Ce message a déjà été converti.");
+  const channelLabels: Record<Signal["channel"], string> = {
+    terrain: "Terrain",
+    telephone: "Téléphone",
+    whatsapp_structure: "WhatsApp",
+    poste_quai: "Poste de quai",
+    espace_public: "Espace public"
+  };
+  const suffix = crypto.randomUUID().slice(0, 8);
+  const signalId = `obs-${suffix}`;
+  const signal: Signal = {
+    id: signalId,
+    territoryId: command.territoryId,
+    actorId: command.actorId,
+    createdAt: timestamp(),
+    channel: message.channel,
+    category: command.category,
+    title: command.title.trim(),
+    description: command.description.trim(),
+    trust: "declaree",
+    source: `Message entrant (${channelLabels[message.channel]}) converti par le coordinateur`,
+    reportedBy: message.reportedBy,
+    disposition: "nouveau"
+  };
+  const next: ProductState = {
+    ...state,
+    signals: [signal, ...state.signals],
+    incomingMessages: state.incomingMessages.map((item) => (item.id === message.id ? { ...item, status: "converti" as const } : item))
+  };
+  return withAudit(next, command.actorId, "signal", signalId, command.type, command.title.trim());
 }
 
 export function applyCommand(state: ProductState, command: Command): ProductState {
@@ -697,111 +845,66 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
     return withAudit(next, command.actorId, "prix", price.id, command.type, "Observation signalée pour vérification");
   }
 
+  // create_signal (LOT 0.1, comportement corrigé, mandat "aligner le Core
+  // métier avec le Blueprint V1") : crée désormais UNIQUEMENT un Signal —
+  // "Signal ≠ Situation" devient le comportement canonique du Core. Le
+  // signal reste déclaratif (disposition "nouveau") jusqu'à une
+  // qualification explicite (update_signal_disposition,
+  // promote_signal_to_situation, ou rattachement à un Finding via
+  // record_finding — cf. knowledge-pipeline.ts). Les parcours qui
+  // expriment réellement l'intention "ouvrir un dossier tout de suite"
+  // utilisent le wrapper legacy report_signal_and_open_situation
+  // ci-dessous, pas ce chemin.
   if (command.type === "create_signal") {
-    if (!command.title.trim() || !command.description.trim()) throw new Error("Le titre et la description sont obligatoires.");
-    if (!state.territories.some((item) => item.id === command.territoryId)) throw new Error("Territoire inconnu.");
-    const suffix = crypto.randomUUID().slice(0, 8);
-    const signalId = `obs-${suffix}`;
-    const situationId = `sit-${suffix}`;
-    const createdAt = timestamp();
-    const newSituation: Situation = {
-      id: situationId,
-      reference: `MBA-SIT-${suffix.toUpperCase()}`,
-      signalIds: [signalId],
-      territoryId: command.territoryId,
-      title: command.title.trim(),
-      description: command.description.trim(),
-      status: "recue",
-      priority: "moyenne",
-      trust: "declaree",
-      visibility: "organisation",
-      nextStep: "Qualifier le signal avec un relais territorial",
-      history: [history(command.actorId, "Signal créé", command.description.trim())]
-    };
-    validateSituation(newSituation);
-    const next: ProductState = {
-      ...state,
-      signals: [
-        {
-          id: signalId,
-          territoryId: command.territoryId,
-          actorId: command.actorId,
-          createdAt,
-          channel: command.channel,
-          category: "infrastructure",
-          title: command.title.trim(),
-          description: command.description.trim(),
-          trust: "declaree",
-          source: command.channel === "poste_quai" ? "Poste de quai" : "Déclaration terrain"
-        },
-        ...state.signals
-      ],
-      situations: [newSituation, ...state.situations]
-    };
-    return withAudit(next, command.actorId, "situation", situationId, command.type, command.title.trim());
+    return applySignalOnlyCreation(state, command);
   }
 
-  // convert_message_to_signal — même boucle que create_signal (Signal +
-  // Situation créés d'un même geste), source différente : un message de
-  // la file IncomingMessage plutôt qu'une saisie directe. reportedBy est
-  // repris du message (l'auteur apparent), actorId reste le coordinateur
-  // qui convertit — même distinction auteur/saisisseur qu'ailleurs
-  // (Lot 1, arbitrage CEO 13/08/2026). Contrairement à create_signal, la
-  // catégorie est un choix explicite du coordinateur : un message brut
-  // n'est jamais pré-catégorisé.
+  // convert_message_to_signal (LOT 0.1, comportement corrigé) : même
+  // correction que create_signal — crée uniquement un Signal à partir du
+  // message entrant (marqué "converti"), plus de Situation automatique.
   if (command.type === "convert_message_to_signal") {
-    if (!command.title.trim() || !command.description.trim()) throw new Error("Le titre et la description sont obligatoires.");
-    if (!state.territories.some((item) => item.id === command.territoryId)) throw new Error("Territoire inconnu.");
-    const message = state.incomingMessages.find((item) => item.id === command.messageId);
-    if (!message) throw new Error("Message introuvable.");
-    if (message.status === "converti") throw new Error("Ce message a déjà été converti.");
-    const suffix = crypto.randomUUID().slice(0, 8);
-    const signalId = `obs-${suffix}`;
-    const situationId = `sit-${suffix}`;
-    const createdAt = timestamp();
-    const channelLabels: Record<Signal["channel"], string> = {
-      terrain: "Terrain",
-      telephone: "Téléphone",
-      whatsapp_structure: "WhatsApp",
-      poste_quai: "Poste de quai"
-    };
-    const newSituation: Situation = {
-      id: situationId,
-      reference: `MBA-SIT-${suffix.toUpperCase()}`,
-      signalIds: [signalId],
-      territoryId: command.territoryId,
-      title: command.title.trim(),
-      description: command.description.trim(),
-      status: "recue",
-      priority: "moyenne",
-      trust: "declaree",
-      visibility: "organisation",
-      nextStep: "Qualifier le signal avec un relais territorial",
-      history: [history(command.actorId, "Message entrant converti en signal", command.description.trim())]
-    };
-    validateSituation(newSituation);
-    const next: ProductState = {
-      ...state,
-      signals: [
-        {
-          id: signalId,
-          territoryId: command.territoryId,
-          actorId: command.actorId,
-          createdAt,
-          channel: message.channel,
-          category: command.category,
-          title: command.title.trim(),
-          description: command.description.trim(),
-          trust: "declaree",
-          source: `Message entrant (${channelLabels[message.channel]}) converti par le coordinateur`,
-          reportedBy: message.reportedBy
-        },
-        ...state.signals
-      ],
-      situations: [newSituation, ...state.situations],
-      incomingMessages: state.incomingMessages.map((item) => (item.id === message.id ? { ...item, status: "converti" as const } : item))
-    };
-    return withAudit(next, command.actorId, "situation", situationId, command.type, command.title.trim());
+    return applyMessageToSignalOnly(state, command);
+  }
+
+  // report_signal_and_open_situation / convert_message_to_signal_and_situation
+  // (LOT 0.1, wrappers legacy explicites, mandat §5) : reproduisent le
+  // comportement couplé d'avant ce lot, à l'identique — utilisés par les 3
+  // parcours qui promettent déjà cette immédiateté à l'utilisateur
+  // (TerrainCaptainView.tsx, CoordinatorSignalForm.tsx, bridgeVigilanceSignal
+  // côté Ministère). Documentés ici comme compatibilité temporaire plutôt
+  // que dupliqués silencieusement : à terme, ces 3 parcours devraient migrer
+  // vers qualify → promote explicite (hors périmètre de ce lot).
+  if (command.type === "report_signal_and_open_situation") {
+    const created = applySignalOnlyCreation(state, { type: "create_signal", actorId: command.actorId, territoryId: command.territoryId, title: command.title, description: command.description, channel: command.channel });
+    return promoteSignalToSituation(created, created.signals[0].id, command.actorId, { auditAction: command.type });
+  }
+  if (command.type === "convert_message_to_signal_and_situation") {
+    const created = applyMessageToSignalOnly(state, { type: "convert_message_to_signal", actorId: command.actorId, messageId: command.messageId, territoryId: command.territoryId, category: command.category, title: command.title, description: command.description });
+    return promoteSignalToSituation(created, created.signals[0].id, command.actorId, { auditAction: command.type });
+  }
+
+  // LOT 0.1/0.2/0.3 — pipeline de connaissance (Signal → Finding →
+  // CollectiveNeed → ProgramOpportunity), délégué à un fichier dédié
+  // plutôt qu'ajouté ici : rules.ts porte déjà la machine à états de
+  // Situation et les objets de première classe existants, ce pipeline est
+  // un domaine fonctionnel distinct avec sa propre cohérence interne.
+  // Chaîne explicite plutôt que KNOWLEDGE_PIPELINE_COMMAND_TYPES.includes(...)
+  // (essayé, retiré) : un .includes() sur un tableau ne permet pas à
+  // TypeScript de rétrécir l'union Command pour le reste de la fonction
+  // (situationItem/command.situationId juste après) — la répétition est le
+  // prix du rétrécissement de type réel, pas une négligence.
+  if (
+    command.type === "update_signal_disposition" ||
+    command.type === "promote_signal_to_situation" ||
+    command.type === "record_finding" ||
+    command.type === "update_finding_status" ||
+    command.type === "promote_finding_to_situation" ||
+    command.type === "create_collective_need" ||
+    command.type === "update_collective_need_status" ||
+    command.type === "create_program_opportunity" ||
+    command.type === "update_program_opportunity_status"
+  ) {
+    return applyKnowledgePipelineCommand(state, command);
   }
 
   const situationItem = state.situations.find((item) => item.id === command.situationId);
@@ -892,6 +995,7 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
 
 export type WorkflowAction = Exclude<
   Command["type"],
+  | (typeof KNOWLEDGE_PIPELINE_COMMAND_TYPES)[number]
   | "create_signal"
   | "convert_message_to_signal"
   | "reset_demo"

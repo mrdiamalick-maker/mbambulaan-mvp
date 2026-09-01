@@ -68,7 +68,11 @@ export function TerrainCaptainView({ state, actorId }: { state: ProductState; ac
   const submitSignal = async () => {
     if (!territory || !signalTitle.trim() || !signalDetail.trim()) return;
     const ok = await run({
-      type: "create_signal",
+      // LOT 0.1 : create_signal ne crée plus qu'un Signal — ce parcours
+      // ("signaler un problème depuis le terrain") exprime réellement
+      // l'intention d'ouvrir un dossier tout de suite, wrapper legacy
+      // documenté (mandat §5) plutôt que découplé silencieusement.
+      type: "report_signal_and_open_situation",
       territoryId: territory.id,
       title: signalTitle.trim(),
       description: signalDetail.trim(),

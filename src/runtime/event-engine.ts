@@ -1,5 +1,5 @@
 import type { MbambulaanEvent, EventAssessment } from "@/domain/events";
-import type { ProductState, Signal, Situation } from "@/domain/types";
+import type { ProductState, Signal } from "@/domain/types";
 
 function eventId(prefix: string, eventId: string) {
   return `${prefix}-${eventId}`;
@@ -51,13 +51,21 @@ export function assessEvent(event: MbambulaanEvent): EventAssessment {
   }
 }
 
+// applyEvent (LOT 0.1, comportement corrigé, mandat "aligner le Core
+// métier avec le Blueprint V1") : ne crée plus qu'un Signal — c'était le
+// 4e chemin (non nommé explicitement par le mandat mais souffrant du même
+// travers que create_signal/convert_message_to_signal) qui promouvait
+// automatiquement tout événement reçu en Situation. Aucun consommateur UI
+// n'appelle ce moteur (vérifié : seuls src/server/repository.ts et
+// src/app/api/events/route.ts le font, tous deux hors parcours produit
+// réel) — pas de wrapper legacy nécessaire ici, contrairement à
+// create_signal/convert_message_to_signal.
 export function applyEvent(
   state: ProductState,
   event: MbambulaanEvent
 ): ProductState {
   const assessment = assessEvent(event);
   const signalId = eventId("obs", event.id);
-  const situationId = eventId("sit", event.id);
 
   if (state.signals.some((item) => item.id === signalId)) {
     return state;
@@ -73,46 +81,23 @@ export function applyEvent(
     title: assessment.title,
     description: assessment.description,
     trust: assessment.trust,
-    source: event.source
-  };
-
-  const situation: Situation = {
-    id: situationId,
-    reference: `MBA-EVT-${event.id.slice(-6).toUpperCase()}`,
-    signalIds: [signalId],
-    territoryId: event.territoryId,
-    title: assessment.title,
-    description: assessment.description,
-    status: "recue",
-    priority: assessment.priority,
-    trust: assessment.trust,
-    visibility: "organisation",
-    nextStep: assessment.nextStep,
-    history: [
-      {
-        id: eventId("hist", event.id),
-        at: event.occurredAt,
-        actor: event.actorId,
-        label: "Événement reçu",
-        detail: `${event.type} via ${event.channel}`
-      }
-    ]
+    source: event.source,
+    disposition: "nouveau"
   };
 
   return {
     ...state,
     revision: state.revision + 1,
     signals: [signal, ...state.signals],
-    situations: [situation, ...state.situations],
     audit: [
       {
         id: eventId("audit", event.id),
         at: event.occurredAt,
         actorId: event.actorId,
-        objectType: "evenement",
-        objectId: event.id,
+        objectType: "signal",
+        objectId: signalId,
         action: "event_received",
-        detail: `${event.type} transformé en signal et situation`
+        detail: `${event.type} transformé en signal`
       },
       ...state.audit
     ]

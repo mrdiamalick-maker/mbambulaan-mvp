@@ -235,10 +235,20 @@ export default function EtatPage() {
   // mandat demande explicitement de raconter ici avec de vrais effectifs,
   // pas un lexique. Point le plus important, arbitré explicitement par le
   // CEO dans le feu vert conjoint : ne jamais visualiser un rétrécissement
-  // fabriqué à l'étape Signal → Qualification — 1:1 dans ce jeu de
-  // données, vérifié indépendamment (Lot A/B, à nouveau ici). Le vrai
-  // rétrécissement commence à l'étape Situation.
-  const situationsQualifiees = state.situations.length; // 30 — 1:1 avec les signaux (signalIds toujours résolu, vérifié Lot A)
+  // FABRIQUÉ à l'étape Signal → Qualification.
+  //
+  // Mise à jour (mandat "aligner le Core métier avec le Blueprint V1",
+  // LOT 0, 2026-09-01) : le Core découple désormais réellement Signal et
+  // Situation (Signal.disposition — "nouveau"/"rattache_finding"/
+  // "oriente_situation"/... — un signal peut exister sans jamais devenir
+  // une situation). Le jeu de démonstration en contient désormais une
+  // preuve concrète (scénario Joal/Kayar, cf. demo-state.ts) : ce n'était
+  // qu'une coïncidence du jeu de données précédent que Signal ===
+  // Qualification, jamais une garantie du modèle — donc plus de phrase
+  // affirmant "aucune perte" en dur ci-dessous, remplacée par les deux
+  // chiffres réels, quels qu'ils soient. Rien n'est fabriqué dans un sens
+  // (narrowing inventé) ni dans l'autre (égalité inventée).
+  const situationsQualifiees = state.situations.length;
   // "Situation" (3e étape) = situations réellement engagées dans la boucle
   // de coordination, au-delà du seul accueil/qualification initiale.
   // SituationStatus (domain/types.ts) ordonne déjà recue → qualification →
@@ -584,7 +594,7 @@ export default function EtatPage() {
           <p className="etat-eyebrow">De la capture à la décision</p>
           <h2 className="etat-display mt-2 text-xl not-italic text-[var(--etat-navy-950)]">Chaque signal suit le même chemin, jusqu’à la décision.</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--etat-stone-600)]">
-            Les {totalSignalsCaptes} signaux captés donnent {situationsQualifiees} situations qualifiées — aucune perte à cette étape. {situationsEngagees} sont activement engagées dans la boucle de coordination ; {situationsDecidees} portent déjà au moins une décision documentée ({totalDecisions} décisions au total), et {situationsAvecResultat} affichent un résultat constaté sur le terrain.
+            Les {totalSignalsCaptes} signaux captés ont donné lieu à {situationsQualifiees} situations qualifiées à ce jour — un signal peut aussi rester en observation, se rattacher à un constat, ou être écarté sans jamais devenir une situation. {situationsEngagees} sont activement engagées dans la boucle de coordination ; {situationsDecidees} portent déjà au moins une décision documentée ({totalDecisions} décisions au total), et {situationsAvecResultat} affichent un résultat constaté sur le terrain.
           </p>
 
           {/* grid-cols-1 jusqu'à lg (correctif vérifié sur capture mobile) :

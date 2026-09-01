@@ -3,8 +3,12 @@ import test from "node:test";
 import { createDemoState } from "../src/data/demo-state";
 import { applyEvent } from "../src/runtime/event-engine";
 
-test("un événement terrain devient un signal et une situation", () => {
+// LOT 0.1 (mandat "aligner le Core métier avec le Blueprint V1") :
+// applyEvent ne crée plus qu'un Signal — 4e chemin corrigé, même travers
+// que create_signal/convert_message_to_signal (cf. rules.ts).
+test("un événement terrain devient un signal, sans situation automatique", () => {
   const state = createDemoState();
+  const situationsBefore = state.situations.length;
 
   const next = applyEvent(state, {
     id: "evt-glace-joal-001",
@@ -19,22 +23,12 @@ test("un événement terrain devient un signal et une situation", () => {
     channel: "poste_quai"
   });
 
-  const situation = next.situations.find(
-    (item) => item.id === "sit-evt-glace-joal-001"
-  );
+  assert.equal(next.situations.length, situationsBefore, "applyEvent ne doit créer aucune situation");
 
-  assert.ok(situation);
-  assert.equal(
-    situation?.title,
-    "Moyen indisponible sur le territoire"
-  );
-  assert.equal(situation?.priority, "critique");
-
-  const signal = next.signals.find(
-    (item) => item.id === "obs-evt-glace-joal-001"
-  );
-
+  const signal = next.signals.find((item) => item.id === "obs-evt-glace-joal-001");
   assert.ok(signal);
   assert.equal(signal?.channel, "poste_quai");
   assert.equal(signal?.source, "Poste de quai de Joal");
+  assert.equal(signal?.title, "Moyen indisponible sur le territoire");
+  assert.equal(signal?.disposition, "nouveau");
 });

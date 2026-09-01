@@ -3,11 +3,22 @@ import "server-only";
 import postgres from "postgres";
 import type { PublicRequest, PublicRequestInput } from "@/domain/public/request";
 import type { PublicContribution, PublicContributionInput } from "@/domain/public/contribution";
+import { dispatch, getState } from "@/server/repository";
+import { publicRequestSourceToSignalChannel, resolvePublicRequestTerritoryId } from "@/domain/public-request-signal-bridge";
 
 // Persistance des demandes et contributions publiques, volontairement isolée
 // du store du Produit professionnel (src/server/repository.ts). Aucune table
 // ni aucune dépendance n'est partagée : le Public doit pouvoir évoluer et
 // être livré sans dépendre du recadrage futur du Produit.
+//
+// LOT 0.4 (mandat "aligner le Core métier avec le Blueprint V1") : cette
+// isolation de persistance reste inchangée (la table mbambulaan_public_requests
+// demeure la source de vérité pour le Public), mais chaque nouvelle
+// PublicRequest alimente désormais aussi le Core sous forme d'un Signal
+// entrant — cf. bridgePublicRequestSignal ci-dessous, même discipline
+// best-effort que bridgeVigilanceSignal (src/server/ministry-repository.ts) :
+// si le pont échoue, la PublicRequest reste créée, son store dédié reste
+// la source de vérité pour le Public.
 
 declare global {
   var mbambulaanPublicRequests: PublicRequest[] | undefined;
@@ -84,6 +95,44 @@ function makeReference(prefix: "REQ" | "CTB") {
   return `MBA-${prefix}-${year}-${suffix}`;
 }
 
+// bridgePublicRequestSignal (LOT 0.4, mandat "Public Request → Core
+// Signal") : Signal seul (create_signal, décloué de Situation par LOT 0.1)
+// — "PublicRequest → Signal ne doit PAS produire automatiquement une
+// Situation. Elle entre dans le pipeline : Signal — à qualifier." Best-
+// effort, même discipline que bridgeVigilanceSignal (ministry-repository.ts) :
+// si le pont échoue, la PublicRequest reste créée. Idempotence : la clé
+// de dispatch est dérivée de l'id de la PublicRequest elle-même — un
+// retry sur cette même requête ne peut jamais produire un second Signal.
+// Logique de résolution (canal, territoire) extraite dans
+// src/domain/public-request-signal-bridge.ts, sans "server-only" —
+// unitairement testable (tests/finding.test.ts,
+// tests/public-request-signal.test.ts), contrairement à ce fichier.
+async function bridgePublicRequestSignal(request: PublicRequest): Promise<{ signalId?: string }> {
+  try {
+    const state = await getState();
+    const territoryId = resolvePublicRequestTerritoryId(state.territories, request.territory);
+
+    const next = await dispatch(
+      {
+        type: "create_signal",
+        actorId: "act-espace-public",
+        territoryId,
+        title: `${request.intent} — demande de l'espace public`,
+        description: request.description,
+        channel: publicRequestSourceToSignalChannel(request.source)
+      },
+      `public-request:${request.id}`
+    );
+    // dispatch() est idempotent sur cette clé : sur un retry, next.signals[0]
+    // n'est plus nécessairement CE signal — sans conséquence ici, ce
+    // retour n'est qu'informatif (aucun appelant ne le persiste).
+    return { signalId: next.signals[0]?.id };
+  } catch (error) {
+    console.warn("bridgePublicRequestSignal: échec de la répercussion dans le Core", error);
+    return {};
+  }
+}
+
 export async function createPublicRequest(input: PublicRequestInput): Promise<PublicRequest> {
   const request: PublicRequest = {
     ...input,
@@ -96,6 +145,7 @@ export async function createPublicRequest(input: PublicRequestInput): Promise<Pu
   const db = database();
   if (!db) {
     memoryRequests.unshift(request);
+    await bridgePublicRequestSignal(request);
     return request;
   }
 
@@ -114,6 +164,7 @@ export async function createPublicRequest(input: PublicRequestInput): Promise<Pu
       ${request.consent}, ${request.attachmentNote ?? null}, ${request.status}
     )
   `;
+  await bridgePublicRequestSignal(request);
   return request;
 }
 

@@ -9,7 +9,7 @@
 // garde sa copie locale plutôt que d'être rouverte sans nécessité pour
 // ce lot — le risque de dérive entre les deux est nul, les valeurs
 // étant verrouillées par le référentiel.
-import { Anchor, Footprints, MessageCircleMore, PhoneCall } from "lucide-react";
+import { Anchor, Footprints, Globe, MessageCircleMore, PhoneCall } from "lucide-react";
 import type { ActionStatus, FishingTrip, Landing, Signal, Situation, TrustLevel } from "@/domain/types";
 
 export type GlyphTag = "stable" | "vigilance" | "critique";
@@ -53,11 +53,17 @@ export const trustLabels: Record<TrustLevel, string> = {
 // Origine du signal — condition Lot 3 (intake omnicanal), réutilisée
 // telle quelle par la Situation Room (Lot 4) : le canal doit rester
 // visible à chaque étape, pas seulement au niveau de la file.
+// espace_public (LOT 0.4, mandat "aligner le Core métier avec le
+// Blueprint V1") : canal des signaux issus d'une PublicRequest — jamais
+// injecté dans createDemoState() (les 30 signaux déjà vérifiés dans
+// l'Espace État restent inchangés), n'apparaît que si une vraie
+// PublicRequest est soumise pendant une session.
 export const channelMeta: Record<Signal["channel"], { label: string; icon: typeof PhoneCall }> = {
   terrain: { label: "Agent terrain", icon: Footprints },
   telephone: { label: "Téléphone", icon: PhoneCall },
   whatsapp_structure: { label: "WhatsApp", icon: MessageCircleMore },
-  poste_quai: { label: "Poste de quai", icon: Anchor }
+  poste_quai: { label: "Poste de quai", icon: Anchor },
+  espace_public: { label: "Espace public", icon: Globe }
 };
 
 // Statut d'un engagement (Commitment.status) — introduit par

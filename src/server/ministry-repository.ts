@@ -88,8 +88,13 @@ async function ensureSchema() {
 async function bridgeVigilanceSignal(input: VigilanceCaseInput): Promise<{ signalId?: string; situationId?: string }> {
   try {
     const next = await dispatch(
+      // LOT 0.1 : create_signal ne crée plus qu'un Signal — ce bridge
+      // exprime réellement l'intention d'ouvrir un dossier tout de suite
+      // (signal_id/situation_id sont tous deux persistés côté table
+      // vigilance ci-dessous), wrapper legacy documenté (mandat §5)
+      // plutôt que découplé silencieusement.
       {
-        type: "create_signal",
+        type: "report_signal_and_open_situation",
         actorId: input.reportedByActorId,
         territoryId: input.territoryId,
         title: `Vigilance — ${vigilanceCategoryLabels[input.category]}`,
