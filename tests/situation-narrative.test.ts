@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createDemoState } from "../src/data/demo-state";
 import { applyCommand } from "../src/domain/rules";
-import { decisionTypeLabels } from "../src/domain/types";
+import { decisionTypeLabels, type Finding, type ProductState, type Situation } from "../src/domain/types";
 import {
   buildValueTrail,
   collectSituationSignals,
@@ -13,6 +13,46 @@ import {
   resolveFindingForSituation,
   resolveSourceRefDisplay
 } from "../src/domain/situation-narrative";
+
+// Fabriques minimales pour les tests synthétiques des 4 corrections
+// Product Review (LOT 1, 2026-09-01) — seuls state.situations/state.findings
+// sont lus par les fonctions testées ici, les autres tableaux restent vides
+// à dessein (pas de jeu de données parallèle à entretenir).
+function makeFinding(overrides: Partial<Finding> & Pick<Finding, "id">): Finding {
+  return {
+    type: "recurrence",
+    title: "Constat de test",
+    statement: "Énoncé de test.",
+    territoryIds: ["joal"],
+    sourceRefs: [{ objectType: "signal", objectId: "sig-test" }],
+    explanation: "Explication de test.",
+    trust: "observee",
+    status: "confirmed",
+    provenance: "human",
+    nextStep: "Prochaine étape de test.",
+    createdAt: "2026-07-29T08:30:00.000Z",
+    ...overrides
+  };
+}
+
+function makeSituation(overrides: Partial<Situation> & Pick<Situation, "id" | "territoryId" | "priority">): Situation {
+  return {
+    reference: `MBA-SIT-${overrides.id.toUpperCase()}`,
+    signalIds: [],
+    title: "Situation de test",
+    description: "Situation de test.",
+    status: "qualification",
+    trust: "observee",
+    visibility: "organisation",
+    nextStep: "Prochaine étape de test.",
+    history: [],
+    ...overrides
+  };
+}
+
+function makeState(situations: Situation[], findings: Finding[] = []): ProductState {
+  return { situations, findings } as ProductState;
+}
 
 // LOT 1 (mandat "Vertical Slice Joal") — TEST A : Situation Joal → Finding →
 // Signals → KnowledgeSourceRefs valides, bout en bout.
@@ -121,11 +161,15 @@ test("TEST E — Décision, Coordination et Engagements du dossier Joal sont ré
 // TEST F — chaque étape affichée du Value Trail possède une vraie source ;
 // une étape non encore atteinte (Résultat) reste honnêtement "à confirmer",
 // jamais un impact fabriqué (§14 du mandat).
+//
+// Correction Product Review (LOT 1, 2026-09-01, "Commitment ≠ Action") :
+// l'étape "action" est renommée "engagement" — un Commitment prouve un
+// engagement pris, jamais une action réellement exécutée.
 test("TEST F — buildValueTrail s'appuie sur de vrais objets et n'invente jamais de résultat", () => {
   const state = createDemoState();
   const situation = state.situations.find((item) => item.id === "sit-joal-glace-recurrence")!;
   const trail = buildValueTrail(state, situation);
-  assert.equal(trail.map((step) => step.key).join(","), "signal,comprehension,decision,action,resultat");
+  assert.equal(trail.map((step) => step.key).join(","), "signal,comprehension,decision,engagement,resultat");
 
   const signalStep = trail.find((step) => step.key === "signal")!;
   assert.equal(signalStep.proven, true);
@@ -134,29 +178,79 @@ test("TEST F — buildValueTrail s'appuie sur de vrais objets et n'invente jamai
   assert.equal(decisionStep.proven, true);
   assert.match(decisionStep.detail, new RegExp(decisionTypeLabels.ouvrir_coordination));
 
-  const actionStep = trail.find((step) => step.key === "action")!;
-  assert.equal(actionStep.proven, true);
-
   const resultStep = trail.find((step) => step.key === "resultat")!;
   assert.equal(resultStep.proven, false, "aucun résultat n'a encore été constaté pour ce dossier — ne doit jamais être présenté comme prouvé");
   assert.match(resultStep.detail, /à confirmer/i);
   assert.equal(situation.result, undefined, "non-fabrication : le Résultat ne doit pas exister tant qu'il n'est pas réellement constaté");
 });
 
-// TEST G — la lecture institutionnelle (findFocusSituation) et l'Atlas
-// (territoire critique unique) racontent la même réalité : Joal, via la
-// même Situation, sans branche `if joal` — la préférence pour une situation
-// explicable (adossée à un Finding) est une règle générique.
-test("TEST G — findFocusSituation retrouve la même Situation Joal, aussi bien scopée au territoire qu'au niveau national", () => {
+// Correction Product Review (LOT 1, 2026-09-01, "Commitment ≠ Action") —
+// test explicitement demandé : une Coordination avec des Commitments encore
+// "à faire", sans aucune preuve d'exécution, ne doit jamais déclarer une
+// Action accomplie. sit-joal-glace-recurrence porte réellement 2
+// Commitments "a_faire" et 0 Evidence — jeu de données réel, pas fabriqué
+// pour ce test.
+test("Commitment ≠ Action — 2 engagements « à faire » sans preuve d'exécution ne sont jamais présentés comme une Action accomplie", () => {
   const state = createDemoState();
-  const joalScoped = findFocusSituation(state, "joal");
-  assert.equal(joalScoped?.id, "sit-joal-glace-recurrence");
+  const situation = state.situations.find((item) => item.id === "sit-joal-glace-recurrence")!;
+  const coordination = state.coordinationSpaces.find((item) => item.id === situation.coordinationId)!;
+  assert.ok(coordination.commitments.length >= 2);
+  assert.ok(coordination.commitments.every((item) => item.status === "a_faire"), "jeu de données réel : aucun engagement encore honoré");
+  assert.equal(state.evidences.filter((item) => item.situationId === situation.id).length, 0, "aucune preuve d'exécution enregistrée");
+
+  const trail = buildValueTrail(state, situation);
+  const engagementStep = trail.find((step) => step.key === "engagement")!;
+  assert.equal(engagementStep.label, "Engagement", "jamais labellisé « Action »");
+  assert.doesNotMatch(engagementStep.detail, /action accomplie|action réalisée|action exécutée/i, "un Commitment seul ne prouve jamais une Action");
+  // proven=true reste honnête ici : l'étape affirme seulement qu'un
+  // engagement a été PRIS, ce qui est réellement le cas — jamais qu'il a
+  // été honoré.
+  assert.equal(engagementStep.proven, true);
+});
+
+// TEST G — Correction Product Review (LOT 1, 2026-09-01, "priorité
+// institutionnelle avant explicabilité") : la priorité métier prime
+// toujours sur l'explicabilité. Sur Joal, 2 situations critiques sans
+// Finding (sit-glace, sit-joal-veille) existent aux côtés de la situation
+// haute priorité adossée à un Finding (sit-joal-glace-recurrence) — la
+// sélection doit retenir une situation critique, jamais la situation haute
+// priorité au prétexte qu'elle est explicable.
+test("TEST G — findFocusSituation retient la priorité critique de Joal avant toute considération d'explicabilité", () => {
+  const state = createDemoState();
+  const focus = findFocusSituation(state, "joal");
+  assert.ok(focus);
+  assert.equal(focus!.priority, "critique");
+  assert.equal(focus!.findingId, undefined, "les 2 situations critiques de Joal n'ont réellement aucun Finding — non masqué par la préférence d'explicabilité");
+  assert.notEqual(focus!.id, "sit-joal-glace-recurrence", "la situation haute priorité explicable ne doit pas passer devant une situation critique");
 
   const dominant = state.territories.find((item) => item.activity === "critique");
   assert.equal(dominant?.id, "joal", "Joal doit rester l'unique territoire critique du jeu de démonstration");
+});
 
-  const national = findFocusSituation(state);
-  assert.equal(national?.id, "sit-joal-glace-recurrence", "seule Situation explicable (adossée à un Finding) du jeu de démonstration");
+// Correction Product Review (LOT 1, 2026-09-01) — test explicitement
+// demandé : une Situation critique SANS Finding doit être sélectionnée
+// avant une Situation de priorité inférieure AVEC Finding.
+test("findFocusSituation — une Situation critique sans Finding passe devant une Situation moyenne avec Finding", () => {
+  const critiqueSansFinding = makeSituation({ id: "sit-critique", territoryId: "zzz", priority: "critique" });
+  const moyenneAvecFinding = makeSituation({ id: "sit-moyenne", territoryId: "zzz", priority: "moyenne", findingId: "fnd-moyenne" });
+  const finding = makeFinding({ id: "fnd-moyenne" });
+  const state = makeState([moyenneAvecFinding, critiqueSansFinding], [finding]);
+
+  const focus = findFocusSituation(state, "zzz");
+  assert.equal(focus?.id, "sit-critique", "la priorité métier prime toujours sur l'explicabilité");
+});
+
+// Correction Product Review (LOT 1, 2026-09-01) — test explicitement
+// demandé : à priorité strictement égale, la Situation adossée à un
+// Finding peut être préférée (départage, jamais un critère prioritaire).
+test("findFocusSituation — à priorité égale, la Situation avec Finding peut être préférée", () => {
+  const sansFinding = makeSituation({ id: "sit-sans-finding", territoryId: "zzz", priority: "haute" });
+  const avecFinding = makeSituation({ id: "sit-avec-finding", territoryId: "zzz", priority: "haute", findingId: "fnd-avec" });
+  const finding = makeFinding({ id: "fnd-avec" });
+  const state = makeState([sansFinding, avecFinding], [finding]);
+
+  const focus = findFocusSituation(state, "zzz");
+  assert.equal(focus?.id, "sit-avec-finding", "à priorité égale, la situation explicable est préférée en départage");
 });
 
 // Non-régression légère : Kayar n'a aucune Situation (la chaîne s'arrête à
@@ -167,4 +261,67 @@ test("findKnowledgeGapForSituation reste honnête : aucun angle mort fabriqué p
   const state = createDemoState();
   const situation = state.situations.find((item) => item.id === "sit-joal-glace-recurrence")!;
   assert.equal(findKnowledgeGapForSituation(state, situation), undefined);
+});
+
+// Correction Product Review (LOT 1, 2026-09-01, "ne pas surinterpréter les
+// sources") : describeFindingTrust ne doit jamais affirmer une propriété
+// (indépendance, concordance) que le modèle ne peut pas démontrer à partir
+// du seul décompte de sourceRefs — y compris quand ces sourceRefs couvrent
+// des objectType différents (un Signal et une Infrastructure référencés
+// ensemble ne prouvent aucune indépendance entre eux).
+test("describeFindingTrust — 4 sourceRefs de types différents ne sont jamais présentées comme « sources indépendantes »", () => {
+  const finding = makeFinding({
+    id: "fnd-4-sources",
+    trust: "verifiee",
+    sourceRefs: [
+      { objectType: "signal", objectId: "sig-1" },
+      { objectType: "infrastructure", objectId: "infra-1" },
+      { objectType: "landing", objectId: "landing-1" },
+      { objectType: "capacity", objectId: "capacity-1" }
+    ]
+  });
+  const text = describeFindingTrust(finding);
+  assert.doesNotMatch(text, /indépendant/i);
+  assert.doesNotMatch(text, /concordent|concordance/i);
+  assert.match(text, /^Vérifié —/);
+  assert.match(text, /4 éléments référencés/);
+});
+
+test("describeFindingTrust — une seule source reste présentée comme telle, sans surinterprétation", () => {
+  const finding = makeFinding({ id: "fnd-1-source", trust: "declaree", sourceRefs: [{ objectType: "signal", objectId: "sig-1" }] });
+  const text = describeFindingTrust(finding);
+  assert.equal(text, "Déclaré — une source directe référencée à ce stade.");
+});
+
+// Correction Product Review (LOT 1, 2026-09-01, "Knowledge Gap : territoire
+// seul insuffisant") : un Finding "knowledge_gap" du même territoire mais
+// sans relation réelle au dossier (aucune sourceRef partagée, aucune
+// référence directe au Finding de la Situation) ne doit plus être retourné.
+test("findKnowledgeGapForSituation — même territoire mais aucune relation réelle au dossier → non retourné", () => {
+  const situationFinding = makeFinding({ id: "fnd-glace", territoryIds: ["joal"], sourceRefs: [{ objectType: "signal", objectId: "sig-glace-1" }] });
+  const situation = makeSituation({ id: "sit-glace-test", territoryId: "joal", priority: "haute", findingId: situationFinding.id });
+  // Angle mort réel du jeu de démonstration (moteur, sourceRefs disjointes)
+  // — même territoire, aucune relation avec le Finding "glace" ci-dessus.
+  const unrelatedGap = makeFinding({ id: "fnd-gap-moteur", type: "knowledge_gap", territoryIds: ["joal"], sourceRefs: [{ objectType: "signal", objectId: "sig-moteur-1" }] });
+  const state = makeState([situation], [situationFinding, unrelatedGap]);
+
+  assert.equal(findKnowledgeGapForSituation(state, situation), undefined, "un Knowledge Gap du même territoire mais sans relation réelle ne doit jamais être rattaché");
+});
+
+test("findKnowledgeGapForSituation — Knowledge Gap réellement relié (sourceRef partagée) → retourné", () => {
+  const situationFinding = makeFinding({ id: "fnd-glace-2", territoryIds: ["joal"], sourceRefs: [{ objectType: "signal", objectId: "sig-glace-2" }] });
+  const situation = makeSituation({ id: "sit-glace-test-2", territoryId: "joal", priority: "haute", findingId: situationFinding.id });
+  const relatedGap = makeFinding({ id: "fnd-gap-relie", type: "knowledge_gap", territoryIds: ["joal"], sourceRefs: [{ objectType: "signal", objectId: "sig-glace-2" }] });
+  const state = makeState([situation], [situationFinding, relatedGap]);
+
+  assert.equal(findKnowledgeGapForSituation(state, situation)?.id, "fnd-gap-relie");
+});
+
+test("findKnowledgeGapForSituation — Knowledge Gap réellement relié (référence directe au Finding) → retourné, même reflet exact du rattachement Kayar", () => {
+  const situationFinding = makeFinding({ id: "fnd-glace-3", territoryIds: ["joal"], sourceRefs: [{ objectType: "signal", objectId: "sig-glace-3" }] });
+  const situation = makeSituation({ id: "sit-glace-test-3", territoryId: "joal", priority: "haute", findingId: situationFinding.id });
+  const relatedGap = makeFinding({ id: "fnd-gap-direct", type: "knowledge_gap", territoryIds: ["joal"], sourceRefs: [{ objectType: "finding", objectId: situationFinding.id }] });
+  const state = makeState([situation], [situationFinding, relatedGap]);
+
+  assert.equal(findKnowledgeGapForSituation(state, situation)?.id, "fnd-gap-direct");
 });
