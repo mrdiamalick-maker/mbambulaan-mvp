@@ -290,7 +290,7 @@ test("describeFindingTrust — 4 sourceRefs de types différents ne sont jamais 
 test("describeFindingTrust — une seule source reste présentée comme telle, sans surinterprétation", () => {
   const finding = makeFinding({ id: "fnd-1-source", trust: "declaree", sourceRefs: [{ objectType: "signal", objectId: "sig-1" }] });
   const text = describeFindingTrust(finding);
-  assert.equal(text, "Déclaré — une source directe référencée à ce stade.");
+  assert.equal(text, "Déclaré — un élément référencé à ce stade.");
 });
 
 // Correction Product Review (LOT 1, 2026-09-01, "Knowledge Gap : territoire
@@ -324,4 +324,32 @@ test("findKnowledgeGapForSituation — Knowledge Gap réellement relié (référ
   const state = makeState([situation], [situationFinding, relatedGap]);
 
   assert.equal(findKnowledgeGapForSituation(state, situation)?.id, "fnd-gap-direct");
+});
+
+// Micro-correctif Product Review (post-LOT 2, 2026-09-01) : une sourceRef
+// partagée de type "territory" ne doit PAS suffire — c'est la même
+// faiblesse que "même territoire" (déjà corrigée ci-dessus) réintroduite
+// par la bande via un sourceRef territory plutôt qu'une comparaison de
+// territoryIds. Seule une sourceRef réellement discriminante (ici : un
+// Signal, en plus du territory partagé) établit la relation.
+test("findKnowledgeGapForSituation — une sourceRef territory partagée seule ne suffit jamais à relier un Knowledge Gap", () => {
+  const situationFinding = makeFinding({ id: "fnd-kayar-glace", territoryIds: ["kayar"], sourceRefs: [{ objectType: "territory", objectId: "kayar" }, { objectType: "signal", objectId: "sig-glace-kayar" }] });
+  const situation = makeSituation({ id: "sit-kayar-glace-test", territoryId: "kayar", priority: "haute", findingId: situationFinding.id });
+  // Angle mort moteur, cite le même territoire "kayar" mais aucune autre
+  // sourceRef en commun (pas le même Signal, pas de référence directe au
+  // Finding "glace") — ne doit pas être rattaché malgré la sourceRef
+  // territory partagée.
+  const unrelatedGapSameTerritoryRef = makeFinding({ id: "fnd-gap-moteur-kayar", type: "knowledge_gap", territoryIds: ["kayar"], sourceRefs: [{ objectType: "territory", objectId: "kayar" }, { objectType: "signal", objectId: "sig-moteur-kayar" }] });
+  const state = makeState([situation], [situationFinding, unrelatedGapSameTerritoryRef]);
+
+  assert.equal(findKnowledgeGapForSituation(state, situation), undefined, "un territory partagé seul ne doit jamais relier un Knowledge Gap à un Finding");
+});
+
+test("findKnowledgeGapForSituation — sourceRef territory partagée + une vraie source métier commune → retourné", () => {
+  const situationFinding = makeFinding({ id: "fnd-kayar-glace-2", territoryIds: ["kayar"], sourceRefs: [{ objectType: "territory", objectId: "kayar" }, { objectType: "signal", objectId: "sig-glace-kayar-2" }] });
+  const situation = makeSituation({ id: "sit-kayar-glace-test-2", territoryId: "kayar", priority: "haute", findingId: situationFinding.id });
+  const relatedGap = makeFinding({ id: "fnd-gap-relie-kayar", type: "knowledge_gap", territoryIds: ["kayar"], sourceRefs: [{ objectType: "territory", objectId: "kayar" }, { objectType: "signal", objectId: "sig-glace-kayar-2" }] });
+  const state = makeState([situation], [situationFinding, relatedGap]);
+
+  assert.equal(findKnowledgeGapForSituation(state, situation)?.id, "fnd-gap-relie-kayar", "une sourceRef signal réellement partagée, en plus du territory, doit relier les deux Findings");
 });

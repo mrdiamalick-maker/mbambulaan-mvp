@@ -121,17 +121,28 @@ function sourceRefKey(ref: KnowledgeSourceRef): string {
 //   - le knowledge_gap cite au moins une des mêmes sources
 //     (KnowledgeSourceRef identique — même Signal, même Infrastructure...)
 //     que ce Finding.
+//
+// Micro-correctif Product Review (post-LOT 2, 2026-09-01) : "territory"
+// exclu du partage de sourceRef discriminant — un territoire partagé n'est
+// pas plus probant ici qu'il ne l'était pour la règle "même territoire"
+// retirée juste au-dessus ; l'accepter comme sourceRef aurait réintroduit
+// la même faiblesse par la bande (deux Findings peuvent légitimement citer
+// le même Territory sans traiter du même problème). Seule une référence
+// directe au Finding, ou une sourceRef réellement discriminante (Signal,
+// ServiceRequest, Infrastructure...), établit la relation.
 // Sans Finding sur la Situation (findingId absent), aucune base de
 // comparaison n'existe — retourne honnêtement undefined plutôt que de
 // retomber sur le seul territoire.
 export function findKnowledgeGapForSituation(state: ProductState, situation: Situation): Finding | undefined {
   const situationFinding = resolveFindingForSituation(state, situation);
   if (!situationFinding) return undefined;
-  const situationSourceKeys = new Set(situationFinding.sourceRefs.map(sourceRefKey));
+  const situationSourceKeys = new Set(
+    situationFinding.sourceRefs.filter((ref) => ref.objectType !== "territory").map(sourceRefKey)
+  );
   return state.findings.find((candidate) => {
     if (candidate.type !== "knowledge_gap" || candidate.id === situationFinding.id) return false;
     const referencesSituationFinding = candidate.sourceRefs.some((ref) => ref.objectType === "finding" && ref.objectId === situationFinding.id);
-    const sharesSourceRef = candidate.sourceRefs.some((ref) => situationSourceKeys.has(sourceRefKey(ref)));
+    const sharesSourceRef = candidate.sourceRefs.some((ref) => ref.objectType !== "territory" && situationSourceKeys.has(sourceRefKey(ref)));
     return referencesSituationFinding || sharesSourceRef;
   });
 }
@@ -233,7 +244,12 @@ export function describeFindingTrust(finding: Finding): string {
   const label = trustLevelLabel[finding.trust];
   const count = finding.sourceRefs.length;
   if (count === 0) return `${label} — aucun élément référencé à ce stade.`;
-  if (count === 1) return `${label} — une source directe référencée à ce stade.`;
+  // Micro-correctif Product Review (post-LOT 2, 2026-09-01) : "source"
+  // suggérait une propriété (déclarative, humaine) qu'un sourceRef ne porte
+  // pas forcément — un KnowledgeSourceRef unique peut tout aussi bien
+  // pointer vers une Infrastructure, une Capacity ou un Territory qu'un
+  // Signal. "Élément" reste vrai quel que soit l'objectType cité.
+  if (count === 1) return `${label} — un élément référencé à ce stade.`;
   return `${label} — constat appuyé par ${count} éléments référencés dans Mbàmbulaan.`;
 }
 

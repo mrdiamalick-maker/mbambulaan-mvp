@@ -241,3 +241,78 @@ test("TEST K — la Situation Joal (LOT 1) reste intacte", () => {
   assert.equal(situation!.coordinationId, "coord-joal-recurrence");
   assert.equal(state.decisions.filter((item) => item.situationId === situation!.id).length, 1);
 });
+
+// Micro-correctif Product Review (post-LOT 2, 2026-09-01, "qualification
+// ProgramOpportunity : éviter le bouton administratif") — la note envoyée
+// à update_program_opportunity_status doit provenir d'une justification
+// humaine réelle, jamais d'une phrase codée en dur.
+function createKayarOpportunity(state: ReturnType<typeof createDemoState>) {
+  const need = state.collectiveNeeds.find((item) => item.id === "cn-kayar-motorisation")!;
+  return applyCommand(state, {
+    type: "create_program_opportunity",
+    actorId: "act-coordinateur",
+    collectiveNeedId: need.id,
+    problem: need.title,
+    justification: "Justification de test.",
+    territoryIds: need.territoryIds,
+    potentialBeneficiaries: need.affectedPopulation,
+    evidenceRefs: need.sourceRefs,
+    hypotheses: [],
+    knowledgeGaps: ["Cause dominante non établie (usure, carburant, pièces, pratique d'entretien)"],
+    possibleInterventions: ["Maintenance préventive", "Formation à l'entretien"],
+    desiredOutcomes: ["Réduire les immobilisations"],
+    possibleIndicators: [],
+    maturity: "moyenne"
+  });
+}
+
+// Test 3 (mini-correctif) — l'ancienne phrase codée en dur n'existe plus
+// dans le composant du dossier, le formulaire de qualification exige un
+// champ non vide.
+test("aucune note de qualification codée en dur ne subsiste dans ProgramOpportunityDossier — un formulaire de justification existe", () => {
+  const source = readFileSync(new URL("../src/components/coordination/ProgramOpportunityDossier.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /Éléments disponibles jugés suffisants pour envisager la conception d.un programme\./, "la phrase générique codée en dur ne doit plus être envoyée telle quelle comme note");
+  assert.match(source, /Justification de la qualification/, "un champ de justification humaine doit exister dans le formulaire");
+  assert.match(source, /required rows=\{3\} value=\{justification\}/, "le champ de justification doit être obligatoire (required)");
+});
+
+// Test 5 — la justification saisie est réellement enregistrée dans la
+// transition (history), pas perdue ni remplacée par un texte générique.
+test("update_program_opportunity_status vers « qualified » enregistre la justification humaine réelle dans l'historique", () => {
+  const state = createDemoState();
+  const afterOpportunity = createKayarOpportunity(state);
+  const opportunity = afterOpportunity.programOpportunities[0];
+  const justification = "Les 2 signaux et les 3 demandes de service convergent suffisamment pour engager une phase de conception, même si la cause dominante reste à confirmer.";
+
+  const qualified = applyCommand(afterOpportunity, {
+    type: "update_program_opportunity_status",
+    programOpportunityId: opportunity.id,
+    actorId: "act-coordinateur",
+    status: "qualified",
+    note: justification
+  });
+
+  const updated = qualified.programOpportunities.find((item) => item.id === opportunity.id)!;
+  assert.equal(updated.status, "qualified");
+  assert.equal(updated.history[0].detail, justification, "la note de la transition doit être la justification humaine réelle, pas un libellé de statut générique");
+});
+
+// Test 6 — les Knowledge Gaps restent visibles après qualification tant
+// qu'ils n'ont pas été réellement levés (qualifier ne les efface pas).
+test("les Knowledge Gaps d'une ProgramOpportunity restent visibles après qualification", () => {
+  const state = createDemoState();
+  const afterOpportunity = createKayarOpportunity(state);
+  const opportunity = afterOpportunity.programOpportunities[0];
+  assert.ok(opportunity.knowledgeGaps.length > 0);
+
+  const qualified = applyCommand(afterOpportunity, {
+    type: "update_program_opportunity_status",
+    programOpportunityId: opportunity.id,
+    actorId: "act-coordinateur",
+    status: "qualified",
+    note: "Justification de test pour la qualification."
+  });
+
+  const updated = qualified.programOpportunities.find((item) => item.id === opportunity.id)!;
+  assert.deepEqual(updated.knowledgeGaps, opportunity.knowledgeGaps, "qualifier ne doit jamais effacer les inconnues documentées — seule une conception réelle pourrait les lever");
+});

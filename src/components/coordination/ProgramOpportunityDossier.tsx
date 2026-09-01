@@ -6,7 +6,7 @@
 // de bailleur ici — uniquement le problème, sa justification, ce qui reste
 // à qualifier et plusieurs pistes d'intervention, jamais une seule
 // solution "recommandée".
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { CheckCircle2, Compass } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import type { ProductState, ProgramOpportunity } from "@/domain/types";
@@ -36,9 +36,8 @@ const CONVERTIBLE_STATUSES = new Set<ProgramOpportunity["status"]>(["qualified",
 const QUALIFIABLE_STATUSES = new Set<ProgramOpportunity["status"]>(["detected", "qualifying"]);
 
 export function ProgramOpportunityDossier({ opportunity, state, onDone }: { opportunity: ProgramOpportunity; state: ProductState; onDone: () => void }) {
-  const { run } = useProduct();
   const [constituting, setConstituting] = useState(false);
-  const [qualifying, setQualifying] = useState(false);
+  const [qualifyFormOpen, setQualifyFormOpen] = useState(false);
   const territories = opportunity.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
   const evidence = opportunity.evidenceRefs.map((ref) => resolveSourceRefDisplay(state, ref)).filter((item): item is NonNullable<typeof item> => Boolean(item));
 
@@ -46,14 +45,9 @@ export function ProgramOpportunityDossier({ opportunity, state, onDone }: { oppo
     return <InitiativeForm programOpportunity={opportunity} state={state} onDone={onDone} onCancel={() => setConstituting(false)} />;
   }
 
-  const qualify = async () => {
-    setQualifying(true);
-    try {
-      await run({ type: "update_program_opportunity_status", programOpportunityId: opportunity.id, status: "qualified", note: "Éléments disponibles jugés suffisants pour envisager la conception d’un programme." });
-    } finally {
-      setQualifying(false);
-    }
-  };
+  if (qualifyFormOpen) {
+    return <QualifyOpportunityForm opportunity={opportunity} onCancel={() => setQualifyFormOpen(false)} />;
+  }
 
   return (
     <div className="space-y-6 px-4">
@@ -138,11 +132,69 @@ export function ProgramOpportunityDossier({ opportunity, state, onDone }: { oppo
       ) : QUALIFIABLE_STATUSES.has(opportunity.status) ? (
         <div className="space-y-2">
           <p className="rounded-lg border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">Cette opportunité doit être qualifiée avant de pouvoir devenir un programme.</p>
-          <Button variant="outline" className="w-full" disabled={qualifying} onClick={qualify}><CheckCircle2 size={15} /> {qualifying ? "Qualification…" : "Marquer comme qualifiée"}</Button>
+          <Button variant="outline" className="w-full" onClick={() => setQualifyFormOpen(true)}><CheckCircle2 size={15} /> Qualifier l’opportunité</Button>
         </div>
       ) : (
         <p className="rounded-lg border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">Cette opportunité n’est plus active ({programOpportunityStatusLabels[opportunity.status].toLowerCase()}).</p>
       )}
     </div>
+  );
+}
+
+// QualifyOpportunityForm — micro-correctif Product Review (post-LOT 2,
+// 2026-09-01, "qualification ProgramOpportunity : éviter le bouton
+// administratif"). Qualifier n'est plus un simple bouton avec une note
+// codée en dur ("Éléments disponibles jugés suffisants...") — c'est une
+// décision documentée : la justification saisie ici EST la note envoyée à
+// update_program_opportunity_status, jamais une phrase fixe. Ne bloque
+// jamais la qualification au prétexte que knowledgeGaps est non vide
+// (mandat : qualifier ≠ lever toutes les inconnues) — le champ "inconnues
+// restantes" reste facultatif, sert seulement à documenter ce qui n'est
+// plus bloquant vs ce qui reste à vérifier pendant la conception. Pas de
+// nouvel objet métier : tout tient dans la note de la transition (mandat,
+// "pas de nouvel objet métier nécessaire si note suffit").
+function QualifyOpportunityForm({ opportunity, onCancel }: { opportunity: ProgramOpportunity; onCancel: () => void }) {
+  const { run } = useProduct();
+  const [justification, setJustification] = useState("");
+  const [remainingUnknowns, setRemainingUnknowns] = useState(opportunity.knowledgeGaps.join("\n"));
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    if (!justification.trim()) { setError("La justification de la qualification est obligatoire — pourquoi les éléments disponibles sont-ils désormais suffisants pour passer en conception ?"); return; }
+    setPending(true);
+    try {
+      const note = remainingUnknowns.trim()
+        ? `${justification.trim()} — Inconnues restantes à traiter pendant la conception : ${remainingUnknowns.trim()}`
+        : justification.trim();
+      const ok = await run({ type: "update_program_opportunity_status", programOpportunityId: opportunity.id, status: "qualified", note });
+      if (ok) onCancel();
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-4 px-4">
+      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Qualifier l’opportunité</p>
+      <p className="text-xs leading-5 text-muted-foreground">Qualifier ne signifie pas que toutes les inconnues sont levées ; cela signifie que les éléments disponibles sont jugés suffisants pour engager une phase de conception, avec les incertitudes restantes explicitement documentées.</p>
+
+      <label className="block text-xs font-semibold">
+        Justification de la qualification
+        <textarea required rows={3} value={justification} onChange={(event) => setJustification(event.target.value)} placeholder="Pourquoi les éléments disponibles sont-ils désormais suffisants pour passer en conception ?" className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+      </label>
+      <label className="block text-xs font-semibold">
+        Traitement des inconnues restantes (facultatif)
+        <textarea rows={3} value={remainingUnknowns} onChange={(event) => setRemainingUnknowns(event.target.value)} placeholder="Ce qui reste à vérifier pendant la conception, ou ce qui n'est plus bloquant." className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+      </label>
+
+      {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>Annuler</Button>
+        <Button type="submit" disabled={pending} className="flex-1">{pending ? "Confirmation…" : "Confirmer la qualification"}</Button>
+      </div>
+    </form>
   );
 }
