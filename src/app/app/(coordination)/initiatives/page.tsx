@@ -1,14 +1,29 @@
 "use client";
 
+// /app/initiatives — LOT 2 (mandat "Vertical Slice Kayar : du besoin
+// dispersé à l'opportunité de programme de développement"). Route inchangée
+// (mandat §5 : "le nom de route peut rester /app/initiatives pendant ce
+// lot"), mais la page ne commence plus par le portefeuille budgets — elle
+// remonte en amont du programme : ce qui émerge du terrain (Besoins
+// collectifs), ce qui mérite d'être examiné comme opportunité de
+// développement (ProgramOpportunities), puis les programmes en
+// conception/en action (Initiatives, portefeuille existant repositionné
+// plus bas, non reconstruit). CollectiveNeedsPanel (ancien seuil "≥ 2
+// demandes similaires → Programme") est retiré : la page consomme
+// désormais state.collectiveNeeds/state.programOpportunities directement
+// — le Core reste seul responsable de l'intelligence métier (mandat §14).
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Banknote, CircleDollarSign, Flag, Target, UsersRound } from "lucide-react";
+import { ArrowRight, Banknote, CircleDollarSign, Compass, Flag, Layers, Target, UsersRound } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { ExportActions } from "@/components/reporting/ExportActions";
-import { CollectiveNeedsPanel } from "@/components/coordination/CollectiveNeedsPanel";
 import { Badge } from "@/components/ui/badge";
-import type { Funding, Initiative, ProductState } from "@/domain/types";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { CollectiveNeedDossier } from "@/components/coordination/CollectiveNeedDossier";
+import { ProgramOpportunityDossier } from "@/components/coordination/ProgramOpportunityDossier";
+import type { CollectiveNeed, Funding, Initiative, ProductState, ProgramOpportunity } from "@/domain/types";
+import { collectiveNeedStatusLabels, programOpportunityMaturityLabels, programOpportunityStatusLabels } from "@/domain/types";
 
 const money = new Intl.NumberFormat("fr-FR", { notation: "compact", style: "currency", currency: "XOF", maximumFractionDigits: 0 });
 
@@ -40,16 +55,49 @@ const budgetStatusCaption: Record<Initiative["budgetStatus"], string> = {
   valide: "budget simulé à titre indicatif"
 };
 
+const needStatusVariant: Record<CollectiveNeed["status"], "marine" | "amber" | "success" | "outline"> = {
+  emerging: "outline",
+  qualifying: "marine",
+  qualified: "amber",
+  not_confirmed: "outline",
+  converted: "success",
+  monitored: "outline"
+};
+
+const opportunityStatusVariant: Record<ProgramOpportunity["status"], "marine" | "amber" | "success" | "outline"> = {
+  detected: "marine",
+  qualifying: "marine",
+  qualified: "amber",
+  designing: "amber",
+  converted_to_program: "success",
+  rejected: "outline",
+  paused: "outline"
+};
+
 export default function InitiativesPage() {
   const { state } = useProduct();
-  // Lot Initiatives-A (propagation DA v2, arbitrage CEO 2026-08-20, gap
-  // analysis /app/initiatives) : filtres Territoire + Statut réellement
-  // fonctionnels — réplique fidèle de la logique filteredProgrammes du
-  // chapitre "Programmes en cours" de /app/etat (Lot État-E), même
-  // périmètre de données (state.initiatives), mêmes libellés de statut.
   const [territoryFilter, setTerritoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<Initiative["status"] | "all">("all");
+  // Identifiants, pas les objets eux-mêmes : après une action dans le
+  // dossier ouvert (qualifier une opportunité, par ex.), state se
+  // rafraîchit via useProduct — dériver l'objet affiché à chaque rendu
+  // évite que le tiroir reste figé sur une version périmée de l'objet.
+  const [needDrawerId, setNeedDrawerId] = useState<string | null>(null);
+  const [opportunityDrawerId, setOpportunityDrawerId] = useState<string | null>(null);
   if (!state) return null;
+  const needDrawer = needDrawerId ? state.collectiveNeeds.find((item) => item.id === needDrawerId) ?? null : null;
+  const opportunityDrawer = opportunityDrawerId ? state.programOpportunities.find((item) => item.id === opportunityDrawerId) ?? null : null;
+
+  // 1 — Ce qui émerge du terrain : tous les besoins collectifs qui n'ont
+  // pas encore donné lieu à une opportunité (mandat §16 — un besoin
+  // "converti" a graduué vers la section 2, il ne se lit plus deux fois).
+  const emergingNeeds = state.collectiveNeeds.filter((item) => item.status !== "converted");
+
+  // 2 — Opportunités de développement à examiner : le Demo World n'en
+  // contient aucune au chargement (mandat §10) — n'apparaît qu'après une
+  // action humaine explicite depuis un dossier Besoin collectif.
+  const opportunities = state.programOpportunities;
+
   const portfolioRows = state.initiatives.flatMap((initiative) => initiative.funding.map((fund) => ({
     Initiative: initiative.title,
     Territoires: initiative.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id).join(", "),
@@ -59,9 +107,6 @@ export default function InitiativesPage() {
     Partenaire: state.actors.find((item) => item.id === fund.partnerId)?.name ?? fund.partnerId,
     Condition: fund.condition
   })));
-  // Un programme "à estimer" (budgetFcfa absent) n'entre pas dans le total
-  // chiffré : l'additionner comme 0 laisserait croire que son besoin est
-  // nul plutôt que non encore évalué.
   const chiffredInitiatives = state.initiatives.filter((item) => item.budgetFcfa !== undefined);
   const totalBudget = chiffredInitiatives.reduce((sum, item) => sum + (item.budgetFcfa ?? 0), 0);
   const toEstimateCount = state.initiatives.length - chiffredInitiatives.length;
@@ -72,109 +117,174 @@ export default function InitiativesPage() {
   const focusTerritoryName = territoryFilter ? state.territories.find((item) => item.id === territoryFilter)?.name ?? territoryFilter : undefined;
 
   return (
-    <div className="shadcn-scope space-y-8 bg-background p-5 pb-16 lg:p-8">
+    <div className="shadcn-scope space-y-10 bg-background p-5 pb-16 lg:p-8">
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">Transformation territoriale</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">Programmes &amp; financements</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Les difficultés récurrentes deviennent des initiatives structurées, reliées aux territoires, aux décisions, aux financements et aux résultats attendus.</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">Programmes &amp; développement</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">Des besoins collectifs aux interventions structurées</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Mbàmbulaan transforme les besoins collectifs documentés en interventions structurées, sans confondre problème identifié et solution décidée.</p>
       </div>
 
-      <CollectiveNeedsPanel state={state} />
-
-      <section className="flex flex-col gap-4 border-y py-5 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Portefeuille présenté en mode démonstration</p>
-          {/* Lot Initiatives-C (propagation DA v2) : NumberTicker appliqué
-              uniquement au compte entier de programmes — le montant
-              compacté (Md/M FCFA) reste en texte statique, NumberTicker
-              n'a pas de notation "compact" et une animation chiffre par
-              chiffre sur un montant en milliards serait illisible et
-              perdrait le suffixe Md/M. */}
-          <h2 className="mt-2 text-xl font-bold"><NumberTicker value={state.initiatives.length} /> programmes · {money.format(totalBudget)}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Besoins, conditions et statuts restent distincts des engagements fermes.{toEstimateCount > 0 ? ` Total chiffré hors ${toEstimateCount} programme(s) au budget encore à estimer.` : ""}</p>
+      {/* 1 — CE QUI ÉMERGE DU TERRAIN */}
+      <section>
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#1d4468]">
+          <Layers size={14} /> 1 — Ce qui émerge du terrain
         </div>
-        <ExportActions filename="mbambulaan-programmes-financements" rows={portfolioRows} compact />
+        <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">Des remontées dispersées — signaux, demandes — que Mbàmbulaan a rapprochées en un besoin potentiellement partagé, avant toute conception d’intervention.</p>
+        {emergingNeeds.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">Aucun besoin collectif émergent identifié pour le moment.</p>
+        ) : (
+          <div className="mt-4 divide-y border-y">
+            {emergingNeeds.map((need) => {
+              const territories = need.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
+              return (
+                <div key={need.id} className="grid gap-3 py-4 md:grid-cols-[1fr_auto] md:items-center">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={needStatusVariant[need.status]}>{collectiveNeedStatusLabels[need.status]}</Badge>
+                      <p className="truncate text-sm font-semibold">{need.title}</p>
+                    </div>
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground"><UsersRound size={13} /> {territories.join(" · ")}</p>
+                  </div>
+                  <button onClick={() => setNeedDrawerId(need.id)} className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-[#1d4468] hover:text-[#1d4468]/70">Ouvrir le dossier <ArrowRight size={14} /></button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      {/* Lot Initiatives-A : filtres réels, pas d'option masquée même si
-          elle peut légitimement retourner zéro résultat (arbitrage CEO —
-          ex. statut "Financée" ne compte qu'un programme, "Terminée"
-          aucun dans le jeu de démonstration actuel). print:hidden (Lot
-          Initiatives-D) : les filtres n'ont pas de sens à l'impression,
-          cf. bloc plein ci-dessous. */}
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-4 print:hidden">
-        <div className="flex flex-wrap items-center gap-6">
-          <label className="block">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Territoire</p>
-            <select
-              value={territoryFilter}
-              onChange={(event) => setTerritoryFilter(event.target.value)}
-              className="mt-1 rounded-md border bg-background py-1 pl-0 pr-6 text-sm font-semibold outline-none focus:border-primary"
-            >
-              <option value="">Sénégal entier</option>
-              {[...state.territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => (
-                <option key={territory.id} value={territory.id}>{territory.name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Statut</p>
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as Initiative["status"] | "all")}
-              className="mt-1 rounded-md border bg-background py-1 pl-0 pr-6 text-sm font-semibold outline-none focus:border-primary"
-            >
-              <option value="all">Tous les statuts</option>
-              {(["cadrage", "financee", "execution", "terminee"] as const).map((status) => (
-                <option key={status} value={status}>{initiativeStatusLabel[status]}</option>
-              ))}
-            </select>
-          </label>
+      {/* 2 — À EXAMINER COMME OPPORTUNITÉS DE DÉVELOPPEMENT */}
+      <section>
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#b6522f]">
+          <Compass size={14} /> 2 — À examiner comme opportunités de développement
         </div>
-        <p className="text-sm text-muted-foreground">{filteredInitiatives.length} programme(s){focusTerritoryName ? ` · ${focusTerritoryName}` : ""}{statusFilter !== "all" ? ` · ${initiativeStatusLabel[statusFilter]}` : ""} sur {state.initiatives.length} au total.</p>
-      </div>
+        <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">Un besoin collectif qualifié, examiné explicitement — pas encore un programme, ni une solution déjà choisie.</p>
+        {opportunities.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">Aucune opportunité de développement examinée pour le moment.</p>
+        ) : (
+          <div className="mt-4 divide-y border-y">
+            {opportunities.map((opportunity) => {
+              const territories = opportunity.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
+              return (
+                <div key={opportunity.id} className="grid gap-3 py-4 md:grid-cols-[1fr_auto] md:items-center">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={opportunityStatusVariant[opportunity.status]}>{programOpportunityStatusLabels[opportunity.status]}</Badge>
+                      <Badge variant="outline">Maturité {programOpportunityMaturityLabels[opportunity.maturity].toLowerCase()}</Badge>
+                      <p className="truncate text-sm font-semibold">{opportunity.problem}</p>
+                    </div>
+                    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground"><UsersRound size={13} /> {territories.join(" · ")}</p>
+                  </div>
+                  <button onClick={() => setOpportunityDrawerId(opportunity.id)} className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-[#b6522f] hover:text-[#b6522f]/70">Ouvrir le dossier <ArrowRight size={14} /></button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
-      <div className="space-y-10 print:hidden">
-        {filteredInitiatives.length === 0 && <p className="text-sm text-muted-foreground">Aucun programme ne correspond à ce filtre pour le moment.</p>}
-        {filteredInitiatives.map((initiative) => <InitiativeCard key={initiative.id} initiative={initiative} state={state} />)}
-      </div>
+      {/* 3 — EN CONCEPTION / EN ACTION — portefeuille existant, repositionné
+          plus bas (mandat §5/§21 : "ne pas reconstruire, repositionner sa
+          hiérarchie"), non modifié dans son contenu propre. */}
+      <section className="space-y-6 border-t pt-8">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          <Target size={14} /> 3 — En conception / en action
+        </div>
 
-      {/* Lot Initiatives-D (arbitrage CEO 2026-08-20, option b, même
-          discipline que Rapport-D) : version imprimable qui ignore le
-          filtre écran — les 9 programmes en entier, toujours, quel que
-          soit le filtre Territoire/Statut actif à l'écran. Un lecteur qui
-          imprime un portefeuille doit voir l'ensemble, pas un
-          sous-ensemble filtré par accident. Même InitiativeCard que la
-          version interactive — jamais de version imprimée appauvrie. */}
-      <div className="hidden space-y-10 print:block">
-        {state.initiatives.map((initiative) => <InitiativeCard key={initiative.id} initiative={initiative} state={state} />)}
-      </div>
+        <section className="flex flex-col gap-4 border-y py-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Portefeuille présenté en mode démonstration</p>
+            <h2 className="mt-2 text-xl font-bold"><NumberTicker value={state.initiatives.length} /> programmes · {money.format(totalBudget)}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Besoins, conditions et statuts restent distincts des engagements fermes.{toEstimateCount > 0 ? ` Total chiffré hors ${toEstimateCount} programme(s) au budget encore à estimer.` : ""}</p>
+          </div>
+          <ExportActions filename="mbambulaan-programmes-financements" rows={portfolioRows} compact />
+        </section>
 
-      <section className="flex gap-3 border-l-2 border-[#1d4468]/30 pl-4">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-4 print:hidden">
+          <div className="flex flex-wrap items-center gap-6">
+            <label className="block">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Territoire</p>
+              <select
+                value={territoryFilter}
+                onChange={(event) => setTerritoryFilter(event.target.value)}
+                className="mt-1 rounded-md border bg-background py-1 pl-0 pr-6 text-sm font-semibold outline-none focus:border-primary"
+              >
+                <option value="">Sénégal entier</option>
+                {[...state.territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => (
+                  <option key={territory.id} value={territory.id}>{territory.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Statut</p>
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as Initiative["status"] | "all")}
+                className="mt-1 rounded-md border bg-background py-1 pl-0 pr-6 text-sm font-semibold outline-none focus:border-primary"
+              >
+                <option value="all">Tous les statuts</option>
+                {(["cadrage", "financee", "execution", "terminee"] as const).map((status) => (
+                  <option key={status} value={status}>{initiativeStatusLabel[status]}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="text-sm text-muted-foreground">{filteredInitiatives.length} programme(s){focusTerritoryName ? ` · ${focusTerritoryName}` : ""}{statusFilter !== "all" ? ` · ${initiativeStatusLabel[statusFilter]}` : ""} sur {state.initiatives.length} au total.</p>
+        </div>
+
+        <div className="space-y-10 print:hidden">
+          {filteredInitiatives.length === 0 && <p className="text-sm text-muted-foreground">Aucun programme ne correspond à ce filtre pour le moment.</p>}
+          {filteredInitiatives.map((initiative) => <InitiativeCard key={initiative.id} initiative={initiative} state={state} />)}
+        </div>
+
+        <div className="hidden space-y-10 print:block">
+          {state.initiatives.map((initiative) => <InitiativeCard key={initiative.id} initiative={initiative} state={state} />)}
+        </div>
+      </section>
+
+      {/* 4 — CE QUE NOUS APPRENONS — placeholder volontairement léger
+          (mandat §21 : "pas de gros nouveau chantier"). Aucun Learning réel
+          n'est aujourd'hui rattaché à une Initiative ou une
+          ProgramOpportunity (Learning.situationId existant reste un
+          apprentissage opérationnel, pas programmatique) — pas de donnée
+          fabriquée pour remplir cette section. */}
+      <section className="flex gap-3 border-t border-l-2 border-[#1d4468]/30 pt-8 pl-4">
         <Target className="mt-0.5 shrink-0 text-[#1d4468]" size={20} />
         <div>
-          <h2 className="font-semibold">Ce portefeuille reste relié au terrain</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Chaque financement renvoie aux situations qui l’ont justifié, aux engagements pris et aux indicateurs qui permettront de mesurer le changement.</p>
+          <h2 className="font-semibold">4 — Ce que nous apprenons</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Cette étape s’enrichira quand des programmes auront produit des résultats mesurés — chaque financement reste relié aux situations qui l’ont justifié et aux indicateurs qui permettront de mesurer le changement.</p>
         </div>
       </section>
+
+      <Sheet open={needDrawer !== null} onOpenChange={(open) => !open && setNeedDrawerId(null)}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Besoin collectif</SheetTitle>
+            <SheetDescription>Ce que Mbàmbulaan a rapproché, ce qui reste à comprendre, et ce que cela permet d’examiner.</SheetDescription>
+          </SheetHeader>
+          {needDrawer && <CollectiveNeedDossier need={needDrawer} state={state} onDone={() => setNeedDrawerId(null)} />}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={opportunityDrawer !== null} onOpenChange={(open) => !open && setOpportunityDrawerId(null)}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Opportunité de développement</SheetTitle>
+            <SheetDescription>Un problème documenté et plusieurs pistes à étudier — pas encore un programme financé.</SheetDescription>
+          </SheetHeader>
+          {opportunityDrawer && <ProgramOpportunityDossier opportunity={opportunityDrawer} state={state} onDone={() => setOpportunityDrawerId(null)} />}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
 
-// Lot Initiatives-B (propagation DA v2, arbitrage CEO 2026-08-20) : extrait
-// de la boucle .map() ci-dessus pour être réutilisé tel quel par le bloc
-// print-only du Lot Initiatives-D (même discipline que ReportDetailCard
-// sur /app/etat/rapport, Lot Rapport-D) — la version imprimée ne doit
-// jamais être une version appauvrie de la version interactive.
+// Extrait tel quel de la version précédente (mandat §21 : ne pas
+// reconstruire le portefeuille) — inchangé.
 function InitiativeCard({ initiative, state }: { initiative: Initiative; state: ProductState }) {
   const secured = initiative.funding.filter((item) => item.status === "confirme").reduce((sum, item) => sum + item.amountFcfa, 0);
   const instructed = initiative.funding.filter((item) => item.status === "en_instruction").reduce((sum, item) => sum + item.amountFcfa, 0);
   const owner = state.actors.find((item) => item.id === initiative.ownerId);
-  // Situations liées (Initiative.situationIds, peuplé à 100% dans le jeu de
-  // démonstration actuel) — jusqu'ici jamais affiché ni lié, alors que la
-  // phrase de clôture de la page ("Chaque financement renvoie aux
-  // situations qui l'ont justifié...") le promettait déjà. Repli explicite
-  // si un programme futur n'a aucune situation liée documentée.
   const linkedSituations = initiative.situationIds
     .map((id) => state.situations.find((item) => item.id === id))
     .filter((item): item is NonNullable<typeof item> => Boolean(item));

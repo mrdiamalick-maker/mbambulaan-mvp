@@ -1298,7 +1298,13 @@ export function createDemoState(): ProductState {
       { objectType: "service_request", objectId: "need-motorisation-kayar-2" },
       { objectType: "service_request", objectId: "need-motorisation-fass-boye" }
     ],
-    explanation: "2 signaux indépendants et 3 demandes de service de même intention (maintenance), sur 2 territoires voisins, décrivent le même symptôme — la récurrence et la dispersion des sources justifient un constat de portée collective plutôt qu'un traitement au cas par cas.",
+    // Audit Product Review (LOT 2, 2026-09-01, "ne pas laisser le Demo
+    // World raconter plus que le modèle ne sait") : "2 signaux
+    // indépendants" affirmait une indépendance des sources que rien dans
+    // le modèle ne démontre (même doctrine que describeFindingTrust,
+    // situation-narrative.ts, LOT 1) — remplacé par "distincts", un fait
+    // simplement constatable (2 identifiants de signal différents).
+    explanation: "2 signaux distincts et 3 demandes de service de même intention (maintenance), sur 2 territoires voisins, décrivent le même symptôme — la récurrence et la dispersion des sources justifient un constat de portée collective plutôt qu'un traitement au cas par cas.",
     trust: "observee",
     status: "confirmed",
     provenance: "human",
@@ -1307,7 +1313,10 @@ export function createDemoState(): ProductState {
     createdByActorId: "act-coordinateur",
     reviewedByActorId: "act-coordinateur",
     reviewedAt: now,
-    reviewNote: "Confirmé après recoupement des signaux et des demandes de service par le coordinateur"
+    // "recoupement" retiré (même audit) : aucun mécanisme de recoupement
+    // formel n'existe dans le modèle — le coordinateur a examiné les
+    // signaux et demandes, pas "recoupé" une propriété démontrée.
+    reviewNote: "Confirmé après examen des signaux et des demandes de service par le coordinateur"
   };
 
   const kayarKnowledgeGapFinding: Finding = {
@@ -1353,7 +1362,10 @@ export function createDemoState(): ProductState {
     createdAt: now,
     history: [
       { id: "hist-cn-kayar-1", at: now, actor: "act-coordinateur", label: "Besoin collectif identifié", detail: kayarFinding.statement },
-      { id: "hist-cn-kayar-2", at: now, actor: "act-coordinateur", label: "Statut du besoin collectif mis à jour", detail: "Qualifié — signaux et demandes de service recoupés, connaissance manquante documentée" }
+      // "recoupés" retiré (audit Product Review LOT 2) : les signaux et
+      // demandes ont été réunis et examinés ensemble, pas "recoupés" au
+      // sens d'une concordance formellement vérifiée.
+      { id: "hist-cn-kayar-2", at: now, actor: "act-coordinateur", label: "Statut du besoin collectif mis à jour", detail: "Qualifié — signaux et demandes de service réunis et examinés, connaissance manquante documentée" }
     ]
   };
 

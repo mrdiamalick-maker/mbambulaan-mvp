@@ -8,6 +8,15 @@
 // "server-only" (même discipline que public-request-signal-bridge.ts,
 // LOT 0). Ne dépend pas de src/lib (domain reste indépendant de la couche
 // présentation, aucun fichier domain/ n'importe @/lib aujourd'hui).
+//
+// Étendu au LOT 2 (mandat "Vertical Slice Kayar") : resolveSourceRefDisplay
+// et describeFindingTrust étaient déjà génériques (aucune dépendance à
+// Situation) — réutilisés tels quels par le dossier CollectiveNeed plutôt
+// que dupliqués (mandat §8 : « éviter de construire une deuxième logique
+// parallèle de résolution des KnowledgeSourceRef »). findingsReferencedBy
+// et resolveFindings, ajoutés en bas de fichier, généralisent la même
+// démarche (« quel Finding explique cet objet ? ») à tout porteur de
+// sourceRefs/KnowledgeSourceRef[], pas seulement à Situation.findingId.
 import {
   decisionTypeLabels,
   type Decision,
@@ -302,4 +311,30 @@ export function relatedDecisionsForSituation(state: ProductState, situation: Sit
   return [...state.decisions]
     .filter((item) => item.situationId === situation.id)
     .sort((a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime());
+}
+
+// findingsReferencedBy (LOT 2, mandat "Vertical Slice Kayar", §8) — un
+// CollectiveNeed n'a pas de champ dédié équivalent à Situation.findingId ;
+// le Finding qui explique pourquoi le besoin dépasse un cas individuel se
+// trouve parmi ses propres sourceRefs (objectType "finding" — c'est
+// exactement ainsi que le jeu de démonstration relie déjà
+// cn-kayar-motorisation à fnd-kayar-motorisation). Générique : fonctionne
+// pour n'importe quel tableau de KnowledgeSourceRef, pas seulement celui
+// d'un CollectiveNeed.
+export function findingsReferencedBy(state: ProductState, sourceRefs: KnowledgeSourceRef[]): Finding[] {
+  return sourceRefs
+    .filter((ref) => ref.objectType === "finding")
+    .map((ref) => state.findings.find((item) => item.id === ref.objectId))
+    .filter((item): item is Finding => Boolean(item));
+}
+
+// resolveFindings — variante de resolveFindingForSituation pour tout
+// tableau d'identifiants de Finding (CollectiveNeed.knowledgeGapFindingIds,
+// notamment) : mêmes garanties (jamais d'invention si l'identifiant ne
+// résout à rien), sans dupliquer la logique de recherche.
+export function resolveFindings(state: ProductState, findingIds: string[] | undefined): Finding[] {
+  if (!findingIds || findingIds.length === 0) return [];
+  return findingIds
+    .map((findingId) => state.findings.find((item) => item.id === findingId))
+    .filter((item): item is Finding => Boolean(item));
 }
