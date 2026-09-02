@@ -1316,7 +1316,16 @@ export function createDemoState(): ProductState {
     // "recoupement" retiré (même audit) : aucun mécanisme de recoupement
     // formel n'existe dans le modèle — le coordinateur a examiné les
     // signaux et demandes, pas "recoupé" une propriété démontrée.
-    reviewNote: "Confirmé après examen des signaux et des demandes de service par le coordinateur"
+    reviewNote: "Confirmé après examen des signaux et des demandes de service par le coordinateur",
+    // detectionKey (LOT 8, mandat §6/§22) : ce Finding humain couvre déjà
+    // exactement l'occurrence que la règle "service-request-recurrence"
+    // (src/domain/signal-crossing.ts) détecterait pour Kayar/maintenance
+    // (need-motorisation-kayar-1 + need-motorisation-kayar-2) — la
+    // rattacher rétroactivement à la même detectionKey démontre
+    // l'idempotence même sur une donnée historique : l'Intelligence Feed
+    // ne represente jamais cette occurrence comme "nouvelle" (mandat §22,
+    // Kayar ne se duplique pas).
+    detectionKey: "signal-crossing:service-request-recurrence:v1:kayar:maintenance"
   };
 
   const kayarKnowledgeGapFinding: Finding = {

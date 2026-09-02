@@ -42,6 +42,11 @@ const all: Command["type"][] = [
   "record_finding",
   "update_finding_status",
   "promote_finding_to_situation",
+  // LOT 8 — Maritime Intelligence Engine (mandat "détecter, expliquer,
+  // prioriser sans décider à la place de l'humain") : dismiss_detection
+  // reste un geste de coordination, même mandat que record_finding/
+  // update_finding_status (examiner une détection et décider de son sort).
+  "dismiss_detection",
   "create_collective_need",
   "update_collective_need_status",
   "create_program_opportunity",
@@ -135,6 +140,9 @@ const allowed: Record<Role, Command["type"][]> = {
     "record_finding",
     "update_finding_status",
     "promote_finding_to_situation",
+    // LOT 8 — même mandat que record_finding/update_finding_status déjà
+    // ouvert à ce rôle.
+    "dismiss_detection",
     "create_collective_need",
     "update_collective_need_status",
     "create_program_opportunity",
@@ -169,6 +177,9 @@ const allowed: Record<Role, Command["type"][]> = {
     "record_finding",
     "update_finding_status",
     "promote_finding_to_situation",
+    // LOT 8 — même mandat que record_finding/update_finding_status déjà
+    // ouvert à ce rôle.
+    "dismiss_detection",
     "create_collective_need",
     "update_collective_need_status",
     "create_program_opportunity",

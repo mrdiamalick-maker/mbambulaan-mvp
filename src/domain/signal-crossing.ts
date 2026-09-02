@@ -1,4 +1,5 @@
-import type { FindingSourceKind, FindingType, KnowledgeSourceRef, ProductState, TrustLevel } from "@/domain/types";
+import type { FindingSourceKind, FindingType, KnowledgeSourceRef, ProductState, ServiceRequest, TrustLevel } from "@/domain/types";
+import { serviceRequestIntentLabels } from "@/domain/types";
 
 export const SIGNAL_CROSSING_DISCLAIMER =
   "Détection automatique — règle de croisement, mode démonstration." as const;
@@ -9,7 +10,17 @@ export const SIGNAL_CROSSING_DECISION_BOUNDARY =
 export const SIGNAL_CROSSING_RULE_IDS = {
   lateVessel: "late-vessel",
   impairedInfrastructureOnActiveSite: "impaired-infrastructure-on-active-site",
-  priorityCorroborationGap: "priority-corroboration-gap"
+  priorityCorroborationGap: "priority-corroboration-gap",
+  // LOT 8 (mandat "Maritime Intelligence Engine", §8/§9) — règle de
+  // démonstration, seuil volontairement bas et documenté à sa définition
+  // (RECURRENCE_TERRITORY_INTENT_THRESHOLD), ne généralise à aucune autre
+  // situation réelle.
+  serviceRequestRecurrence: "service-request-recurrence",
+  // LOT 8 (mandat §10/§12/§24) — fraîcheur : une Capacity déclarée
+  // "disponible" dont la dernière validité connue est dépassée à la date
+  // de référence est une connaissance manquante, jamais une indisponibilité
+  // affirmée par simple péremption.
+  capacityFreshnessGap: "capacity-freshness-gap"
 } as const;
 
 export type SignalCrossingRuleId =
@@ -26,7 +37,10 @@ export type SignalCrossingSourceType =
   | "fishing_trip"
   | "vessel"
   | "situation"
-  | "evidence";
+  | "evidence"
+  // LOT 8 — nécessaire à la règle de récurrence (service-request-recurrence),
+  // qui cite des ServiceRequest comme sources.
+  | "service_request";
 
 export interface SignalCrossingSourceRef {
   objectType: SignalCrossingSourceType;
@@ -320,6 +334,123 @@ function detectPriorityCorroborationAlertsAt(
     });
 }
 
+// LOT 8 (mandat "Maritime Intelligence Engine", §8/§9) — 4e règle
+// officielle du catalogue. Seuil de démonstration délibérément bas :
+// RECURRENCE_TERRITORY_INTENT_THRESHOLD documente explicitement qu'il ne
+// s'agit pas d'un seuil universel ("2 demandes = programme" n'est vrai
+// nulle part ailleurs que dans ce jeu de démonstration) — le seuil
+// appartient à la règle, pas à une constante globale du produit. Groupe
+// uniquement par champs structurés (territoire + intention) — jamais par
+// rapprochement de texte libre (titre/description), qui fabriquerait une
+// corroboration que rien ne prouve.
+export const RECURRENCE_TERRITORY_INTENT_THRESHOLD = 2;
+
+function detectServiceRequestRecurrenceAlertsAt(
+  state: ProductState,
+  referenceAt: string
+): SignalCrossingAlert[] {
+  const referenceTime = timestamp(referenceAt);
+  if (referenceTime === undefined) return [];
+
+  const groups = new Map<string, ServiceRequest[]>();
+  for (const request of state.serviceRequests) {
+    if (request.status === "clos") continue;
+    const createdAt = timestamp(request.createdAt);
+    if (createdAt === undefined || createdAt > referenceTime) continue;
+    const key = `${request.territoryId}:${request.intent}`;
+    const group = groups.get(key) ?? [];
+    group.push(request);
+    groups.set(key, group);
+  }
+
+  const alerts: SignalCrossingAlert[] = [];
+  for (const [key, requests] of groups) {
+    if (requests.length < RECURRENCE_TERRITORY_INTENT_THRESHOLD) continue;
+    const [territoryId, intent] = key.split(":") as [string, ServiceRequest["intent"]];
+    const territory = state.territories.find((item) => item.id === territoryId);
+    const sortedRequests = requests.slice().sort((left, right) => left.id.localeCompare(right.id));
+    const intentLabel = serviceRequestIntentLabels[intent];
+
+    alerts.push(
+      baseAlert({
+        id: `signal-crossing:service-request-recurrence:v1:${territoryId}:${intent}`,
+        ruleId: SIGNAL_CROSSING_RULE_IDS.serviceRequestRecurrence,
+        territoryId,
+        referenceAt,
+        // "vigilance", jamais "critique" : une récurrence possible n'est
+        // pas une urgence en elle-même (mandat §17, distinct d'une
+        // priorité opérationnelle).
+        attentionLevel: "vigilance",
+        title: `Récurrence possible — plusieurs demandes « ${intentLabel} » à ${territory?.name ?? territoryId}`,
+        description: `${requests.length} demandes de service ouvertes ou couvertes, sur le même territoire, avec la même intention (${intentLabel}) — cela peut signaler un besoin collectif émergent, jamais confirmé par cette seule règle.`,
+        facts: [
+          { code: "request_count", label: "Demandes de service regroupées", value: requests.length },
+          { code: "territory", label: "Territoire", value: territory?.name ?? territoryId },
+          { code: "intent", label: "Intention partagée", value: intentLabel },
+          { code: "threshold", label: "Seuil de démonstration appliqué par cette règle", value: RECURRENCE_TERRITORY_INTENT_THRESHOLD }
+        ],
+        sourceRefs: sourceRefs([
+          { objectType: "territory", objectId: territoryId },
+          ...sortedRequests.map((request) => ({ objectType: "service_request" as const, objectId: request.id }))
+        ])
+      })
+    );
+  }
+
+  return alerts.sort((left, right) => left.id.localeCompare(right.id));
+}
+
+// LOT 8 (mandat §10/§12/§24) — 5e règle officielle du catalogue :
+// fraîcheur. Ne s'appuie que sur Capacity.validUntil, la seule donnée de
+// validité réellement portée par le modèle (aucune règle d'expiration
+// arbitraire inventée pour d'autres objets). Une Capacity déclarée
+// "disponible" dont la validité est dépassée à la date de référence est
+// une connaissance manquante ("à revérifier"), jamais une affirmation
+// d'indisponibilité — même doctrine que describeCapacityAvailability
+// (src/domain/actor-network.ts, LOT 7).
+function detectCapacityFreshnessGapAlertsAt(
+  state: ProductState,
+  referenceAt: string
+): SignalCrossingAlert[] {
+  const referenceTime = timestamp(referenceAt);
+  if (referenceTime === undefined) return [];
+
+  const alerts: SignalCrossingAlert[] = [];
+  for (const capacity of state.capacities.slice().sort((left, right) => left.id.localeCompare(right.id))) {
+    if (capacity.status !== "disponible") continue;
+    const validUntil = timestamp(capacity.validUntil);
+    if (validUntil === undefined || validUntil >= referenceTime) continue;
+
+    const infrastructure = state.infrastructures.find((item) => item.id === capacity.infrastructureId);
+    if (!infrastructure) continue;
+    const territory = state.territories.find((item) => item.id === infrastructure.territoryId);
+
+    alerts.push(
+      baseAlert({
+        id: `signal-crossing:capacity-freshness-gap:v1:${capacity.id}`,
+        ruleId: SIGNAL_CROSSING_RULE_IDS.capacityFreshnessGap,
+        territoryId: infrastructure.territoryId,
+        referenceAt,
+        attentionLevel: "vigilance",
+        title: "Disponibilité de capacité à revérifier — donnée non fraîche",
+        description: `La capacité déclarée pour ${infrastructure.name} indique « disponible », mais sa dernière validité connue (${capacity.validUntil}) est dépassée à la date de référence — à revérifier avant toute mobilisation, jamais présentée comme indisponible par simple péremption.`,
+        facts: [
+          { code: "capacity_type", label: "Type de capacité", value: capacity.type },
+          { code: "valid_until", label: "Dernière validité connue", value: capacity.validUntil },
+          { code: "territory", label: "Territoire", value: territory?.name ?? infrastructure.territoryId }
+        ],
+        sourceRefs: sourceRefs([
+          { objectType: "territory", objectId: infrastructure.territoryId },
+          { objectType: "infrastructure", objectId: infrastructure.id },
+          { objectType: "capacity", objectId: capacity.id }
+        ])
+      })
+    );
+  }
+
+  return alerts;
+}
+
 export function detectLateVesselAlerts(state: ProductState): SignalCrossingAlert[] {
   const referenceAt = deriveDatasetReferenceAt(state);
   return state.tenant.mode === "demonstration" && referenceAt
@@ -341,6 +472,20 @@ export function detectPriorityCorroborationAlerts(state: ProductState): SignalCr
     : [];
 }
 
+export function detectServiceRequestRecurrenceAlerts(state: ProductState): SignalCrossingAlert[] {
+  const referenceAt = deriveDatasetReferenceAt(state);
+  return state.tenant.mode === "demonstration" && referenceAt
+    ? detectServiceRequestRecurrenceAlertsAt(state, referenceAt)
+    : [];
+}
+
+export function detectCapacityFreshnessGapAlerts(state: ProductState): SignalCrossingAlert[] {
+  const referenceAt = deriveDatasetReferenceAt(state);
+  return state.tenant.mode === "demonstration" && referenceAt
+    ? detectCapacityFreshnessGapAlertsAt(state, referenceAt)
+    : [];
+}
+
 // Convergence Signal Crossing → Finding (LOT 0.2, mandat "aligner le Core
 // métier avec le Blueprint V1", §7) : "faire converger progressivement le
 // résultat de Signal Crossing vers Finding, directement ou via une couche
@@ -356,7 +501,9 @@ export function detectPriorityCorroborationAlerts(state: ProductState): SignalCr
 const RULE_TO_FINDING_TYPE: Record<SignalCrossingRuleId, FindingType> = {
   [SIGNAL_CROSSING_RULE_IDS.lateVessel]: "retour_attendu_depasse",
   [SIGNAL_CROSSING_RULE_IDS.impairedInfrastructureOnActiveSite]: "infrastructure_fragile_active_site",
-  [SIGNAL_CROSSING_RULE_IDS.priorityCorroborationGap]: "corroboration_gap"
+  [SIGNAL_CROSSING_RULE_IDS.priorityCorroborationGap]: "corroboration_gap",
+  [SIGNAL_CROSSING_RULE_IDS.serviceRequestRecurrence]: "recurrence",
+  [SIGNAL_CROSSING_RULE_IDS.capacityFreshnessGap]: "knowledge_gap"
 };
 
 export interface FindingDraftFromAlert {
@@ -371,6 +518,10 @@ export interface FindingDraftFromAlert {
   nextStep: string;
   ruleId: string;
   ruleVersion: number;
+  // detectionKey (LOT 8, mandat §6) : reprend alert.id, déjà une clé
+  // déterministe et stable par règle + version + objet(s) source — aucune
+  // seconde clé à inventer, cf. Finding.detectionKey (types.ts).
+  detectionKey: string;
 }
 
 export function signalCrossingAlertToFindingDraft(alert: SignalCrossingAlert): FindingDraftFromAlert {
@@ -395,7 +546,8 @@ export function signalCrossingAlertToFindingDraft(alert: SignalCrossingAlert): F
     provenance: "rule",
     nextStep: SIGNAL_CROSSING_DECISION_BOUNDARY,
     ruleId: alert.ruleId,
-    ruleVersion: alert.ruleVersion
+    ruleVersion: alert.ruleVersion,
+    detectionKey: alert.id
   };
 }
 
@@ -407,7 +559,9 @@ export function computeSignalCrossingAlerts(state: ProductState): SignalCrossing
   const ruleOrder: Record<SignalCrossingRuleId, number> = {
     [SIGNAL_CROSSING_RULE_IDS.lateVessel]: 0,
     [SIGNAL_CROSSING_RULE_IDS.impairedInfrastructureOnActiveSite]: 1,
-    [SIGNAL_CROSSING_RULE_IDS.priorityCorroborationGap]: 2
+    [SIGNAL_CROSSING_RULE_IDS.priorityCorroborationGap]: 2,
+    [SIGNAL_CROSSING_RULE_IDS.serviceRequestRecurrence]: 3,
+    [SIGNAL_CROSSING_RULE_IDS.capacityFreshnessGap]: 4
   };
   const attentionOrder: Record<SignalCrossingAttentionLevel, number> = {
     critique: 0,
@@ -417,7 +571,9 @@ export function computeSignalCrossingAlerts(state: ProductState): SignalCrossing
   return [
     ...detectLateVesselAlertsAt(state, referenceAt),
     ...detectImpairedInfrastructureAlertsAt(state, referenceAt),
-    ...detectPriorityCorroborationAlertsAt(state, referenceAt)
+    ...detectPriorityCorroborationAlertsAt(state, referenceAt),
+    ...detectServiceRequestRecurrenceAlertsAt(state, referenceAt),
+    ...detectCapacityFreshnessGapAlertsAt(state, referenceAt)
   ].sort(
     (left, right) =>
       attentionOrder[left.attentionLevel] - attentionOrder[right.attentionLevel] ||
@@ -426,3 +582,66 @@ export function computeSignalCrossingAlerts(state: ProductState): SignalCrossing
       left.id.localeCompare(right.id)
   );
 }
+
+// Rule Registry (LOT 8, mandat §19) — catalogue simple, pas un moteur
+// configurable no-code : une entrée par règle du fichier, lisible par un
+// humain (nom métier, objectif, type de Finding produit), réutilisable par
+// l'Intelligence Feed pour l'explicabilité (mandat §16) sans exposer les
+// détails techniques (ruleId/version) partout dans l'UX standard (§18).
+export interface IntelligenceRuleDescriptor {
+  ruleId: SignalCrossingRuleId;
+  ruleVersion: number;
+  name: string;
+  objective: string;
+  findingType: FindingType;
+  description: string;
+  active: boolean;
+}
+
+export const INTELLIGENCE_RULE_REGISTRY: IntelligenceRuleDescriptor[] = [
+  {
+    ruleId: SIGNAL_CROSSING_RULE_IDS.lateVessel,
+    ruleVersion: 1,
+    name: "Retour de navire dépassé",
+    objective: "Sécurité — repérer une sortie en mer dont le retour attendu est dépassé sans arrivée enregistrée.",
+    findingType: "retour_attendu_depasse",
+    description: "Compare l’heure de retour attendue de chaque sortie « en mer » à la date de référence du jeu de données ; ne retient que celles sans arrivée ni débarquement enregistrés.",
+    active: true
+  },
+  {
+    ruleId: SIGNAL_CROSSING_RULE_IDS.impairedInfrastructureOnActiveSite,
+    ruleVersion: 1,
+    name: "Infrastructure fragilisée sur site actif",
+    objective: "Repérer une infrastructure fragile ou indisponible sur un site ayant enregistré une activité récente.",
+    findingType: "infrastructure_fragile_active_site",
+    description: "Croise le statut des infrastructures d’un site avec les débarquements récents (fenêtre de 7 jours) enregistrés sur ce même site.",
+    active: true
+  },
+  {
+    ruleId: SIGNAL_CROSSING_RULE_IDS.priorityCorroborationGap,
+    ruleVersion: 1,
+    name: "Situation prioritaire sans corroboration suffisante",
+    objective: "Confiance — repérer une situation haute ou critique sans niveau de confiance consolidé ni preuve qualifiée.",
+    findingType: "corroboration_gap",
+    description: "Retient les situations non réglées de priorité haute/critique dont ni la confiance déclarée ni les preuves reliées n’atteignent un niveau corroboré.",
+    active: true
+  },
+  {
+    ruleId: SIGNAL_CROSSING_RULE_IDS.serviceRequestRecurrence,
+    ruleVersion: 1,
+    name: "Récurrence de demandes de service",
+    objective: "Repérer un possible besoin collectif émergent à partir de demandes de service répétées.",
+    findingType: "recurrence",
+    description: `Regroupe les demandes de service ouvertes/couvertes par territoire et intention ; règle de démonstration, seuil bas (${RECURRENCE_TERRITORY_INTENT_THRESHOLD}) documenté et non généralisable.`,
+    active: true
+  },
+  {
+    ruleId: SIGNAL_CROSSING_RULE_IDS.capacityFreshnessGap,
+    ruleVersion: 1,
+    name: "Fraîcheur de capacité réseau",
+    objective: "Repérer une capacité déclarée disponible dont la validité connue est dépassée — connaissance manquante, pas indisponibilité.",
+    findingType: "knowledge_gap",
+    description: "Compare Capacity.validUntil à la date de référence pour toute capacité au statut « disponible » ; ne conclut jamais à une indisponibilité par simple péremption.",
+    active: true
+  }
+];

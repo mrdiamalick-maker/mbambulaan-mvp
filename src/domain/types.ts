@@ -460,6 +460,26 @@ export type FindingSourceKind = "rule" | "human" | "llm" | "statistical" | "ml";
 
 export type FindingStatus = "proposed" | "under_review" | "confirmed" | "rejected" | "superseded";
 
+// Raison humaine d'un rejet — LOT 8 (mandat "Maritime Intelligence
+// Engine", §31) : quand un coordinateur rejette une détection ou un
+// constat proposé, une raison courte est conservée comme trace pour une
+// amélioration future — jamais pour entraîner automatiquement quoi que ce
+// soit (aucun apprentissage automatique dans ce lot, cf. §26/§28-30).
+export type FindingRejectionReason =
+  | "faux_positif"
+  | "information_deja_connue"
+  | "donnee_trop_ancienne"
+  | "contexte_non_pertinent"
+  | "doublon";
+
+export const findingRejectionReasonLabels: Record<FindingRejectionReason, string> = {
+  faux_positif: "Faux positif",
+  information_deja_connue: "Information déjà connue",
+  donnee_trop_ancienne: "Donnée trop ancienne",
+  contexte_non_pertinent: "Contexte non pertinent",
+  doublon: "Doublon"
+};
+
 export const findingStatusLabels: Record<FindingStatus, string> = {
   proposed: "Proposé",
   under_review: "En cours de revue",
@@ -512,6 +532,20 @@ export interface Finding {
   reviewedByActorId?: string;
   reviewedAt?: string;
   reviewNote?: string;
+  // rejectionReason (LOT 8, mandat §31) : renseigné uniquement quand
+  // status === "rejected" et que le rejet provient d'une décision humaine
+  // sur une détection/constat proposé — jamais déduit, jamais obligatoire
+  // pour les rejets antérieurs à ce lot.
+  rejectionReason?: FindingRejectionReason;
+  // detectionKey (LOT 8, mandat §6 "idempotence des détections") — clé
+  // stable identifiant l'occurrence détectée par une règle (ruleId +
+  // version + objets sources), renseignée uniquement quand ce Finding
+  // provient d'une détection (cf. signal-crossing.ts,
+  // signalCrossingAlertToFindingDraft). Un Finding né d'une observation
+  // humaine directe (record_finding sans détection) n'en porte pas — ce
+  // n'est pas un identifiant technique universel, seulement le garde-fou
+  // qui empêche une même occurrence réelle de produire deux Finding.
+  detectionKey?: string;
   // Correction Product Review (LOT 0, 2026-09-01) : une Situation est une
   // conséquence opérationnelle d'un Finding confirmé, elle ne le
   // remplace pas — "superseded" reste réservé au cas où un Finding est
@@ -1108,6 +1142,13 @@ export interface Learning {
   createdByActorId?: string;
   createdAt?: string;
   status?: LearningStatus;
+  // relatedRuleId (LOT 8, mandat §26 "Learning → Rules") : lien
+  // documentaire optionnel vers une règle de src/domain/signal-crossing.ts
+  // qu'un apprentissage suggère de revoir (ex. "cette détection produit
+  // trop de faux positifs dans ce contexte") — jamais un mécanisme qui
+  // modifie la règle automatiquement, seulement une trace exploitable par
+  // un humain qui déciderait plus tard de l'ajuster.
+  relatedRuleId?: string;
 }
 
 export interface Report {
@@ -1347,12 +1388,54 @@ export type Command =
       nextStep: string;
       ruleId?: string;
       ruleVersion?: number;
+      // detectionKey (LOT 8, mandat §6) : optionnel — un Finding humain
+      // n'en a pas besoin. Quand fourni (toujours le cas pour un
+      // brouillon issu de signalCrossingAlertToFindingDraft), record_finding
+      // refuse de créer un second Finding pour la même occurrence déjà
+      // traitée (enregistrée ou écartée) — cf. knowledge-pipeline.ts.
+      detectionKey?: string;
     }
-  | { type: "update_finding_status"; findingId: string; actorId: string; status: Exclude<FindingStatus, "proposed">; note?: string }
+  | {
+      type: "update_finding_status";
+      findingId: string;
+      actorId: string;
+      status: Exclude<FindingStatus, "proposed">;
+      note?: string;
+      // rejectionReason (LOT 8, mandat §31) : significatif seulement quand
+      // status === "rejected" — jamais imposé aux rejets antérieurs à ce
+      // lot, jamais déduit automatiquement.
+      rejectionReason?: FindingRejectionReason;
+    }
   // territoryId (optionnel) : résout explicitement le territoire principal
   // quand le Finding en couvre plusieurs (territoryIds.length > 1) —
   // sinon le premier territoire du Finding est retenu.
   | { type: "promote_finding_to_situation"; findingId: string; actorId: string; territoryId?: string; priority?: Priority; visibility?: Visibility }
+  // dismiss_detection (LOT 8, mandat "Maritime Intelligence Engine", §5/
+  // §31) — l'autre issue possible pour une détection encore non
+  // matérialisée (l'autre étant record_finding) : un coordinateur l'a
+  // examinée et a jugé qu'elle ne mérite pas de constat, avec une raison
+  // courte. Crée quand même un Finding — canal unique de sortie de
+  // l'intelligence (mandat §3) — mais directement au statut "rejected",
+  // jamais "proposed" (aucune étape intermédiaire fictive). Même
+  // garde-fou d'idempotence que record_finding via detectionKey
+  // (obligatoire ici : une détection écartée sans clé ne protégerait rien).
+  | {
+      type: "dismiss_detection";
+      actorId: string;
+      findingType: FindingType;
+      title: string;
+      statement: string;
+      territoryIds: string[];
+      sourceRefs: KnowledgeSourceRef[];
+      explanation: string;
+      trust: TrustLevel;
+      provenance: FindingSourceKind;
+      nextStep: string;
+      ruleId?: string;
+      ruleVersion?: number;
+      detectionKey: string;
+      rejectionReason: FindingRejectionReason;
+    }
   | {
       type: "create_collective_need";
       actorId: string;
@@ -1507,6 +1590,8 @@ export type Command =
       fieldMissionId?: string;
       sourceRefs?: KnowledgeSourceRef[];
       status?: LearningStatus;
+      // relatedRuleId (LOT 8, mandat §26) — cf. Learning.relatedRuleId.
+      relatedRuleId?: string;
     }
   // --- LOT 7 — Actor & Trust Network (mandat "rendre l'écosystème
   // mobilisable"). qualify_signal_as_network_capacity est le seul chemin

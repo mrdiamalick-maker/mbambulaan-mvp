@@ -17,6 +17,7 @@ import {
   MapPin,
   MessageSquare,
   Network,
+  Radar,
   Radio,
   Route,
   Search,
@@ -24,6 +25,8 @@ import {
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { canRole, RELAY_ROLES } from "@/server/permissions";
+import { IntelligenceFeed } from "@/components/ecosystem/IntelligenceFeed";
+import { computeIntelligenceFeed } from "@/domain/intelligence-feed";
 import { CommandButton } from "@/components/ui/CommandButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,7 +70,7 @@ function capacityRate(capacity: Capacity, state: ProductState) {
 // liste à presque rien.
 const VISIBLE_ROWS = 5;
 
-type View = "besoins" | "capacites" | "rapprochements" | "missions" | "demandes_publiques" | "messages_entrants";
+type View = "besoins" | "capacites" | "rapprochements" | "missions" | "demandes_publiques" | "messages_entrants" | "detections";
 
 const views: Array<{ id: View; label: string; icon: typeof Boxes }> = [
   { id: "besoins", label: "Besoins à couvrir", icon: Boxes },
@@ -75,7 +78,11 @@ const views: Array<{ id: View; label: string; icon: typeof Boxes }> = [
   { id: "rapprochements", label: "Rapprochements", icon: Network },
   { id: "missions", label: "Missions en cours", icon: ClipboardCheck },
   { id: "demandes_publiques", label: "Demandes publiques", icon: Inbox },
-  { id: "messages_entrants", label: "Messages entrants", icon: MessageSquare }
+  { id: "messages_entrants", label: "Messages entrants", icon: MessageSquare },
+  // LOT 8 — Maritime Intelligence Engine (mandat "détecter, expliquer,
+  // prioriser sans décider à la place de l'humain") : "Intelligence Feed"
+  // réutilise cet onglet existant plutôt qu'une nouvelle route (§13).
+  { id: "detections", label: "Intelligence Feed", icon: Radar }
 ];
 
 // Canal → libellé lisible, pour l'affichage de la file de messages
@@ -272,7 +279,12 @@ export function CoordinationWorkspace() {
     rapprochements: false,
     missions: activeMissions.some((space) => space.commitments.some((item) => item.status === "bloquee")),
     demandes_publiques: pendingPublicRequests.length > 0,
-    messages_entrants: pendingIncomingMessages.length > 0
+    messages_entrants: pendingIncomingMessages.length > 0,
+    // LOT 8 — un point de tension seulement s'il existe une détection
+    // critique encore à examiner (jamais pour une simple vigilance ou une
+    // détection déjà traitée) — même discipline que les autres onglets :
+    // pas de décoration, seulement une tension réelle.
+    detections: computeIntelligenceFeed(state).some((item) => item.status === "nouvelle" && item.alert.attentionLevel === "critique")
   };
 
   return (
@@ -566,6 +578,8 @@ export function CoordinationWorkspace() {
             </div>
           </div>
         )}
+
+        {view === "detections" && <IntelligenceFeed state={state} role={role} />}
       </section>
 
       {/* C13 — bande finale : légende métier calme, plus les 4 blocs à

@@ -29,7 +29,7 @@ import type {
   Signal,
   Situation
 } from "./types";
-import { findingStatusLabels, programOpportunityStatusLabels, collectiveNeedStatusLabels, signalDispositionLabels } from "./types";
+import { findingStatusLabels, findingRejectionReasonLabels, programOpportunityStatusLabels, collectiveNeedStatusLabels, signalDispositionLabels } from "./types";
 import { history, id, timestamp, validateSituation, withAudit } from "./rules";
 
 function requireTerritories(state: ProductState, territoryIds: string[], label: string) {
@@ -88,6 +88,20 @@ function requireResolvedSourceRefs(state: ProductState, sourceRefs: KnowledgeSou
     if (!resolveKnowledgeSourceRef(state, ref)) {
       throw new Error(`${label} référence ${ref.objectType}:${ref.objectId}, introuvable — une source doit exister réellement pour être citée.`);
     }
+  }
+}
+
+// Idempotence des détections (LOT 8, mandat "Maritime Intelligence
+// Engine", §6) : une même occurrence détectée par une règle (ruleId +
+// version + objet(s) source, cf. signalCrossingAlertToFindingDraft.
+// detectionKey) ne doit jamais produire deux Finding, qu'elle soit
+// enregistrée deux fois ou d'abord écartée puis reproposée. Un seul
+// garde-fou, appelé par record_finding ET dismiss_detection — pas deux
+// implémentations qui pourraient diverger.
+function assertDetectionNotAlreadyKnown(state: ProductState, detectionKey: string | undefined) {
+  if (!detectionKey) return;
+  if (state.findings.some((item) => item.detectionKey === detectionKey)) {
+    throw new Error("Cette détection a déjà été traitée (constat enregistré ou occurrence écartée) — pas de doublon.");
   }
 }
 
@@ -178,6 +192,7 @@ function applyRecordFinding(state: ProductState, command: Extract<Command, { typ
   if (command.provenance === "rule" && (!command.ruleId || command.ruleVersion === undefined)) {
     throw new Error("Un constat issu d'une règle doit citer l'identifiant et la version de cette règle.");
   }
+  assertDetectionNotAlreadyKnown(state, command.detectionKey);
 
   const finding: Finding = {
     id: id("fnd"),
@@ -192,6 +207,7 @@ function applyRecordFinding(state: ProductState, command: Extract<Command, { typ
     provenance: command.provenance,
     ruleId: command.ruleId,
     ruleVersion: command.ruleVersion,
+    detectionKey: command.detectionKey,
     nextStep: command.nextStep.trim(),
     createdAt: timestamp(),
     createdByActorId: command.actorId
@@ -226,11 +242,72 @@ function applyUpdateFindingStatus(state: ProductState, command: Extract<Command,
     ...state,
     findings: state.findings.map((item) =>
       item.id === finding.id
-        ? { ...item, status: command.status, reviewedByActorId: command.actorId, reviewedAt: timestamp(), reviewNote: command.note?.trim() || item.reviewNote }
+        ? {
+            ...item,
+            status: command.status,
+            reviewedByActorId: command.actorId,
+            reviewedAt: timestamp(),
+            reviewNote: command.note?.trim() || item.reviewNote,
+            // rejectionReason (LOT 8, mandat §31) : seulement significatif
+            // pour un rejet — ignoré silencieusement sinon plutôt que
+            // rejeté, pour ne pas complexifier cette commande générique
+            // avec une validation propre à un seul statut parmi cinq.
+            rejectionReason: command.status === "rejected" ? command.rejectionReason ?? item.rejectionReason : item.rejectionReason
+          }
         : item
     )
   };
   return withAudit(next, command.actorId, "finding", finding.id, command.type, findingStatusLabels[command.status]);
+}
+
+// dismiss_detection (LOT 8, mandat §5/§31) — l'autre issue humaine d'une
+// détection encore non matérialisée : le coordinateur l'a examinée et
+// juge qu'elle ne mérite pas de constat. Réutilise exactement les mêmes
+// validations que record_finding (même exigence de sources réelles,
+// mêmes champs obligatoires) — la seule différence est le statut de
+// création ("rejected" au lieu de "proposed") et l'obligation d'une
+// raison de rejet et d'une detectionKey, toutes deux garanties par le
+// type de la commande (types.ts). Un Finding rejeté reste un Finding
+// (mandat §3, canal de sortie unique de l'intelligence) — pas un second
+// objet parallèle "DetectionFeedback".
+function applyDismissDetection(state: ProductState, command: Extract<Command, { type: "dismiss_detection" }>): ProductState {
+  if (!command.title.trim()) throw new Error("Le titre du constat est obligatoire.");
+  if (!command.statement.trim()) throw new Error("L'énoncé du constat est obligatoire.");
+  if (!command.explanation.trim()) throw new Error("L'explication du constat est obligatoire.");
+  if (!command.nextStep.trim()) throw new Error("La prochaine étape proposée est obligatoire.");
+  requireTerritories(state, command.territoryIds, "Un constat");
+  requireSourceRefs(command.sourceRefs, "Un constat");
+  requireResolvedSourceRefs(state, command.sourceRefs, "Un constat");
+  if (command.provenance === "rule" && (!command.ruleId || command.ruleVersion === undefined)) {
+    throw new Error("Un constat issu d'une règle doit citer l'identifiant et la version de cette règle.");
+  }
+  assertDetectionNotAlreadyKnown(state, command.detectionKey);
+
+  const finding: Finding = {
+    id: id("fnd"),
+    type: command.findingType,
+    title: command.title.trim(),
+    statement: command.statement.trim(),
+    territoryIds: command.territoryIds,
+    sourceRefs: command.sourceRefs,
+    explanation: command.explanation.trim(),
+    trust: command.trust,
+    status: "rejected",
+    provenance: command.provenance,
+    ruleId: command.ruleId,
+    ruleVersion: command.ruleVersion,
+    detectionKey: command.detectionKey,
+    rejectionReason: command.rejectionReason,
+    nextStep: command.nextStep.trim(),
+    createdAt: timestamp(),
+    createdByActorId: command.actorId,
+    reviewedByActorId: command.actorId,
+    reviewedAt: timestamp(),
+    reviewNote: findingRejectionReasonLabels[command.rejectionReason]
+  };
+
+  const next: ProductState = { ...state, findings: [finding, ...state.findings] };
+  return withAudit(next, command.actorId, "finding", finding.id, command.type, finding.title);
 }
 
 // promote_finding_to_situation — TEST C : un Finding confirmé, et
@@ -417,7 +494,8 @@ export function applyKnowledgePipelineCommand(
         | "create_collective_need"
         | "update_collective_need_status"
         | "create_program_opportunity"
-        | "update_program_opportunity_status";
+        | "update_program_opportunity_status"
+        | "dismiss_detection";
     }
   >
 ): ProductState {
@@ -440,6 +518,8 @@ export function applyKnowledgePipelineCommand(
       return applyCreateProgramOpportunity(state, command);
     case "update_program_opportunity_status":
       return applyUpdateProgramOpportunityStatus(state, command);
+    case "dismiss_detection":
+      return applyDismissDetection(state, command);
   }
 }
 

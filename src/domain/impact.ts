@@ -223,7 +223,8 @@ function applyRecordLearning(state: ProductState, command: Extract<Command, { ty
     sourceRefs: sourceRefs.length > 0 ? sourceRefs : undefined,
     createdByActorId: command.actorId,
     createdAt: timestamp(),
-    status: command.status ?? ("propose" as const)
+    status: command.status ?? ("propose" as const),
+    relatedRuleId: command.relatedRuleId
   };
 
   const next: ProductState = { ...state, learnings: [learning, ...state.learnings] };

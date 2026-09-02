@@ -59,7 +59,11 @@ const KNOWLEDGE_PIPELINE_COMMAND_TYPES = [
   "create_collective_need",
   "update_collective_need_status",
   "create_program_opportunity",
-  "update_program_opportunity_status"
+  "update_program_opportunity_status",
+  // LOT 8 (mandat "Maritime Intelligence Engine", §5/§31) — même famille
+  // que record_finding/update_finding_status : matérialise un Finding,
+  // jamais un statut de Situation.
+  "dismiss_detection"
 ] as const;
 
 const transitions: Record<
@@ -938,7 +942,8 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
     command.type === "create_collective_need" ||
     command.type === "update_collective_need_status" ||
     command.type === "create_program_opportunity" ||
-    command.type === "update_program_opportunity_status"
+    command.type === "update_program_opportunity_status" ||
+    command.type === "dismiss_detection"
   ) {
     return applyKnowledgePipelineCommand(state, command);
   }
