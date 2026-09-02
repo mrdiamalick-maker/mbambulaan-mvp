@@ -22,8 +22,12 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { CollectiveNeedDossier } from "@/components/coordination/CollectiveNeedDossier";
 import { ProgramOpportunityDossier } from "@/components/coordination/ProgramOpportunityDossier";
-import type { CollectiveNeed, Funding, Initiative, ProductState, ProgramOpportunity } from "@/domain/types";
-import { collectiveNeedStatusLabels, programOpportunityMaturityLabels, programOpportunityStatusLabels } from "@/domain/types";
+import { ResultForm } from "@/components/impact/ResultForm";
+import { OutcomeForm } from "@/components/impact/OutcomeForm";
+import { ImpactForm } from "@/components/impact/ImpactForm";
+import { LearningForm } from "@/components/impact/LearningForm";
+import type { CollectiveNeed, Funding, Initiative, Outcome, ProductState, ProgramOpportunity } from "@/domain/types";
+import { attributionLevelLabels, collectiveNeedStatusLabels, impactStatusLabels, programOpportunityMaturityLabels, programOpportunityStatusLabels } from "@/domain/types";
 
 const money = new Intl.NumberFormat("fr-FR", { notation: "compact", style: "currency", currency: "XOF", maximumFractionDigits: 0 });
 
@@ -289,6 +293,23 @@ function InitiativeCard({ initiative, state }: { initiative: Initiative; state: 
     .map((id) => state.situations.find((item) => item.id === id))
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
+  // LOT 4 (mandat "de l'action à la valeur démontrable", §16) — "mesurer
+  // sans faire un ERP bailleur" : Results/Outcomes propres à ce programme,
+  // lus à la demande (filtrage par sourceRef/sourceResultIds), aucune
+  // duplication locale dans Initiative lui-même.
+  const initiativeResults = state.results.filter((item) => item.sourceRef.objectType === "initiative" && item.sourceRef.objectId === initiative.id);
+  const initiativeResultIds = initiativeResults.map((item) => item.id);
+  const initiativeOutcomes = state.outcomes.filter((item) => item.sourceResultIds.some((id) => initiativeResultIds.includes(id)));
+  const initiativeOutcomeIds = initiativeOutcomes.map((item) => item.id);
+  const initiativeImpacts = state.impactEvidences.filter((item) => initiativeOutcomeIds.includes(item.outcomeId));
+  const initiativeLearnings = state.learnings.filter((item) => item.initiativeId === initiative.id);
+  const outcomesWithoutImpact = initiativeOutcomes.filter((outcome) => !initiativeImpacts.some((impact) => impact.outcomeId === outcome.id));
+
+  const [resultFormOpen, setResultFormOpen] = useState(false);
+  const [outcomeFormOpen, setOutcomeFormOpen] = useState(false);
+  const [learningFormOpen, setLearningFormOpen] = useState(false);
+  const [impactFormOutcome, setImpactFormOutcome] = useState<Outcome | null>(null);
+
   return (
     <section className="overflow-hidden rounded-2xl border">
       <div className="bg-sidebar p-6 text-sidebar-foreground">
@@ -366,6 +387,135 @@ function InitiativeCard({ initiative, state }: { initiative: Initiative; state: 
           {linkedSituations.length === 0 && <p className="text-sm text-muted-foreground">Aucune situation liée documentée pour ce programme.</p>}
         </div>
       </section>
+
+      {/* LOT 4 (mandat "de l'action à la valeur démontrable", §16) —
+          "mesurer sans faire un ERP bailleur" : ce que le programme visait
+          (indicateurs, déjà affichés plus haut) reste distinct de ce qui a
+          été réalisé (Result), ce qui a changé (Outcome), ce qui reste à
+          mesurer (Impact) et ce que le programme en retient (Learning). */}
+      <section className="border-t p-5 lg:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Ce qui a été réalisé</p>
+          <button onClick={() => setResultFormOpen(true)} className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-[#1d4468] hover:text-[#1d4468]/70">Enregistrer un résultat <ArrowRight size={13} /></button>
+        </div>
+        {initiativeResults.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">Aucun résultat enregistré pour ce programme à ce stade.</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {initiativeResults.map((result) => (
+              <div key={result.id} className="rounded-lg border p-3">
+                <p className="text-sm font-semibold">{result.title}</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{result.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="border-t p-5 lg:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Ce qui a changé</p>
+          <button
+            onClick={() => setOutcomeFormOpen(true)}
+            disabled={initiativeResults.length === 0}
+            className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-[#1d4468] hover:text-[#1d4468]/70 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Documenter un changement <ArrowRight size={13} />
+          </button>
+        </div>
+        {initiativeOutcomes.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">Effet opérationnel à confirmer — aucun changement documenté pour le moment.</p>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {initiativeOutcomes.map((outcome) => (
+              <div key={outcome.id} className="rounded-lg border p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">{outcome.title}</p>
+                  <Badge variant="outline">{attributionLevelLabels[outcome.attribution]}</Badge>
+                </div>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{outcome.statement}</p>
+                {outcome.attributionJustification && <p className="mt-1.5 text-[11px] leading-4 text-muted-foreground"><span className="font-semibold text-foreground">Justification · </span>{outcome.attributionJustification}</p>}
+                {outcome.limits && <p className="mt-1 text-[11px] leading-4 text-muted-foreground"><span className="font-semibold text-foreground">Limites · </span>{outcome.limits}</p>}
+                <p className="mt-1.5 text-[11px] text-muted-foreground">{outcome.baseline ?? "Baseline insuffisante pour mesurer précisément l’évolution."}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="border-t p-5 lg:p-6">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Ce qui reste à mesurer</p>
+        {initiativeOutcomes.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">Impact non encore mesuré — aucun changement documenté ne permet pour l’instant d’évaluer un effet plus large.</p>
+        ) : outcomesWithoutImpact.length === 0 && initiativeImpacts.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">Impact non encore mesuré pour les changements documentés.</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {initiativeImpacts.map((impact) => (
+              <div key={impact.id} className="rounded-lg border p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">{impact.title}</p>
+                  <Badge variant="outline">{impactStatusLabels[impact.status]}</Badge>
+                </div>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{impact.statement}</p>
+              </div>
+            ))}
+            {outcomesWithoutImpact.map((outcome) => (
+              <div key={outcome.id} className="flex items-center justify-between gap-3 rounded-lg border border-dashed p-3">
+                <p className="text-xs text-muted-foreground">Impact non encore mesuré pour « {outcome.title} ».</p>
+                <button onClick={() => setImpactFormOutcome(outcome)} className="shrink-0 text-xs font-bold text-[#1d4468] hover:text-[#1d4468]/70">Renseigner</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="border-t p-5 lg:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Ce que nous apprenons</p>
+          <button onClick={() => setLearningFormOpen(true)} className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-[#1d4468] hover:text-[#1d4468]/70">Enregistrer un apprentissage <ArrowRight size={13} /></button>
+        </div>
+        {initiativeLearnings.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">Aucun apprentissage enregistré pour ce programme à ce stade.</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {initiativeLearnings.map((learning) => (
+              <div key={learning.id} className="rounded-lg border p-3">
+                <p className="text-sm font-semibold">{learning.title}</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{learning.summary}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <Sheet open={resultFormOpen} onOpenChange={setResultFormOpen}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader><SheetTitle>Enregistrer un résultat</SheetTitle><SheetDescription>Ce qui a effectivement été produit ou réalisé pour ce programme.</SheetDescription></SheetHeader>
+          <ResultForm initiativeId={initiative.id} onDone={() => setResultFormOpen(false)} onCancel={() => setResultFormOpen(false)} />
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={outcomeFormOpen} onOpenChange={setOutcomeFormOpen}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader><SheetTitle>Documenter le changement observé</SheetTitle><SheetDescription>Une activité réalisée n’est pas un changement en soi — décrivez ce qui a réellement évolué, avec son niveau d’attribution.</SheetDescription></SheetHeader>
+          {initiativeResults.length > 0 && <OutcomeForm results={initiativeResults} onDone={() => setOutcomeFormOpen(false)} onCancel={() => setOutcomeFormOpen(false)} />}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={impactFormOutcome !== null} onOpenChange={(open) => !open && setImpactFormOutcome(null)}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader><SheetTitle>Impact</SheetTitle><SheetDescription>« À mesurer » reste un état honnête — ne jamais extrapoler un changement local en effet national.</SheetDescription></SheetHeader>
+          {impactFormOutcome && <ImpactForm outcome={impactFormOutcome} onDone={() => setImpactFormOutcome(null)} onCancel={() => setImpactFormOutcome(null)} />}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={learningFormOpen} onOpenChange={setLearningFormOpen}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader><SheetTitle>Enregistrer un apprentissage</SheetTitle><SheetDescription>Que devons-nous faire différemment ou réutiliser ailleurs ?</SheetDescription></SheetHeader>
+          <LearningForm initiativeId={initiative.id} onDone={() => setLearningFormOpen(false)} onCancel={() => setLearningFormOpen(false)} />
+        </SheetContent>
+      </Sheet>
     </section>
   );
 }

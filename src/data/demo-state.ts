@@ -1,4 +1,4 @@
-import type { CollectiveNeed, Finding, ProductState, Role, Signal, Situation, SituationStatus, TrustLevel } from "@/domain/types";
+import type { CollectiveNeed, Finding, Learning, Outcome, ProductState, Result, Role, Signal, Situation, SituationStatus, TrustLevel } from "@/domain/types";
 
 const now = "2026-07-29T08:30:00.000Z";
 const tomorrow = "2026-07-30T16:00:00.000Z";
@@ -1374,6 +1374,66 @@ export function createDemoState(): ProductState {
   const lot0Findings: Finding[] = [joalFinding, kayarFinding, kayarKnowledgeGapFinding];
   const lot0CollectiveNeeds: CollectiveNeed[] = [kayarCollectiveNeed];
 
+  // LOT 4 (mandat "de l'action à la valeur démontrable", §5/§22) — deuxième
+  // vertical slice, "Programme" : init-immatriculation choisi après audit
+  // des initiatives existantes (statut "execution" réel, indicateurs
+  // baseline/target/current déjà cohérents, un seul territoire lié
+  // simplifiant la démonstration). Kayar reste volontairement au stade
+  // émergence/conception (LOT 2) — pas de faux programme déjà exécuté.
+  // Amélioration modeste et crédible (43 % contre 18 % de baseline, cible
+  // 75 % encore loin) plutôt qu'un chiffre spectaculaire (mandat §22).
+  const immatriculationResult: Result = {
+    id: "result-immatriculation-t1",
+    title: "156 dossiers de pirogues examinés au premier trimestre du programme",
+    description: "43 % des pirogues recensées sur les 4 territoires disposent désormais d'une immatriculation vérifiée (contre 18 % avant le programme) ; 36 des 120 dossiers incomplets visés ont été requalifiés.",
+    sourceRef: { objectType: "initiative", objectId: "init-immatriculation" },
+    territoryIds: ["hann", "soumbedioune", "rufisque", "mbour"],
+    recordedAt: now,
+    recordedByActorId: "act-institution",
+    evidenceRefs: [],
+    trust: "documentee"
+  };
+
+  // Attribution "contributive" plutôt que "directe" (mandat §3, "ne
+  // jamais transformer une corrélation en causalité") : le programme a
+  // financé et coordonné les vérifications, mais la mobilisation des
+  // relais locaux et une sensibilisation antérieure au sujet contribuent
+  // aussi — la justification et les limites documentent explicitement
+  // cette réserve plutôt que de l'omettre.
+  const immatriculationOutcome: Outcome = {
+    id: "outcome-immatriculation-t1",
+    title: "Amélioration de l'accès des pirogues au référentiel vérifié",
+    statement: "La part de pirogues disposant d'une immatriculation vérifiée a progressé depuis le lancement du programme, sur les 4 territoires couverts.",
+    territoryIds: ["hann", "soumbedioune", "rufisque", "mbour"],
+    sourceResultIds: [immatriculationResult.id],
+    baseline: "18 % de pirogues avec immatriculation vérifiée avant le programme (valeur d'indicateur initiale).",
+    observedAt: now,
+    evidenceRefs: [],
+    trust: "documentee",
+    attribution: "contributive",
+    attributionJustification: "Le programme a financé et coordonné les vérifications et le rattachement des dossiers, mais la mobilisation des capitaines et relais locaux ainsi qu'une sensibilisation antérieure au sujet contribuent aussi à cette progression.",
+    limits: "Progression non isolée d'autres démarches administratives menées en parallèle sur les mêmes territoires.",
+    createdByActorId: "act-institution",
+    createdAt: now
+  };
+
+  // Aucun Impact créé pour ce programme (mandat §13 : "ne pas rendre
+  // obligatoire la création d'un Impact" — "Impact à mesurer" reste
+  // simplement l'absence de tout ImpactEvidence, jamais un objet fabriqué
+  // pour combler ce stade).
+  const immatriculationLearning: Learning = {
+    id: "learn-init-immatriculation",
+    initiativeId: "init-immatriculation",
+    outcomeId: immatriculationOutcome.id,
+    title: "Séparer la vérification administrative de l'état technique du navire",
+    summary: "Un dossier vérifié via le programme atteste du rattachement administratif, pas de l'état technique du navire ni de sa sécurité en mer — les deux vérifications doivent rester distinctes pour ne pas gonfler la portée du résultat obtenu.",
+    context: "Programme « Référentiel progressif des pirogues et immatriculations », phase d'exécution, premier trimestre.",
+    reusableIn: ["rufisque", "mbour", "fass-boye"],
+    createdByActorId: "act-institution",
+    createdAt: now,
+    status: "valide"
+  };
+
   return {
     revision: 1,
     tenant: { id: "tenant-demo", name: "Démonstration nationale Mbàmbulaan", mode: "demonstration" },
@@ -1459,6 +1519,18 @@ export function createDemoState(): ProductState {
     // record_observation) plutôt que figées dans ce jeu.
     fieldMissions: [],
     observations: [],
+    // LOT 4 — Joal (vertical slice principale) reste vide au chargement,
+    // même discipline "pas de pré-remplissage de ce qui est démontré" que
+    // Kayar/Terrain (record_result/record_outcome/record_learning
+    // exercés en direct). Le Programme (vertical slice secondaire)
+    // pré-charge sa propre chaîne Result → Outcome → Learning : le
+    // mandat §22 demande explicitement "un exemple montrant
+    // baseline/target/current + Result + Outcome + Learning" pour un
+    // programme déjà en exécution, ce que Demo World ne peut pas
+    // démontrer par un unique geste live comme Joal.
+    results: [immatriculationResult],
+    outcomes: [immatriculationOutcome],
+    impactEvidences: [],
     // LOT 0 — chaîne de référence Joal (Signal → Finding → Situation,
     // mandat §20) : sit-joal-glace-recurrence s'ajoute aux 30 situations
     // existantes sans en modifier aucune. La chaîne Kayar s'arrête avant
@@ -2456,7 +2528,12 @@ export function createDemoState(): ProductState {
       { id: "learn-yoff-marche", situationId: "sit-yoff-marche", title: "Un signal de prix devient utile s’il déclenche une coordination documentée", summary: "Comparer des offres réellement comparables puis orienter le volume évite de transformer un signal de prix en indice d’inflation non vérifié.", reusableIn: ["kayar", "soumbedioune", "mbour"] },
       { id: "learn-foundiougne-claies", situationId: "sit-foundiougne-claies", title: "Distinguer équipement réparé, capacité disponible et volume traité", summary: "Séparer ces trois niveaux évite de gonfler le résultat d’une réparation d’équipement de transformation.", reusableIn: ["djiffer", "missirah", "kafountine"] },
       { id: "learn-elinkine-retour", situationId: "sit-elinkine-retour", title: "Escalader l’incertitude sans transformer un retard déclaré en détresse certaine", summary: "Un point de contact unique et un journal d’appels évitent les informations contradictoires pendant l’attente.", reusableIn: ["lompoul", "saint-louis"] },
-      { id: "learn-cap-skirring-debouche", situationId: "sit-cap-skirring-debouche", title: "Une annulation devient coordonnable si lot, délai et engagements sont reliés", summary: "Relier le lot, le délai et les engagements dans un même dossier évite de perdre la traçabilité d’une annulation de dernière minute.", reusableIn: ["yoff", "kafountine"] }
+      { id: "learn-cap-skirring-debouche", situationId: "sit-cap-skirring-debouche", title: "Une annulation devient coordonnable si lot, délai et engagements sont reliés", summary: "Relier le lot, le délai et les engagements dans un même dossier évite de perdre la traçabilité d’une annulation de dernière minute.", reusableIn: ["yoff", "kafountine"] },
+      // LOT 4 (mandat "de l'action à la valeur démontrable") — apprentissage
+      // du Programme, rattaché à l'Initiative et à l'Outcome réels plutôt
+      // qu'à une Situation (mandat §14, Learning peut naître d'un
+      // Programme/Outcome, pas seulement d'une Situation).
+      immatriculationLearning
     ],
     reports: [
       {

@@ -7,7 +7,8 @@ import { Drawer } from "@/components/etat/Drawer";
 import { EtatRegistryHeader } from "@/components/etat/EtatRegistryHeader";
 import { DecisionIcon } from "@/components/etat/MotifIcons";
 import { Mission, MissionForm, SituationDetail, priorityToTag } from "@/components/etat/shared";
-import { decisionTypeLabels, type Situation } from "@/domain/types";
+import { attributionLevelLabels, decisionTypeLabels, type Situation } from "@/domain/types";
+import { outcomesForResults, resultsForSituation } from "@/domain/situation-narrative";
 
 // Registre complet "Décisions exécutées & résultats observés" — extrait de
 // /app/etat (mandat "Brief national", navigation par page, 2026-08-26).
@@ -79,6 +80,12 @@ export default function RedevabilitePage() {
             const decider = state.actors.find((item) => item.id === decision.decidedByActorId);
             const coordination = decision.coordinationId ? state.coordinationSpaces.find((item) => item.id === decision.coordinationId) : undefined;
             const completedCommitments = (coordination?.commitments ?? []).filter((item) => item.status === "terminee" && item.result);
+            // LOT 4 (mandat "de l'action à la valeur démontrable", §18) —
+            // "engagements → résultats → effets → limites → preuves" :
+            // Result canonique, puis Outcome documenté séparément (jamais
+            // déduit automatiquement d'un indicateur ou d'un Result).
+            const situationResults = situation ? resultsForSituation(state, situation) : [];
+            const situationOutcome = outcomesForResults(state, situationResults.map((item) => item.id))[0];
             return (
               <div key={decision.id} className={index === decisions.length - 1 ? "relative pb-1" : "relative border-b border-[var(--etat-line)] pb-6 mb-6"}>
                 <span className="absolute -left-[47px] top-0 grid size-10 place-items-center rounded-full" style={{ backgroundColor: "var(--etat-navy-600)" }}><DecisionIcon size={20} color="var(--etat-offwhite)" /></span>
@@ -98,6 +105,18 @@ export default function RedevabilitePage() {
                             <p key={commitment.id} className="text-[11px] leading-4 text-[var(--etat-stone-600)]"><span className="font-bold text-[var(--etat-navy-950)]">Acteur mobilisé · </span>{mobilizedActor?.name ?? commitment.actorId} <span className="font-bold text-[var(--etat-navy-950)]">· Résultat · </span>{commitment.result}</p>
                           );
                         })}
+                      </div>
+                    )}
+                    {situationResults.length > 0 && (
+                      <div className="mt-2 border-t border-[var(--etat-line)] pt-2">
+                        {situationOutcome ? (
+                          <p className="text-[11px] leading-4 text-[var(--etat-stone-600)]">
+                            <span className="font-bold text-[var(--etat-navy-950)]">Effet observé · </span>{situationOutcome.statement}
+                            <span className="text-[var(--etat-stone-400)]"> ({attributionLevelLabels[situationOutcome.attribution].toLowerCase()})</span>
+                          </p>
+                        ) : (
+                          <p className="text-[11px] leading-4 text-[var(--etat-stone-400)]"><span className="font-bold text-[var(--etat-navy-950)]">Effet · </span>Impact non encore mesuré.</p>
+                        )}
                       </div>
                     )}
                   </div>

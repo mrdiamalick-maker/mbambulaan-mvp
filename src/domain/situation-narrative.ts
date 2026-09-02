@@ -18,7 +18,9 @@
 // démarche (« quel Finding explique cet objet ? ») à tout porteur de
 // sourceRefs/KnowledgeSourceRef[], pas seulement à Situation.findingId.
 import {
+  attributionLevelLabels as attributionLevelLabel,
   decisionTypeLabels,
+  impactStatusLabels as impactStatusLabel,
   type Decision,
   type Finding,
   type KnowledgeSourceRef,
@@ -253,13 +255,38 @@ export function describeFindingTrust(finding: Finding): string {
   return `${label} — constat appuyé par ${count} éléments référencés dans Mbàmbulaan.`;
 }
 
-export type ValueTrailStepKey = "signal" | "comprehension" | "decision" | "engagement" | "resultat";
+export type ValueTrailStepKey = "signal" | "comprehension" | "decision" | "engagement" | "resultat" | "changement" | "impact" | "apprentissage";
 
 export interface ValueTrailStep {
   key: ValueTrailStepKey;
   label: string;
   proven: boolean;
   detail: string;
+}
+
+// resultsForSituation/outcomesForResults/impactsForOutcomes/
+// learningsForSituation (LOT 4, mandat "de l'action à la valeur
+// démontrable", §9) — mêmes principes que le reste de ce fichier :
+// dérivations pures depuis ProductState, jamais de texte fabriqué. Le
+// Result canonique d'une Situation se reconnaît par sourceRef
+// {objectType:"situation", objectId}, jamais par un second champ
+// dupliqué sur Situation.
+export function resultsForSituation(state: ProductState, situation: Situation) {
+  return state.results.filter((item) => item.sourceRef.objectType === "situation" && item.sourceRef.objectId === situation.id);
+}
+
+export function outcomesForResults(state: ProductState, resultIds: string[]) {
+  if (resultIds.length === 0) return [];
+  return state.outcomes.filter((item) => item.sourceResultIds.some((id) => resultIds.includes(id)));
+}
+
+export function impactsForOutcomes(state: ProductState, outcomeIds: string[]) {
+  if (outcomeIds.length === 0) return [];
+  return state.impactEvidences.filter((item) => outcomeIds.includes(item.outcomeId));
+}
+
+export function learningsForSituation(state: ProductState, situation: Situation) {
+  return state.learnings.filter((item) => item.situationId === situation.id);
 }
 
 // buildValueTrail (§13, "Value Trail V1") — chaque étape s'appuie sur un
@@ -316,6 +343,49 @@ export function buildValueTrail(state: ProductState, situation: Situation): Valu
       label: "Résultat",
       proven: Boolean(situation.result),
       detail: situation.result ?? "Effet à confirmer — aucun résultat constaté pour le moment"
+    },
+    ...buildImpactTrailSteps(state, situation)
+  ];
+}
+
+// buildImpactTrailSteps (LOT 4, mandat "de l'action à la valeur
+// démontrable", §9) — prolonge la Value Trail au-delà du Résultat :
+// Changement observé → Impact → Apprentissage. Chaque étape pointe vers
+// un objet réel (Outcome/ImpactEvidence/Learning) ou s'annonce
+// honnêtement absente, même discipline que le reste de buildValueTrail
+// (mandat §29, "aucun texte décoratif présenté comme donnée"). Un Outcome
+// sans ImpactEvidence associée affiche explicitement "Impact non encore
+// mesuré" plutôt qu'une case vide (mandat §13) — jamais un objet
+// ImpactEvidence fabriqué pour combler ce stade.
+function buildImpactTrailSteps(state: ProductState, situation: Situation): ValueTrailStep[] {
+  const results = resultsForSituation(state, situation);
+  const outcomes = outcomesForResults(state, results.map((item) => item.id));
+  const impacts = impactsForOutcomes(state, outcomes.map((item) => item.id));
+  const learnings = learningsForSituation(state, situation);
+  const outcome = outcomes[0];
+  const impact = impacts[0];
+  const learning = learnings[0];
+
+  return [
+    {
+      key: "changement",
+      label: "Changement observé",
+      proven: Boolean(outcome),
+      detail: outcome
+        ? `${outcome.statement} (attribution : ${attributionLevelLabel[outcome.attribution].toLowerCase()})`
+        : "Effet opérationnel à confirmer — aucun changement documenté pour le moment"
+    },
+    {
+      key: "impact",
+      label: "Impact",
+      proven: Boolean(impact && impact.status !== "a_mesurer"),
+      detail: impact ? `${impactStatusLabel[impact.status]} — ${impact.statement}` : "Impact non encore mesuré"
+    },
+    {
+      key: "apprentissage",
+      label: "Apprentissage",
+      proven: Boolean(learning),
+      detail: learning ? learning.summary : "Aucun apprentissage enregistré pour ce dossier à ce stade"
     }
   ];
 }

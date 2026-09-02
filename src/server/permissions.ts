@@ -54,6 +54,15 @@ const all: Command["type"][] = [
   "create_field_mission",
   "update_field_mission_status",
   "record_observation",
+  // LOT 4 — Impact & Learning (mandat "de l'action à la valeur
+  // démontrable") : mêmes rôles de coordination que create_initiative/
+  // create_field_mission — documenter un changement observé, un impact ou
+  // un apprentissage reste un geste de coordination, jamais celui d'un
+  // acteur de terrain individuel.
+  "create_result",
+  "record_outcome",
+  "record_impact",
+  "record_learning",
   "reset_demo"
 ];
 
@@ -133,7 +142,12 @@ const allowed: Record<Role, Command["type"][]> = {
     // (décision de coordination), pas d'exécution de mission (réservée à
     // "operateur").
     "create_field_mission",
-    "update_field_mission_status"
+    "update_field_mission_status",
+    // LOT 4 — même mandat que create_initiative déjà ouvert à ce rôle.
+    "create_result",
+    "record_outcome",
+    "record_impact",
+    "record_learning"
   ],
   coordinateur: all,
   institution: [
@@ -159,6 +173,13 @@ const allowed: Record<Role, Command["type"][]> = {
     // LOT 3 — même mandat que plan_field_commitment, déjà ouvert à ce rôle.
     "create_field_mission",
     "update_field_mission_status",
+    // LOT 4 — même mandat que create_initiative, déjà ouvert à ce rôle
+    // (institution porte le programme init-immatriculation dans le Demo
+    // World, vertical slice Programme).
+    "create_result",
+    "record_outcome",
+    "record_impact",
+    "record_learning",
     "reset_demo"
   ],
   partenaire: ["create_community_post"]

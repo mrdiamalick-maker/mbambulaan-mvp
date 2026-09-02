@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, MessageCircleMore, MessageSquare, PhoneCall } from "lucide-react";
+import { Mail, MessageCircleMore, MessageSquare, PhoneCall, Sparkles } from "lucide-react";
 import { communicationChannelLabels, communicationStatusLabels, evidenceTypeLabels, type CommunicationChannel, type CommunicationStatus, type ProductState, type Situation } from "@/domain/types";
+import { buildValueTrail, resultsForSituation } from "@/domain/situation-narrative";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { EngagementIcon, PreuveIcon } from "@/components/etat/MotifIcons";
 import { ChannelBadge, TrustBadge } from "@/components/shared/StatusBadges";
@@ -15,6 +16,8 @@ import { SituationTimeline } from "@/components/situations/SituationTimeline";
 import { EvidenceForm } from "@/components/situations/EvidenceForm";
 import { CommunicationForm } from "@/components/situations/CommunicationForm";
 import { CoordinationProposal } from "@/components/coordination/CoordinationProposal";
+import { OutcomeForm } from "@/components/impact/OutcomeForm";
+import { LearningForm } from "@/components/impact/LearningForm";
 import { priorityLabels, priorityToTag } from "@/lib/status-tokens";
 
 const communicationChannelIcons: Record<CommunicationChannel, typeof PhoneCall> = {
@@ -68,6 +71,8 @@ const capacityTypeLabels: Record<"glace" | "stockage" | "transport" | "transform
 export function SituationRoom({ situation, state }: { situation: Situation; state: ProductState }) {
   const [evidenceDrawerOpen, setEvidenceDrawerOpen] = useState(false);
   const [communicationDrawerOpen, setCommunicationDrawerOpen] = useState(false);
+  const [outcomeDrawerOpen, setOutcomeDrawerOpen] = useState(false);
+  const [learningDrawerOpen, setLearningDrawerOpen] = useState(false);
   const territory = state.territories.find((item) => item.id === situation.territoryId);
   const signal = state.signals.find((item) => situation.signalIds.includes(item.id));
   const signalCapturedBy = state.actors.find((item) => item.id === signal?.actorId);
@@ -82,6 +87,12 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
   const communications = state.communications
     .filter((item) => item.situationId === situation.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // LOT 4 (mandat "de l'action à la valeur démontrable", §10) — Value
+  // Trail étendue (Signal → ... → Résultat → Changement → Impact →
+  // Apprentissage), et les Results canoniques réels de cette Situation
+  // (source du bouton "Documenter le changement observé" ci-dessous).
+  const valueTrail = buildValueTrail(state, situation);
+  const situationResults = resultsForSituation(state, situation);
 
   const alternativeCapacities = state.capacities
     .filter((item) => item.status === "disponible")
@@ -209,6 +220,30 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
         </div>
       </section>
 
+      <section className="space-y-5 border-t pt-7">
+        <div>
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#1d4468]"><Sparkles size={14} /> De la réalité à la valeur</p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight">Ce qui a été fait, ce qui a changé, ce que nous en retenons.</h2>
+        </div>
+        <div className="space-y-2">
+          {valueTrail.map((step, index) => (
+            <div key={step.key} className="flex items-start gap-2.5 rounded-lg border bg-muted/20 p-3">
+              <span className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${step.proven ? "bg-[#1d4468] text-white" : "border border-dashed text-muted-foreground"}`}>{index + 1}</span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{step.label}{!step.proven && <span className="ml-1.5 font-normal text-muted-foreground">— à confirmer</span>}</p>
+                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{step.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" disabled={situationResults.length === 0} onClick={() => setOutcomeDrawerOpen(true)}>
+            {situationResults.length === 0 ? "Documenter le changement observé (nécessite un résultat)" : "Documenter le changement observé"}
+          </Button>
+          <Button variant="outline" onClick={() => setLearningDrawerOpen(true)}>Enregistrer un apprentissage</Button>
+        </div>
+      </section>
+
       <section className="border-t pt-7">
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Historique</p>
         <div className="mt-4 space-y-3">
@@ -232,6 +267,20 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
         <SheetContent className="overflow-y-auto">
           <SheetHeader><SheetTitle>Consigner une communication</SheetTitle><SheetDescription>Communication simulée : aucun message, appel ou notification réel n’est envoyé. L’échange est uniquement consigné dans Mbàmbulaan.</SheetDescription></SheetHeader>
           <CommunicationForm situationId={situation.id} commitments={commitments} onDone={() => setCommunicationDrawerOpen(false)} />
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={outcomeDrawerOpen} onOpenChange={setOutcomeDrawerOpen}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader><SheetTitle>Documenter le changement observé</SheetTitle><SheetDescription>Une activité réalisée n’est pas un changement en soi — décrivez ce qui a réellement évolué, avec son niveau d’attribution.</SheetDescription></SheetHeader>
+          {situationResults.length > 0 && <OutcomeForm results={situationResults} onDone={() => setOutcomeDrawerOpen(false)} onCancel={() => setOutcomeDrawerOpen(false)} />}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={learningDrawerOpen} onOpenChange={setLearningDrawerOpen}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader><SheetTitle>Enregistrer un apprentissage</SheetTitle><SheetDescription>Que devons-nous faire différemment ou réutiliser ailleurs ?</SheetDescription></SheetHeader>
+          <LearningForm situationId={situation.id} onDone={() => setLearningDrawerOpen(false)} onCancel={() => setLearningDrawerOpen(false)} />
         </SheetContent>
       </Sheet>
     </div>

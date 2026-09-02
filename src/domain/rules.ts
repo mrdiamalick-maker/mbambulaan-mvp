@@ -12,6 +12,7 @@ import type {
   Opportunity,
   ProductState,
   ProgramOpportunity,
+  Result,
   ServiceRequest,
   ServiceRequestIntent,
   Signal,
@@ -21,6 +22,7 @@ import type {
 import { communicationChannelLabels, decisionTypeLabels, evidenceTypeLabels } from "./types";
 import { applyKnowledgePipelineCommand, promoteSignalToSituation } from "./knowledge-pipeline";
 import { applyFieldMissionCommand } from "./field-mission";
+import { applyImpactCommand } from "./impact";
 
 // Le moteur de rapprochement Lot ↔ ServiceRequest (§5.11) ne concerne que
 // les intentions d'approvisionnement : une demande de formation ou de
@@ -87,6 +89,10 @@ const transitions: Record<
     | "create_field_mission"
     | "update_field_mission_status"
     | "record_observation"
+    | "create_result"
+    | "record_outcome"
+    | "record_impact"
+    | "record_learning"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -832,6 +838,14 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   ) {
     return applyFieldMissionCommand(state, command);
   }
+  if (
+    command.type === "create_result" ||
+    command.type === "record_outcome" ||
+    command.type === "record_impact" ||
+    command.type === "record_learning"
+  ) {
+    return applyImpactCommand(state, command);
+  }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
   }
@@ -931,6 +945,12 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   // une Evidence de type "confirmation" — sans exiger de saisie
   // supplémentaire, sans toucher au comportement de record_evidence.
   let resultEvidence: Evidence | undefined;
+  // LOT 4 (mandat "de l'action à la valeur démontrable", §7) : "lors de
+  // record_result, produire ou relier un Result canonique" — sans rien
+  // changer au comportement legacy ci-dessus (situation.result/
+  // confirmation, resultEvidence). Le Result vit dans state.results,
+  // jamais dans une chaîne de texte supplémentaire (TEST A).
+  let canonicalResult: Result | undefined;
 
   if (command.type === "wait") {
     if (situationItem.status !== "intervention") throw new Error("Seule une intervention en cours peut être mise en attente.");
@@ -987,6 +1007,17 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
         recordedAt: timestamp(),
         trust: "consolidee"
       };
+      canonicalResult = {
+        id: id("result"),
+        title: `Résultat — ${situationItem.title}`,
+        description: command.result,
+        sourceRef: { objectType: "situation", objectId: situationItem.id },
+        territoryIds: [situationItem.territoryId],
+        recordedAt: timestamp(),
+        recordedByActorId: command.actorId,
+        evidenceRefs: [resultEvidence.id],
+        trust: "consolidee"
+      };
     }
     if (command.type === "close") {
       updated.nextStep = "Partager l’apprentissage avec les autres quais";
@@ -999,7 +1030,8 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   const next = {
     ...state,
     situations: state.situations.map((item) => (item.id === updated.id ? updated : item)),
-    evidences: resultEvidence ? [resultEvidence, ...state.evidences] : state.evidences
+    evidences: resultEvidence ? [resultEvidence, ...state.evidences] : state.evidences,
+    results: canonicalResult ? [canonicalResult, ...state.results] : state.results
   };
   return withAudit(next, command.actorId, "situation", updated.id, command.type, detail);
 }
@@ -1030,6 +1062,10 @@ export type WorkflowAction = Exclude<
   | "create_field_mission"
   | "update_field_mission_status"
   | "record_observation"
+  | "create_result"
+  | "record_outcome"
+  | "record_impact"
+  | "record_learning"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {

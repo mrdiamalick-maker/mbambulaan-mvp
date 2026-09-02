@@ -685,6 +685,15 @@ export interface Evidence {
   commitmentId?: string;
   missionId?: string;
   observationId?: string;
+  // LOT 4 (mandat "de l'action à la valeur démontrable", §19 : "Result,
+  // Outcome et Impact doivent être traçables") — additifs, même
+  // discipline que missionId/observationId : une Evidence créée en même
+  // temps qu'un Result/Outcome/ImpactEvidence porte cette origine, jamais
+  // plus d'une à la fois en pratique, mais rien ne l'interdit
+  // structurellement.
+  resultId?: string;
+  outcomeId?: string;
+  impactId?: string;
   type: EvidenceType;
   label: string;
   detail: string;
@@ -927,12 +936,147 @@ export interface Initiative {
   serviceRequestIds?: string[];
 }
 
+// Impact & Learning (LOT 4, mandat "de l'action à la valeur démontrable")
+// — quatrième capacité fondamentale : Mbàmbulaan distingue explicitement
+// ce qui a été FAIT (Result), ce qui a CHANGÉ (Outcome) et l'EFFET plus
+// large ou durable (Impact), sans jamais transformer automatiquement
+// l'un en l'autre (mandat §2 : "une activité réalisée n'est pas un
+// Outcome. Un Outcome n'est pas automatiquement un Impact.").
+//
+// Result — objet factuel représentant ce qui a été réalisé/produit
+// (mandat §6). sourceRef restreint à situation/initiative (les 2 sources
+// couvertes par ce lot — Situation via record_result, Initiative via
+// create_result) plutôt que le KnowledgeSourceRef générique : un Result
+// répond à "quel objet a produit ce fait", pas "quelles sources
+// documentent une affirmation" (KnowledgeSourceRef reste réservé à ce
+// second usage, Finding/CollectiveNeed/ProgramOpportunity/Learning).
+export interface Result {
+  id: string;
+  title: string;
+  description: string;
+  sourceRef: { objectType: "situation" | "initiative"; objectId: string };
+  territoryIds: string[];
+  recordedAt: string;
+  recordedByActorId: string;
+  // Références vers des Evidence réelles (Evidence.id) — un Result peut
+  // exister sans preuve jointe (ex. Result canonique produit par
+  // record_result lorsqu'aucune Evidence supplémentaire n'a été saisie),
+  // mais jamais en dupliquant Evidence lui-même.
+  evidenceRefs: string[];
+  trust: TrustLevel;
+}
+
+// Attribution (mandat §3) — jamais transformer une corrélation en
+// causalité : 3 niveaux explicites, aucun état par défaut implicite qui
+// laisserait croire à un lien plus fort que ce qui est documenté.
+export type AttributionLevel = "directe" | "contributive" | "non_etablie";
+
+export const attributionLevelLabels: Record<AttributionLevel, string> = {
+  directe: "Directe",
+  contributive: "Partielle / contributive",
+  non_etablie: "Corrélation / non établie"
+};
+
+// Outcome — le changement opérationnel observé après l'action (mandat
+// §6). Exige toujours au moins un Result source (TEST C) et une
+// attribution explicite (TEST D) — jamais déduits, toujours saisis par un
+// humain (record_outcome). baseline reste un texte libre plutôt qu'une
+// structure : "valeur d'indicateur existante, observation avant
+// intervention, état initial documenté, ou absence explicite de
+// baseline" (mandat §20) — 4 formes différentes qu'un champ texte simple
+// couvre sans sur-modéliser, l'absence (undefined) restant honnêtement
+// affichable ("Baseline insuffisante...").
+export interface Outcome {
+  id: string;
+  title: string;
+  statement: string;
+  territoryIds: string[];
+  sourceResultIds: string[];
+  baseline?: string;
+  observedAt: string;
+  evidenceRefs: string[];
+  trust: TrustLevel;
+  attribution: AttributionLevel;
+  // Obligatoire si attribution === "directe" (mandat §12, TEST E — validé
+  // dans le domaine, pas au niveau du type : la contrainte dépend d'une
+  // valeur, pas de la forme). Recommandé mais non forcé pour les 2 autres
+  // niveaux — "limits" porte alors les facteurs externes/limites.
+  attributionJustification?: string;
+  limits?: string;
+  createdByActorId: string;
+  createdAt: string;
+}
+
+// Statut d'un Impact (mandat §6/§13) — "à mesurer" est un état honnête et
+// attendu pour la plupart des scénarios V1, jamais un échec à masquer.
+export type ImpactStatus = "a_mesurer" | "partiellement_documente" | "documente";
+
+export const impactStatusLabels: Record<ImpactStatus, string> = {
+  a_mesurer: "À mesurer",
+  partiellement_documente: "Partiellement documenté",
+  documente: "Documenté"
+};
+
+// ImpactEvidence (mandat §6, "structure légère" préférée à un Impact
+// national complexe) — jamais créé automatiquement par record_outcome
+// (mandat §2/§13, TEST F : "Outcome ne crée aucun Impact automatiquement").
+// simulated (mandat §13) : si le Demo World devait un jour présenter une
+// démonstration d'impact simulée, elle doit être explicitement taguée —
+// absent/false pour toute donnée réelle du modèle.
+export interface ImpactEvidence {
+  id: string;
+  title: string;
+  statement: string;
+  outcomeId: string;
+  territoryIds: string[];
+  attribution: AttributionLevel;
+  status: ImpactStatus;
+  evidenceRefs: string[];
+  period?: string;
+  limits?: string;
+  simulated?: boolean;
+  createdByActorId: string;
+  createdAt: string;
+}
+
+// Statut d'un Learning (mandat §14 : "proposé" / "validé" — éventuel,
+// jamais un moteur de validation automatique).
+export type LearningStatus = "propose" | "valide";
+
+export const learningStatusLabels: Record<LearningStatus, string> = {
+  propose: "Proposé",
+  valide: "Validé"
+};
+
+// Learning — étendu en place (LOT 4, mandat "faire évoluer l'objet
+// existant au lieu de créer LearningV2") plutôt que remplacé : situationId
+// reste la source historique (13 apprentissages du Demo World), désormais
+// optionnel puisqu'un Learning peut aussi naître d'une Initiative, d'un
+// Outcome ou d'une Mission/Observation terrain (mandat §14) — au moins
+// une source réelle est exigée par record_learning (TEST I, "Learning
+// conserve ses sources"), jamais un Learning orphelin. Jamais généré
+// automatiquement par le système (mandat §14, TEST H) : record_learning
+// est toujours un geste humain explicite.
 export interface Learning {
   id: string;
-  situationId: string;
+  situationId?: string;
+  initiativeId?: string;
+  outcomeId?: string;
+  fieldMissionId?: string;
   title: string;
   summary: string;
+  // "contexte" (mandat §14) — le cadre dans lequel l'apprentissage a été
+  // identifié, texte libre distinct du résumé lui-même.
+  context?: string;
   reusableIn: string[];
+  // "fondement/source" (mandat §14) — réutilise KnowledgeSourceRef plutôt
+  // qu'un nouveau type : même besoin que Finding.sourceRefs ("sur quoi
+  // repose cette affirmation"), pas "quel objet l'a produite" (porté par
+  // les 4 champs de traçabilité ci-dessus).
+  sourceRefs?: KnowledgeSourceRef[];
+  createdByActorId?: string;
+  createdAt?: string;
+  status?: LearningStatus;
 }
 
 export interface Report {
@@ -1028,6 +1172,14 @@ export interface ProductState {
   partnerServices: PartnerService[];
   initiatives: Initiative[];
   learnings: Learning[];
+  // Result/Outcome/ImpactEvidence (LOT 4, mandat "de l'action à la valeur
+  // démontrable") — additifs, même discipline que
+  // fieldMissions/observations ci-dessus. Situation.result/confirmation
+  // restent inchangés (mandat §7, "pas de migration destructive") ;
+  // record_result produit désormais AUSSI un Result canonique ici.
+  results: Result[];
+  outcomes: Outcome[];
+  impactEvidences: ImpactEvidence[];
   reports: Report[];
   plans: Plan[];
   subscriptions: Subscription[];
@@ -1243,6 +1395,79 @@ export type Command =
       nature: ObservationNature;
       trust: TrustLevel;
       evidence?: { evidenceType: EvidenceType; label: string; detail: string };
+    }
+  // --- LOT 4 — Impact & Learning (mandat "de l'action à la valeur
+  // démontrable"). Discipline commune rappelée une fois : aucune commande
+  // ne promeut automatiquement vers l'étape suivante (record_outcome ne
+  // crée jamais d'ImpactEvidence, record_result via la machine à états de
+  // Situation continue de fonctionner à l'identique — cf. rules.ts).
+  //
+  // create_result — Result canonique manuel, pour les sources qui ne
+  // passent pas par record_result (Initiative notamment, vertical slice
+  // Programme). record_result (Situation) produit désormais AUSSI un
+  // Result canonique directement dans son propre handler (rules.ts),
+  // sans passer par cette commande — pas de double geste pour Joal.
+  | {
+      type: "create_result";
+      actorId: string;
+      title: string;
+      description: string;
+      sourceRef: { objectType: "situation" | "initiative"; objectId: string };
+      trust: TrustLevel;
+      evidence?: { evidenceType: EvidenceType; label: string; detail: string };
+    }
+  // record_outcome — exige au moins un Result source réel (TEST C) et une
+  // attribution explicite (TEST D) ; territoryIds dérivé des Results
+  // sources plutôt que ressaisi (mandat §11, "ne pas demander 30
+  // champs"). attributionJustification obligatoire si attribution ===
+  // "directe" (TEST E, validé dans le domaine).
+  | {
+      type: "record_outcome";
+      actorId: string;
+      title: string;
+      statement: string;
+      sourceResultIds: string[];
+      baseline?: string;
+      observedAt?: string;
+      trust: TrustLevel;
+      attribution: AttributionLevel;
+      attributionJustification?: string;
+      limits?: string;
+      evidence?: { evidenceType: EvidenceType; label: string; detail: string };
+    }
+  // record_impact — toujours une commande séparée et explicite (jamais un
+  // effet de bord de record_outcome, TEST F) ; status "a_mesurer" reste un
+  // état honnête et attendu (mandat §13), pas un échec.
+  | {
+      type: "record_impact";
+      actorId: string;
+      title: string;
+      statement: string;
+      outcomeId: string;
+      attribution: AttributionLevel;
+      status: ImpactStatus;
+      period?: string;
+      limits?: string;
+      simulated?: boolean;
+      evidence?: { evidenceType: EvidenceType; label: string; detail: string };
+    }
+  // record_learning — toujours un geste humain explicite (mandat §14,
+  // TEST H) : jamais généré automatiquement. Au moins une source réelle
+  // exigée (situationId/initiativeId/outcomeId/fieldMissionId ou
+  // sourceRefs non vide) — TEST I, "Learning conserve ses sources".
+  | {
+      type: "record_learning";
+      actorId: string;
+      title: string;
+      summary: string;
+      context?: string;
+      reusableIn: string[];
+      situationId?: string;
+      initiativeId?: string;
+      outcomeId?: string;
+      fieldMissionId?: string;
+      sourceRefs?: KnowledgeSourceRef[];
+      status?: LearningStatus;
     }
   | { type: "reset_demo"; actorId: string };
 

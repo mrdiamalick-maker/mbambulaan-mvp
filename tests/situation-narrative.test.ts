@@ -169,7 +169,11 @@ test("TEST F — buildValueTrail s'appuie sur de vrais objets et n'invente jamai
   const state = createDemoState();
   const situation = state.situations.find((item) => item.id === "sit-joal-glace-recurrence")!;
   const trail = buildValueTrail(state, situation);
-  assert.equal(trail.map((step) => step.key).join(","), "signal,comprehension,decision,engagement,resultat");
+  // LOT 4 (mandat "de l'action à la valeur démontrable", §9) : la Value
+  // Trail est prolongée de 5 à 8 étapes (Changement observé, Impact,
+  // Apprentissage) — mise à jour attendue de cette assertion, pas une
+  // régression.
+  assert.equal(trail.map((step) => step.key).join(","), "signal,comprehension,decision,engagement,resultat,changement,impact,apprentissage");
 
   const signalStep = trail.find((step) => step.key === "signal")!;
   assert.equal(signalStep.proven, true);
@@ -182,6 +186,16 @@ test("TEST F — buildValueTrail s'appuie sur de vrais objets et n'invente jamai
   assert.equal(resultStep.proven, false, "aucun résultat n'a encore été constaté pour ce dossier — ne doit jamais être présenté comme prouvé");
   assert.match(resultStep.detail, /à confirmer/i);
   assert.equal(situation.result, undefined, "non-fabrication : le Résultat ne doit pas exister tant qu'il n'est pas réellement constaté");
+
+  // LOT 4 — sans Result, les 3 nouvelles étapes restent honnêtement non
+  // prouvées, jamais un texte décoratif présenté comme donnée.
+  const changementStep = trail.find((step) => step.key === "changement")!;
+  assert.equal(changementStep.proven, false);
+  const impactStep = trail.find((step) => step.key === "impact")!;
+  assert.equal(impactStep.proven, false);
+  assert.match(impactStep.detail, /non encore mesuré/i);
+  const apprentissageStep = trail.find((step) => step.key === "apprentissage")!;
+  assert.equal(apprentissageStep.proven, false);
 });
 
 // Correction Product Review (LOT 1, 2026-09-01, "Commitment ≠ Action") —

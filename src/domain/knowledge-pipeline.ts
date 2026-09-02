@@ -50,7 +50,11 @@ function requireSourceRefs(sourceRefs: KnowledgeSourceRef[], label: string) {
 // (record_finding, create_collective_need, create_program_opportunity) :
 // "Every claim must be traceable" s'applique identiquement partout où un
 // KnowledgeSourceRef apparaît.
-function resolveKnowledgeSourceRef(state: ProductState, ref: KnowledgeSourceRef): boolean {
+// Exportée (LOT 4) : réutilisée telle quelle par impact.ts pour valider
+// Learning.sourceRefs — même discipline "une source doit exister
+// réellement pour être citée" que Finding/CollectiveNeed/ProgramOpportunity,
+// pas une seconde implémentation.
+export function resolveKnowledgeSourceRef(state: ProductState, ref: KnowledgeSourceRef): boolean {
   switch (ref.objectType) {
     case "signal":
       return state.signals.some((item) => item.id === ref.objectId);
