@@ -428,3 +428,14 @@ export function buildWorkdayView(state: ProductState, actorId: string, role: Rol
   };
 }
 
+// XXL-R0 (Demo Integrity, correctif n°5) — garde-fou mécanique contre le
+// défilement mobile non plafonné constaté par l'Audit Maritime
+// Intelligence sur "Votre travail" / "Ce que vous attendez des autres"
+// (WorkdayHub.tsx). Fonction pure, testable indépendamment du rendu React
+// (cf. tests/xxl-r0-demo-integrity.test.ts) — le composant ne fait que
+// l'appliquer et afficher le reste derrière un "Voir tout".
+export function capItemsForDisplay<T>(items: T[], visibleCount: number): { visible: T[]; hiddenCount: number } {
+  const visible = items.slice(0, visibleCount);
+  return { visible, hiddenCount: items.length - visible.length };
+}
+

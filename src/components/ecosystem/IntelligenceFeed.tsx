@@ -54,6 +54,120 @@ function Empty({ label }: { label: string }) {
   return <div className="grid min-h-32 place-items-center p-8 text-center text-sm text-muted-foreground">{label}</div>;
 }
 
+// XXL-R0 (Demo Integrity, correctif n°6) — cause vérifiée de la répétition
+// verbatim signalée par l'Audit Maritime Intelligence : chaque détection
+// reste un objet réel et distinct (35 capacités différentes pour la seule
+// règle de fraîcheur, dans le jeu de démonstration — vérifié), mais la
+// carte repliée n'affichait que item.alert.title, identique pour toutes
+// les occurrences d'une même règle générique. Ce n'est ni une donnée
+// dupliquée ni un rendu React incorrect : c'est un intitulé commun affiché
+// une fois par occurrence plutôt qu'une seule fois pour le groupe.
+// Correction demandée par le mandat : "information commune affichée une
+// fois, puis sources/listes en dessous" — sans jamais masquer une source
+// individuelle (chaque occurrence garde ses faits, ses sources et ses
+// actions propres, disponibles au clic). Pas un redesign du Feed :
+// aucune nouvelle donnée, aucun nouveau geste, seulement un regroupement
+// d'affichage sur le même intitulé.
+export function groupFeedItems(items: IntelligenceFeedItem[]): { title: string; items: IntelligenceFeedItem[] }[] {
+  const order: string[] = [];
+  const byTitle = new Map<string, IntelligenceFeedItem[]>();
+  for (const item of items) {
+    const key = item.alert.title;
+    if (!byTitle.has(key)) {
+      byTitle.set(key, []);
+      order.push(key);
+    }
+    byTitle.get(key)!.push(item);
+  }
+  return order.map((title) => ({ title, items: byTitle.get(title)! }));
+}
+
+// Bloc "détail" (faits / sources / confiance-limites / suite proposée /
+// actions) — extrait tel quel de l'unique carte d'origine (aucun contenu
+// ni geste retiré) pour être réutilisé à la fois par une détection seule
+// et par chaque occurrence d'un groupe (cf. groupFeedItems ci-dessus).
+function FeedItemDetail({
+  item,
+  canAct,
+  dismissingId,
+  pendingId,
+  onDismissStart,
+  onDismissCancel,
+  onDismiss,
+  onRegister,
+  compact = false
+}: {
+  item: IntelligenceFeedItem;
+  canAct: boolean;
+  dismissingId: string | null;
+  pendingId: string | null;
+  onDismissStart: (id: string) => void;
+  onDismissCancel: () => void;
+  onDismiss: (item: IntelligenceFeedItem, reason: FindingRejectionReason) => void;
+  onRegister: (item: IntelligenceFeedItem) => void;
+  compact?: boolean;
+}) {
+  const sourceCounts = item.alert.sourceRefs.reduce<Record<string, number>>((acc, ref) => {
+    acc[ref.objectType] = (acc[ref.objectType] ?? 0) + 1;
+    return acc;
+  }, {});
+  return (
+    <div className={compact ? "mt-3 space-y-3" : "mt-4 space-y-4 border-t pt-4"}>
+      <section>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Pourquoi cela mérite votre attention</p>
+        <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">
+          {item.alert.facts.map((fact) => (
+            <li key={fact.code}>{fact.label} : <strong className="text-foreground">{String(fact.value)}{fact.unit ? ` ${fact.unit}` : ""}</strong></li>
+          ))}
+        </ul>
+      </section>
+      <section>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Sources</p>
+        <p className="mt-1.5 text-xs text-muted-foreground">{Object.entries(sourceCounts).map(([type, count]) => `${count} ${type}`).join(" · ")}</p>
+      </section>
+      <section>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Confiance et limites</p>
+        <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{item.alert.disclaimer} {item.alert.decisionBoundary}</p>
+      </section>
+      <section>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Suite proposée</p>
+        <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{item.draft.nextStep}</p>
+      </section>
+
+      {canAct && (
+        <div className="space-y-2 border-t pt-3">
+          {dismissingId === item.alert.id ? (
+            <div className="space-y-2 rounded-lg border border-dashed p-3">
+              <p className="text-[11px] font-semibold text-muted-foreground">Pourquoi écarter cette occurrence ?</p>
+              <div className="flex flex-wrap gap-1.5">
+                {rejectionReasons.map((reason) => (
+                  <button
+                    key={reason}
+                    type="button"
+                    disabled={pendingId === item.alert.id}
+                    onClick={() => onDismiss(item, reason)}
+                    className="rounded-full border px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:border-primary hover:text-foreground"
+                  >
+                    {findingRejectionReasonLabels[reason]}
+                  </button>
+                ))}
+              </div>
+              <Button size="sm" variant="ghost" onClick={onDismissCancel}>Annuler</Button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" disabled={pendingId === item.alert.id} onClick={() => onRegister(item)}>
+                {pendingId === item.alert.id ? "Enregistrement…" : "Enregistrer comme constat Mbàmbulaan"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => onDismissStart(item.alert.id)}>Écarter cette occurrence</Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function IntelligenceFeed({ state, role }: { state: ProductState; role: Role }) {
   const { run } = useProduct();
   const router = useRouter();
@@ -163,80 +277,65 @@ export function IntelligenceFeed({ state, role }: { state: ProductState; role: R
           <div className="mt-2 rounded-xl border"><Empty label="Aucune détection à examiner pour le moment — cela ne signifie pas qu'aucune réalité ne mérite attention, seulement qu'aucune règle active n'en a trouvé ici." /></div>
         ) : (
           <div className="mt-2 space-y-3">
-            {newItems.map((item) => {
-              const expanded = expandedIds.has(item.alert.id);
-              const sourceCounts = item.alert.sourceRefs.reduce<Record<string, number>>((acc, ref) => {
-                acc[ref.objectType] = (acc[ref.objectType] ?? 0) + 1;
-                return acc;
-              }, {});
+            {groupFeedItems(newItems).map((group) => {
+              if (group.items.length === 1) {
+                const item = group.items[0];
+                const expanded = expandedIds.has(item.alert.id);
+                return (
+                  <div key={item.alert.id} className="rounded-xl border p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={attentionBadge[item.alert.attentionLevel]}>{attentionLabel[item.alert.attentionLevel]}</Badge>
+                          <TrustBadge trust={item.draft.trust} />
+                        </div>
+                        <p className="mt-2 text-sm font-semibold">{item.alert.title}</p>
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => toggleExpanded(item.alert.id)}>
+                        {expanded ? <>Réduire <ChevronUp size={14} /></> : <>Examiner <ChevronDown size={14} /></>}
+                      </Button>
+                    </div>
+                    {expanded && <FeedItemDetail item={item} canAct={canAct} dismissingId={dismissingId} pendingId={pendingId} onDismissStart={setDismissingId} onDismissCancel={() => setDismissingId(null)} onDismiss={dismissDetection} onRegister={registerFinding} />}
+                  </div>
+                );
+              }
+
+              // Groupe (>1 occurrence du même intitulé, cf. groupFeedItems
+              // ci-dessus) : une seule carte, un seul badge d'attention
+              // (le plus élevé du groupe — jamais minimisé), le décompte
+              // réel en toutes lettres. "Examiner" déplie CHAQUE occurrence
+              // individuellement, avec ses propres faits/sources/actions —
+              // rien n'est masqué, seulement regroupé par défaut.
+              const groupKey = `group:${group.title}`;
+              const groupExpanded = expandedIds.has(groupKey);
+              const worstAttention: "critique" | "vigilance" = group.items.some((item) => item.alert.attentionLevel === "critique") ? "critique" : "vigilance";
               return (
-                <div key={item.alert.id} className="rounded-xl border p-4">
+                <div key={groupKey} className="rounded-xl border p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={attentionBadge[item.alert.attentionLevel]}>{attentionLabel[item.alert.attentionLevel]}</Badge>
-                        <TrustBadge trust={item.draft.trust} />
+                        <Badge variant={attentionBadge[worstAttention]}>{attentionLabel[worstAttention]}</Badge>
+                        <Badge variant="outline">{group.items.length} occurrences</Badge>
                       </div>
-                      <p className="mt-2 text-sm font-semibold">{item.alert.title}</p>
+                      <p className="mt-2 text-sm font-semibold">{group.title}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Même règle, {group.items.length} objets distincts — chacun garde ses propres faits, sources et geste.</p>
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => toggleExpanded(item.alert.id)}>
-                      {expanded ? <>Réduire <ChevronUp size={14} /></> : <>Examiner <ChevronDown size={14} /></>}
+                    <Button size="sm" variant="ghost" onClick={() => toggleExpanded(groupKey)}>
+                      {groupExpanded ? <>Réduire <ChevronUp size={14} /></> : <>Examiner ({group.items.length}) <ChevronDown size={14} /></>}
                     </Button>
                   </div>
-
-                  {expanded && (
-                    <div className="mt-4 space-y-4 border-t pt-4">
-                      <section>
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Pourquoi cela mérite votre attention</p>
-                        <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">
-                          {item.alert.facts.map((fact) => (
-                            <li key={fact.code}>{fact.label} : <strong className="text-foreground">{String(fact.value)}{fact.unit ? ` ${fact.unit}` : ""}</strong></li>
-                          ))}
-                        </ul>
-                      </section>
-                      <section>
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Sources</p>
-                        <p className="mt-1.5 text-xs text-muted-foreground">{Object.entries(sourceCounts).map(([type, count]) => `${count} ${type}`).join(" · ")}</p>
-                      </section>
-                      <section>
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Confiance et limites</p>
-                        <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{item.alert.disclaimer} {item.alert.decisionBoundary}</p>
-                      </section>
-                      <section>
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Suite proposée</p>
-                        <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{item.draft.nextStep}</p>
-                      </section>
-
-                      {canAct && (
-                        <div className="space-y-2 border-t pt-3">
-                          {dismissingId === item.alert.id ? (
-                            <div className="space-y-2 rounded-lg border border-dashed p-3">
-                              <p className="text-[11px] font-semibold text-muted-foreground">Pourquoi écarter cette occurrence ?</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {rejectionReasons.map((reason) => (
-                                  <button
-                                    key={reason}
-                                    type="button"
-                                    disabled={pendingId === item.alert.id}
-                                    onClick={() => dismissDetection(item, reason)}
-                                    className="rounded-full border px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:border-primary hover:text-foreground"
-                                  >
-                                    {findingRejectionReasonLabels[reason]}
-                                  </button>
-                                ))}
-                              </div>
-                              <Button size="sm" variant="ghost" onClick={() => setDismissingId(null)}>Annuler</Button>
-                            </div>
-                          ) : (
-                            <div className="flex flex-wrap gap-2">
-                              <Button size="sm" disabled={pendingId === item.alert.id} onClick={() => registerFinding(item)}>
-                                {pendingId === item.alert.id ? "Enregistrement…" : "Enregistrer comme constat Mbàmbulaan"}
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => setDismissingId(item.alert.id)}>Écarter cette occurrence</Button>
-                            </div>
-                          )}
+                  {groupExpanded && (
+                    <div className="mt-4 space-y-3 border-t pt-4">
+                      {group.items.map((item) => (
+                        <div key={item.alert.id} className="rounded-lg border p-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <TrustBadge trust={item.draft.trust} />
+                            <p className="text-xs font-semibold text-muted-foreground">{state.territories.find((territory) => territory.id === item.alert.territoryId)?.name ?? item.alert.territoryId}</p>
+                          </div>
+                          <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{item.alert.description}</p>
+                          <FeedItemDetail item={item} canAct={canAct} dismissingId={dismissingId} pendingId={pendingId} onDismissStart={setDismissingId} onDismissCancel={() => setDismissingId(null)} onDismiss={dismissDetection} onRegister={registerFinding} compact />
                         </div>
-                      )}
+                      ))}
                     </div>
                   )}
                 </div>

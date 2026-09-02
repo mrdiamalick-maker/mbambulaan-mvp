@@ -63,7 +63,7 @@ const lenses: Array<{ id: Lens; label: string; icon: typeof Activity }> = [
 // s'approche de la terre. Choisi plutôt qu'un recalibrage indépendant
 // pour garder les deux cartes illustratives du produit cohérentes
 // entre elles.
-const positions: Record<string, [number, number]> = {
+export const positions: Record<string, [number, number]> = {
   "saint-louis": [43, 9],
   lompoul: [34, 15],
   "fass-boye": [49, 21],
@@ -419,7 +419,28 @@ export function ProfessionalAtlasWorkspace() {
             <div className="ops-map-canvas absolute inset-0 pt-20">
               <div className="ops-landmass" />
               <div className="absolute bottom-5 left-5 z-20 text-[10px] font-bold uppercase tracking-[.2em] text-white/22">Océan Atlantique</div>
-              <div className="absolute left-5 top-24 z-20 rounded-lg border border-white/10 bg-[#0b1a2a]/78 px-3 py-2 text-[10px] font-semibold text-white/46 backdrop-blur">Quais uniquement · les objets métier s’ouvrent dans le poste de travail</div>
+              {/* XXL-R0 (Demo Integrity, correctif n°3) — repositionnée de
+                  left-5 (bord gauche) vers right-5 (bord droit) : aucune des
+                  18 positions littorales (const positions ci-dessus) ne
+                  dépasse 59% de largeur (Hann), tout le flanc droit du
+                  canevas reste donc structurellement libre. L'ancienne
+                  position, côté gauche en haut du canevas, entrait en
+                  collision visuelle avec l'étiquette de Saint-Louis
+                  (left:43, top:9 — le marqueur le plus proche du coin
+                  supérieur gauche) : texte de la légende et texte de
+                  l'étiquette se chevauchaient à 1440 et 1280px. Pas un
+                  redesign de la carte — seulement un déplacement mécanique
+                  pour lever la collision réelle identifiée par l'audit. */}
+              {/* hidden en dessous de sm (mobile étroit) : sur un canevas
+                  ~350px de large, même ancrée à droite, cette légende
+                  informative (pas un contrôle) resterait trop large pour
+                  ne jamais approcher la zone des marqueurs — "dégradé
+                  honnêtement" veut dire absente plutôt qu'à nouveau en
+                  collision partielle. Réapparaît dès sm (≥640px), où
+                  right-5 + max-w-[240px] reste dans la zone structurellement
+                  libre (aucune position littorale ne dépasse 59% de
+                  largeur). */}
+              <div className="absolute right-5 top-24 z-20 hidden max-w-[240px] rounded-lg border border-white/10 bg-[#0b1a2a]/78 px-3 py-2 text-right text-[10px] font-semibold text-white/46 backdrop-blur sm:block">Quais uniquement · les objets métier s’ouvrent dans le poste de travail</div>
               {state.territories.map((item) => {
                 const [left, top] = positions[item.id] ?? [50, 50];
                 const active = item.id === territory.id;

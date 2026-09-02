@@ -11,10 +11,10 @@
 // fait que la mettre en forme — "bureau de travail", pas un dashboard KPI
 // ni un Kanban (mandat §30).
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { ArrowRight, Info, Radio } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ArrowRight, ChevronDown, Info, Radio } from "lucide-react";
 import type { ProductState, Role } from "@/domain/types";
-import { buildWorkdayView, sortWorkdayItems, type WorkdayItem } from "@/domain/workday";
+import { buildWorkdayView, capItemsForDisplay, sortWorkdayItems, type WorkdayItem } from "@/domain/workday";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,6 +51,46 @@ const categoryLabel: Record<WorkdayItem["category"], string> = {
 // qui n'atteint jamais /app/travail — non repris ici) — mirroré plutôt
 // qu'importé du serveur, même discipline que workday.ts.
 const NETWORK_CONTRIBUTION_ROLES: Role[] = ["administrateur", "coordinateur", "gestionnaire_organisation"];
+
+// XXL-R0 (Demo Integrity, correctif n°5) — garde-fou mécanique contre le
+// défilement de ~23 000px observé par l'Audit Maritime Intelligence sur
+// mobile. Cause réelle vérifiée : "rest" (myAttention au-delà du Top 3)
+// et waitingOnOthers étaient rendus intégralement, sans plafond — 89
+// éléments pour le coordinateur de démonstration, chacun haut de
+// plusieurs lignes en colonne sur mobile (ItemRow, flex-col en dessous de
+// md). Pas un redesign d'Aujourd'hui (qui appartient à XXL-R3, cf. audit
+// §10) : seulement une limite d'affichage par défaut + un "Voir tout",
+// qui révèle la même liste réelle déjà calculée par buildWorkdayView —
+// rien n'est masqué en permanence, rien n'est fabriqué. Le Top 3 n'est
+// jamais concerné par ce plafond (toujours affiché en entier).
+//
+// "Voir tout" reste ici une bascule d'affichage plutôt qu'un lien vers
+// une page tierce : buildWorkdayView() agrège des catégories hétérogènes
+// (décisions, coordination, missions terrain, qualification réseau…)
+// sans registre unique existant qui les recouvre toutes — inventer une
+// telle page serait le redesign explicitement exclu de ce lot. La
+// "vraie surface" est donc cette liste elle-même, dans son intégralité,
+// pas un extrait tronqué.
+const WORK_LIST_VISIBLE_COUNT = 5;
+
+function CappedList<T extends { id: string }>({ items, visibleCount, renderItem }: { items: T[]; visibleCount: number; renderItem: (item: T) => ReactNode }) {
+  const [expanded, setExpanded] = useState(false);
+  const { visible, hiddenCount } = expanded ? { visible: items, hiddenCount: 0 } : capItemsForDisplay(items, visibleCount);
+  return (
+    <>
+      {visible.map(renderItem)}
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="flex w-full items-center justify-center gap-1.5 py-3 text-xs font-semibold text-primary hover:underline"
+        >
+          Voir tout ({items.length}) <ChevronDown size={13} />
+        </button>
+      )}
+    </>
+  );
+}
 
 function greeting() {
   const hour = new Date().getHours();
@@ -155,7 +195,9 @@ export function WorkdayHub({ state, actorId, role }: { state: ProductState; acto
       {rest.length > 0 && (
         <section className="border-t pt-6">
           <p className="text-xs font-bold uppercase tracking-widest text-primary">Votre travail</p>
-          <div className="mt-2 divide-y border-y">{rest.map((item) => <ItemRow key={item.id} item={item} />)}</div>
+          <div className="mt-2 divide-y border-y">
+            <CappedList items={rest} visibleCount={WORK_LIST_VISIBLE_COUNT} renderItem={(item) => <ItemRow key={item.id} item={item} />} />
+          </div>
         </section>
       )}
 
@@ -163,12 +205,16 @@ export function WorkdayHub({ state, actorId, role }: { state: ProductState; acto
         <section className="border-t pt-6">
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Ce que vous attendez des autres</p>
           <div className="mt-2 space-y-1">
-            {view.waitingOnOthers.map((item) => (
-              <Link key={item.id} href={item.href} className="flex items-center justify-between gap-2 rounded-md px-2 py-2 text-xs hover:bg-accent">
-                <span><span className="font-semibold">{item.title}</span> — {item.detail}</span>
-                <ArrowRight size={13} className="shrink-0 text-muted-foreground" />
-              </Link>
-            ))}
+            <CappedList
+              items={view.waitingOnOthers}
+              visibleCount={WORK_LIST_VISIBLE_COUNT}
+              renderItem={(item) => (
+                <Link key={item.id} href={item.href} className="flex items-center justify-between gap-2 rounded-md px-2 py-2 text-xs hover:bg-accent">
+                  <span><span className="font-semibold">{item.title}</span> — {item.detail}</span>
+                  <ArrowRight size={13} className="shrink-0 text-muted-foreground" />
+                </Link>
+              )}
+            />
           </div>
         </section>
       )}
