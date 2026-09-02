@@ -105,10 +105,15 @@ export default function HomePage() {
                   Explorer les territoires <MapPinned size={17} />
                 </Link>
               </div>
+              {/* LOT 6 (mandat §32) — le 4e repère rend perceptible la
+                  capacité "mesurer/apprendre" (LOT 4, Results/Outcomes/
+                  Learnings) sans nommer les objets techniques : Mbàmbulaan
+                  ne s'arrête pas à la mise en relation. */}
               <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs font-semibold text-white/56">
                 <span className="inline-flex items-center gap-2"><CheckCircle2 size={15} className="text-[var(--pub-turquoise-300)]" /> Terrain et réseau</span>
                 <span className="inline-flex items-center gap-2"><CheckCircle2 size={15} className="text-[var(--pub-turquoise-300)]" /> Information sourcée</span>
                 <span className="inline-flex items-center gap-2"><CheckCircle2 size={15} className="text-[var(--pub-turquoise-300)]" /> Coordination humaine</span>
+                <span className="inline-flex items-center gap-2"><CheckCircle2 size={15} className="text-[var(--pub-turquoise-300)]" /> Effets suivis dans le temps</span>
               </div>
             </BlurFade>
           </div>

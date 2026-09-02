@@ -150,7 +150,14 @@ export const publicTerritories: PublicTerritory[] = [
   {
     id: "rufisque",
     slug: "rufisque",
-    name: "Rufisque",
+    // LOT 6 (mandat "Public — Comprendre, trouver, contribuer", §19 :
+    // "un même territoire doit avoir le même identifiant canonique...
+    // éviter les copies qui divergent silencieusement sur le nom") —
+    // aligné sur Territory.name côté Core ("Rufisque-Bargny",
+    // demo-state.ts) pour le même id "rufisque". La fiche "Bargny"
+    // distincte plus bas reste une page éditoriale à part (aucun
+    // équivalent Core), non affectée par ce correctif.
+    name: "Rufisque-Bargny",
     type: "Quai",
     region: "Dakar",
     department: "Rufisque",

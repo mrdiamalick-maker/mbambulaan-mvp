@@ -80,7 +80,16 @@ export interface PublicRequestInput {
 // getUnsyncedPublicRequests/syncPendingPublicRequestSignals,
 // src/server/public-repository.ts) — la demande elle-même n'est jamais
 // perdue, seule sa convergence vers le Core peut être en retard.
-export type PublicRequestCoreSignalStatus = "pending" | "synced";
+//
+// "not_applicable" (LOT 6, mandat "Public — Comprendre, trouver,
+// contribuer", §13 : "Toutes les soumissions n'ont pas forcément vocation
+// à devenir un Signal. Exemple : demande presse n'est pas un Signal
+// métier maritime.") — distinct de "pending" : une demande non-métier
+// (presse, partenariat institutionnel, callback générique, "autre" sans
+// contexte métier) n'est jamais mise en file d'attente de convergence,
+// jamais rejouée par syncPendingPublicRequestSignals — cf.
+// isMetierPublicRequest, src/domain/public-request-signal-bridge.ts.
+export type PublicRequestCoreSignalStatus = "pending" | "synced" | "not_applicable";
 
 export interface PublicRequest extends PublicRequestInput {
   id: string;

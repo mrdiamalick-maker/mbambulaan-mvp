@@ -45,9 +45,19 @@ export interface PublicContributionInput {
   notes?: string;
 }
 
+// coreSignalStatus/coreSignalId (LOT 6, mandat "Public — Comprendre,
+// trouver, contribuer", §13/§14) — même discipline que PublicRequest
+// (domain/public/request.ts) : "pending" tant que le Signal Core n'est
+// pas confirmé créé, "synced" une fois confirmé. Additif, ne migre
+// aucune donnée existante — toute PublicContribution créée avant ce lot
+// n'a simplement jamais eu de pont (comportement inchangé pour elle).
+export type PublicContributionCoreSignalStatus = "pending" | "synced";
+
 export interface PublicContribution extends PublicContributionInput {
   id: string;
   reference: string;
   status: PublicContributionStatus;
   createdAt: string;
+  coreSignalStatus: PublicContributionCoreSignalStatus;
+  coreSignalId?: string;
 }

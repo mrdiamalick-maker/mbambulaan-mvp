@@ -10,6 +10,27 @@
 import type { PublicRequestInput } from "@/domain/public/request";
 import type { AuditEntry, Command, Signal, Territory } from "@/domain/types";
 
+// isMetierPublicRequest (LOT 6, mandat "Public — Comprendre, trouver,
+// contribuer", §13/TEST F) — "Toutes les soumissions n'ont pas forcément
+// vocation à devenir un Signal. Exemple : demande presse n'est pas un
+// Signal métier maritime." Une demande "presse", "partenariat"
+// institutionnel, "callback" générique ou "autre" sans contexte métier ne
+// doit jamais polluer le pipeline de Signaux terrain. Exception explicite
+// : une correction/signalement Atlas (category === "Correction Atlas",
+// cf. /contact?intent=correction) reste métier même si son intent
+// générique est "autre" — §13 la cite nommément comme devant entrer dans
+// le Core de manière traçable. Toutes les intentions liées à un besoin
+// réel de la filière (transport, froid, transformation, équipement,
+// maintenance, formation, débouchés, programme, sourcing, connaissance
+// d'un territoire, financement, organisation portant une intervention)
+// restent métier.
+const NON_METIER_INTENTS = new Set<PublicRequestInput["intent"]>(["presse", "partenariat", "callback", "autre"]);
+
+export function isMetierPublicRequest(intent: PublicRequestInput["intent"], category?: string): boolean {
+  if (category === "Correction Atlas") return true;
+  return !NON_METIER_INTENTS.has(intent);
+}
+
 // Source PublicRequest → canal Signal : "web"/"partenaire"/"evenement"
 // n'ont pas d'équivalent honnête parmi les 4 canaux terrain existants
 // (Signal.channel) — regroupés sous "espace_public" plutôt que rattachés
@@ -52,7 +73,10 @@ export interface PublicRequestSignalSyncRequest {
   id: string;
   territory?: string;
   source: PublicRequestInput["source"];
-  intent: string;
+  intent: PublicRequestInput["intent"];
+  // LOT 6 (§13) — nécessaire pour l'exception "Correction Atlas" de
+  // isMetierPublicRequest ci-dessus.
+  category?: string;
   description: string;
   createdAt: string;
 }
@@ -62,10 +86,24 @@ export interface PublicRequestSignalSyncDeps {
   dispatch: (command: Command, idempotencyKey: string) => Promise<{ signals: Signal[]; audit: AuditEntry[] }>;
 }
 
+// LOT 6 (§13/TEST F) — résultat désormais discriminé : `notApplicable`
+// distingue "cette demande n'a jamais eu vocation à devenir un Signal"
+// (presse/partenariat/callback/autre générique) d'un échec temporaire de
+// convergence (`signalId` absent, `notApplicable` faux) qui doit rester
+// "pending" et rejouable. L'appelant (public-repository.ts) décide du
+// coreSignalStatus à partir de cette seule distinction.
+export interface PublicRequestSignalSyncResult {
+  signalId?: string;
+  notApplicable?: boolean;
+}
+
 export async function attemptPublicRequestSignalSync(
   request: PublicRequestSignalSyncRequest,
   deps: PublicRequestSignalSyncDeps
-): Promise<{ signalId?: string }> {
+): Promise<PublicRequestSignalSyncResult> {
+  if (!isMetierPublicRequest(request.intent, request.category)) {
+    return { notApplicable: true };
+  }
   try {
     const state = await deps.getState();
     const territoryId = resolvePublicRequestTerritoryId(state.territories, request.territory);

@@ -7,8 +7,15 @@ const columns = [
     links: [["Découvrir", "/decouvrir"], ["Territoires", "/atlas"], ["Opportunités", "/opportunites"]]
   },
   {
+    // LOT 6 (mandat "Public — Comprendre, trouver, contribuer", §28) —
+    // "Signaler / corriger" existait déjà (accessible depuis l'Atlas,
+    // territoire par territoire) mais n'avait aucune porte d'entrée
+    // globale visible depuis le footer, contrairement à "Proposer une
+    // capacité". Complète les 3 types de contribution du mandat sans
+    // ajouter de nouveau formulaire (réutilise /contact?intent=correction,
+    // déjà câblé).
     title: "Agir",
-    links: [["Décrire une situation", "/solutions"], ["Proposer une capacité", "/contact?intent=contribution"], ["Contact", "/contact"], ["Accès professionnel", "/connexion"]]
+    links: [["Décrire une situation", "/solutions"], ["Proposer une capacité", "/contact?intent=contribution"], ["Signaler une correction", "/contact?intent=correction"], ["Contact", "/contact"], ["Accès professionnel", "/connexion"]]
   },
   {
     title: "Mbàmbulaan",

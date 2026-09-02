@@ -1,4 +1,4 @@
-import { ArrowRight, Footprints, Globe, Handshake, MessageCircle, PhoneCall, Sparkles } from "lucide-react";
+import { ArrowRight, Compass, Footprints, Globe, MessageCircle, PhoneCall, Radio, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { PublicHeader } from "@/components/public/PublicHeader";
@@ -56,18 +56,22 @@ export default async function SolutionsPage({ searchParams }: { searchParams: Pr
         />
       </section>
 
-      {/* PUB-S3 (audit Premium XXL Public, CEO 2026-08-16) : la carte texte
-          "Ce que Mbàmbulaan protège" devient un schéma — 4 canaux d'entrée →
-          Qualification Mbàmbulaan → Besoin structuré → Coordination. Plus
-          différenciant qu'une seconde carte de texte, explique
-          l'infrastructure plutôt que de la décrire. #d9e3e3/#5f7378
-          (couleurs legacy hors palette --pub-*) harmonisés au passage vers
-          --pub-stone-150/--pub-stone-700. */}
+      {/* LOT 6 (mandat "Public — Comprendre, trouver, contribuer", §10) :
+          l'ancien schéma promettait une chaîne fixe "Qualification →
+          Besoin structuré → Coordination", comme si toute demande
+          devenait automatiquement une coordination. Le Core (LOT 0) ne
+          garantit que : Entrée → Signal → qualification → PUIS,
+          éventuellement, une orientation parmi plusieurs (réponse directe,
+          coordination, vérification terrain, besoin collectif,
+          intervention à étudier) — jamais un chemin unique promis
+          d'avance. Le schéma reflète désormais cette réalité sans exposer
+          la taxonomie technique (Signal/Finding/Situation/CollectiveNeed
+          restent invisibles ici, cf. mandat §10). */}
       <section className="border-t border-[var(--pub-stone-150)] bg-white px-5 py-14 md:px-10 md:py-18">
         <div className="mx-auto max-w-[1500px]">
           <p className="pub-eyebrow">Un même moteur, plusieurs canaux</p>
-          <h2 className="mt-3 max-w-3xl text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Web, WhatsApp, téléphone ou terrain : la situation reste le même objet Mbàmbulaan.</h2>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--pub-stone-700)]">Le site n’impose pas un parcours numérique unique. L’équipe peut reprendre le contexte, qualifier le besoin et poursuivre l’échange sur le canal le plus adapté.</p>
+          <h2 className="mt-3 max-w-3xl text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Quel que soit le canal, Mbàmbulaan conserve le contexte, qualifie ce qui est remonté, puis organise la suite adaptée.</h2>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--pub-stone-700)]">Le site n’impose pas un parcours numérique unique. Chaque remontée est conservée avec son contexte, qualifiée par l’équipe, puis orientée vers la suite adaptée — jamais un chemin unique promis d’avance.</p>
 
           <div className="mt-9 rounded-[var(--pub-radius-lg)] border border-[var(--pub-stone-150)] bg-[var(--pub-surface)] p-6 md:p-8">
             <div className="flex flex-col items-stretch gap-3 lg:flex-row lg:items-center lg:justify-center lg:gap-4">
@@ -82,6 +86,13 @@ export default async function SolutionsPage({ searchParams }: { searchParams: Pr
 
               <ArrowRight size={18} className="mx-auto shrink-0 rotate-90 text-[var(--pub-stone-300)] lg:mx-0 lg:rotate-0" aria-hidden />
 
+              <div className="flex shrink-0 flex-col items-center gap-2 rounded-xl border border-[var(--pub-stone-150)] bg-white px-5 py-4 text-center">
+                <Radio size={16} className="text-[var(--pub-deep-800)]" />
+                <span className="text-xs font-bold text-[var(--pub-deep-900)]">Information reçue</span>
+              </div>
+
+              <ArrowRight size={18} className="mx-auto shrink-0 rotate-90 text-[var(--pub-stone-300)] lg:mx-0 lg:rotate-0" aria-hidden />
+
               <div className="flex shrink-0 flex-col items-center gap-2 rounded-xl bg-[var(--pub-deep-900)] px-5 py-4 text-center text-white">
                 <Sparkles size={16} className="text-[var(--pub-turquoise-300)]" />
                 <span className="text-xs font-bold">Qualification Mbàmbulaan</span>
@@ -89,18 +100,22 @@ export default async function SolutionsPage({ searchParams }: { searchParams: Pr
 
               <ArrowRight size={18} className="mx-auto shrink-0 rotate-90 text-[var(--pub-stone-300)] lg:mx-0 lg:rotate-0" aria-hidden />
 
-              <div className="flex shrink-0 flex-col items-center gap-2 rounded-xl border border-[var(--pub-stone-150)] bg-white px-5 py-4 text-center">
-                <span className="text-xs font-bold text-[var(--pub-deep-900)]">Besoin structuré</span>
-              </div>
-
-              <ArrowRight size={18} className="mx-auto shrink-0 rotate-90 text-[var(--pub-stone-300)] lg:mx-0 lg:rotate-0" aria-hidden />
-
               <div className="flex shrink-0 flex-col items-center gap-2 rounded-xl bg-[var(--pub-turquoise-500)] px-5 py-4 text-center text-white">
-                <Handshake size={16} />
-                <span className="text-xs font-bold">Coordination</span>
+                <Compass size={16} />
+                <span className="text-xs font-bold">Suite adaptée</span>
               </div>
             </div>
-            <p className="mt-6 text-xs leading-5 text-[var(--pub-stone-700)]">La situation est qualifiée avant toute mise en relation — les coordonnées de tiers ne sont jamais exposées comme un annuaire.</p>
+
+            <div className="mt-6 border-t border-[var(--pub-stone-150)] pt-5">
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--pub-stone-500)]">Selon la situation, la suite peut être :</p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {["Réponse ou orientation directe", "Coordination", "Vérification terrain", "Besoin collectif", "Intervention à étudier"].map((label) => (
+                  <span key={label} className="rounded-full border border-[var(--pub-stone-150)] bg-white px-3.5 py-1.5 text-xs font-semibold text-[var(--pub-deep-900)]">{label}</span>
+                ))}
+              </div>
+            </div>
+
+            <p className="mt-6 text-xs leading-5 text-[var(--pub-stone-700)]">La demande est qualifiée avant toute mise en relation — les coordonnées de tiers ne sont jamais exposées comme un annuaire, et aucune suite n’est promise d’avance.</p>
           </div>
         </div>
       </section>

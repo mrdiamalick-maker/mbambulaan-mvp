@@ -3,7 +3,7 @@ import test from "node:test";
 import { createDemoState } from "../src/data/demo-state";
 import { applyCommand } from "../src/domain/rules";
 import type { Command, ProductState } from "../src/domain/types";
-import { attemptPublicRequestSignalSync, publicRequestSourceToSignalChannel, resolvePublicRequestTerritoryId } from "../src/domain/public-request-signal-bridge";
+import { attemptPublicRequestSignalSync, isMetierPublicRequest, publicRequestSourceToSignalChannel, resolvePublicRequestTerritoryId } from "../src/domain/public-request-signal-bridge";
 
 // Fake Core (getState/dispatch) reproduisant le vrai mécanisme
 // d'idempotence de src/server/repository.ts (Set de clés déjà rejouées +
@@ -99,7 +99,7 @@ const baseRequest = {
   id: "pr-test-1",
   territory: "Joal-Fadiouth",
   source: "web" as const,
-  intent: "sourcing",
+  intent: "sourcing" as const,
   description: "Recherche de volumes de sardinelle pour une nouvelle unité de transformation.",
   createdAt: new Date().toISOString()
 };
@@ -153,4 +153,49 @@ test("l'état non synchronisé est rejouable : un échec temporaire suivi d'un r
   assert.ok(retried.signalId); // converge.
 
   assert.equal(core.getCurrentState().signals.length, createDemoState().signals.length + 1, "un seul Signal au total, malgré l'échec puis le retry");
+});
+
+// ============================================================
+// LOT 6 (mandat "Public — Comprendre, trouver, contribuer", §13/TEST F)
+// — isMetierPublicRequest / attemptPublicRequestSignalSync doivent
+// exclure les demandes non métier du pipeline Signal, sauf exception
+// explicite "Correction Atlas".
+// ============================================================
+
+test("TEST F — isMetierPublicRequest exclut presse/partenariat/callback/autre du pipeline Signal", () => {
+  assert.equal(isMetierPublicRequest("presse"), false);
+  assert.equal(isMetierPublicRequest("partenariat"), false);
+  assert.equal(isMetierPublicRequest("callback"), false);
+  assert.equal(isMetierPublicRequest("autre"), false);
+});
+
+test("TEST F — isMetierPublicRequest reste vrai pour les intentions métier de la filière", () => {
+  for (const intent of ["transport", "conservation", "transformation", "equipement", "maintenance", "formation", "debouches", "programme", "sourcing", "comprendre-territoire", "financement", "organisation"] as const) {
+    assert.equal(isMetierPublicRequest(intent), true, `${intent} doit rester métier`);
+  }
+});
+
+test("TEST F — exception : une correction Atlas (intent \"autre\" + category \"Correction Atlas\") reste métier", () => {
+  assert.equal(isMetierPublicRequest("autre", "Correction Atlas"), true);
+});
+
+test("TEST F — une demande presse ne crée jamais de Signal (notApplicable, jamais mise en file d'attente)", async () => {
+  const core = makeFakeCore(createDemoState());
+  const signalsBefore = core.getCurrentState().signals.length;
+
+  const result = await attemptPublicRequestSignalSync({ ...baseRequest, intent: "presse", description: "Demande d'interview pour un article." }, core);
+
+  assert.equal(result.signalId, undefined);
+  assert.equal(result.notApplicable, true);
+  assert.equal(core.getCurrentState().signals.length, signalsBefore, "aucun Signal ne doit être créé pour une demande presse");
+});
+
+test("TEST F — une correction Atlas (category \"Correction Atlas\") crée bien un Signal malgré l'intent générique \"autre\"", async () => {
+  const core = makeFakeCore(createDemoState());
+  const signalsBefore = core.getCurrentState().signals.length;
+
+  const result = await attemptPublicRequestSignalSync({ ...baseRequest, intent: "autre", category: "Correction Atlas", description: "Le nom du quai affiché est incorrect." }, core);
+
+  assert.ok(result.signalId, "une correction Atlas doit rester métier et produire un Signal");
+  assert.equal(core.getCurrentState().signals.length, signalsBefore + 1);
 });

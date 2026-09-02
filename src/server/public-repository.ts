@@ -5,6 +5,7 @@ import type { PublicRequest, PublicRequestInput } from "@/domain/public/request"
 import type { PublicContribution, PublicContributionInput } from "@/domain/public/contribution";
 import { dispatch, getState } from "@/server/repository";
 import { attemptPublicRequestSignalSync } from "@/domain/public-request-signal-bridge";
+import { attemptPublicContributionSignalSync } from "@/domain/public-contribution-signal-bridge";
 
 // Persistance des demandes et contributions publiques, volontairement isolée
 // du store du Produit professionnel (src/server/repository.ts). Aucune table
@@ -104,9 +105,16 @@ async function ensureSchema() {
       email text,
       website text,
       notes text,
-      status text not null default 'identifie'
+      status text not null default 'identifie',
+      core_signal_status text not null default 'pending',
+      core_signal_id text
     )
   `;
+  // LOT 6 (§13/§14, "fermer le follow-up laissé par LOT 0") : 2 colonnes
+  // additives sur une table déjà déployée — même discipline que les 2
+  // colonnes équivalentes de mbambulaan_public_requests ci-dessus.
+  await db`alter table mbambulaan_public_contributions add column if not exists core_signal_status text not null default 'pending'`;
+  await db`alter table mbambulaan_public_contributions add column if not exists core_signal_id text`;
   schemaEnsured = true;
 }
 
@@ -137,9 +145,9 @@ function makeReference(prefix: "REQ" | "CTB") {
 // lecture du signal résultant) y est unitairement testée avec des
 // doubles de getState/dispatch (tests/public-request-signal.test.ts) —
 // ce fichier ne fait qu'y injecter les vraies getState/dispatch.
-async function bridgePublicRequestSignal(request: PublicRequest): Promise<{ signalId?: string }> {
+async function bridgePublicRequestSignal(request: PublicRequest): Promise<{ signalId?: string; notApplicable?: boolean }> {
   const result = await attemptPublicRequestSignalSync(request, { getState, dispatch });
-  if (!result.signalId) {
+  if (!result.signalId && !result.notApplicable) {
     console.warn(`bridgePublicRequestSignal: convergence Core non confirmée pour la PublicRequest ${request.id} — reste "pending", rejouable.`);
   }
   return result;
@@ -151,19 +159,31 @@ async function bridgePublicRequestSignal(request: PublicRequest): Promise<{ sign
 // "pending" (détectable, rejouable). Écrit dans le même store que
 // createPublicRequest/markPublicRequestInStudy (mémoire ou Postgres selon
 // l'environnement), jamais dans le store du Core.
-async function persistPublicRequestSignalResult(id: string, signalId: string | undefined): Promise<void> {
-  if (!signalId) return; // reste "pending" par défaut, rien à écrire.
+// LOT 6 (§13) — troisième issue possible : `notApplicable` (demande non
+// métier, jamais mise en file d'attente) s'écrit "not_applicable", jamais
+// "pending" (qui resterait indéfiniment rejouée par
+// syncPendingPublicRequestSignals sans jamais converger).
+async function persistPublicRequestSignalResult(id: string, result: { signalId?: string; notApplicable?: boolean }): Promise<void> {
+  if (!result.signalId && !result.notApplicable) return; // reste "pending" par défaut, rien à écrire.
   const db = database();
   if (!db) {
     const request = memoryRequests.find((item) => item.id === id);
     if (request) {
-      request.coreSignalStatus = "synced";
-      request.coreSignalId = signalId;
+      if (result.signalId) {
+        request.coreSignalStatus = "synced";
+        request.coreSignalId = result.signalId;
+      } else {
+        request.coreSignalStatus = "not_applicable";
+      }
     }
     return;
   }
   await ensureSchema();
-  await db`update mbambulaan_public_requests set core_signal_status = 'synced', core_signal_id = ${signalId} where id = ${id}`;
+  if (result.signalId) {
+    await db`update mbambulaan_public_requests set core_signal_status = 'synced', core_signal_id = ${result.signalId} where id = ${id}`;
+  } else {
+    await db`update mbambulaan_public_requests set core_signal_status = 'not_applicable' where id = ${id}`;
+  }
 }
 
 export async function createPublicRequest(input: PublicRequestInput): Promise<PublicRequest> {
@@ -179,11 +199,13 @@ export async function createPublicRequest(input: PublicRequestInput): Promise<Pu
   const db = database();
   if (!db) {
     memoryRequests.unshift(request);
-    const { signalId } = await bridgePublicRequestSignal(request);
-    await persistPublicRequestSignalResult(request.id, signalId);
-    if (signalId) {
+    const result = await bridgePublicRequestSignal(request);
+    await persistPublicRequestSignalResult(request.id, result);
+    if (result.signalId) {
       request.coreSignalStatus = "synced";
-      request.coreSignalId = signalId;
+      request.coreSignalId = result.signalId;
+    } else if (result.notApplicable) {
+      request.coreSignalStatus = "not_applicable";
     }
     return request;
   }
@@ -203,11 +225,13 @@ export async function createPublicRequest(input: PublicRequestInput): Promise<Pu
       ${request.consent}, ${request.attachmentNote ?? null}, ${request.status}, ${request.coreSignalStatus}
     )
   `;
-  const { signalId } = await bridgePublicRequestSignal(request);
-  await persistPublicRequestSignalResult(request.id, signalId);
-  if (signalId) {
+  const result = await bridgePublicRequestSignal(request);
+  await persistPublicRequestSignalResult(request.id, result);
+  if (result.signalId) {
     request.coreSignalStatus = "synced";
-    request.coreSignalId = signalId;
+    request.coreSignalId = result.signalId;
+  } else if (result.notApplicable) {
+    request.coreSignalStatus = "not_applicable";
   }
   return request;
 }
@@ -242,13 +266,26 @@ export async function syncPendingPublicRequestSignals(): Promise<{ attempted: nu
   const pending = await getUnsyncedPublicRequests();
   let synced = 0;
   for (const request of pending) {
-    const { signalId } = await bridgePublicRequestSignal(request);
-    if (signalId) {
-      await persistPublicRequestSignalResult(request.id, signalId);
-      synced += 1;
+    const result = await bridgePublicRequestSignal(request);
+    if (result.signalId || result.notApplicable) {
+      await persistPublicRequestSignalResult(request.id, result);
+      if (result.signalId) synced += 1;
     }
   }
   return { attempted: pending.length, synced };
+}
+
+// bridgePublicContributionSignal (LOT 6, mandat "Public — Comprendre,
+// trouver, contribuer", §13/§14) — même best-effort que
+// bridgePublicRequestSignal : un échec ne fait jamais perdre la
+// contribution elle-même, reste "pending" (rejouable manuellement si
+// besoin — pas de sync automatique dédiée pour ce volume, cf. dette).
+async function bridgePublicContributionSignal(contribution: PublicContribution): Promise<{ signalId?: string }> {
+  const result = await attemptPublicContributionSignalSync(contribution, { dispatch });
+  if (!result.signalId) {
+    console.warn(`bridgePublicContributionSignal: convergence Core non confirmée pour la PublicContribution ${contribution.id} — reste "pending".`);
+  }
+  return result;
 }
 
 export async function createPublicContribution(input: PublicContributionInput): Promise<PublicContribution> {
@@ -257,12 +294,18 @@ export async function createPublicContribution(input: PublicContributionInput): 
     id: crypto.randomUUID(),
     reference: makeReference("CTB"),
     status: "identifie",
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    coreSignalStatus: "pending"
   };
 
   const db = database();
   if (!db) {
     memoryContributions.unshift(contribution);
+    const { signalId } = await bridgePublicContributionSignal(contribution);
+    if (signalId) {
+      contribution.coreSignalStatus = "synced";
+      contribution.coreSignalId = signalId;
+    }
     return contribution;
   }
 
@@ -270,15 +313,21 @@ export async function createPublicContribution(input: PublicContributionInput): 
   await db`
     insert into mbambulaan_public_contributions (
       id, reference, created_at, actor_type, services, territories, capacity,
-      organization, contact_name, phone, email, website, notes, status
+      organization, contact_name, phone, email, website, notes, status, core_signal_status
     ) values (
       ${contribution.id}, ${contribution.reference}, ${contribution.createdAt},
       ${contribution.actorType}, ${contribution.services}, ${contribution.territories},
       ${contribution.capacity ?? null}, ${contribution.organization ?? null},
       ${contribution.contactName}, ${contribution.phone}, ${contribution.email ?? null},
-      ${contribution.website ?? null}, ${contribution.notes ?? null}, ${contribution.status}
+      ${contribution.website ?? null}, ${contribution.notes ?? null}, ${contribution.status}, ${contribution.coreSignalStatus}
     )
   `;
+  const { signalId } = await bridgePublicContributionSignal(contribution);
+  if (signalId) {
+    contribution.coreSignalStatus = "synced";
+    contribution.coreSignalId = signalId;
+    await db`update mbambulaan_public_contributions set core_signal_status = 'synced', core_signal_id = ${signalId} where id = ${contribution.id}`;
+  }
   return contribution;
 }
 
