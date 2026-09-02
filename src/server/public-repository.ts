@@ -278,14 +278,36 @@ export async function syncPendingPublicRequestSignals(): Promise<{ attempted: nu
 // bridgePublicContributionSignal (LOT 6, mandat "Public — Comprendre,
 // trouver, contribuer", §13/§14) — même best-effort que
 // bridgePublicRequestSignal : un échec ne fait jamais perdre la
-// contribution elle-même, reste "pending" (rejouable manuellement si
-// besoin — pas de sync automatique dédiée pour ce volume, cf. dette).
+// contribution elle-même, reste "pending".
 async function bridgePublicContributionSignal(contribution: PublicContribution): Promise<{ signalId?: string }> {
   const result = await attemptPublicContributionSignalSync(contribution, { dispatch });
   if (!result.signalId) {
-    console.warn(`bridgePublicContributionSignal: convergence Core non confirmée pour la PublicContribution ${contribution.id} — reste "pending".`);
+    console.warn(`bridgePublicContributionSignal: convergence Core non confirmée pour la PublicContribution ${contribution.id} — reste "pending", rejouable.`);
   }
   return result;
+}
+
+// persistPublicContributionSignalResult (LOT 6, micro-correctif final A1,
+// "une contribution métier acceptée ne doit jamais pouvoir être
+// définitivement perdue par le Core à cause d'un échec temporaire") —
+// même rôle que persistPublicRequestSignalResult : trace "synced" +
+// coreSignalId une fois confirmé, sinon ne touche rien (reste "pending",
+// détectable via getUnsyncedPublicContributions, rejouable via
+// syncPendingPublicContributionSignals). Factorisée pour être appelée à
+// la fois à la création et lors d'un rejeu — un seul chemin d'écriture.
+async function persistPublicContributionSignalResult(id: string, signalId: string | undefined): Promise<void> {
+  if (!signalId) return;
+  const db = database();
+  if (!db) {
+    const contribution = memoryContributions.find((item) => item.id === id);
+    if (contribution) {
+      contribution.coreSignalStatus = "synced";
+      contribution.coreSignalId = signalId;
+    }
+    return;
+  }
+  await ensureSchema();
+  await db`update mbambulaan_public_contributions set core_signal_status = 'synced', core_signal_id = ${signalId} where id = ${id}`;
 }
 
 export async function createPublicContribution(input: PublicContributionInput): Promise<PublicContribution> {
@@ -302,6 +324,7 @@ export async function createPublicContribution(input: PublicContributionInput): 
   if (!db) {
     memoryContributions.unshift(contribution);
     const { signalId } = await bridgePublicContributionSignal(contribution);
+    await persistPublicContributionSignalResult(contribution.id, signalId);
     if (signalId) {
       contribution.coreSignalStatus = "synced";
       contribution.coreSignalId = signalId;
@@ -323,12 +346,81 @@ export async function createPublicContribution(input: PublicContributionInput): 
     )
   `;
   const { signalId } = await bridgePublicContributionSignal(contribution);
+  await persistPublicContributionSignalResult(contribution.id, signalId);
   if (signalId) {
     contribution.coreSignalStatus = "synced";
     contribution.coreSignalId = signalId;
-    await db`update mbambulaan_public_contributions set core_signal_status = 'synced', core_signal_id = ${signalId} where id = ${contribution.id}`;
   }
   return contribution;
+}
+
+// getUnsyncedPublicContributions / syncPendingPublicContributionSignals
+// (LOT 6, micro-correctif final A1) — exact pendant de
+// getUnsyncedPublicRequests/syncPendingPublicRequestSignals : pas de
+// cron/queue, une auto-guérison opportuniste déclenchée à la lecture
+// pertinente (getPendingPublicContributions ci-dessous, lu par le
+// coordinateur qui vient qualifier des contributions, LOT 7). Idempotent
+// par construction (même clé `public-contribution:${id}` qu'à la
+// création) : un rejeu ne peut jamais dupliquer le Signal.
+export async function getUnsyncedPublicContributions(): Promise<PublicContribution[]> {
+  const db = database();
+  if (!db) {
+    return memoryContributions.filter((item) => item.coreSignalStatus === "pending");
+  }
+  await ensureSchema();
+  const rows = await db<PublicContribution[]>`
+    select
+      id, reference, created_at as "createdAt", actor_type as "actorType", services, territories,
+      capacity, organization, contact_name as "contactName", phone, email, website, notes, status,
+      core_signal_status as "coreSignalStatus", core_signal_id as "coreSignalId"
+    from mbambulaan_public_contributions
+    where core_signal_status = 'pending'
+    order by created_at asc
+  `;
+  return rows;
+}
+
+export async function syncPendingPublicContributionSignals(): Promise<{ attempted: number; synced: number }> {
+  const pending = await getUnsyncedPublicContributions();
+  let synced = 0;
+  for (const contribution of pending) {
+    const { signalId } = await bridgePublicContributionSignal(contribution);
+    if (signalId) {
+      await persistPublicContributionSignalResult(contribution.id, signalId);
+      synced += 1;
+    }
+  }
+  return { attempted: pending.length, synced };
+}
+
+// getPendingPublicContributions — lecture des contributions encore à
+// qualifier (statut "identifie", cf. LOT 7 : le coordinateur les ouvre
+// pour décider de les rattacher/créer une organisation et un
+// PartnerService). Même auto-guérison opportuniste que
+// getPendingPublicRequests : best-effort, jamais bloquant.
+export async function getPendingPublicContributions(): Promise<PublicContribution[]> {
+  try {
+    await syncPendingPublicContributionSignals();
+  } catch (error) {
+    console.warn("getPendingPublicContributions: échec de la synchronisation opportuniste", error);
+  }
+
+  const db = database();
+  if (!db) {
+    return memoryContributions.filter((item) => item.status === "identifie");
+  }
+
+  await ensureSchema();
+  const rows = await db<PublicContribution[]>`
+    select
+      id, reference, created_at as "createdAt", actor_type as "actorType", services, territories,
+      capacity, organization, contact_name as "contactName", phone, email, website, notes, status,
+      core_signal_status as "coreSignalStatus", core_signal_id as "coreSignalId"
+    from mbambulaan_public_contributions
+    where status = 'identifie'
+    order by created_at desc
+  `;
+  return rows;
 }
 
 // Lecture des demandes publiques en attente — la seule qui existait avant

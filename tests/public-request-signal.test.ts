@@ -199,3 +199,15 @@ test("TEST F — une correction Atlas (category \"Correction Atlas\") crée bien
   assert.ok(result.signalId, "une correction Atlas doit rester métier et produire un Signal");
   assert.equal(core.getCurrentState().signals.length, signalsBefore + 1);
 });
+
+// Micro-correctif final LOT 6 (A2, "auditer également PublicRequest : il
+// ne doit pas classer arbitrairement toutes les demandes Public en
+// infrastructure") — PublicRequestIntent ne correspond à aucune des 6
+// catégories Signal existantes de façon fiable : le pont ne doit jamais
+// forcer "infrastructure", quel que soit l'intent.
+test("A2 — une demande Public reçoit la catégorie neutre « autre », jamais « infrastructure » par défaut", async () => {
+  const core = makeFakeCore(createDemoState());
+  const { signalId } = await attemptPublicRequestSignalSync(baseRequest, core);
+  const signal = core.getCurrentState().signals.find((item) => item.id === signalId);
+  assert.equal(signal?.category, "autre");
+});

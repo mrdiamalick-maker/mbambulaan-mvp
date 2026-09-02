@@ -100,7 +100,11 @@ const signalCategoryLabel: Record<Signal["category"], string> = {
   marche: "Marché",
   qualite: "Qualité",
   securite: "Sécurité",
-  conformite: "Conformité"
+  conformite: "Conformité",
+  // "autre" (LOT 6, micro-correctif final) : catégorie neutre, choix
+  // explicite possible ici aussi — un message brut peut réellement ne
+  // relever d'aucune des 6 catégories métier existantes.
+  autre: "Autre"
 };
 
 // Étiquettes lisibles pour PublicRequestIntent — n'existaient nulle part

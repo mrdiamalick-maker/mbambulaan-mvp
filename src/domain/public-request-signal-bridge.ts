@@ -108,6 +108,13 @@ export async function attemptPublicRequestSignalSync(
     const state = await deps.getState();
     const territoryId = resolvePublicRequestTerritoryId(state.territories, request.territory);
 
+    // Micro-correctif final LOT 6 — audité : aucune catégorie n'est
+    // passée ici. PublicRequestIntent (transport/conservation/formation/
+    // financement/…) ne correspond à aucune des 6 catégories Signal
+    // existantes de façon fiable — les y forcer serait la même
+    // classification arbitraire que l'ancien repli "infrastructure".
+    // create_signal applique son repli neutre "autre" (rules.ts) ; jamais
+    // toutes les demandes Public classées "infrastructure" par défaut.
     const next = await deps.dispatch(
       {
         type: "create_signal",

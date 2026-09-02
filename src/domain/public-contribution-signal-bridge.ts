@@ -16,6 +16,19 @@
 import type { PublicContributionActorType } from "@/domain/public/contribution";
 import type { AuditEntry, Command, Signal } from "@/domain/types";
 
+// resolveContributionSignalCategory (LOT 6, micro-correctif final "ne plus
+// fabriquer infrastructure") — une catégorie n'est renseignée que
+// lorsqu'elle est réellement déterminable à partir d'un champ structuré
+// (actorType, pas un mot-clé libre de `services`) : "transformateur" est
+// la seule valeur d'actorType qui corresponde sans ambiguïté à une des 6
+// catégories Signal existantes ("production"). Toutes les autres restent
+// undefined — create_signal applique alors son repli neutre "autre" (cf.
+// rules.ts), jamais une classification inventée pour cette fonction.
+export function resolveContributionSignalCategory(actorType: PublicContributionActorType): Signal["category"] | undefined {
+  if (actorType === "transformateur") return "production";
+  return undefined;
+}
+
 export interface PublicContributionSignalSyncRequest {
   id: string;
   actorType: PublicContributionActorType;
@@ -41,18 +54,14 @@ export async function attemptPublicContributionSignalSync(
   deps: PublicContributionSignalSyncDeps
 ): Promise<{ signalId?: string }> {
   try {
-    // create_signal (rules.ts) fixe toujours category="infrastructure" —
-    // aucune catégorie n'est acceptée en entrée de la commande (pas de
-    // classification par type d'acteur possible à ce stade, même
-    // discipline que le pont PublicRequest qui ne la choisit pas non
-    // plus).
     const next = await deps.dispatch(
       {
         type: "create_signal",
         actorId: "act-espace-public",
         title: `Capacité proposée — ${contribution.actorType} (espace public)`,
         description: `${contribution.services} — territoires déclarés : ${contribution.territories}`,
-        channel: "espace_public"
+        channel: "espace_public",
+        category: resolveContributionSignalCategory(contribution.actorType)
       },
       `public-contribution:${contribution.id}`
     );

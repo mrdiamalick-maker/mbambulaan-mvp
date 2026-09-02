@@ -324,7 +324,13 @@ export interface Signal {
   // canaux terrain existants — les y rattacher aurait fabriqué une
   // provenance de canal inexacte.
   channel: "terrain" | "telephone" | "whatsapp_structure" | "poste_quai" | "espace_public";
-  category: "infrastructure" | "production" | "marche" | "qualite" | "securite" | "conformite";
+  // "autre" (LOT 6, micro-correctif final "ne plus fabriquer
+  // infrastructure") : valeur neutre pour les signaux dont la catégorie
+  // n'est pas réellement déterminable à la création (create_signal sans
+  // catégorie explicite) — jamais déduite de mots-clés libres. Les
+  // signaux déjà explicitement catégorisés (convert_message_to_signal,
+  // Demo World, terrain qualifié) conservent leur catégorie réelle.
+  category: "infrastructure" | "production" | "marche" | "qualite" | "securite" | "conformite" | "autre";
   title: string;
   description: string;
   trust: TrustLevel;
@@ -356,7 +362,8 @@ export const signalCategoryLabels: Record<Signal["category"], string> = {
   marche: "Marché",
   qualite: "Qualité",
   securite: "Sécurité",
-  conformite: "Conformité"
+  conformite: "Conformité",
+  autre: "Autre"
 };
 
 // IncomingMessage — file de messages entrants simulés (arbitrage CEO
@@ -1199,7 +1206,11 @@ export type Command =
   // résolu — le wrapper report_signal_and_open_situation, qui construit
   // une Situation, continue d'en exiger un (Situation.territoryId reste
   // obligatoire, non modifié).
-  | { type: "create_signal"; actorId: string; territoryId?: string; title: string; description: string; channel: Signal["channel"] }
+  // category optionnelle (LOT 6, micro-correctif "ne plus fabriquer
+  // infrastructure") : renseignée seulement quand réellement déterminable
+  // par l'appelant (jamais déduite de mots-clés libres côté rules.ts) —
+  // repli sur "autre" si absente, cf. applySignalOnlyCreation.
+  | { type: "create_signal"; actorId: string; territoryId?: string; title: string; description: string; channel: Signal["channel"]; category?: Signal["category"] }
   | { type: "convert_message_to_signal"; actorId: string; messageId: string; territoryId: string; category: Signal["category"]; title: string; description: string }
   | { type: "qualify"; situationId: string; actorId: string }
   | { type: "prioritize"; situationId: string; actorId: string }

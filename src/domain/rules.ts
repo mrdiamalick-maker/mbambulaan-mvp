@@ -762,7 +762,13 @@ function applySignalOnlyCreation(state: ProductState, command: Extract<Command, 
     actorId: command.actorId,
     createdAt: timestamp(),
     channel: command.channel,
-    category: "infrastructure",
+    // Micro-correctif final LOT 6 — "infrastructure" n'était pas une
+    // vraie catégorie déterminée, seulement l'ancien repli par défaut :
+    // faux pour une contribution de formation, financement, organisation,
+    // etc. La catégorie neutre "autre" est le repli honnête tant que
+    // l'appelant n'en fournit pas une réellement déterminable — jamais
+    // déduite ici de mots-clés libres (title/description).
+    category: command.category ?? "autre",
     title: command.title.trim(),
     description: command.description.trim(),
     trust: "declaree",
