@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { createDemoState } from "../src/data/demo-state";
 import { applyCommand } from "../src/domain/rules";
-import { buildTerritoryIntelligence, hasSufficientKnowledge } from "../src/domain/territory-intelligence";
+import { buildTerritoryIntelligence, currentTerritoryView, hasSufficientKnowledge } from "../src/domain/territory-intelligence";
 
 // LOT 5 (mandat "Atlas & Territoire — voir la réalité territoriale comme
 // un système") — tests fonctionnels obligatoires A-N (§34 du mandat).
@@ -243,4 +243,108 @@ test("TEST N — le Demo World reste cohérent après l'ajout de la projection t
     assert.ok(intelligence, `la projection doit exister pour chaque territoire réel (${territory.id})`);
   }
   assert.equal(buildTerritoryIntelligence(state, "territoire-inexistant"), undefined);
+});
+
+// ============================================================
+// Micro-correctif final LOT 5 — lecture "current" (§1-§4 du mandat).
+// currentTerritoryView() ne doit jamais présenter comme actif un objet
+// terminé/rejeté/remplacé/converti, MAIS buildTerritoryIntelligence()
+// (le dossier complet) doit continuer à l'exposer intégralement — c'est
+// l'histoire territoriale, jamais amputée.
+// ============================================================
+
+test("MICRO-CORRECTIF — une Situation réglée reste dans l'historique mais disparaît de la lecture « Aujourd'hui »", () => {
+  const state = createDemoState();
+  const started = applyCommand(state, { type: "start_intervention", situationId: JOAL_SITUATION_ID, actorId: "act-coordinateur" });
+  const withResult = applyCommand(started, {
+    type: "record_result",
+    situationId: JOAL_SITUATION_ID,
+    actorId: "act-coordinateur",
+    result: "Maintenance préventive réalisée sur le groupe froid.",
+    confirmation: "Confirmé par le relais territorial."
+  });
+  const closed = applyCommand(withResult, { type: "close", situationId: JOAL_SITUATION_ID, actorId: "act-coordinateur" });
+
+  const joal = buildTerritoryIntelligence(closed, "joal")!;
+  assert.ok(joal.situations.some((item) => item.id === JOAL_SITUATION_ID), "le dossier historique complet doit continuer à exposer la situation réglée");
+
+  const current = currentTerritoryView(joal);
+  assert.ok(!current.situations.some((item) => item.id === JOAL_SITUATION_ID), "« Aujourd'hui » ne doit jamais présenter une situation réglée comme active");
+});
+
+test("MICRO-CORRECTIF — une Mission réalisée reste dans l'historique mais disparaît de la lecture « Aujourd'hui »", () => {
+  const state = createDemoState();
+  const withMission = createKayarMission(state);
+  const mission = withMission.fieldMissions[0];
+  const started = applyCommand(withMission, { type: "update_field_mission_status", actorId: "act-operateur", missionId: mission.id, status: "en_cours" });
+  const realisee = applyCommand(started, { type: "update_field_mission_status", actorId: "act-operateur", missionId: mission.id, status: "realisee" });
+
+  const kayar = buildTerritoryIntelligence(realisee, "kayar")!;
+  assert.ok(kayar.fieldMissions.some((item) => item.id === mission.id), "le dossier historique complet doit continuer à exposer la mission réalisée");
+
+  const current = currentTerritoryView(kayar);
+  assert.ok(!current.fieldMissions.some((item) => item.id === mission.id), "« Aujourd'hui » ne doit jamais présenter une mission réalisée comme active");
+});
+
+test("MICRO-CORRECTIF — un Finding rejeté/remplacé reste dans l'historique mais disparaît de la lecture « Aujourd'hui »", () => {
+  const state = createDemoState();
+  const rejected = {
+    ...state,
+    findings: state.findings.map((item) => item.id === KAYAR_GAP_ID ? { ...item, status: "rejected" as const } : item)
+  };
+
+  const kayar = buildTerritoryIntelligence(rejected, "kayar")!;
+  assert.ok(kayar.findings.some((item) => item.id === KAYAR_GAP_ID), "le dossier historique complet doit continuer à exposer le Finding rejeté");
+  assert.ok(kayar.knowledgeGaps.some((item) => item.id === KAYAR_GAP_ID), "le dossier historique complet (knowledgeGaps) doit aussi continuer à l'exposer");
+
+  const current = currentTerritoryView(kayar);
+  assert.ok(!current.findings.some((item) => item.id === KAYAR_GAP_ID), "« Aujourd'hui » ne doit jamais présenter un Finding rejeté comme actif");
+  assert.ok(!current.knowledgeGaps.some((item) => item.id === KAYAR_GAP_ID), "« Aujourd'hui » ne doit jamais présenter un Knowledge Gap rejeté comme actif");
+});
+
+test("MICRO-CORRECTIF — un CollectiveNeed converti reste dans l'historique mais disparaît de la lecture « Aujourd'hui »", () => {
+  const state = createDemoState();
+  // create_program_opportunity convertit automatiquement le besoin source
+  // (knowledge-pipeline.ts) — pas de commande dédiée à simuler.
+  const withOpportunity = applyCommand(state, {
+    type: "create_program_opportunity",
+    actorId: "act-coordinateur",
+    collectiveNeedId: KAYAR_NEED_ID,
+    problem: "Difficultés récurrentes de motorisation",
+    justification: "Signaux et demandes convergent",
+    territoryIds: ["kayar", "fass-boye"],
+    potentialBeneficiaries: "Capitaines et mareyeurs de Kayar et Fass Boye",
+    evidenceRefs: [],
+    hypotheses: [],
+    knowledgeGaps: [],
+    possibleInterventions: ["Maintenance préventive"],
+    desiredOutcomes: ["Réduire les immobilisations"],
+    possibleIndicators: [],
+    maturity: "faible"
+  });
+
+  const kayar = buildTerritoryIntelligence(withOpportunity, "kayar")!;
+  const need = kayar.collectiveNeeds.find((item) => item.id === KAYAR_NEED_ID);
+  assert.ok(need, "le dossier historique complet doit continuer à exposer le besoin converti");
+  assert.equal(need!.status, "converted");
+
+  const current = currentTerritoryView(kayar);
+  assert.ok(!current.collectiveNeeds.some((item) => item.id === KAYAR_NEED_ID), "« Aujourd'hui / ce qui émerge » ne doit jamais présenter un besoin converti comme émergent");
+});
+
+test("MICRO-CORRECTIF — non-régression Joal/Kayar/Hann : la lecture current reste cohérente sur le Demo World initial", () => {
+  const state = createDemoState();
+  for (const territoryId of ["joal", "kayar", "hann"]) {
+    const intelligence = buildTerritoryIntelligence(state, territoryId)!;
+    const current = currentTerritoryView(intelligence);
+    // La lecture current est toujours un sous-ensemble de la projection complète.
+    current.situations.forEach((item) => assert.ok(intelligence.situations.some((full) => full.id === item.id)));
+    current.findings.forEach((item) => assert.ok(intelligence.findings.some((full) => full.id === item.id)));
+    current.fieldMissions.forEach((item) => assert.ok(intelligence.fieldMissions.some((full) => full.id === item.id)));
+    current.collectiveNeeds.forEach((item) => assert.ok(intelligence.collectiveNeeds.some((full) => full.id === item.id)));
+  }
+  // Kayar : le besoin de motorisation est encore "qualified" au chargement — doit apparaître en current.
+  const kayarCurrent = currentTerritoryView(buildTerritoryIntelligence(state, "kayar")!);
+  assert.ok(kayarCurrent.collectiveNeeds.some((item) => item.id === KAYAR_NEED_ID));
+  assert.ok(kayarCurrent.knowledgeGaps.some((item) => item.id === KAYAR_GAP_ID));
 });

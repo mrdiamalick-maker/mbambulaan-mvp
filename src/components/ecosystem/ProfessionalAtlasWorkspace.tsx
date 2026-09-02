@@ -30,7 +30,7 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { Button } from "@/components/ui/button";
 import type { ProductState, SituationStatus, TrustLevel } from "@/domain/types";
-import { buildTerritoryIntelligence, hasSufficientKnowledge } from "@/domain/territory-intelligence";
+import { buildTerritoryIntelligence, currentTerritoryView, hasSufficientKnowledge } from "@/domain/territory-intelligence";
 import { TerritoryDossierSections } from "@/components/territories/TerritoryDossierSections";
 
 // Lot 5 (mandat "Atlas & Territoire") §21 — la lens "Situation" devient
@@ -120,7 +120,13 @@ function buildWorkbench(state: ProductState, territoryId: string, lens: Lens, sp
   if (lens === "aujourdhui") {
     const intelligence = buildTerritoryIntelligence(state, territoryId);
     if (!intelligence) return [];
-    const situationItems: WorkbenchItem[] = intelligence.situations.map((item) => ({
+    // Micro-correctif final LOT 5 — "Aujourd'hui" est une surface CURRENT :
+    // elle ne doit jamais présenter comme actif un objet réglé, réalisé,
+    // rejeté/remplacé ou converti. currentTerritoryView() ne retire rien
+    // du dossier complet (intelligence elle-même), elle en dérive
+    // seulement une lecture "maintenant" pour cette lens.
+    const current = currentTerritoryView(intelligence);
+    const situationItems: WorkbenchItem[] = current.situations.map((item) => ({
       id: item.id,
       category: item.status.replaceAll("_", " "),
       title: item.title,
@@ -133,7 +139,7 @@ function buildWorkbench(state: ProductState, territoryId: string, lens: Lens, sp
     }));
     // Mandat §21 — la lens intègre désormais ce qui émerge, ce qui manque
     // et ce qui est en cours, pas seulement les Situations qualifiées.
-    const needItems: WorkbenchItem[] = intelligence.collectiveNeeds.map((need) => ({
+    const needItems: WorkbenchItem[] = current.collectiveNeeds.map((need) => ({
       id: need.id,
       category: "Besoin collectif",
       title: need.title,
@@ -144,7 +150,7 @@ function buildWorkbench(state: ProductState, territoryId: string, lens: Lens, sp
       href: `/app/initiatives?need=${need.id}`,
       urgency: "normal"
     }));
-    const gapItems: WorkbenchItem[] = intelligence.knowledgeGaps.map((gap) => ({
+    const gapItems: WorkbenchItem[] = current.knowledgeGaps.map((gap) => ({
       id: gap.id,
       category: "Connaissance manquante",
       title: gap.title,
@@ -154,7 +160,7 @@ function buildWorkbench(state: ProductState, territoryId: string, lens: Lens, sp
       trust: gap.trust,
       urgency: "attention"
     }));
-    const missionItems: WorkbenchItem[] = intelligence.fieldMissions.map((mission) => ({
+    const missionItems: WorkbenchItem[] = current.fieldMissions.map((mission) => ({
       id: mission.id,
       category: "Mission terrain",
       title: mission.title,
@@ -165,7 +171,7 @@ function buildWorkbench(state: ProductState, territoryId: string, lens: Lens, sp
       href: "/app/terrain",
       urgency: mission.status === "en_cours" ? "attention" : "normal"
     }));
-    const opportunityItems: WorkbenchItem[] = intelligence.programOpportunities.map((opportunity) => ({
+    const opportunityItems: WorkbenchItem[] = current.programOpportunities.map((opportunity) => ({
       id: opportunity.id,
       category: "Opportunité de programme",
       title: opportunity.problem,
@@ -338,12 +344,15 @@ export function ProfessionalAtlasWorkspace() {
   // Résumé dérivé par territoire pour la carte (mandat §20 : "jamais un
   // texte figé" — recalculé à partir des mêmes objets que le dossier,
   // affiché seulement au survol/sélection, pas une 12e étiquette
-  // permanente par marqueur).
+  // permanente par marqueur). Micro-correctif final LOT 5 : ce résumé
+  // consomme la lecture "current" — une Mission réalisée ou une Situation
+  // réglée ne doit jamais grossir "action(s) en cours".
   function mapSummary(territoryId: string): string {
     const local = buildTerritoryIntelligence(state as ProductState, territoryId);
     if (!local) return "";
-    const criticalCount = local.situations.filter((item) => item.status !== "reglee" && item.priority === "critique").length;
-    const inProgress = local.coordinations.length + local.programOpportunities.length + local.fieldMissions.filter((item) => item.status === "en_cours" || item.status === "planifiee").length;
+    const current = currentTerritoryView(local);
+    const criticalCount = current.situations.filter((item) => item.priority === "critique").length;
+    const inProgress = local.coordinations.length + current.programOpportunities.length + current.fieldMissions.filter((item) => item.status === "en_cours").length;
     const fragileCapacity = local.identity.infrastructures.find((item) => item.status !== "operationnelle");
     const parts: string[] = [];
     if (criticalCount > 0) parts.push(`${criticalCount} situation(s) prioritaire(s)`);

@@ -202,3 +202,39 @@ export function hasSufficientKnowledge(intelligence: TerritoryIntelligence): boo
     intelligence.results.length > 0
   );
 }
+
+// --- Lecture "current" (micro-correctif final LOT 5) ------------------
+//
+// buildTerritoryIntelligence() reste la projection complète — l'histoire
+// territoriale (Situation réglée, Mission réalisée, Finding rejeté,
+// CollectiveNeed converti…) doit rester consultable dans le dossier. Ce
+// qui suit est une sous-projection PURE, dérivée de TerritoryIntelligence
+// sans jamais retoucher ses tableaux : uniquement destinée aux surfaces
+// explicitement intitulées "Aujourd'hui" / "ce qui compte maintenant"
+// (lens Atlas, résumé "Aujourd'hui à [territoire]", résumés carte), pour
+// qu'elles ne présentent jamais comme actif un objet terminé, rejeté ou
+// remplacé.
+const CURRENT_FIELD_MISSION_STATUSES = new Set<FieldMission["status"]>(["a_preparer", "planifiee", "en_cours"]);
+const CURRENT_COLLECTIVE_NEED_STATUSES = new Set<CollectiveNeed["status"]>(["emerging", "qualifying", "qualified", "monitored"]);
+const STALE_FINDING_STATUSES = new Set<Finding["status"]>(["rejected", "superseded"]);
+
+export interface TerritoryCurrentView {
+  situations: Situation[];
+  findings: Finding[];
+  knowledgeGaps: Finding[];
+  fieldMissions: FieldMission[];
+  collectiveNeeds: CollectiveNeed[];
+  // La logique des statuts "ouverts" de ProgramOpportunity est déjà
+  // appliquée dans buildTerritoryIntelligence (OPEN_PROGRAM_OPPORTUNITY_
+  // STATUSES) — reprise telle quelle, pas de second filtre concurrent.
+  programOpportunities: ProgramOpportunity[];
+}
+
+export function currentTerritoryView(intelligence: TerritoryIntelligence): TerritoryCurrentView {
+  const situations = intelligence.situations.filter((item) => item.status !== "reglee");
+  const findings = intelligence.findings.filter((item) => !STALE_FINDING_STATUSES.has(item.status));
+  const knowledgeGaps = findings.filter((item) => item.type === "knowledge_gap");
+  const fieldMissions = intelligence.fieldMissions.filter((item) => CURRENT_FIELD_MISSION_STATUSES.has(item.status));
+  const collectiveNeeds = intelligence.collectiveNeeds.filter((item) => CURRENT_COLLECTIVE_NEED_STATUSES.has(item.status));
+  return { situations, findings, knowledgeGaps, fieldMissions, collectiveNeeds, programOpportunities: intelligence.programOpportunities };
+}

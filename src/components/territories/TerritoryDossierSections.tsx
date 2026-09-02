@@ -30,7 +30,7 @@ import {
 import type { TrustLevel } from "@/domain/types";
 import { attributionLevelLabels, collectiveNeedStatusLabels, fieldMissionStatusLabels, findingStatusLabels, programOpportunityStatusLabels } from "@/domain/types";
 import { trustLabels } from "@/lib/status-tokens";
-import { hasSufficientKnowledge, type TerritoryIntelligence } from "@/domain/territory-intelligence";
+import { currentTerritoryView, hasSufficientKnowledge, type TerritoryIntelligence } from "@/domain/territory-intelligence";
 
 type Tone = "atlas" | "etat";
 
@@ -106,14 +106,20 @@ export function TerritoryDossierSections({ intelligence, tone }: { intelligence:
   // jamais un widget décoratif de plus : un simple constat de ce qui
   // compte maintenant, formulé à partir des mêmes objets que le reste du
   // dossier, jamais recalculé séparément.
-  const criticalSituations = intelligence.situations.filter((item) => item.status !== "reglee" && item.priority === "critique");
-  const openSituations = intelligence.situations.filter((item) => item.status !== "reglee");
-  const inProgressCount = intelligence.coordinations.length + intelligence.programOpportunities.length + intelligence.fieldMissions.filter((item) => item.status === "en_cours" || item.status === "planifiee").length;
+  //
+  // Micro-correctif final LOT 5 : "Aujourd'hui" est une surface CURRENT —
+  // elle ne doit jamais présenter comme actifs des objets réglés, réalisés,
+  // rejetés/remplacés ou convertis. currentTerritoryView() ne filtre rien
+  // dans `intelligence` elle-même (le dossier complet plus bas reste
+  // historique) — elle ne fait que dériver une lecture "maintenant".
+  const current = currentTerritoryView(intelligence);
+  const criticalSituations = current.situations.filter((item) => item.priority === "critique");
+  const inProgressCount = intelligence.coordinations.length + current.programOpportunities.length + current.fieldMissions.filter((item) => item.status === "en_cours").length;
   const recentOutcome = [...intelligence.outcomes].sort((a, b) => (a.observedAt < b.observedAt ? 1 : -1))[0];
   const today: string[] = [];
   if (criticalSituations.length > 0) today.push(`${criticalSituations.length} situation(s) prioritaire(s) à suivre`);
-  else if (openSituations.length > 0) today.push(`${openSituations.length} situation(s) ouverte(s), aucune en priorité critique`);
-  if (intelligence.knowledgeGaps.length > 0) today.push(`${intelligence.knowledgeGaps.length} connaissance(s) manquante(s) identifiée(s)`);
+  else if (current.situations.length > 0) today.push(`${current.situations.length} situation(s) ouverte(s), aucune en priorité critique`);
+  if (current.knowledgeGaps.length > 0) today.push(`${current.knowledgeGaps.length} connaissance(s) manquante(s) identifiée(s)`);
   if (inProgressCount > 0) today.push(`${inProgressCount} action(s) en cours`);
   if (recentOutcome) today.push(`1 changement récemment documenté : « ${recentOutcome.title} »`);
   if (today.length === 0) today.push(sufficient ? "Aucun enjeu prioritaire identifié sur les données disponibles" : "Peu d’éléments récents disponibles pour ce territoire");
