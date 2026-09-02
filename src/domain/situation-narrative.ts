@@ -379,7 +379,12 @@ function buildImpactTrailSteps(state: ProductState, situation: Situation): Value
       key: "impact",
       label: "Impact",
       proven: Boolean(impact && impact.status !== "a_mesurer"),
-      detail: impact ? `${impactStatusLabel[impact.status]} — ${impact.statement}` : "Impact non encore mesuré"
+      // Micro-correctif Product (post-LOT 4, "attribution directe doit
+      // être justifiée") : la justification reste visible partout où
+      // l'Impact est affiché, y compris dans la Value Trail.
+      detail: impact
+        ? `${impactStatusLabel[impact.status]} — ${impact.statement}${impact.attributionJustification ? ` (${impact.attributionJustification})` : ""}`
+        : "Impact non encore mesuré"
     },
     {
       key: "apprentissage",

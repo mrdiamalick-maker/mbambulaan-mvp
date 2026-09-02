@@ -18,6 +18,7 @@ export function ImpactForm({ outcome, onDone, onCancel }: { outcome: Outcome; on
   const [statement, setStatement] = useState("");
   const [status, setStatus] = useState<ImpactStatus>("a_mesurer");
   const [attribution, setAttribution] = useState<AttributionLevel>(outcome.attribution);
+  const [attributionJustification, setAttributionJustification] = useState("");
   const [period, setPeriod] = useState("");
   const [limits, setLimits] = useState("");
   const [attachEvidence, setAttachEvidence] = useState(false);
@@ -31,6 +32,7 @@ export function ImpactForm({ outcome, onDone, onCancel }: { outcome: Outcome; on
     event.preventDefault();
     setError("");
     if (!title.trim() || !statement.trim()) { setError("Le titre et l'énoncé de l'effet sont obligatoires — même pour dire qu'il reste à mesurer."); return; }
+    if (attribution === "directe" && !attributionJustification.trim()) { setError("Une attribution directe exige une justification."); return; }
     if (attachEvidence && (!evidenceLabel.trim() || !evidenceDetail.trim())) { setError("Une preuve jointe doit préciser un libellé et un détail."); return; }
 
     setPending(true);
@@ -41,6 +43,7 @@ export function ImpactForm({ outcome, onDone, onCancel }: { outcome: Outcome; on
         statement: statement.trim(),
         outcomeId: outcome.id,
         attribution,
+        attributionJustification: attributionJustification.trim() || undefined,
         status,
         period: period.trim() || undefined,
         limits: limits.trim() || undefined,
@@ -77,6 +80,13 @@ export function ImpactForm({ outcome, onDone, onCancel }: { outcome: Outcome; on
           {Object.entries(attributionLevelLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
+      {attribution === "directe" && (
+        <label className="block text-xs font-semibold">
+          Pourquoi reliez-vous cet impact directement à l’intervention ?
+          <textarea required rows={2} value={attributionJustification} onChange={(event) => setAttributionJustification(event.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+          <span className="mt-1 block text-[11px] font-normal text-muted-foreground">Un impact plus large ou durable exige un niveau de preuve élevé — plus élevé que pour un simple changement observé.</span>
+        </label>
+      )}
       <label className="block text-xs font-semibold">
         Période concernée (facultatif)
         <input value={period} onChange={(event) => setPeriod(event.target.value)} placeholder="Ex. Premier trimestre 2026" className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />

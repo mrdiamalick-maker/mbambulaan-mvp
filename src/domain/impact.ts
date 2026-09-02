@@ -146,6 +146,12 @@ function applyRecordImpact(state: ProductState, command: Extract<Command, { type
   if (!command.statement.trim()) throw new Error("L'énoncé de l'effet revendiqué/observé est obligatoire.");
   const outcome = state.outcomes.find((item) => item.id === command.outcomeId);
   if (!outcome) throw new Error("Le changement observé source est introuvable.");
+  // Micro-correctif Product (post-LOT 4, "attribution directe doit être
+  // justifiée") : même garde-fou que record_outcome — un impact plus
+  // large exige un niveau de preuve élevé, jamais implicite.
+  if (command.attribution === "directe" && !command.attributionJustification?.trim()) {
+    throw new Error("Une attribution directe exige une justification.");
+  }
 
   const impact: ImpactEvidence = {
     id: id("impact"),
@@ -154,6 +160,7 @@ function applyRecordImpact(state: ProductState, command: Extract<Command, { type
     outcomeId: outcome.id,
     territoryIds: outcome.territoryIds,
     attribution: command.attribution,
+    attributionJustification: command.attributionJustification?.trim() || undefined,
     status: command.status,
     evidenceRefs: [],
     period: command.period?.trim() || undefined,

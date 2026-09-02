@@ -187,6 +187,97 @@ test("TEST G — record_impact peut créer un Impact avec le statut « à mesure
   assert.equal(withImpact.impactEvidences[0].outcomeId, outcome.id);
 });
 
+// --- Micro-correctif Product (post-LOT 4) : attribution directe d'un
+// Impact doit être justifiée, même discipline que record_outcome. ---
+
+test("Micro-correctif Impact — attribution directe sans justification est refusée", () => {
+  const { state } = bringJoalToResult();
+  const withOutcome = recordJoalOutcome(state);
+  const outcome = withOutcome.outcomes[0];
+  assert.throws(() =>
+    applyCommand(withOutcome, {
+      type: "record_impact",
+      actorId: "act-coordinateur",
+      title: "Réduction des pertes liées aux ruptures de froid",
+      statement: "Les pertes ont été directement réduites par l'intervention.",
+      outcomeId: outcome.id,
+      attribution: "directe",
+      status: "documente"
+      // attributionJustification volontairement omise.
+    })
+  );
+});
+
+test("Micro-correctif Impact — attribution directe avec justification est acceptée et conservée", () => {
+  const { state } = bringJoalToResult();
+  const withOutcome = recordJoalOutcome(state);
+  const outcome = withOutcome.outcomes[0];
+  const withImpact = applyCommand(withOutcome, {
+    type: "record_impact",
+    actorId: "act-coordinateur",
+    title: "Réduction des pertes liées aux ruptures de froid",
+    statement: "Les pertes ont été directement réduites par l'intervention.",
+    outcomeId: outcome.id,
+    attribution: "directe",
+    attributionJustification: "Le suivi quotidien du dispositif entre l'intervention et la mesure de l'effet exclut tout autre facteur identifié.",
+    status: "documente"
+  });
+  assert.equal(
+    withImpact.impactEvidences[0].attributionJustification,
+    "Le suivi quotidien du dispositif entre l'intervention et la mesure de l'effet exclut tout autre facteur identifié."
+  );
+});
+
+test("Micro-correctif Impact — attribution contributive sans justification reste autorisée", () => {
+  const { state } = bringJoalToResult();
+  const withOutcome = recordJoalOutcome(state);
+  const outcome = withOutcome.outcomes[0];
+  const withImpact = applyCommand(withOutcome, {
+    type: "record_impact",
+    actorId: "act-coordinateur",
+    title: "Effet territorial à confirmer",
+    statement: "Les éléments disponibles ne permettent pas encore de conclure sur un effet mesurable à l'échelle territoriale.",
+    outcomeId: outcome.id,
+    attribution: "contributive",
+    status: "a_mesurer"
+  });
+  assert.equal(withImpact.impactEvidences[0].attributionJustification, undefined);
+});
+
+test("Micro-correctif Impact — aucun Outcome/Result/Learning existant n'est modifié par ce correctif", () => {
+  const { state } = bringJoalToResult();
+  const withOutcome = recordJoalOutcome(state);
+  const outcomeBefore = withOutcome.outcomes[0];
+  const resultBefore = withOutcome.results[0];
+  const learningsCountBefore = withOutcome.learnings.length;
+  const withImpact = applyCommand(withOutcome, {
+    type: "record_impact",
+    actorId: "act-coordinateur",
+    title: "Effet territorial à confirmer",
+    statement: "À mesurer.",
+    outcomeId: outcomeBefore.id,
+    attribution: "non_etablie",
+    status: "a_mesurer"
+  });
+  assert.deepEqual(withImpact.outcomes.find((item) => item.id === outcomeBefore.id), outcomeBefore);
+  assert.deepEqual(withImpact.results.find((item) => item.id === resultBefore.id), resultBefore);
+  assert.equal(withImpact.learnings.length, learningsCountBefore);
+});
+
+test("Micro-correctif Impact — non-régression Joal et Programme immatriculation", () => {
+  const state = createDemoState();
+  // Joal reste vide au chargement (mandat LOT 4, aucun pré-remplissage).
+  const joalSituation = state.situations.find((item) => item.id === JOAL_SITUATION_ID)!;
+  assert.equal(joalSituation.status, "coordination");
+  assert.equal(resultsForSituation(state, joalSituation).length, 0);
+  // Le Programme immatriculation reste intact (Result + Outcome, aucun
+  // Impact pré-créé).
+  const immatriculationOutcome = state.outcomes.find((item) => item.id === IMMATRICULATION_OUTCOME_ID)!;
+  assert.ok(immatriculationOutcome);
+  assert.equal(immatriculationOutcome.attributionJustification, "Le programme a financé et coordonné les vérifications et le rattachement des dossiers, mais la mobilisation des capitaines et relais locaux ainsi qu'une sensibilisation antérieure au sujet contribuent aussi à cette progression.");
+  assert.equal(state.impactEvidences.length, 0);
+});
+
 // TEST H — Learning : création humaine uniquement, jamais générée par le
 // système (aucune autre commande ne touche state.learnings).
 test("TEST H — aucun Learning n'est créé automatiquement par record_result/record_outcome/record_impact", () => {

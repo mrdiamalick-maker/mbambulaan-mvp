@@ -1030,6 +1030,12 @@ export interface ImpactEvidence {
   outcomeId: string;
   territoryIds: string[];
   attribution: AttributionLevel;
+  // Micro-correctif Product (post-LOT 4, "attribution directe doit être
+  // justifiée") : même discipline que Outcome.attributionJustification —
+  // obligatoire si attribution === "directe" (validé dans le domaine),
+  // facultatif sinon (limits reste le champ encouragé pour
+  // contributive/non_etablie).
+  attributionJustification?: string;
   status: ImpactStatus;
   evidenceRefs: string[];
   period?: string;
@@ -1438,6 +1444,9 @@ export type Command =
   // record_impact — toujours une commande séparée et explicite (jamais un
   // effet de bord de record_outcome, TEST F) ; status "a_mesurer" reste un
   // état honnête et attendu (mandat §13), pas un échec.
+  // attributionJustification (micro-correctif Product, post-LOT 4) :
+  // obligatoire si attribution === "directe" (validé dans le domaine, un
+  // impact plus large exige un niveau de preuve élevé), facultatif sinon.
   | {
       type: "record_impact";
       actorId: string;
@@ -1445,6 +1454,7 @@ export type Command =
       statement: string;
       outcomeId: string;
       attribution: AttributionLevel;
+      attributionJustification?: string;
       status: ImpactStatus;
       period?: string;
       limits?: string;

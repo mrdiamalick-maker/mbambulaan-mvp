@@ -458,6 +458,10 @@ function InitiativeCard({ initiative, state }: { initiative: Initiative; state: 
                   <Badge variant="outline">{impactStatusLabels[impact.status]}</Badge>
                 </div>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">{impact.statement}</p>
+                {/* Micro-correctif Product (post-LOT 4) : la justification
+                    d'une attribution directe doit rester visible partout où
+                    l'Impact est affiché. */}
+                {impact.attributionJustification && <p className="mt-1.5 text-[11px] leading-4 text-muted-foreground"><span className="font-semibold text-foreground">Justification · </span>{impact.attributionJustification}</p>}
               </div>
             ))}
             {outcomesWithoutImpact.map((outcome) => (
