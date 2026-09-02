@@ -31,6 +31,8 @@ import {
   type VigilanceCategory,
   type VigilanceSeverity
 } from "@/domain/ministry/vigilance";
+import { buildTerritoryIntelligence } from "@/domain/territory-intelligence";
+import { TerritoryDossierSections } from "@/components/territories/TerritoryDossierSections";
 
 export const priorityLabels: Record<Situation["priority"], string> = { critique: "Critique", haute: "Élevé", moyenne: "Moyen", faible: "Faible" };
 export const priorityToTag: Record<Situation["priority"], "stable" | "vigilance" | "critique"> = { critique: "critique", haute: "vigilance", moyenne: "stable", faible: "stable" };
@@ -112,6 +114,12 @@ export function TerritoryDetail({ territory, cases, onOpenSituation }: { territo
   const siteIds = new Set(sites.map((item) => item.id));
   const landings = state.landings.filter((item) => siteIds.has(item.siteId));
   const programmes = state.initiatives.filter((item) => item.territoryIds.includes(territory.id));
+  // Lot 5 (mandat "Atlas & Territoire", §26 — "une seule réalité,
+  // différentes expériences") : même projection que l'Atlas
+  // professionnel, réutilisée telle quelle par la fiche territoire de
+  // l'Espace État. territory venant toujours de state.territories,
+  // buildTerritoryIntelligence ne peut pas renvoyer undefined ici.
+  const intelligence = buildTerritoryIntelligence(state, territory.id)!;
 
   return (
     <div className="space-y-6">
@@ -139,6 +147,18 @@ export function TerritoryDetail({ territory, cases, onOpenSituation }: { territo
       </div>
       {prioritySituation && <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Situation prioritaire</p><div className="mt-2 rounded-lg border border-[var(--etat-line)] bg-white p-3"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{prioritySituation.title}</p><p className="mt-1 text-xs text-[var(--etat-stone-600)]">{prioritySituation.nextStep}</p>{prioritySituation.history.length > 0 && <div className="mt-3 space-y-1.5 border-t border-[var(--etat-line)] pt-3">{prioritySituation.history.slice(0, 2).map((entry) => <div key={entry.id} className="border-l-2 border-[var(--etat-line)] pl-2 text-[11px] leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{entry.label}</span> · {new Date(entry.at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</div>)}</div>}<button onClick={() => onOpenSituation(prioritySituation)} className="etat-btn etat-btn-outline mt-3 w-full justify-center">Entrer dans le dossier <ArrowRight size={15} /></button></div></div>}
       {cases.length > 0 && <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Signaux sur ce territoire</p><div className="mt-2 space-y-2">{cases.map((item) => <div key={item.id} className="rounded-lg bg-[var(--etat-offwhite)] p-3 text-xs text-[var(--etat-navy-950)]">{vigilanceCategoryLabels[item.category]} — {item.description}</div>)}</div></div>}
+
+      {/* Lot 5 (mandat "Atlas & Territoire", §5/§8-§14) — le dossier
+          territorial complet : ce qui se passe, ce qui émerge, ce que
+          nous ne savons pas, ce que le terrain vérifie, ce qui est en
+          cours, ce qui a été réalisé, ce qui change, ce que nous
+          apprenons. Même moteur que l'Atlas professionnel
+          (buildTerritoryIntelligence), habillage etat-* propre à cette
+          fiche. */}
+      <div className="border-t border-[var(--etat-line)] pt-5">
+        <TerritoryDossierSections intelligence={intelligence} tone="etat" />
+      </div>
+
       {/* Repli honnête plutôt qu'un lien vers un 404 (mandat CEO
           2026-08-18) : ce territoire n'a pas de fiche publique
           équivalente à retrouver, contrairement à Joal — le bloc reste

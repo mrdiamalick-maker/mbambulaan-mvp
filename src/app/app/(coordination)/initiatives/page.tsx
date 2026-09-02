@@ -12,8 +12,9 @@
 // demandes similaires → Programme") est retiré : la page consomme
 // désormais state.collectiveNeeds/state.programOpportunities directement
 // — le Core reste seul responsable de l'intelligence métier (mandat §14).
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, Banknote, CircleDollarSign, Compass, Flag, Layers, Target, UsersRound } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { NumberTicker } from "@/components/magicui/number-ticker";
@@ -78,16 +79,33 @@ const opportunityStatusVariant: Record<ProgramOpportunity["status"], "marine" | 
   paused: "outline"
 };
 
+// Lot 5 (mandat "Atlas & Territoire", §16 — "chaque lien doit mener vers
+// la vraie source") : le dossier territorial peut désormais ouvrir
+// directement un Besoin collectif ou une Opportunité de programme via
+// ?need=/?opportunity= plutôt que de se contenter d'atterrir sur la page
+// sans le dossier déjà ouvert. useSearchParams exige un Suspense (Next.js)
+// — même repli que /connexion (déjà en place dans ce dépôt).
 export default function InitiativesPage() {
+  return (
+    <Suspense fallback={null}>
+      <InitiativesPageContent />
+    </Suspense>
+  );
+}
+
+function InitiativesPageContent() {
   const { state } = useProduct();
+  const searchParams = useSearchParams();
   const [territoryFilter, setTerritoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<Initiative["status"] | "all">("all");
   // Identifiants, pas les objets eux-mêmes : après une action dans le
   // dossier ouvert (qualifier une opportunité, par ex.), state se
   // rafraîchit via useProduct — dériver l'objet affiché à chaque rendu
   // évite que le tiroir reste figé sur une version périmée de l'objet.
-  const [needDrawerId, setNeedDrawerId] = useState<string | null>(null);
-  const [opportunityDrawerId, setOpportunityDrawerId] = useState<string | null>(null);
+  // Initialisés depuis ?need=/?opportunity= (Lot 5, deep-link depuis le
+  // dossier territorial) quand le paramètre est présent.
+  const [needDrawerId, setNeedDrawerId] = useState<string | null>(() => searchParams.get("need"));
+  const [opportunityDrawerId, setOpportunityDrawerId] = useState<string | null>(() => searchParams.get("opportunity"));
   if (!state) return null;
   const needDrawer = needDrawerId ? state.collectiveNeeds.find((item) => item.id === needDrawerId) ?? null : null;
   const opportunityDrawer = opportunityDrawerId ? state.programOpportunities.find((item) => item.id === opportunityDrawerId) ?? null : null;

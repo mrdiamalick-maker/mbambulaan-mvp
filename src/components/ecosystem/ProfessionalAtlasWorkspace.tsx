@@ -30,11 +30,20 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { Button } from "@/components/ui/button";
 import type { ProductState, SituationStatus, TrustLevel } from "@/domain/types";
+import { buildTerritoryIntelligence, hasSufficientKnowledge } from "@/domain/territory-intelligence";
+import { TerritoryDossierSections } from "@/components/territories/TerritoryDossierSections";
 
-type Lens = "situation" | "operations" | "capacites" | "marches" | "durabilite";
+// Lot 5 (mandat "Atlas & Territoire") §21 — la lens "Situation" devient
+// "Aujourd'hui" : elle continue de lire les Situations mais intègre
+// désormais Besoins collectifs, Connaissances manquantes, Missions
+// terrain et Opportunités de programme dans la même lecture ("ce qui
+// compte maintenant"), plutôt qu'une lens supplémentaire par type d'objet
+// (mandat explicite : "ne pas ajouter 8 lenses"). Les 4 autres lenses
+// restent inchangées.
+type Lens = "aujourdhui" | "operations" | "capacites" | "marches" | "durabilite";
 
 const lenses: Array<{ id: Lens; label: string; icon: typeof Activity }> = [
-  { id: "situation", label: "Situation", icon: Activity },
+  { id: "aujourdhui", label: "Aujourd’hui", icon: Activity },
   { id: "operations", label: "Opérations", icon: ShipWheel },
   { id: "capacites", label: "Capacités", icon: Factory },
   { id: "marches", label: "Marchés", icon: Store },
@@ -108,8 +117,10 @@ function formatDate(value?: string) {
 
 function buildWorkbench(state: ProductState, territoryId: string, lens: Lens, speciesId: string): WorkbenchItem[] {
   const quayId = `quai-${territoryId}`;
-  if (lens === "situation") {
-    return state.situations.filter((item) => item.territoryId === territoryId).map((item) => ({
+  if (lens === "aujourdhui") {
+    const intelligence = buildTerritoryIntelligence(state, territoryId);
+    if (!intelligence) return [];
+    const situationItems: WorkbenchItem[] = intelligence.situations.map((item) => ({
       id: item.id,
       category: item.status.replaceAll("_", " "),
       title: item.title,
@@ -120,6 +131,52 @@ function buildWorkbench(state: ProductState, territoryId: string, lens: Lens, sp
       href: `/app/situations/${item.id}`,
       urgency: item.priority === "critique" ? "critique" : item.priority === "haute" ? "attention" : "normal"
     }));
+    // Mandat §21 — la lens intègre désormais ce qui émerge, ce qui manque
+    // et ce qui est en cours, pas seulement les Situations qualifiées.
+    const needItems: WorkbenchItem[] = intelligence.collectiveNeeds.map((need) => ({
+      id: need.id,
+      category: "Besoin collectif",
+      title: need.title,
+      metric: "Ce qui émerge",
+      detail: need.affectedPopulation,
+      source: "Besoins rapprochés",
+      trust: "declaree",
+      href: `/app/initiatives?need=${need.id}`,
+      urgency: "normal"
+    }));
+    const gapItems: WorkbenchItem[] = intelligence.knowledgeGaps.map((gap) => ({
+      id: gap.id,
+      category: "Connaissance manquante",
+      title: gap.title,
+      metric: "Ce que nous ne savons pas",
+      detail: gap.explanation,
+      source: "Finding",
+      trust: gap.trust,
+      urgency: "attention"
+    }));
+    const missionItems: WorkbenchItem[] = intelligence.fieldMissions.map((mission) => ({
+      id: mission.id,
+      category: "Mission terrain",
+      title: mission.title,
+      metric: "Ce que le terrain vérifie",
+      detail: mission.objective,
+      source: "Terrain",
+      trust: "declaree",
+      href: "/app/terrain",
+      urgency: mission.status === "en_cours" ? "attention" : "normal"
+    }));
+    const opportunityItems: WorkbenchItem[] = intelligence.programOpportunities.map((opportunity) => ({
+      id: opportunity.id,
+      category: "Opportunité de programme",
+      title: opportunity.problem,
+      metric: "Ce qui est en cours",
+      detail: opportunity.justification,
+      source: "Développement",
+      trust: "declaree",
+      href: `/app/initiatives?opportunity=${opportunity.id}`,
+      urgency: "normal"
+    }));
+    return [...situationItems, ...needItems, ...gapItems, ...missionItems, ...opportunityItems];
   }
 
   if (lens === "operations") {
@@ -195,7 +252,7 @@ function buildWorkbench(state: ProductState, territoryId: string, lens: Lens, sp
 export function ProfessionalAtlasWorkspace() {
   const { state } = useProduct();
   const [selectedId, setSelectedId] = useState("joal");
-  const [lens, setLens] = useState<Lens>("situation");
+  const [lens, setLens] = useState<Lens>("aujourdhui");
   const [period, setPeriod] = useState("today");
   const [speciesId, setSpeciesId] = useState("all");
   const [search, setSearch] = useState("");
@@ -268,6 +325,34 @@ export function ProfessionalAtlasWorkspace() {
   const selectedLens = lenses.find((item) => item.id === lens) ?? lenses[0];
   const LensIcon = selectedLens.icon;
 
+  // Lot 5 (mandat "Atlas & Territoire") §5/§6 — le dossier territorial
+  // complet, calculé à la demande à partir du Core (aucune donnée
+  // stockée séparément) et réutilisé tel quel par le résumé "Aujourd'hui"
+  // ci-dessous, la bulle de survol de la carte (§20) et le dossier
+  // narratif (TerritoryDossierSections, §5/§10-§14). territory venant
+  // toujours de state.territories, buildTerritoryIntelligence ne peut
+  // pas renvoyer undefined ici.
+  const intelligence = buildTerritoryIntelligence(state, territory.id)!;
+  const territoryKnowledgeSufficient = hasSufficientKnowledge(intelligence);
+
+  // Résumé dérivé par territoire pour la carte (mandat §20 : "jamais un
+  // texte figé" — recalculé à partir des mêmes objets que le dossier,
+  // affiché seulement au survol/sélection, pas une 12e étiquette
+  // permanente par marqueur).
+  function mapSummary(territoryId: string): string {
+    const local = buildTerritoryIntelligence(state as ProductState, territoryId);
+    if (!local) return "";
+    const criticalCount = local.situations.filter((item) => item.status !== "reglee" && item.priority === "critique").length;
+    const inProgress = local.coordinations.length + local.programOpportunities.length + local.fieldMissions.filter((item) => item.status === "en_cours" || item.status === "planifiee").length;
+    const fragileCapacity = local.identity.infrastructures.find((item) => item.status !== "operationnelle");
+    const parts: string[] = [];
+    if (criticalCount > 0) parts.push(`${criticalCount} situation(s) prioritaire(s)`);
+    if (inProgress > 0) parts.push(`${inProgress} action(s) en cours`);
+    if (fragileCapacity) parts.push(`${fragileCapacity.name.toLowerCase()} sous tension`);
+    if (parts.length === 0) return hasSufficientKnowledge(local) ? "Aucun enjeu prioritaire" : "Peu de connaissance disponible";
+    return parts.join(" · ");
+  }
+
   return (
     <div className="space-y-6">
       <section className="overflow-hidden rounded-2xl bg-[#0b1a2a] text-white">
@@ -292,8 +377,13 @@ export function ProfessionalAtlasWorkspace() {
           </div>
         </div>
 
+        {/* Lot 5 (mandat §28, "la carte peut être secondaire sur mobile") —
+            le dossier (aside) passe avant la carte sur mobile via order,
+            la carte reprend sa place à gauche à partir de xl ; sa hauteur
+            se réduit aussi en dessous de xl pour ne jamais imposer une
+            grande carte peu utilisable sur téléphone. */}
         <div className="grid gap-px bg-white/10 xl:grid-cols-[minmax(0,1fr)_minmax(330px,.36fr)]">
-          <div className="relative min-h-[650px] overflow-hidden bg-[#0b1a2a]">
+          <div className="relative order-2 min-h-[320px] overflow-hidden bg-[#0b1a2a] xl:order-1 xl:min-h-[650px]">
             <div className="absolute inset-x-0 top-0 z-30 border-b border-white/10 bg-[#0b1a2a]/90 p-3 backdrop-blur-xl">
               <div className="grid gap-2 md:grid-cols-[minmax(210px,1.25fr)_minmax(150px,.7fr)_minmax(180px,.8fr)]">
                 <label className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 text-white/58">
@@ -330,8 +420,12 @@ export function ProfessionalAtlasWorkspace() {
                   <button key={item.id} onClick={() => setSelectedId(item.id)} style={{ left: `${left}%`, top: `${top}%` }} className={`group absolute z-20 -translate-x-1/2 -translate-y-1/2 text-left ${active ? "scale-110" : "hover:scale-105"}`} aria-label={`Ouvrir le quai de ${item.name}`}>
                     <span className={`absolute left-1/2 top-1/2 size-7 -translate-x-1/2 -translate-y-1/2 rounded-full ${active ? `ring-4 ${tone.ring}` : openCount > 0 ? `ring-2 ${tone.ring}` : ""}`} />
                     <span className={`relative block size-3.5 rounded-full border-2 border-white ${tone.dot} shadow-[0_0_0_2px_rgba(255,255,255,.08)]`} />
-                    <span className={`absolute left-5 top-1/2 w-max -translate-y-1/2 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold backdrop-blur ${active ? "border-white/20 bg-[#17283a] text-white shadow-sm" : "border-white/10 bg-[#0b1a2a]/82 text-white/68"}`}>
-                      {item.name}{openCount > 0 && <span className="ml-2 text-[#c68a2c]">{openCount}</span>}
+                    <span className={`absolute left-5 top-1/2 w-max max-w-[220px] -translate-y-1/2 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold backdrop-blur ${active ? "border-white/20 bg-[#17283a] text-white shadow-sm" : "border-white/10 bg-[#0b1a2a]/82 text-white/68"}`}>
+                      <span className="flex items-center gap-2">{item.name}{openCount > 0 && <span className="text-[#c68a2c]">{openCount}</span>}</span>
+                      {/* Mandat §20 — résumé dérivé, jamais figé, visible
+                          au survol ou pour le territoire sélectionné :
+                          pas une 12e étiquette permanente par marqueur. */}
+                      <span className={`mt-1 block text-[10px] font-normal normal-case text-white/55 ${active ? "block" : "hidden group-hover:block"}`}>{mapSummary(item.id)}</span>
                     </span>
                   </button>
                 );
@@ -339,11 +433,18 @@ export function ProfessionalAtlasWorkspace() {
             </div>
           </div>
 
-          <aside className="bg-[#0b1a2a] p-5 text-white lg:p-6">
+          <aside className="order-1 bg-[#0b1a2a] p-5 text-white xl:order-2 lg:p-6">
             <div className="flex items-start justify-between gap-3">
               <div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-white/45">Dossier territorial</p><h2 className="mt-2 text-2xl font-black tracking-[-.035em]">Quai de {territory.name}</h2><p className="mt-1 text-xs text-white/45">{site?.source ?? "Référentiel territorial"} · {territory.region}</p></div>
               <span className={`mt-1 size-2.5 rounded-full ${activityStyle[territory.activity].dot}`} />
             </div>
+
+            {/* Mandat §30 — l'absence de signal ne doit jamais se lire
+                comme une stabilité : le dit explicitement plutôt que de
+                laisser le point d'activité seul porter cette lecture. */}
+            {!territoryKnowledgeSufficient && (
+              <p className="mt-3 text-xs text-white/45">Connaissance insuffisante sur ce territoire — peu d’éléments récents disponibles.</p>
+            )}
 
             {/* A12 — grille typographique (valeur, label, séparateurs
                 fins) : plus de mini-widgets à fond plein. */}
@@ -415,6 +516,24 @@ export function ProfessionalAtlasWorkspace() {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* Lot 5 (mandat "Atlas & Territoire") §5/§8-§14 — le dossier
+          territorial complet : ce qui se passe, ce qui émerge, ce que
+          nous ne savons pas, ce que le terrain vérifie, ce qui est en
+          cours, ce qui a été réalisé, ce qui change, ce que nous
+          apprenons. Une seule source (buildTerritoryIntelligence), le
+          même composant que l'Espace État (TerritoryDetail) — mandat
+          §26 : une seule réalité, différentes expériences. Répond en
+          moins de 30 secondes à "que se passe-t-il, qu'est-ce qui compte
+          maintenant, que savons-nous, que ne savons-nous pas, que
+          faisons-nous, est-ce que quelque chose change" (mandat §8). */}
+      <section className="border-t pt-7">
+        <div className="flex items-center gap-2 text-[#1d4468]"><Sparkles size={17} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Le territoire dans son ensemble</p></div>
+        <h2 className="mt-2 text-xl font-semibold tracking-tight">{territory.name} au-delà des chiffres</h2>
+        <div className="mt-5">
+          <TerritoryDossierSections intelligence={intelligence} tone="atlas" />
         </div>
       </section>
 
