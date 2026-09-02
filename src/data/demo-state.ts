@@ -1715,9 +1715,23 @@ export function createDemoState(): ProductState {
         objective: "Documenter un besoin d’équipement de géolocalisation exploitable pour instruction de financement, sans engager de fournisseur.",
         decision: "Dresser la liste volontaire des pirogues, produire une note d’options techniques puis ouvrir le dossier initiative.",
         commitments: [
-          { id: "eng-lompoul-relais", actorId: "act-relais-lompoul", label: "Confirmer les pirogues candidates et leurs contacts", dueAt: tomorrow, status: "terminee", result: "Liste volontaire de 25 pirogues rapprochée" },
+          // Release hardening (V1) — id renommé "eng-lompoul-balises-relais"
+          // (au lieu de "eng-lompoul-relais"), même collision que ci-dessous
+          // avec le motif généré `eng-${territoryId}-relais`. Les 2
+          // références (ev-lompoul-1) suivent le renommage.
+          { id: "eng-lompoul-balises-relais", actorId: "act-relais-lompoul", label: "Confirmer les pirogues candidates et leurs contacts", dueAt: tomorrow, status: "terminee", result: "Liste volontaire de 25 pirogues rapprochée" },
           { id: "eng-lompoul-prestataire", actorId: "act-prestataire", label: "Produire une note d’options techniques sans proposition commerciale engageante", dueAt: tomorrow, status: "en_cours" },
-          { id: "eng-lompoul-coord", actorId: "act-coordinateur", label: "Définir les critères de financement et de gouvernance", dueAt: tomorrow, status: "a_faire" }
+          // Release hardening (V1) — id renommé "eng-lompoul-balises-coord"
+          // (au lieu de "eng-lompoul-coord") : collision découverte avec le
+          // Commitment généré automatiquement pour chaque territoire non
+          // "approfondi" (generatedCoordinationSpaces, motif
+          // `eng-${territoryId}-coord`, plus bas dans ce fichier) — Lompoul
+          // n'étant pas dans deepenedTerritoryIds, les deux commitments
+          // partageaient exactement le même id malgré des statuts/espaces
+          // différents. Seul l'identifiant change ; label/statut/acteur/
+          // échéance restent ceux d'origine (aucune histoire métier
+          // modifiée).
+          { id: "eng-lompoul-balises-coord", actorId: "act-coordinateur", label: "Définir les critères de financement et de gouvernance", dueAt: tomorrow, status: "a_faire" }
         ],
         risks: ["Technologie et coût encore non validés", "Responsabilité de maintenance à clarifier"],
         nextReviewAt: tomorrow
@@ -1761,7 +1775,11 @@ export function createDemoState(): ProductState {
         commitments: [
           { id: "eng-foundiougne-prestataire", actorId: "act-prestataire", label: "Diagnostiquer et réparer une claie prioritaire", dueAt: tomorrow, status: "terminee", result: "Claie remise en service après remplacement d’un élément" },
           { id: "eng-foundiougne-transform", actorId: "act-transform-foundiougne", label: "Libérer la zone et confirmer l’ordre des lots", dueAt: tomorrow, status: "terminee", result: "Zone libérée, ordre des lots confirmé" },
-          { id: "eng-foundiougne-relais", actorId: "act-relais-foundiougne", label: "Suivre l’arrivée et déposer le constat final", dueAt: tomorrow, status: "en_cours" }
+          // Release hardening (V1) — id renommé "eng-foundiougne-claies-relais"
+          // (au lieu de "eng-foundiougne-relais") : même collision, avec le
+          // Commitment généré pour Foundiougne (également absent de
+          // deepenedTerritoryIds). Référence mise à jour (com-foundiougne-1).
+          { id: "eng-foundiougne-claies-relais", actorId: "act-relais-foundiougne", label: "Suivre l’arrivée et déposer le constat final", dueAt: tomorrow, status: "en_cours" }
         ],
         risks: ["Seconde claie encore indisponible", "Retard possible avant la prochaine préparation"],
         nextReviewAt: tomorrow
@@ -1774,9 +1792,17 @@ export function createDemoState(): ProductState {
         objective: "Confirmer la situation de l’équipage et informer le responsable mandaté sans transformer un retard déclaré en détresse certaine.",
         decision: "Maintenir un point de contact unique et consigner chaque tentative jusqu’à confirmation de l’arrivée.",
         commitments: [
-          { id: "eng-elinkine-relais", actorId: "act-relais-elinkine", label: "Relancer le contact convenu", dueAt: tomorrow, status: "terminee", result: "Deuxième contact radio confirme le retour vers la côte" },
+          // Release hardening (V1) — id renommé "eng-elinkine-retour-relais"
+          // (au lieu de "eng-elinkine-relais") : même collision, avec le
+          // Commitment généré pour Elinkine. Références mises à jour
+          // (ev-elinkine-1, com-elinkine-1).
+          { id: "eng-elinkine-retour-relais", actorId: "act-relais-elinkine", label: "Relancer le contact convenu", dueAt: tomorrow, status: "terminee", result: "Deuxième contact radio confirme le retour vers la côte" },
           { id: "eng-elinkine-operateur", actorId: "act-operateur", label: "Consigner chaque appel", dueAt: tomorrow, status: "terminee", result: "Trois tentatives consignées" },
-          { id: "eng-elinkine-coord", actorId: "act-coordinateur", label: "Informer le responsable mandaté", dueAt: tomorrow, status: "terminee", result: "Dispositif territorial informé" }
+          // Release hardening (V1) — id renommé "eng-elinkine-retour-coord"
+          // (au lieu de "eng-elinkine-coord") : même collision que Lompoul
+          // ci-dessus, avec le Commitment généré pour Elinkine (également
+          // absent de deepenedTerritoryIds). Seul l'identifiant change.
+          { id: "eng-elinkine-retour-coord", actorId: "act-coordinateur", label: "Informer le responsable mandaté", dueAt: tomorrow, status: "terminee", result: "Dispositif territorial informé" }
         ],
         risks: ["Information de position non confirmée avant contact", "Messages contradictoires si plusieurs canaux sont utilisés"],
         nextReviewAt: tomorrow
@@ -2121,7 +2147,7 @@ export function createDemoState(): ProductState {
       {
         id: "ev-lompoul-1",
         situationId: "sit-lompoul-balises",
-        commitmentId: "eng-lompoul-relais",
+        commitmentId: "eng-lompoul-balises-relais",
         type: "confirmation",
         label: "Liste volontaire des pirogues candidates",
         detail: "Trois capitaines et le responsable du quai confirment l’existence du besoin ; 25 pirogues volontaires recensées.",
@@ -2175,7 +2201,7 @@ export function createDemoState(): ProductState {
       {
         id: "ev-elinkine-1",
         situationId: "sit-elinkine-retour",
-        commitmentId: "eng-elinkine-relais",
+        commitmentId: "eng-elinkine-retour-relais",
         type: "appel_consigne",
         label: "Journal d’appels et confirmation radio",
         detail: "Trois tentatives consignées ; le deuxième contact radio confirme que l’équipage se dirige vers la côte.",
@@ -2366,7 +2392,7 @@ export function createDemoState(): ProductState {
         status: "repondu",
         actorId: "act-relais-foundiougne",
         situationId: "sit-foundiougne-claies",
-        commitmentId: "eng-foundiougne-relais",
+        commitmentId: "eng-foundiougne-claies-relais",
         subject: "Suivi de la remise en service",
         body: "Appel de suivi avec la responsable du groupement pour confirmer l’heure de remise en service.",
         simulated: true,
@@ -2379,7 +2405,7 @@ export function createDemoState(): ProductState {
         status: "repondu",
         actorId: "act-relais-elinkine",
         situationId: "sit-elinkine-retour",
-        commitmentId: "eng-elinkine-relais",
+        commitmentId: "eng-elinkine-retour-relais",
         subject: "Contact radio avec l’équipage",
         body: "Deuxième contact radio confirmé : l’équipage se dirige vers la côte, le quai prépare l’accueil.",
         simulated: true,

@@ -14,10 +14,50 @@ import { CircleHelp, Compass, MapPinned, Sparkles, UsersRound } from "lucide-rea
 import type { CollectiveNeed, ProductState } from "@/domain/types";
 import { collectiveNeedStatusLabels, fieldMissionStatusLabels, observationNatureLabels } from "@/domain/types";
 import { describeFindingTrust, findingsReferencedBy, resolveFindings, resolveSourceRefDisplay } from "@/domain/situation-narrative";
+import { useProduct } from "@/components/providers/ProductProvider";
+import { canRole } from "@/server/permissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgramOpportunityForm } from "@/components/coordination/ProgramOpportunityForm";
 import { FieldMissionForm } from "@/components/coordination/FieldMissionForm";
+
+// Cycle de vie du besoin collectif (release hardening, V1) —
+// update_collective_need_status existe depuis LOT 5/8, permissionnée et
+// testée, mais n'avait jamais de bouton. Le domaine
+// (applyUpdateCollectiveNeedStatus, knowledge-pipeline.ts) autorise
+// techniquement n'importe quelle transition depuis un statut non
+// "converted" vers qualifying/qualified/not_confirmed/monitored — mais
+// exposer les 4 partout ferait de ce dossier un sélecteur de statut
+// générique (un "workflow manager", explicitement exclu de ce lot). Les
+// transitions ci-dessous sont celles qui font sens dans le récit du
+// besoin, pas toutes celles que le type autorise : progression naturelle
+// (emerging → qualifying → qualified), les deux issues honnêtes d'une
+// qualification qui n'aboutit pas (not_confirmed / monitored), et la
+// reprise d'un besoin resté sous observation. "qualified" n'affiche
+// aucune transition ici — le seul geste depuis "qualified" reste "Examiner
+// comme opportunité de développement" (create_program_opportunity), une
+// décision distincte, jamais la même commande (mandat "ne pas confondre
+// qualifier le besoin avec créer ProgramOpportunity").
+type NeedTransition = { status: Exclude<CollectiveNeed["status"], "emerging" | "converted">; label: string; primary?: boolean };
+
+function nextTransitionsFor(status: CollectiveNeed["status"]): NeedTransition[] {
+  switch (status) {
+    case "emerging":
+      return [{ status: "qualifying", label: "Commencer la qualification", primary: true }];
+    case "qualifying":
+      return [
+        { status: "qualified", label: "Qualifier ce besoin collectif", primary: true },
+        { status: "monitored", label: "Maintenir sous observation" },
+        { status: "not_confirmed", label: "Marquer comme non confirmé" }
+      ];
+    case "monitored":
+      return [{ status: "qualifying", label: "Reprendre la qualification" }];
+    case "qualified":
+    case "not_confirmed":
+    case "converted":
+      return [];
+  }
+}
 
 // Traduction métier du statut (mandat §6 : "traduit en métier", pas
 // l'identifiant technique brut) — distincte de collectiveNeedStatusLabels
@@ -42,8 +82,21 @@ const statusBadgeVariant: Record<CollectiveNeed["status"], "marine" | "amber" | 
 };
 
 export function CollectiveNeedDossier({ need, state, onDone }: { need: CollectiveNeed; state: ProductState; onDone: () => void }) {
+  const { run, role } = useProduct();
   const [openingOpportunity, setOpeningOpportunity] = useState(false);
   const [organizingMission, setOrganizingMission] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<CollectiveNeed["status"] | null>(null);
+  const canTransition = canRole(role, "update_collective_need_status");
+  const transitions = nextTransitionsFor(need.status);
+
+  const transitionStatus = async (status: NeedTransition["status"]) => {
+    setPendingStatus(status);
+    try {
+      await run({ type: "update_collective_need_status", collectiveNeedId: need.id, status });
+    } finally {
+      setPendingStatus(null);
+    }
+  };
   const territories = need.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
   const explainingFindings = findingsReferencedBy(state, need.sourceRefs);
   const sources = need.sourceRefs.map((ref) => resolveSourceRefDisplay(state, ref)).filter((item): item is NonNullable<typeof item> => Boolean(item));
@@ -194,6 +247,22 @@ export function CollectiveNeedDossier({ need, state, onDone }: { need: Collectiv
           <p className="mt-1.5 max-w-sm text-xs leading-5 text-muted-foreground">{statusExplanation[need.status]}</p>
         </div>
       </div>
+
+      {canTransition && transitions.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {transitions.map((transition) => (
+            <Button
+              key={transition.status}
+              size="sm"
+              variant={transition.primary ? "default" : "outline"}
+              disabled={pendingStatus === transition.status}
+              onClick={() => transitionStatus(transition.status)}
+            >
+              {pendingStatus === transition.status ? "…" : transition.label}
+            </Button>
+          ))}
+        </div>
+      )}
 
       {need.status === "qualified" ? (
         <Button className="w-full" onClick={() => setOpeningOpportunity(true)}><Compass size={15} /> Examiner comme opportunité de développement</Button>

@@ -21,7 +21,8 @@
 // §31). Aucun des deux ne crée de Situation, Decision, Mission ou
 // Programme (mandat §20) — seul un Finding "proposed" ou "rejected" en
 // résulte ; la promotion éventuelle reste un geste ultérieur, séparé.
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, Info, ShieldQuestion } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { canRole } from "@/server/permissions";
@@ -55,17 +56,37 @@ function Empty({ label }: { label: string }) {
 
 export function IntelligenceFeed({ state, role }: { state: ProductState; role: Role }) {
   const { run } = useProduct();
+  const router = useRouter();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [dismissingId, setDismissingId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [showRegistry, setShowRegistry] = useState(false);
   const [showHandled, setShowHandled] = useState(false);
+  // Release hardening (V1) — promote_finding_to_situation existait déjà
+  // (LOT 8), permissionnée et testée, mais jamais exposée. run() ne
+  // renvoie qu'un booléen de succès, pas l'id de la Situation créée
+  // (généré côté domaine) — on retient l'id du Finding en attente de
+  // promotion, et un effet observe state.findings jusqu'à ce que son
+  // promotedToSituationId apparaisse, puis ouvre le vrai dossier créé.
+  // Jamais de promotion automatique : ce n'est déclenché que par le geste
+  // humain promoteFinding ci-dessous.
+  const [pendingPromotionFindingId, setPendingPromotionFindingId] = useState<string | null>(null);
 
   const feed = computeIntelligenceFeed(state);
   const observability = computeIntelligenceObservability(state);
   const newItems = feed.filter((item) => item.status === "nouvelle");
   const handledItems = feed.filter((item) => item.status !== "nouvelle");
   const canAct = canRole(role, "record_finding") && canRole(role, "dismiss_detection");
+  const canPromote = canRole(role, "promote_finding_to_situation");
+
+  useEffect(() => {
+    if (!pendingPromotionFindingId) return;
+    const finding = state.findings.find((item) => item.id === pendingPromotionFindingId);
+    if (finding?.promotedToSituationId) {
+      setPendingPromotionFindingId(null);
+      router.push(`/app/situations/${finding.promotedToSituationId}`);
+    }
+  }, [state, pendingPromotionFindingId, router]);
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((current) => {
@@ -99,6 +120,23 @@ export function IntelligenceFeed({ state, role }: { state: ProductState; role: R
     setPendingId(findingId);
     try {
       await run({ type: "update_finding_status", findingId, status: "confirmed" });
+    } finally {
+      setPendingId(null);
+    }
+  };
+
+  // promoteFinding — release hardening (V1) : le seul chemin qui ouvre une
+  // Situation depuis un constat confirmé, via la commande Core existante
+  // (promote_finding_to_situation, knowledge-pipeline.ts). N'invente
+  // aucune règle : le garde-fou "un Finding déjà promu ne l'est jamais
+  // deux fois" reste entièrement porté par le domaine — ce composant se
+  // contente de ne pas afficher le bouton une fois promotedToSituationId
+  // renseigné (cf. rendu ci-dessous).
+  const promoteFinding = async (findingId: string) => {
+    setPendingId(findingId);
+    try {
+      const ok = await run({ type: "promote_finding_to_situation", findingId });
+      if (ok) setPendingPromotionFindingId(findingId);
     } finally {
       setPendingId(null);
     }
@@ -228,6 +266,15 @@ export function IntelligenceFeed({ state, role }: { state: ProductState; role: R
                   {canAct && item.status === "enregistree" && item.finding?.status === "proposed" && (
                     <Button size="sm" variant="outline" disabled={pendingId === item.finding.id} onClick={() => confirmFinding(item.finding!.id)}>
                       {pendingId === item.finding.id ? "…" : "Confirmer ce constat"}
+                    </Button>
+                  )}
+                  {/* Finding → Situation (release hardening, V1) : visible
+                      uniquement pour un constat confirmé pas encore promu
+                      et un rôle autorisé — absent sinon, jamais désactivé
+                      à vide. */}
+                  {canPromote && item.status === "enregistree" && item.finding?.status === "confirmed" && !item.finding?.promotedToSituationId && (
+                    <Button size="sm" disabled={pendingId === item.finding.id} onClick={() => promoteFinding(item.finding!.id)}>
+                      {pendingId === item.finding.id ? "…" : "Ouvrir une situation"}
                     </Button>
                   )}
                 </div>

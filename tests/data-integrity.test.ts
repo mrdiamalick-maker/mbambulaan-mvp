@@ -105,6 +105,18 @@ test("le jeu national couvre les territoires et les moteurs métier de la démon
   }
 });
 
+// TEST H (release hardening, V1 Coherence Review §3) — le Demo World
+// avait deux Commitment.id identiques dans deux CoordinationSpace
+// distincts (eng-elinkine-coord, eng-lompoul-coord), en collision avec le
+// motif généré `eng-${territoryId}-coord`. Rien dans le schéma
+// n'imposait cette unicité — corrigée à la source (fixture renommée),
+// gardée ici pour ne jamais y revenir silencieusement.
+test("TEST H — chaque Commitment.id du Demo World est unique à travers tous les CoordinationSpace", () => {
+  const state = createDemoState();
+  const allCommitmentIds = state.coordinationSpaces.flatMap((space) => space.commitments.map((commitment) => commitment.id));
+  assert.equal(new Set(allCommitmentIds).size, allCommitmentIds.length, "au moins un Commitment.id est dupliqué à travers plusieurs CoordinationSpace");
+});
+
 test("la migration contient le stockage tenant et l'idempotence des commandes", () => {
   const sql = readFileSync(new URL("../db/migrations/001_initial.sql", import.meta.url), "utf8");
   assert.match(sql, /mbambulaan_tenant_state/);
