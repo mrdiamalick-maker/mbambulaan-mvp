@@ -63,6 +63,11 @@ const all: Command["type"][] = [
   "record_outcome",
   "record_impact",
   "record_learning",
+  // LOT 7 — Actor & Trust Network (mandat "rendre l'écosystème
+  // mobilisable") : qualifier un Signal comme capacité réseau reste un
+  // geste de coordination, jamais celui d'un acteur de terrain
+  // individuel — même mandat que create_initiative/create_field_mission.
+  "qualify_signal_as_network_capacity",
   "reset_demo"
 ];
 
@@ -147,7 +152,9 @@ const allowed: Record<Role, Command["type"][]> = {
     "create_result",
     "record_outcome",
     "record_impact",
-    "record_learning"
+    "record_learning",
+    // LOT 7 — même mandat que create_initiative déjà ouvert à ce rôle.
+    "qualify_signal_as_network_capacity"
   ],
   coordinateur: all,
   institution: [
@@ -180,6 +187,9 @@ const allowed: Record<Role, Command["type"][]> = {
     "record_outcome",
     "record_impact",
     "record_learning",
+    // LOT 7 — même mandat que create_initiative déjà ouvert à ce rôle
+    // (institution porte aussi la gouvernance du réseau de partenaires).
+    "qualify_signal_as_network_capacity",
     "reset_demo"
   ],
   partenaire: ["create_community_post"]

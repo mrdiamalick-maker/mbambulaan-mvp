@@ -348,3 +348,29 @@ test("MICRO-CORRECTIF — non-régression Joal/Kayar/Hann : la lecture current r
   assert.ok(kayarCurrent.collectiveNeeds.some((item) => item.id === KAYAR_NEED_ID));
   assert.ok(kayarCurrent.knowledgeGaps.some((item) => item.id === KAYAR_GAP_ID));
 });
+
+// ============================================================
+// LOT 7 (mandat "Actor & Trust Network") — TEST K/L : "qui peut agir ?"
+// ============================================================
+
+// TEST K — Joal peut retrouver des capacités pertinentes du réseau, sans
+// aucune sélection automatique (ce sont exactement les PartnerService
+// dont territoryIds inclut "joal", rien de plus, rien de recalculé).
+test("TEST K — Joal retrouve les capacités réseau réellement reliées, sans sélection automatique", () => {
+  const state = createDemoState();
+  const joal = buildTerritoryIntelligence(state, "joal")!;
+  const expected = state.partnerServices.filter((item) => item.territoryIds.includes("joal"));
+  assert.equal(joal.networkCapacities.length, expected.length);
+  joal.networkCapacities.forEach((item) => assert.ok(item.territoryIds.includes("joal")));
+});
+
+// TEST L — un territoire sans capacité réseau documentée ne doit jamais
+// être présenté comme "aucune capacité réelle" — le mécanisme d'absence
+// honnête doit fonctionner (vérifié ici par construction, le Demo World
+// initial couvrant les 18 territoires par au moins un PartnerService).
+test("TEST L — l'absence de capacité réseau documentée reste représentable honnêtement (networkCapacities vide)", () => {
+  const state = createDemoState();
+  const emptied = { ...state, partnerServices: [] };
+  const kayar = buildTerritoryIntelligence(emptied, "kayar")!;
+  assert.equal(kayar.networkCapacities.length, 0, "un territoire sans PartnerService réel doit renvoyer une liste vide, jamais une capacité fabriquée");
+});

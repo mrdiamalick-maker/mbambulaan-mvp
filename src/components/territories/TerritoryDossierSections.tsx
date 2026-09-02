@@ -25,10 +25,20 @@ import {
   Layers,
   Radio,
   Sparkles,
-  Target
+  Target,
+  UsersRound
 } from "lucide-react";
-import type { TrustLevel } from "@/domain/types";
+import type { PartnerService, TrustLevel } from "@/domain/types";
 import { attributionLevelLabels, collectiveNeedStatusLabels, fieldMissionStatusLabels, findingStatusLabels, programOpportunityStatusLabels } from "@/domain/types";
+
+// LOT 7 — libellés locaux (PartnerService n'exporte pas encore de
+// Record centralisé, même situation que signalCategoryLabel dans
+// CoordinationWorkspace.tsx avant LOT 3).
+const partnerServiceStatusLabel: Record<PartnerService["status"], string> = {
+  reference: "Référencée",
+  qualifie: "Qualifiée",
+  a_activer: "À activer"
+};
 import { trustLabels } from "@/lib/status-tokens";
 import { currentTerritoryView, hasSufficientKnowledge, type TerritoryIntelligence } from "@/domain/territory-intelligence";
 
@@ -233,6 +243,25 @@ export function TerritoryDossierSections({ intelligence, tone }: { intelligence:
               ))}</div>
             </div>
           )}
+        </Section>
+
+        {/* LOT 7 (mandat "Actor & Trust Network") §17/§18/§29 — "qui peut
+            agir ?" : capacités du Network potentiellement mobilisables sur
+            ce territoire, jamais un fournisseur recommandé automatiquement
+            (la mobilisation reste une décision humaine, cf. Situation
+            Room/dossier). Absence de capacité documentée ≠ absence réelle
+            (mandat §19 Kayar, même doctrine que §30 du LOT 5) — le dire
+            explicitement plutôt que laisser un silence se lire comme
+            "aucune capacité". */}
+        <Section tone={tone} icon={UsersRound} title="Qui peut agir ?" hint="Capacités du réseau potentiellement mobilisables — jamais une recommandation automatique, la décision de mobiliser reste humaine." empty="Réseau documenté insuffisant sur ce territoire pour ce type de besoin — l'absence de capacité enregistrée ne signifie pas qu'aucune n'existe réellement.">
+          {intelligence.networkCapacities.slice(0, 4).map((service) => (
+            <div key={service.id} className={`rounded-lg ${p.cardBorder} ${p.cardBg} p-3`}>
+              <div className="flex flex-wrap items-center justify-between gap-2"><p className={p.heading}>{service.name}</p><TrustPill trust={service.trust} tone={tone} /></div>
+              <p className={`mt-1 ${p.muted}`}>Condition d’activation · {service.activationConditions}</p>
+              <p className={`mt-1.5 ${p.faint}`}>Statut · {partnerServiceStatusLabel[service.status]}{service.updatedAt ? ` · mise à jour ${formatDate(service.updatedAt)}` : ""}</p>
+              <Link href="/app/organisation" className={`mt-2 inline-flex items-center gap-1 text-xs font-bold ${p.link}`}>Voir dans le réseau <ArrowRight size={12} /></Link>
+            </div>
+          ))}
         </Section>
 
         <Section tone={tone} icon={Target} title="Ce qui a été réalisé" hint="Résultats concrets enregistrés — ce qui a été produit, distinct de ce qui a changé." empty="Aucun résultat enregistré sur ce territoire pour le moment.">

@@ -72,6 +72,13 @@ export interface Organization {
   // à modéliser séparément si un vrai cas apparaît, volontairement pas
   // anticipé ici.
   networkStatus?: "libre" | "adherent";
+  // verificationStatus (LOT 7, mandat "Actor & Trust Network") —
+  // explicable, jamais un score : "declaree" est le statut d'une
+  // organisation candidate créée via qualify_signal_as_network_capacity
+  // (mandat §13, jamais "verifiee" à la création). Absent = les
+  // organisations existantes du Demo World (déjà connues/documentées
+  // avant ce lot) — pas de migration rétroactive fabriquée.
+  verificationStatus?: "declaree" | "documentee" | "verifiee";
 }
 
 export interface Territory {
@@ -905,6 +912,17 @@ export interface PartnerService {
   status: "reference" | "qualifie" | "a_activer";
   trust: TrustLevel;
   activationConditions: string;
+  // sourceRef/updatedAt (LOT 7, mandat "Actor & Trust Network", §21/§22)
+  // — additifs. sourceRef trace la provenance réelle d'une capacité issue
+  // d'une qualification (qualify_signal_as_network_capacity) : jamais un
+  // texte copié puis l'origine perdue. Absent pour les services déjà
+  // référencés dans le Demo World avant ce lot (documentation éditoriale
+  // directe, pas de Signal source). updatedAt (fraîcheur) reste optionnel
+  // — pas de règle temporelle arbitraire globale si le métier ne la
+  // justifie pas ; "expiree" (TrustLevel) reste le signal fort quand
+  // pertinent plutôt qu'un calcul de péremption inventé ici.
+  sourceRef?: { objectType: "signal"; objectId: string };
+  updatedAt?: string;
 }
 
 export interface Funding {
@@ -1489,6 +1507,28 @@ export type Command =
       fieldMissionId?: string;
       sourceRefs?: KnowledgeSourceRef[];
       status?: LearningStatus;
+    }
+  // --- LOT 7 — Actor & Trust Network (mandat "rendre l'écosystème
+  // mobilisable"). qualify_signal_as_network_capacity est le seul chemin
+  // par lequel un Signal (issu ou non d'une PublicContribution) devient
+  // une capacité visible du Network — toujours une décision humaine
+  // explicite (mandat §12, TEST C), jamais un effet de bord de la seule
+  // existence du Signal. Exactement l'un des deux : organizationId
+  // (rattacher à une organisation déjà connue) OU newOrganization (créer
+  // une organisation candidate, mandat §13) — jamais les deux, jamais
+  // aucune (validé dans le domaine, cf. actor-network.ts).
+  | {
+      type: "qualify_signal_as_network_capacity";
+      actorId: string;
+      signalId: string;
+      organizationId?: string;
+      newOrganization?: { name: string; type: Organization["type"] };
+      service: {
+        name: string;
+        category: PartnerService["category"];
+        territoryIds: string[];
+        activationConditions: string;
+      };
     }
   | { type: "reset_demo"; actorId: string };
 

@@ -23,6 +23,7 @@ import { communicationChannelLabels, decisionTypeLabels, evidenceTypeLabels } fr
 import { applyKnowledgePipelineCommand, promoteSignalToSituation } from "./knowledge-pipeline";
 import { applyFieldMissionCommand } from "./field-mission";
 import { applyImpactCommand } from "./impact";
+import { applyActorNetworkCommand } from "./actor-network";
 
 // Le moteur de rapprochement Lot ↔ ServiceRequest (§5.11) ne concerne que
 // les intentions d'approvisionnement : une demande de formation ou de
@@ -93,6 +94,7 @@ const transitions: Record<
     | "record_outcome"
     | "record_impact"
     | "record_learning"
+    | "qualify_signal_as_network_capacity"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -852,6 +854,9 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   ) {
     return applyImpactCommand(state, command);
   }
+  if (command.type === "qualify_signal_as_network_capacity") {
+    return applyActorNetworkCommand(state, command);
+  }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
   }
@@ -1072,6 +1077,7 @@ export type WorkflowAction = Exclude<
   | "record_outcome"
   | "record_impact"
   | "record_learning"
+  | "qualify_signal_as_network_capacity"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {

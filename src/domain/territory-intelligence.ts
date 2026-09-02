@@ -26,6 +26,7 @@ import type {
   Learning,
   Observation,
   Organization,
+  PartnerService,
   ProductState,
   ProgramOpportunity,
   Result,
@@ -124,6 +125,13 @@ export interface TerritoryIntelligence {
   results: Result[];
   outcomes: Outcome[];
   learnings: Learning[];
+  // "Qui peut agir ?" (LOT 7, mandat "Actor & Trust Network", §17/§29) —
+  // capacités du Network potentiellement mobilisables sur ce territoire.
+  // Jamais une recommandation automatique ni un fournisseur présélectionné
+  // — la décision de mobiliser reste humaine (Situation Room, dossier
+  // territorial). Pas de duplication : ce sont les mêmes PartnerService
+  // que ceux lus par buildOrganizationNetworkProfile (actor-network.ts).
+  networkCapacities: PartnerService[];
 }
 
 // buildTerritoryIntelligence — point d'entrée unique (mandat §6). Réutilisé
@@ -164,6 +172,7 @@ export function buildTerritoryIntelligence(state: ProductState, territoryId: str
   const results = state.results.filter((item) => item.territoryIds.includes(territoryId));
   const outcomes = state.outcomes.filter((item) => item.territoryIds.includes(territoryId));
   const learnings = state.learnings.filter((item) => resolveLearningTerritoryIds(state, item).includes(territoryId));
+  const networkCapacities = state.partnerServices.filter((item) => item.territoryIds.includes(territoryId));
 
   return {
     territory,
@@ -182,7 +191,8 @@ export function buildTerritoryIntelligence(state: ProductState, territoryId: str
     programOpportunities,
     results,
     outcomes,
-    learnings
+    learnings,
+    networkCapacities
   };
 }
 

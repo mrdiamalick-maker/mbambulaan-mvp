@@ -1,5 +1,18 @@
 "use client";
 
+// OrganizationWorkspace — LOT 7 (mandat "Actor & Trust Network : rendre
+// l'écosystème mobilisable"). Repositionnement, route inchangée
+// (/app/organisation, mandat §8) : la page répondait surtout "qui
+// appartient à mon organisation et quels sont mes droits ?" — elle répond
+// désormais aussi "qui existe dans l'écosystème, où, avec quelles
+// capacités, et que savons-nous réellement d'eux ?". Deux niveaux
+// distincts, jamais mélangés silencieusement (mandat §8/§34) :
+// MON ORGANISATION (membres, capacités propres, gouvernance des accès)
+// et ÉCOSYSTÈME MOBILISABLE (organisations et capacités du réseau,
+// contributions publiques à qualifier). Aucun Actor/Organization/
+// PartnerService recréé — uniquement des projections (actor-network.ts)
+// et une commande de qualification humaine.
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -8,9 +21,11 @@ import {
   CheckCircle2,
   Factory,
   FileBarChart,
+  Inbox,
   KeyRound,
   LockKeyhole,
   MapPin,
+  Network,
   Radio,
   ShieldCheck,
   UserCheck,
@@ -20,8 +35,13 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AccessSummary } from "@/components/subscription/AccessSummary";
-import type { Report } from "@/domain/types";
+import { buildOrganizationNetworkProfile } from "@/domain/actor-network";
+import { OrganizationProfileSheet } from "@/components/organisation/OrganizationProfileSheet";
+import { QualifySignalForm } from "@/components/organisation/QualifySignalForm";
+import type { Report, Signal } from "@/domain/types";
+import type { PublicContribution } from "@/domain/public/contribution";
 
 const reportStatusLabel: Record<Report["status"], string> = {
   pret: "Prêt",
@@ -41,10 +61,55 @@ const roleNames: Record<string, string> = {
   partenaire: "Partenaire d’impact"
 };
 
+// Rôles qui peuvent qualifier une contribution — même liste que
+// qualify_signal_as_network_capacity dans permissions.ts, dupliquée en
+// UI plutôt qu'importée (permissions.ts est server-only) : n'affiche pas
+// le panneau à un rôle qui ne peut de toute façon pas agir.
+const QUALIFYING_ROLES = new Set(["administrateur", "coordinateur", "gestionnaire_organisation", "institution"]);
+
 export function OrganizationWorkspace() {
-  const { state, actorId } = useProduct();
+  const { state, role, actorId: sessionActorId } = useProduct();
+  const [profileOrganizationId, setProfileOrganizationId] = useState<string | null>(null);
+  const [networkTerritoryFilter, setNetworkTerritoryFilter] = useState("");
+  const [qualifySignal, setQualifySignal] = useState<Signal | null>(null);
+  const [pendingContributions, setPendingContributions] = useState<PublicContribution[]>([]);
+  const [contributionsLoading, setContributionsLoading] = useState(true);
+  const [contributionsError, setContributionsError] = useState("");
+
+  const canQualify = QUALIFYING_ROLES.has(role);
+
+  // Pont PublicContribution → Réseau, étape 2/2 (LOT 7 clôt le follow-up
+  // ouvert par LOT 6) — même discipline que le pont PublicRequest déjà en
+  // place dans CoordinationWorkspace.tsx : chargé une fois au montage,
+  // cette liste change par action humaine (qualification), pas un flux
+  // temps réel à suivre en continu.
+  useEffect(() => {
+    if (!canQualify) { setContributionsLoading(false); return; }
+    let cancelled = false;
+    fetch("/api/coordination/public-contributions")
+      .then(async (response) => {
+        const payload = await response.json();
+        if (cancelled) return;
+        if (!response.ok) {
+          setContributionsError(payload.error ?? "Impossible de charger les contributions publiques.");
+          return;
+        }
+        setPendingContributions(payload.contributions ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setContributionsError("Connexion impossible. Vérifiez votre réseau puis réessayez.");
+      })
+      .finally(() => {
+        if (!cancelled) setContributionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canQualify]);
+
   if (!state) return null;
-  const actor = state.actors.find((item) => item.id === actorId) ?? state.actors[0];
+
+  const actor = state.actors.find((item) => item.id === sessionActorId) ?? state.actors[0];
   const organization = state.organizations.find((item) => item.id === actor.organizationId);
   const subscription = state.subscriptions.find((item) => item.organizationId === organization?.id);
   const plan = state.plans.find((item) => item.id === subscription?.planId);
@@ -52,20 +117,38 @@ export function OrganizationWorkspace() {
   const verifiedMembers = members.filter((item) => item.verified);
   const territoryIds = new Set(members.flatMap((item) => item.territoryIds));
   const ownedInfrastructure = state.infrastructures.filter((item) => item.organizationId === organization?.id);
-  const availableServices = state.partnerServices.filter((service) => service.organizationId === organization?.id || service.status !== "a_activer");
+  // Correctif LOT 7 (audit §34) — l'ancien filtre mélangeait "mes
+  // services" (tout statut) et "services d'autres organisations non
+  // a_activer" sous un même "Portefeuille de capacités", présentés comme
+  // si tous appartenaient à mon organisation. Deux ensembles désormais
+  // explicitement distincts.
+  const ownServices = state.partnerServices.filter((service) => service.organizationId === organization?.id);
+  const networkServices = state.partnerServices
+    .filter((service) => service.organizationId !== organization?.id && service.status !== "a_activer")
+    .filter((service) => !networkTerritoryFilter || service.territoryIds.includes(networkTerritoryFilter));
   const openCommitments = state.coordinationSpaces.flatMap((space) => space.commitments).filter((commitment) => members.some((member) => member.id === commitment.actorId) && commitment.status !== "terminee");
+
+  const otherOrganizations = state.organizations.filter((item) => item.id !== organization?.id);
+  const profileOrganization = profileOrganizationId ? buildOrganizationNetworkProfile(state, profileOrganizationId) : undefined;
+
+  // Contributions encore qualifiables : leur Signal Core doit exister et
+  // rester "nouveau" (pas déjà qualifié par une action précédente) — une
+  // contribution "pending" côté Core (convergence pas encore confirmée)
+  // n'est pas encore qualifiable.
+  const qualifiableContributions = pendingContributions
+    .map((contribution) => ({ contribution, signal: contribution.coreSignalId ? state.signals.find((item) => item.id === contribution.coreSignalId) : undefined }))
+    .filter((entry): entry is { contribution: PublicContribution; signal: Signal } => Boolean(entry.signal) && entry.signal!.disposition === "nouveau");
 
   return (
     <div className="space-y-8">
       <section className="overflow-hidden rounded-2xl bg-sidebar p-6 text-sidebar-foreground lg:p-7">
         <div className="grid gap-7 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary"><Building2 size={15} /> Organisation active</div>
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary"><Network size={15} /> Réseau &amp; capacités</div>
             <h2 className="mt-4 text-2xl font-semibold tracking-tight lg:text-3xl">{organization?.name}</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-sidebar-foreground/65">Un périmètre de droits, de personnes, de capacités et de responsabilités. La plateforme montre qui peut agir, sur quel territoire et avec quelles preuves.</p>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-sidebar-foreground/65">Mon organisation — membres, capacités et responsabilités — et l’écosystème mobilisable : qui d’autre existe, avec quelles capacités documentées et quel niveau de confiance.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="gap-1.5 border-white/15 text-sidebar-foreground/70"><ShieldCheck size={13} /> Plan {plan?.name}</Badge>
             <Badge variant="outline" className="gap-1.5 border-white/15 text-sidebar-foreground/70"><Radio size={13} /> Tenant de démonstration</Badge>
           </div>
         </div>
@@ -73,7 +156,7 @@ export function OrganizationWorkspace() {
           {[
             [UsersRound, "Membres habilités", `${verifiedMembers.length}/${members.length}`, "Identités vérifiées"],
             [MapPin, "Territoires couverts", String(territoryIds.size), "Selon les mandats actifs"],
-            [Factory, "Capacités propres", String(ownedInfrastructure.length), "Actifs reliés à l’organisation"],
+            [Factory, "Capacités propres", String(ownedInfrastructure.length + ownServices.length), "Actifs et services reliés à l’organisation"],
             [CheckCircle2, "Engagements ouverts", String(openCommitments.length), "Responsabilités en cours"]
           ].map(([Icon, label, value, detail], index) => {
             const ItemIcon = Icon as typeof UsersRound;
@@ -81,6 +164,14 @@ export function OrganizationWorkspace() {
           })}
         </div>
       </section>
+
+      {/* ============================================================ */}
+      {/* MON ORGANISATION (mandat §8 point 1) */}
+      {/* ============================================================ */}
+      <div>
+        <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">Mon organisation</p>
+        <h2 className="mt-1 text-lg font-semibold">Membres, capacités propres et gouvernance des accès</h2>
+      </div>
 
       <section className="grid gap-8 xl:grid-cols-[1.15fr_.85fr]">
         <section>
@@ -101,47 +192,134 @@ export function OrganizationWorkspace() {
           })}</div>
         </section>
 
-        <aside className="rounded-2xl border bg-muted/20 p-5 lg:p-6">
-          <div className="flex items-center gap-2 text-[#1d4468]"><KeyRound size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Gouvernance des accès</p></div>
-          <h2 className="mt-2 text-xl font-semibold">Capacités autorisées</h2>
-          <p className="mt-4 text-sm leading-6 text-muted-foreground">{plan?.value}</p>
-          <div className="mt-5 divide-y border-y">{subscription?.entitlements.map((item) => <div key={item} className="flex items-center gap-2 py-3 text-xs font-semibold"><span className="grid size-6 place-items-center rounded-full bg-[#1d8a5f]/12 text-[#1d8a5f]"><Check size={12} /></span>{item.replaceAll("_", " ")}</div>)}</div>
-          <p className="mt-5 flex items-start gap-2 rounded-lg bg-background/70 p-4 text-xs leading-5 text-muted-foreground"><LockKeyhole size={14} className="mt-0.5 shrink-0 text-[#1d4468]" /> Les informations et actions restent limitées au mandat de l’organisation. Une fonctionnalité visible n’est pas automatiquement une donnée accessible.</p>
-        </aside>
-      </section>
-
-      <section className="grid gap-8 border-t pt-8 xl:grid-cols-[.95fr_1.05fr]">
         <section>
-          <div className="flex items-center gap-2 text-[#1d4468]"><Factory size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Portefeuille de capacités</p></div>
-          <h2 className="mt-2 text-lg font-semibold">Actifs et services mobilisables</h2>
-          <div className="mt-4 divide-y border-y">{availableServices.map((service) => {
-            const owner = state.organizations.find((item) => item.id === service.organizationId);
-            return (
-              <article key={service.id} className="py-4">
-                <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{service.category} · {owner?.name}</p><h3 className="mt-1.5 text-sm font-semibold">{service.name}</h3></div><TrustBadge trust={service.trust} /></div>
-                <p className="mt-3 text-xs leading-5 text-muted-foreground">Activation : {service.activationConditions}</p>
-              </article>
-            );
-          })}</div>
-          <Button variant="link" className="mt-4 px-0" asChild><Link href="/app/coordination">Ouvrir la salle de coordination <ArrowRight size={14} /></Link></Button>
-        </section>
-
-        <section>
-          <div className="flex items-center gap-2 text-[#1d4468]"><FileBarChart size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Redevabilité</p></div>
-          <h2 className="mt-2 text-lg font-semibold">Rapports prêts à partager</h2>
-          <div className="mt-4 divide-y border-y">{state.reports.map((report) => (
-            <article key={report.id} className="py-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{reportStatusLabel[report.status]} · {report.period}</p><h3 className="mt-1.5 text-sm font-semibold">{report.title}</h3><p className="mt-1 text-xs text-muted-foreground">{report.metrics.length} indicateurs avec sources et limites</p></div>
-                <Button size="sm" variant="outline" className="whitespace-nowrap" asChild><Link href="/app/pilotage">Consulter <ArrowRight size={14} /></Link></Button>
-              </div>
+          <div className="flex items-center gap-2 text-[#1d4468]"><Factory size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Capacités de mon organisation</p></div>
+          <h2 className="mt-2 text-lg font-semibold">Services propres, tout statut</h2>
+          <div className="mt-4 divide-y border-y">{ownServices.map((service) => (
+            <article key={service.id} className="py-4">
+              <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{service.category}</p><h3 className="mt-1.5 text-sm font-semibold">{service.name}</h3></div><TrustBadge trust={service.trust} /></div>
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">Activation : {service.activationConditions}</p>
             </article>
           ))}</div>
-          <div className="mt-5 border-l-2 border-[#1d4468]/30 pl-4"><p className="text-xs font-semibold">La confiance est une capacité produit</p><p className="mt-2 text-xs leading-5 text-muted-foreground">Membres, sources, actifs et rapports utilisent le même référentiel : l’organisation ne reconstruit plus manuellement son récit d’impact.</p></div>
+          {ownServices.length === 0 && <p className="mt-3 text-sm text-muted-foreground">Aucune capacité propre documentée pour le moment.</p>}
         </section>
+      </section>
+
+      {/* Gouvernance des accès — déclassée visuellement (mandat §9/§36 :
+          "permissions ≠ pricing", le réseau métier devient la proposition
+          principale de la page). Le moteur technique n'est pas supprimé,
+          seulement replacé sous les capacités propres, en bande compacte. */}
+      <section className="rounded-2xl border bg-muted/20 p-5 lg:p-6">
+        <div className="flex items-center gap-2 text-[#1d4468]"><KeyRound size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Gouvernance des accès</p></div>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">{plan?.value}</p>
+        <div className="mt-4 flex flex-wrap gap-2">{subscription?.entitlements.map((item) => <span key={item} className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1 text-[11px] font-semibold"><Check size={11} className="text-[#1d8a5f]" />{item.replaceAll("_", " ")}</span>)}</div>
+        <p className="mt-4 flex items-start gap-2 rounded-lg bg-background/70 p-3 text-xs leading-5 text-muted-foreground"><LockKeyhole size={13} className="mt-0.5 shrink-0 text-[#1d4468]" /> Les informations et actions restent limitées au mandat de l’organisation. Une fonctionnalité visible n’est pas automatiquement une donnée accessible.</p>
+      </section>
+
+      {/* ============================================================ */}
+      {/* ÉCOSYSTÈME MOBILISABLE (mandat §8 point 2) */}
+      {/* ============================================================ */}
+      <div className="border-t pt-8">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#b6522f]">Écosystème mobilisable</p>
+        <h2 className="mt-1 text-lg font-semibold">Organisations, capacités et contributions du réseau</h2>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Réseau documenté et qualifié — jamais un annuaire complet. La mobilisation reste toujours une décision humaine.</p>
+      </div>
+
+      {canQualify && (
+        <section>
+          <div className="flex items-center gap-2 text-[#b6522f]"><Inbox size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Contributions publiques à qualifier</p></div>
+          {contributionsLoading ? (
+            <p className="mt-3 text-sm text-muted-foreground">Chargement…</p>
+          ) : contributionsError ? (
+            <p className="mt-3 text-sm text-destructive">{contributionsError}</p>
+          ) : qualifiableContributions.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">Aucune contribution publique en attente de qualification pour le moment.</p>
+          ) : (
+            <div className="mt-4 divide-y border-y">{qualifiableContributions.map(({ contribution, signal }) => (
+              <div key={contribution.id} className="grid gap-3 py-4 md:grid-cols-[1fr_auto] md:items-center">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-muted-foreground">{contribution.reference} · {contribution.actorType}</p>
+                  <p className="mt-1 truncate text-sm font-semibold">{signal.description}</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setQualifySignal(signal)}>Qualifier comme capacité réseau <ArrowRight size={14} /></Button>
+              </div>
+            ))}</div>
+          )}
+        </section>
+      )}
+
+      <section>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-[#1d4468]"><Building2 size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Organisations du réseau</p></div>
+          <label className="text-xs">
+            <select value={networkTerritoryFilter} onChange={(event) => setNetworkTerritoryFilter(event.target.value)} className="rounded-md border bg-background px-2.5 py-1.5 text-xs font-semibold outline-none">
+              <option value="">Tous les territoires</option>
+              {state.territories.map((territory) => <option key={territory.id} value={territory.id}>{territory.name}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="mt-4 divide-y border-y">{otherOrganizations.map((org) => {
+          const orgServices = state.partnerServices.filter((service) => service.organizationId === org.id && (!networkTerritoryFilter || service.territoryIds.includes(networkTerritoryFilter)));
+          if (networkTerritoryFilter && orgServices.length === 0) return null;
+          return (
+            <button key={org.id} type="button" onClick={() => setProfileOrganizationId(org.id)} className="flex w-full items-center justify-between gap-3 py-4 text-left transition hover:bg-muted/30">
+              <div className="min-w-0"><p className="truncate text-sm font-semibold">{org.name}</p><p className="mt-1 text-xs text-muted-foreground">{orgServices.length} capacité(s) documentée(s)</p></div>
+              <ArrowRight size={14} className="shrink-0 text-muted-foreground" />
+            </button>
+          );
+        })}</div>
+      </section>
+
+      <section>
+        <div className="flex items-center gap-2 text-[#1d4468]"><Factory size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Capacités du réseau</p></div>
+        <h2 className="mt-2 text-lg font-semibold">Services documentés hors de mon organisation</h2>
+        <div className="mt-4 divide-y border-y">{networkServices.map((service) => {
+          const owner = state.organizations.find((item) => item.id === service.organizationId);
+          return (
+            <article key={service.id} className="py-4">
+              <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{service.category} · {owner?.name}</p><h3 className="mt-1.5 text-sm font-semibold">{service.name}</h3></div><TrustBadge trust={service.trust} /></div>
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">Activation : {service.activationConditions}</p>
+            </article>
+          );
+        })}</div>
+        {networkServices.length === 0 && <p className="mt-3 text-sm text-muted-foreground">{networkTerritoryFilter ? "Réseau documenté insuffisant pour ce territoire — l’absence de capacité enregistrée ne signifie pas qu’aucune n’existe réellement." : "Aucune capacité de réseau documentée pour le moment."}</p>}
+        <Button variant="link" className="mt-4 px-0" asChild><Link href="/app/coordination">Ouvrir la salle de coordination <ArrowRight size={14} /></Link></Button>
+      </section>
+
+      <section className="border-t pt-8">
+        <div className="flex items-center gap-2 text-[#1d4468]"><FileBarChart size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Redevabilité</p></div>
+        <h2 className="mt-2 text-lg font-semibold">Rapports prêts à partager</h2>
+        <div className="mt-4 divide-y border-y">{state.reports.map((report) => (
+          <article key={report.id} className="py-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{reportStatusLabel[report.status]} · {report.period}</p><h3 className="mt-1.5 text-sm font-semibold">{report.title}</h3><p className="mt-1 text-xs text-muted-foreground">{report.metrics.length} indicateurs avec sources et limites</p></div>
+              <Button size="sm" variant="outline" className="whitespace-nowrap" asChild><Link href="/app/pilotage">Consulter <ArrowRight size={14} /></Link></Button>
+            </div>
+          </article>
+        ))}</div>
       </section>
 
       <AccessSummary state={state} organizationId={organization?.id ?? ""} />
+
+      <Sheet open={profileOrganization !== undefined} onOpenChange={(open) => !open && setProfileOrganizationId(null)}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{profileOrganization?.organization.name}</SheetTitle>
+            <SheetDescription>Qui, où, que peut-elle faire, que savons-nous, où est-elle déjà mobilisée.</SheetDescription>
+          </SheetHeader>
+          {profileOrganization && <OrganizationProfileSheet profile={profileOrganization} />}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={qualifySignal !== null} onOpenChange={(open) => !open && setQualifySignal(null)}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Qualifier une contribution</SheetTitle>
+            <SheetDescription>Rattacher à une organisation connue, ou créer une organisation candidate — jamais automatique.</SheetDescription>
+          </SheetHeader>
+          {qualifySignal && <QualifySignalForm signal={qualifySignal} state={state} onDone={() => setQualifySignal(null)} onCancel={() => setQualifySignal(null)} />}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
