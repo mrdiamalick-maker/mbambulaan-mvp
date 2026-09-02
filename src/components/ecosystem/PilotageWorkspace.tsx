@@ -160,10 +160,11 @@ export function PilotageWorkspace() {
                   administrateur/gestionnaire_organisation/coordinateur/
                   partenaire — les 4 seuls rôles qui atteignent cette page
                   — vers /app/travail. Retour silencieux vérifié en
-                  conditions réelles. /app/travail (CoordinatorHub) est la
-                  vraie destination pour ces rôles : la file de situations
-                  fusionnée y vit déjà ("Situations à traiter, par
-                  priorité"), ce n'est pas un contournement. */}
+                  conditions réelles. /app/travail (WorkdayHub, LOT 9) est
+                  la vraie destination pour ces rôles : les situations qui
+                  leur reviennent y apparaissent déjà parmi "Vos
+                  priorités"/"Votre travail", ce n'est pas un
+                  contournement. */}
               <Button variant="secondary" asChild><Link href={critical[0] ? `/app/situations/${critical[0].id}` : "/app/travail"}>{critical[0] ? "Ouvrir l’arbitrage" : "Voir les situations"} <ArrowRight size={15} /></Link></Button>
               <Button variant="outline" className="border-white/20 bg-transparent text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground" asChild><Link href="/app/atlas">Vérifier dans l’Atlas</Link></Button>
             </div>

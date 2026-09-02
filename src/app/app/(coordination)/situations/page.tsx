@@ -7,16 +7,20 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { SituationRow } from "@/components/situations/SituationRow";
 import type { Role } from "@/domain/types";
 
-// Lot 2 — refonte navigation par rôle (CEO 2026-08-16) : seul l'opérateur
-// garde une raison de voir ce registre séparé — administrateur/
-// gestionnaire_organisation/coordinateur/partenaire étaient déjà fusionnés
-// vers /app/travail (Lot 3) ; mareyeur/transformateur/prestataire les
-// rejoignent ici, car BuyerTaskView/ProviderTaskView leur donnent désormais
-// leur propre file d'action sur /app/travail — ce registre général leur est
-// redondant. Pour l'opérateur qui reste, la vue est scopée à son propre
-// territoire (Actor.territoryIds), même mécanisme que CoordinatorHub/
-// OperatorTaskView.
-const nonOperatorRoles: Role[] = ["administrateur", "gestionnaire_organisation", "coordinateur", "partenaire", "mareyeur", "transformateur", "prestataire"];
+// LOT 9 (mandat "Operating Experience — faire disparaître les modules
+// derrière le travail réel", §14) : Situations redevient une destination
+// primaire pour administrateur/coordinateur — le hub Aujourd'hui
+// (WorkdayHub) ne montre qu'une sélection priorisée, ce registre reste le
+// "voir toutes les situations" (§32) vers lequel WorkdayHub ne pointe
+// jamais directement, mais que la navigation primaire doit exposer.
+// gestionnaire_organisation/partenaire restent redirigés : leur travail
+// (mandat §11) est le réseau/l'organisation, pas le registre territorial
+// — Situations resterait redondant pour eux, comme documenté au Lot 2.
+// mareyeur/transformateur/prestataire restent redirigés vers leur propre
+// file d'action (BuyerTaskView/ProviderTaskView, /app/travail). Pour
+// l'opérateur, la vue reste scopée à son propre territoire
+// (Actor.territoryIds), même mécanisme que WorkdayHub/OperatorTaskView.
+const nonOperatorRoles: Role[] = ["gestionnaire_organisation", "partenaire", "mareyeur", "transformateur", "prestataire"];
 
 export default function SituationsPage() {
   const { state, role, actorId, loading } = useProduct();

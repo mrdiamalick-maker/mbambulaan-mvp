@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowRight,
@@ -84,6 +85,16 @@ const views: Array<{ id: View; label: string; icon: typeof Boxes }> = [
   // réutilise cet onglet existant plutôt qu'une nouvelle route (§13).
   { id: "detections", label: "Intelligence Feed", icon: Radar }
 ];
+
+// Deep link ?view= (LOT 9, mandat "Operating Experience", §33 — "aucun
+// CTA mort") : le hub Aujourd'hui (WorkdayHub) doit pouvoir mener
+// exactement au bon onglet (missions, détections…) plutôt que de faire
+// atterrir sur la vue par défaut. Même repli honnête que partout ailleurs
+// dans ce fichier : un paramètre inconnu ou absent retombe sur "besoins",
+// jamais une erreur silencieuse.
+function resolveInitialView(raw: string | null): View {
+  return views.some((item) => item.id === raw) ? (raw as View) : "besoins";
+}
 
 // Canal → libellé lisible, pour l'affichage de la file de messages
 // entrants (simulés — aucune connexion WhatsApp/SMS/téléphonie réelle).
@@ -177,7 +188,8 @@ function formatAge(iso: string) {
 
 export function CoordinationWorkspace() {
   const { state, actorId: sessionActorId, role } = useProduct();
-  const [view, setView] = useState<View>("besoins");
+  const searchParams = useSearchParams();
+  const [view, setView] = useState<View>(() => resolveInitialView(searchParams.get("view")));
   const [territoryId, setTerritoryId] = useState("all");
   const [query, setQuery] = useState("");
   const [needsExpanded, setNeedsExpanded] = useState(false);

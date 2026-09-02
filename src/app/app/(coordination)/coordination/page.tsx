@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { currentSession } from "@/server/session";
 import type { Role } from "@/domain/types";
@@ -28,7 +29,10 @@ export default async function CoordinationPage() {
         <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">Coordination de la chaîne de valeur</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">Les besoins qualifiés rencontrent des capacités vérifiables. Les acteurs valident les engagements et chaque mission se termine par un résultat observable.</p>
       </header>
-      <div className="px-5 pt-6 lg:px-8"><CoordinationWorkspace /></div>
+      {/* useSearchParams (deep link ?view=, LOT 9, §33) exige un Suspense
+          (Next.js) — même repli que /connexion et /app/initiatives, déjà
+          en place dans ce dépôt. */}
+      <div className="px-5 pt-6 lg:px-8"><Suspense fallback={null}><CoordinationWorkspace /></Suspense></div>
     </div>
   );
 }
