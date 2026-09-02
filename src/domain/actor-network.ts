@@ -17,7 +17,7 @@
 //    explicite qui rattache à une Organization existante OU crée une
 //    "organisation candidate" (verificationStatus "declaree"), puis crée
 //    un PartnerService qui conserve sa provenance (sourceRef → Signal).
-import type { Actor, Command, Commitment, FieldMission, Infrastructure, Initiative, Organization, PartnerService, ProductState, Signal } from "./types";
+import type { Actor, Capacity, Command, Commitment, FieldMission, Infrastructure, Initiative, Organization, PartnerService, ProductState, Signal } from "./types";
 import { id, timestamp, withAudit } from "./rules";
 
 // --- Projections pures --------------------------------------------------
@@ -75,6 +75,12 @@ export interface OrganizationNetworkProfile {
   territories: { id: string; name: string }[];
   infrastructures: Infrastructure[];
   services: PartnerService[];
+  // capacities (micro-correctif final LOT 7, §A2) — les Capacity réelles
+  // (quantité + fenêtre de validité) reliées aux Infrastructure de cette
+  // organisation. Distinctes des PartnerService : un service référencé
+  // n'est jamais une disponibilité, une Capacity valide l'est
+  // potentiellement (cf. describeCapacityAvailability ci-dessous).
+  capacities: Capacity[];
   openCommitments: Commitment[];
   closedCommitments: Commitment[];
   initiatives: Initiative[];
@@ -87,20 +93,32 @@ export function buildOrganizationNetworkProfile(state: ProductState, organizatio
   const members = state.actors.filter((item) => item.organizationId === organizationId);
   const memberIds = new Set(members.map((item) => item.id));
   const verifiedMembers = members.filter((item) => item.verified);
-  const territoryIds = new Set(members.flatMap((item) => item.territoryIds));
+
+  const infrastructures = state.infrastructures.filter((item) => item.organizationId === organizationId);
+  const services = state.partnerServices.filter((item) => item.organizationId === organizationId);
+  const initiatives = state.initiatives.filter((item) => memberIds.has(item.ownerId));
+  const infrastructureIds = new Set(infrastructures.map((item) => item.id));
+  const capacities = state.capacities.filter((item) => infrastructureIds.has(item.infrastructureId));
+
+  // Micro-correctif final LOT 7 (§A1) — les territoires d'une organisation
+  // ne se limitent pas à ceux de ses membres : une organisation candidate
+  // peut n'avoir encore aucun Actor mais déjà un PartnerService ou une
+  // Infrastructure documentée sur un territoire. Union honnête des 4
+  // sources réellement reliées, jamais un territoire inventé.
+  const territoryIds = new Set<string>([
+    ...members.flatMap((item) => item.territoryIds),
+    ...services.flatMap((item) => item.territoryIds),
+    ...infrastructures.map((item) => item.territoryId),
+    ...initiatives.flatMap((item) => item.territoryIds)
+  ]);
   const territories = [...territoryIds]
     .map((tid) => state.territories.find((item) => item.id === tid))
     .filter((item): item is NonNullable<typeof item> => Boolean(item))
     .map((item) => ({ id: item.id, name: item.name }));
 
-  const infrastructures = state.infrastructures.filter((item) => item.organizationId === organizationId);
-  const services = state.partnerServices.filter((item) => item.organizationId === organizationId);
-
   const allCommitments = state.coordinationSpaces.flatMap((space) => space.commitments).filter((item) => memberIds.has(item.actorId));
   const openCommitments = allCommitments.filter((item) => item.status !== "terminee");
   const closedCommitments = allCommitments.filter((item) => item.status === "terminee");
-
-  const initiatives = state.initiatives.filter((item) => memberIds.has(item.ownerId));
 
   return {
     organization,
@@ -109,10 +127,36 @@ export function buildOrganizationNetworkProfile(state: ProductState, organizatio
     territories,
     infrastructures,
     services,
+    capacities,
     openCommitments,
     closedCommitments,
     initiatives
   };
+}
+
+// --- Capacité déclarée vs disponibilité réelle (micro-correctif §A2) ---
+
+// describeCapacityAvailability — un PartnerService "reference" signifie
+// "capacité/service connu ou déclaré dans le réseau", jamais "disponible
+// maintenant" (mandat §A2). La seule donnée temporelle réelle du modèle
+// est Capacity.validUntil (liée à une Infrastructure, pas directement au
+// PartnerService) : ce helper ne fait que lire cette donnée si elle
+// existe, sans inventer de règle d'expiration arbitraire pour tout le
+// reste. "aRevoir" couvre à la fois une Capacity expirée (fraîcheur) et
+// une Capacity fraîche mais non "disponible" (engagée/indisponible) —
+// dans les deux cas, le message honnête reste "à revérifier avant
+// mobilisation", jamais une affirmation d'indisponibilité fabriquée à
+// partir d'une simple péremption (mandat §24, "ne pas dire capacité
+// indisponible").
+export type CapacityAvailability =
+  | { kind: "valide"; capacity: Capacity }
+  | { kind: "aRevoir"; capacity: Capacity }
+  | { kind: "inconnue" };
+
+export function describeCapacityAvailability(capacity: Capacity | undefined, now: string = new Date().toISOString()): CapacityAvailability {
+  if (!capacity) return { kind: "inconnue" };
+  if (capacity.status === "disponible" && capacity.validUntil >= now) return { kind: "valide", capacity };
+  return { kind: "aRevoir", capacity };
 }
 
 // --- Commande : qualification humaine d'un Signal en capacité réseau ---

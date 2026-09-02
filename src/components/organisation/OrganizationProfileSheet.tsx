@@ -10,7 +10,11 @@
 import { ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TrustBadge } from "@/components/shared/StatusBadges";
-import type { OrganizationNetworkProfile } from "@/domain/actor-network";
+import { describeCapacityAvailability, type OrganizationNetworkProfile } from "@/domain/actor-network";
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
+}
 
 const organizationTypeLabel: Record<string, string> = {
   service_public: "Service public",
@@ -33,7 +37,7 @@ const partnerServiceStatusLabel: Record<string, string> = {
 };
 
 export function OrganizationProfileSheet({ profile }: { profile: OrganizationNetworkProfile }) {
-  const { organization, members, verifiedMembers, territories, services, openCommitments, closedCommitments, initiatives } = profile;
+  const { organization, members, verifiedMembers, territories, services, capacities, openCommitments, closedCommitments, initiatives } = profile;
 
   return (
     <div className="space-y-6 px-1">
@@ -51,7 +55,7 @@ export function OrganizationProfileSheet({ profile }: { profile: OrganizationNet
       </section>
 
       <section>
-        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Que peut-elle faire — capacités connues</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Que peut-elle faire — capacités documentées</p>
         {services.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">Aucune capacité documentée pour cette organisation à ce stade.</p>
         ) : (
@@ -61,12 +65,41 @@ export function OrganizationProfileSheet({ profile }: { profile: OrganizationNet
                 <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">{service.name}</p><TrustBadge trust={service.trust} /></div>
                 <p className="mt-1 text-xs text-muted-foreground">Statut · {partnerServiceStatusLabel[service.status]}</p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">Condition d’activation · {service.activationConditions}</p>
-                {service.sourceRef && <p className="mt-1 text-[11px] text-muted-foreground">Capacité déclarée — pas une disponibilité en temps réel.</p>}
+                {/* Micro-correctif final LOT 7 (§A2) — un PartnerService
+                    référencé n'est jamais une disponibilité en temps réel,
+                    quelle que soit sa provenance. */}
+                <p className="mt-1 text-[11px] text-muted-foreground">Capacité documentée/référencée — pas une disponibilité en temps réel.</p>
               </div>
             ))}
           </div>
         )}
       </section>
+
+      {/* Disponibilité réelle (§A2) — distincte des PartnerService : ne
+          s'affiche que lorsqu'une vraie Capacity existe (liée aux
+          Infrastructure de l'organisation), jamais fabriquée. Une Capacity
+          expirée ou non "disponible" reste honnêtement "à revérifier",
+          jamais présentée comme indisponible par simple péremption. */}
+      {capacities.length > 0 && (
+        <section>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Disponibilité connue — infrastructures</p>
+          <div className="mt-2 space-y-2">
+            {capacities.map((capacity) => {
+              const availability = describeCapacityAvailability(capacity);
+              return (
+                <div key={capacity.id} className="rounded-lg border p-3">
+                  <p className="text-sm font-semibold capitalize">{capacity.type} · {capacity.availableQuantity} {capacity.unit}</p>
+                  {availability.kind === "valide" ? (
+                    <p className="mt-1 text-xs text-[#1d8a5f]">Disponibilité vérifiée jusqu’au {formatDate(capacity.validUntil)}.</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted-foreground">À revérifier avant toute mobilisation (dernière validité connue : {formatDate(capacity.validUntil)}).</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section>
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Où est-elle déjà mobilisée</p>

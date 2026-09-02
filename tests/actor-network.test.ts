@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { createDemoState } from "../src/data/demo-state";
 import { applyCommand } from "../src/domain/rules";
-import { buildActorNetworkProfile, buildOrganizationNetworkProfile } from "../src/domain/actor-network";
+import { buildActorNetworkProfile, buildOrganizationNetworkProfile, describeCapacityAvailability } from "../src/domain/actor-network";
 
 // LOT 7 (mandat "Actor & Trust Network — rendre l'écosystème mobilisable")
 // — tests obligatoires A-J (§40 du mandat) couverts au niveau domaine.
@@ -236,6 +236,68 @@ test("TEST J — buildOrganizationNetworkProfile.services ne contient que les se
   // organisations, pour que ce test ait un sens (pas un ensemble vide
   // par accident).
   assert.ok(state.partnerServices.some((item) => item.organizationId !== "org-froid"));
+});
+
+// ============================================================
+// Micro-correctif final LOT 7 (§A1) — territoires d'une organisation :
+// union Actor/PartnerService/Infrastructure/Initiative, jamais un
+// territoire fabriqué.
+// ============================================================
+
+test("A1 — organisation sans acteur + PartnerService Joal → Joal apparaît dans ses territoires", () => {
+  const state = createDemoState();
+  const candidateOrg = { id: "org-test-candidate", name: "Organisation candidate test", type: "entreprise" as const, verificationStatus: "declaree" as const };
+  const service = { id: "service-test", organizationId: candidateOrg.id, name: "Test", category: "logistique" as const, territoryIds: ["joal"], status: "reference" as const, trust: "declaree" as const, activationConditions: "X" };
+  const withOrg = { ...state, organizations: [...state.organizations, candidateOrg], partnerServices: [...state.partnerServices, service] };
+
+  const profile = buildOrganizationNetworkProfile(withOrg, candidateOrg.id)!;
+  assert.equal(profile.members.length, 0, "sanity : aucun acteur pour cette organisation candidate");
+  assert.ok(profile.territories.some((item) => item.id === "joal"));
+});
+
+test("A1 — organisation avec acteurs multi-territoriaux → union correcte des territoires, sans doublon", () => {
+  const state = createDemoState();
+  // org-froid : ses membres ne couvrent que joal/mbour/kayar (act-prestataire),
+  // mais elle possède une Infrastructure "froid" sur les 18 territoires —
+  // la projection doit refléter l'union réelle, pas seulement les acteurs.
+  const profile = buildOrganizationNetworkProfile(state, "org-froid")!;
+  const memberTerritoryIds = new Set(profile.members.flatMap((item) => item.territoryIds));
+  assert.ok(memberTerritoryIds.size < profile.territories.length, "le profil doit inclure plus de territoires que les seuls acteurs (via les Infrastructure)");
+  assert.equal(profile.territories.length, state.territories.length, "org-froid possède une Infrastructure froid sur chacun des 18 territoires");
+  const ids = profile.territories.map((item) => item.id);
+  assert.equal(new Set(ids).size, ids.length, "aucun doublon de territoire");
+});
+
+// ============================================================
+// Micro-correctif final LOT 7 (§A2) — service référencé ≠ disponibilité.
+// ============================================================
+
+test("A2 — un PartnerService seul (sans Capacity) n'est jamais présenté comme une disponibilité", () => {
+  const availability = describeCapacityAvailability(undefined);
+  assert.equal(availability.kind, "inconnue");
+});
+
+test("A2 — une Capacity valide et non expirée peut être affichée comme disponibilité séparée", () => {
+  const tomorrow = new Date(Date.now() + 86400000).toISOString();
+  const capacity = { id: "cap-1", infrastructureId: "infra-1", type: "glace" as const, availableQuantity: 5, unit: "tonnes/jour", validUntil: tomorrow, status: "disponible" as const };
+  const availability = describeCapacityAvailability(capacity, new Date().toISOString());
+  assert.equal(availability.kind, "valide");
+});
+
+test("A2 — une Capacity expirée n'est jamais présentée comme disponible", () => {
+  const yesterday = new Date(Date.now() - 86400000).toISOString();
+  const capacity = { id: "cap-2", infrastructureId: "infra-2", type: "glace" as const, availableQuantity: 5, unit: "tonnes/jour", validUntil: yesterday, status: "disponible" as const };
+  const availability = describeCapacityAvailability(capacity, new Date().toISOString());
+  assert.notEqual(availability.kind, "valide");
+  assert.equal(availability.kind, "aRevoir");
+});
+
+test("A2 — buildOrganizationNetworkProfile.capacities ne contient que les Capacity des Infrastructure de cette organisation", () => {
+  const state = createDemoState();
+  const profile = buildOrganizationNetworkProfile(state, "org-froid")!;
+  assert.ok(profile.capacities.length > 0, "org-froid possède des Infrastructure, donc des Capacity dérivées");
+  const ownInfraIds = new Set(profile.infrastructures.map((item) => item.id));
+  profile.capacities.forEach((capacity) => assert.ok(ownInfraIds.has(capacity.infrastructureId)));
 });
 
 // Non-régression : le Demo World reste cohérent (act-coordinateur, tous
