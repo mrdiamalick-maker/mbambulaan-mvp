@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight, Clock, Compass, Factory, Flag, ListChecks, Minus, Plus, Sailboat } from "lucide-react";
+import { AlertTriangle, ArrowRight, Clock, Compass, Factory, Flag, ListChecks, Sailboat } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
 import { SituationIcon } from "@/components/etat/MotifIcons";
-import { AtlasImageMap } from "@/components/etat/AtlasImageMap";
+import { CoastlineTerritoryMap } from "@/components/territories/CoastlineTerritoryMap";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { PageIntro } from "@/components/foundations";
 import {
@@ -66,6 +66,31 @@ import { vigilanceCategoryLabels, type VigilanceCase, type VigilanceSeverity } f
 // cf. commentaire sur place. Toujours utilisée telle quelle sur
 // Login/Institution (CoordinationIllustration.tsx), non modifiée.
 //
+// XXL-R5.5 (mandat CEO "Cartographic Signature", 2026-09-03) — le fond
+// photo + caméra AtlasImageMap ci-dessus est retiré à son tour : le CEO
+// juge la carte "trop sombre" et "recadrée comme une image plutôt que
+// composée dans l'espace" (§2 du mandat), un défaut structurel d'un fond
+// photographique zoomé au clic, pas un simple réglage de teinte. Cette
+// page revient donc à CoastlineTerritoryMap/territory-map-positions.ts —
+// même primitive cartographique que /app/pilotage et (depuis XXL-R4)
+// /app/atlas Pro, désormais la seule et unique carte du produit (§4/§17
+// du mandat XXL-R5.5, "une signature cartographique, pas trois"), rendue
+// ici avec ses couleurs D9 par défaut (fond blanc .etat-panel, terre
+// --etat-offwhite-dim, structure --etat-navy-600) : plus léger et plus
+// lumineux que le fond illustré qu'il remplace, sans introduire de
+// nouvelle teinte. Le voile bg-white/30 ajouté au lot précédent pour
+// compenser l'inégalité de la photo n'a plus de raison d'être — retiré
+// avec elle, pas conservé "au cas où". Le zoom manuel (+/-, zoomFactor,
+// ZOOM_MIN/MAX) était un mécanisme propre à la caméra AtlasImageMap
+// (cameraFor/BASE_ZOOM_SCALE, cf. historique ci-dessous) : sans elle, il
+// n'a plus de cible et est retiré avec elle, pas porté vers un
+// équivalent SVG — un SVG plein cadre (preserveAspectRatio="xMidYMid
+// meet") montre déjà tout le territoire national sans réglage manuel.
+// cameraTargetId/dominant/selectedTerritoryId (ce qui pilote réellement
+// le panneau "À décider aujourd'hui") ne sont PAS retirés : seule la
+// mécanique caméra/zoom disparaît, pas le calcul de territoire dominant
+// qui l'utilisait — cf. commentaires sur place plus bas.
+//
 // Écarts assumés vs la référence, validés par le CEO (2026-08-17) : pas de
 // score de confiance composite fabriqué (§20, doctrine anti-score déjà
 // appliquée ailleurs) ; pas de second acteur "proposé par / validé par"
@@ -109,35 +134,6 @@ export default function EtatPage() {
   // false dès qu'une sélection explicite est faite, pour ne pas bloquer
   // la caméra sur le national après un choix réel.
   const [cameraForcedNational, setCameraForcedNational] = useState(false);
-  // Zoom +/- (mandat "simplifier l'Atlas /app/etat", Lot C, 2026-08-27) :
-  // même sémantique et mêmes bornes que l'ancienne caméra SVG (retirée au
-  // Lot B) — facteur multiplicatif composé avec BASE_ZOOM_SCALE côté
-  // AtlasImageMap (cameraFor). Réinitialisé à 1 sur tout changement de
-  // cible caméra (effet plus bas), même raison qu'avant : un réglage
-  // ponctuel de LA lecture en cours, pas un état qui "suit" d'un
-  // territoire à l'autre.
-  const [zoomFactor, setZoomFactor] = useState(1);
-  // ZOOM_MIN/ZOOM_MAX recalibrés une seconde fois (correctif CEO,
-  // "BASE_ZOOM_SCALE=2, dernier correctif de ce chantier", 2026-08-28) :
-  // BASE_ZOOM_SCALE (AtlasImageMap) est passé de 5 à 2 pour restaurer le
-  // contexte par défaut (cf. diagnostic "Hann invisible par défaut") — les
-  // bornes du zoom manuel, exprimées en facteur multiplicatif de cette
-  // base, doivent donc être recalculées : la même valeur de zoomFactor ne
-  // produit plus la même échelle effective qu'avant. Objectif conservé à
-  // l'identique (pas re-choisi au hasard) : le filet de sécurité densité
-  // du Lot C doit toujours pouvoir atteindre une échelle effective ~6,25
-  // (rayon visible 8%, déjà vérifié suffisant pour le pire cas réel,
-  // Kayar/Fass Boye à 7,7%) — d'où ZOOM_MIN = BASE_ZOOM_SCALE / 6,25 =
-  // 0,32. ZOOM_MAX plafonné à 2 (= BASE_ZOOM_SCALE / 1) pour que le zoom
-  // arrière ne dépasse jamais l'échelle 1 (équivalent vue nationale) :
-  // au-delà, l'image n'a plus rien à montrer de plus large, un facteur
-  // supérieur aurait juste révélé une marge vide autour d'elle. Pas
-  // du tout affecté par ce recalibrage sinon : la boucle "clic → zoom →
-  // correction" elle-même reste la même, déjà vérifiée au Lot C.
-  const ZOOM_MIN = 0.32;
-  const ZOOM_MAX = 2;
-  const ZOOM_STEP_IN = 0.1;
-  const ZOOM_STEP_OUT = 0.3;
   // Lot État-B (mandat §3.1, §4.2) : filtre Période réel, restreint aux
   // dates calendaires réellement présentes dans les landings (seule
   // donnée temporelle avec une vraie dispersion sur cette page — les
@@ -190,12 +186,6 @@ export default function EtatPage() {
   // nécessaire même sans caméra visuelle (Lot B) : c'est ce qui détermine
   // le territoire mis en avant dans "À décider aujourd'hui" par défaut.
   const cameraTargetId = cameraForcedNational ? null : (selectedTerritoryId ?? (dominant.kind === "territoire" ? dominant.territory.id : dominant.kind === "signal" ? dominant.case.territoryId : null));
-  // Reset du zoom sur changement de cible caméra (hook, doit s'exécuter
-  // inconditionnellement — placé ici, avant le garde-fou, même raison que
-  // pour cameraTargetId juste au-dessus).
-  useEffect(() => {
-    setZoomFactor(1);
-  }, [cameraTargetId]);
 
   if (!state) return null;
 
@@ -701,67 +691,38 @@ export default function EtatPage() {
             mécanique de grille, proportion réajustée à la nouvelle
             mesure. */}
         <div className="mt-6 grid grid-cols-1 gap-5 lg:h-[390px] lg:grid-cols-[66fr_34fr]">
-          {/* Fond Atlas — asset d'illustration réel (mandat "intégrer
-              l'asset d'illustration réelle", 2026-08-23), remplace
-              l'habillage CSS/SVG précédent (dégradés "eau" + motif de
-              vagues en <pattern> + Compass/Sailboat/Fish décoratifs,
-              ajoutés au Lot 1 faute d'illustration réelle disponible à
-              l'époque).
-
-              Simplification Atlas (mandat CEO "image + marqueurs en
-              pourcentage, pas de SVG calibré", 2026-08-27) : le polygone
-              SVG calibré (CoastlineTerritoryMap, coastlinePath/
-              territoryMapPositions) est abandonné pour CETTE page —
-              décision stratégique du CEO de ne pas sur-investir dans la
-              précision d'un Atlas stylisé destiné à être remplacé par une
-              vraie API cartographique. Remplacé par AtlasImageMap,
-              nouveau composant dédié : l'image ET les marqueurs
-              (territory-map-image-positions.ts, calibré et vérifié Lot A)
-              partagent désormais une seule référence — l'image elle-même,
-              plus de polygone à synchroniser avec elle. /app/pilotage
-              n'est pas concerné, CoastlineTerritoryMap.tsx reste utilisé
-              là-bas tel quel.
-
-              Lot B (ce lot) : composant statique, sans caméra — "Vue
-              nationale" et le zoom +/- sont retirés temporairement de
-              l'interface plus bas (cf. commentaires sur place), restaurés
-              par le Lot C (caméra en transform CSS), déjà planifié et
-              approuvé par le CEO. */}
+          {/* Carte — signature cartographique unique (XXL-R5.5, cf.
+              historique en tête de fichier) : CoastlineTerritoryMap avec
+              ses couleurs par défaut (calibrées pour .etat-scope, déjà le
+              cas avant le détour AtlasImageMap du 2026-08-27) — fond
+              .etat-panel blanc, terre --etat-offwhite-dim, structure
+              --etat-navy-600, aucune teinte inventée pour ce lot. Composé
+              en entier (preserveAspectRatio="xMidYMid meet") : le
+              national se voit toujours en un seul cadre, jamais recadré
+              comme une photo qu'on pan/zoome. territories={"{state.territories}"}
+              volontairement non filtré (mandat §6, "présence territoriale
+              ≠ niveau d'attention") : les 18 territoires documentés sont
+              tous dessinés — seuls les non-"stable" portent un libellé
+              (comportement natif du composant, cf. CoastlineTerritoryMap.tsx),
+              la liste latérale "À arbitrer"/"Programmes" plus bas reste,
+              elle, scopée à ce qui mérite réellement l'attention. */}
           <div className="etat-panel relative overflow-hidden">
-            {/* Lisibilité (mandat point 6 : "priorité fonctionnelle,
-                l'esthétique ne doit jamais nuire") : voile clair
-                translucide entre la photo et le tracé/les libellés — le
-                fond réel a des zones sombres (bas-gauche) et un ciel
-                très clair (haut-droite) qui, seules, faisaient perdre du
-                contraste aux libellés "vigilance" (ocre) une fois posés
-                dessus (vérifié par capture avant/après ce voile). Blanc
-                à faible opacité, pas une nouvelle teinte D9 — n'altère
-                pas la lecture des couleurs du tracé/marqueurs, seulement
-                leur contraste sur le fond. */}
-            <div className="pointer-events-none absolute inset-0 bg-white/30" aria-hidden="true" />
             <div className="relative flex items-center justify-between gap-3 px-4 pt-4">
-              {/* Contraste (correctif CEO 2026-08-22) : etat-eyebrow--on-dark
-                  seul (ocre sur fond eau clair par endroits) restait
-                  quasi illisible à la capture — petite plaque bg-white/90
-                  identique au traitement déjà utilisé pour le bouton
-                  "Vue nationale" juste à côté, pas une nouvelle couleur.
-                  Libellé "Atlas de supervision" (mandat "nouvelle DA Vue
-                  d'ensemble") : reprend le titre de la maquette, remplace
-                  "Lecture territoriale" — même élément, même rôle
-                  sémantique (H1 de ce chapitre), texte aligné sur la
-                  nouvelle référence. */}
-              <p className="etat-eyebrow rounded-full bg-white/90 px-3 py-1.5">Atlas de supervision</p>
-              {/* Caméra Atlas (restauré Lot C, mandat "simplifier l'Atlas
-                  /app/etat", 2026-08-27 — retiré temporairement au Lot B
-                  le temps de construire AtlasImageMap sans caméra, cf.
-                  historique). Même comportement qu'avant la simplification :
-                  visible dès qu'un cadrage régional est actif, y compris
-                  par défaut au chargement (territoire dominant). Condition
-                  sur cameraTargetId (pas selectedTerritoryId) : la caméra
-                  peut être resserrée sans sélection explicite (calcul
-                  dominant), il faut quand même pouvoir en sortir. */}
+              {/* Libellé "Atlas de supervision" (mandat "nouvelle DA Vue
+                  d'ensemble") : reprend le titre de la maquette — même
+                  élément, même rôle sémantique (H1 de ce chapitre), texte
+                  aligné sur la référence. Plus besoin d'une plaque
+                  bg-white/90 pour le contraste (correctif CEO 2026-08-22) :
+                  posé directement sur le fond .etat-panel blanc de la
+                  carte, plus sur une photo aux zones sombres imprévisibles. */}
+              <p className="etat-eyebrow">Atlas de supervision</p>
+              {/* "Vue nationale" (conservé XXL-R5.5) : reste un vrai
+                  désélecteur même sans caméra à recentrer — un territoire
+                  mis en avant (sélection explicite ou dominant par défaut)
+                  reste visuellement souligné (selectedId ci-dessous) tant
+                  qu'on ne revient pas explicitement au national. */}
               {cameraTargetId && (
-                <button onClick={() => { setSelectedTerritoryId(null); setCameraForcedNational(true); }} className="etat-btn etat-btn-outline shrink-0 bg-white/90 text-xs"><Compass size={13} /> Vue nationale</button>
+                <button onClick={() => { setSelectedTerritoryId(null); setCameraForcedNational(true); }} className="etat-btn etat-btn-outline shrink-0 text-xs"><Compass size={13} /> Vue nationale</button>
               )}
             </div>
 
@@ -799,46 +760,11 @@ export default function EtatPage() {
               </div>
             </div>
 
-            {/* Zoom +/- (restauré Lot C) : agit sur zoomFactor, composé
-                avec BASE_ZOOM_SCALE côté AtlasImageMap (cameraFor) — même
-                interpolation rAF que le reste de la caméra (useAnimatedCamera),
-                aucun nouveau mécanisme d'animation. Bornes désactivent
-                visuellement le bouton correspondant plutôt que de le
-                laisser sans effet silencieux. */}
-            <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-1">
-              <button
-                aria-label="Zoom avant"
-                disabled={zoomFactor <= ZOOM_MIN}
-                onClick={() => setZoomFactor((value) => Math.max(ZOOM_MIN, +(value - ZOOM_STEP_IN).toFixed(2)))}
-                className="etat-btn etat-btn-outline bg-white/95 disabled:cursor-not-allowed disabled:opacity-40"
-                style={{ minHeight: 32, minWidth: 32, padding: 0 }}
-              >
-                <Plus size={15} />
-              </button>
-              <button
-                aria-label="Zoom arrière"
-                disabled={zoomFactor >= ZOOM_MAX}
-                onClick={() => setZoomFactor((value) => Math.min(ZOOM_MAX, +(value + ZOOM_STEP_OUT).toFixed(2)))}
-                className="etat-btn etat-btn-outline bg-white/95 disabled:cursor-not-allowed disabled:opacity-40"
-                style={{ minHeight: 32, minWidth: 32, padding: 0 }}
-              >
-                <Minus size={15} />
-              </button>
-            </div>
-
-            {/* lg:min-h-[520px] retiré (correctif CEO, compression du lot
-                précédent) : reliquat du gabarit 520px d'avant ce lot,
-                incohérent avec la ligne de grille désormais fixée à
-                lg:h-[390px] plus haut — sans effet visuel observé
-                (overflow-hidden du conteneur .etat-panel absorbait déjà
-                l'écart) mais trompeur à la lecture, nettoyé. */}
             <div className="relative aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full">
-              <AtlasImageMap
+              <CoastlineTerritoryMap
                 territories={state.territories}
-                selectedId={selectedTerritoryId ?? undefined}
+                selectedId={cameraTargetId ?? undefined}
                 onSelect={(id) => { setSelectedTerritoryId(id); setCameraForcedNational(false); }}
-                cameraTargetId={cameraTargetId}
-                zoomFactor={zoomFactor}
               />
             </div>
           </div>

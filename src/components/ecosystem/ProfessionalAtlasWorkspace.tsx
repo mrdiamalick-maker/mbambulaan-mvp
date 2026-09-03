@@ -58,20 +58,28 @@ const lenses: Array<{ id: Lens; label: string; icon: typeof Activity }> = [
 // retirée) était une géométrie fictive : 18 points sur une forme CSS
 // abstraite (.ops-landmass), aucun rapport avec le vrai tracé du
 // littoral. CoastlineTerritoryMap (déjà utilisée par /app/pilotage et,
-// dans son idée d'origine, par l'Atlas public) porte le VRAI tracé
+// depuis XXL-R5.5, par le Brief national /app/etat) porte le VRAI tracé
 // calibré (coastlinePath/territoryMapPositions, domain/territory-map-
 // positions.ts) — réutilisée telle quelle plutôt qu'une nouvelle
 // géométrie inventée pour ce lot (§33 : améliorer l'existant, pas un
 // nouveau moteur cartographique). Couleurs adaptées au fond marine de
-// ce poste de travail (mêmes teintes D9 que le reste de cette vue),
-// land plus sombre qu'--etat-offwhite-dim (défaut clair) pour rester
-// lisible sur #0b1a2a.
+// ce poste de travail (mêmes teintes D9 que le reste de cette vue).
+//
+// XXL-R5.5 (mandat CEO "Cartographic Signature", §17-18) — land/landStroke
+// éclaircis : la valeur XXL-R4 (land #132436 sur fond #0b1a2a) laissait
+// la terre presque indiscernable de l'eau — une seule masse marine
+// sombre, pas une carte lisible. Le reste du poste de travail (bandeau
+// filtres, aside, hero) reste inchangé, volontairement sombre — seule la
+// carte elle-même gagne le contraste terre/eau que sa fonction exige.
+// stable/vigilance/critique inchangés (mêmes teintes D9 que /app/etat) :
+// les deux surfaces partagent désormais la même signature cartographique,
+// seul le fond (blanc côté Brief national, marine ici) diffère.
 const coastlineTone = {
   stable: "#1d4468",
   vigilance: "#c68a2c",
   critique: "#b6522f",
-  land: "#132436",
-  landStroke: "#3a5875"
+  land: "#2b4a68",
+  landStroke: "#5c7fa0"
 };
 
 // Légende "Niveau d'attention" (mêmes 3 catégories et mêmes couleurs que
@@ -80,7 +88,7 @@ const coastlineTone = {
 // plutôt qu'un import de components/etat/shared.tsx : ce fichier de
 // poste de travail Coordinateur n'a pas besoin d'entraîner le module
 // État (forms, Drawer…) pour 3 libellés déjà verrouillés par le
-// référentiel D9 — même discipline que AtlasImageMap.tsx.
+// référentiel D9.
 const attentionLabel: Record<"critique" | "vigilance" | "stable", string> = {
   critique: "Critique",
   vigilance: "Vigilance",
