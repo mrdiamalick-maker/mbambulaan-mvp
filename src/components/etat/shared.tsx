@@ -10,6 +10,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Compass, HelpCircle, Send, UsersRound } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { decisionTypeLabels, evidenceTypeLabels, signalDispositionLabels, type Situation, type Territory } from "@/domain/types";
@@ -160,6 +161,15 @@ export function TerritoryDetail({ territory, cases, onOpenSituation }: { territo
       <div className="border-t border-[var(--etat-line)] pt-5">
         <TerritoryDossierSections intelligence={intelligence} tone="etat" />
       </div>
+
+      {/* XXL-R4 (§27-28, §38) — "le lien vers le nouvel Atlas/dossier doit
+          être naturel" : dépose sur le même territoire, en profondeur
+          Coordinateur (poste de travail complet : lenses, capacités,
+          situations liées), via ?territoire= (lu par
+          ProfessionalAtlasWorkspace). Distinct du lien "site public"
+          ci-dessous — Atlas professionnel n'est jamais confondu avec la
+          fiche publique. */}
+      <Link href={`/app/atlas?territoire=${territory.id}`} className="etat-btn etat-btn-outline w-full justify-center">Voir sur l’Atlas professionnel <ArrowRight size={15} /></Link>
 
       {/* Repli honnête plutôt qu'un lien vers un 404 (mandat CEO
           2026-08-18) : ce territoire n'a pas de fiche publique

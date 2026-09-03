@@ -11,6 +11,7 @@
 // visualisations", au lieu d'aucune largeur bornée). Aucune nouvelle
 // géographie, aucun changement du moteur cartographique
 // (ProfessionalAtlasWorkspace, inchangé sur le fond).
+import { Suspense } from "react";
 import { ProfessionalAtlasWorkspace } from "@/components/ecosystem/ProfessionalAtlasWorkspace";
 import { AtlasExecutiveSummary } from "@/components/atlas/AtlasExecutiveSummary";
 import { useProduct } from "@/components/providers/ProductProvider";
@@ -28,7 +29,14 @@ export default function AtlasPage() {
         dek="L’Atlas opérationnel relie territoires, acteurs, capacités, flux et situations pour transformer l’information en décision."
       />
       <AtlasExecutiveSummary state={state} />
-      <ProfessionalAtlasWorkspace />
+      {/* XXL-R4 (§27-28, §38) — ProfessionalAtlasWorkspace lit désormais
+          ?territoire= (useSearchParams) pour permettre un deep-link
+          direct depuis l'Espace État/Aujourd'hui — Next.js exige un
+          Suspense autour de tout composant client qui l'utilise, même
+          discipline que /app/initiatives déjà. */}
+      <Suspense fallback={null}>
+        <ProfessionalAtlasWorkspace />
+      </Suspense>
     </div>
   );
 }

@@ -418,19 +418,11 @@ button:disabled { cursor: not-allowed; }
   background-size: auto, auto, auto, auto, 42px 42px, 42px 42px, auto;
 }
 
-.ops-landmass {
-  position: absolute;
-  inset: 0 0 0 auto;
-  width: 29%;
-  border-left: 1px solid rgba(198, 138, 44, .22);
-  background: linear-gradient(145deg, #d8d6c7, #aaa998);
-  clip-path: polygon(27% 0, 100% 0, 100% 100%, 0 100%, 10% 88%, 2% 77%, 18% 68%, 7% 57%, 22% 48%, 10% 37%, 27% 27%, 14% 17%);
-  opacity: .94;
-}
-
-@media (max-width: 760px) {
-  .ops-landmass { width: 34%; }
-}
+/* .ops-landmass retirée (XXL-R4, §4/§6/§9) : la forme CSS abstraite qui
+   simulait une côte est remplacée dans ProfessionalAtlasWorkspace.tsx
+   par CoastlineTerritoryMap, le vrai tracé littoral calibré déjà utilisé
+   par /app/pilotage — .ops-map-canvas (texture de fond, ci-dessus) reste
+   utilisée telle quelle. */
 
 @keyframes mapPulse {
   0%, 100% { opacity: .42; transform: scale(.88); }

@@ -14,6 +14,7 @@
 // vide, le dire explicitement plutôt que la masquer en silence — un
 // territoire peu documenté doit se lire comme "peu documenté", jamais
 // comme "stable".
+import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -141,6 +142,57 @@ export function TerritoryDossierSections({ intelligence, tone }: { intelligence:
     ...intelligence.initiatives.filter((item) => item.status !== "terminee").map((item) => ({ id: item.id, label: item.title, status: item.status === "execution" ? "En exécution" : item.status === "financee" ? "Financé" : "Cadrage" }))
   ];
 
+  // XXL-R4 (§16, §22) — "Écosystème" : qui/quoi est réellement PRÉSENT sur
+  // ce territoire (identity.actors/identity.infrastructures, déjà
+  // calculés par buildTerritoryIntelligence mais jusqu'ici jamais
+  // affichés dans ce dossier partagé — seulement dans l'en-tête de la
+  // page, séparément) — puis, distinct, ce que le Network rend
+  // mobilisable AILLEURS ("Qui peut agir ?" d'origine, LOT 7). "Ne pas
+  // refaire Réseau" (§22) : un aperçu de quelques éléments, jamais la
+  // liste complète, avec un lien vers Réseau. Array explicite (pas des
+  // divs conditionnelles) pour que le mécanisme d'état vide de `Section`
+  // (isEmptyArray) reste correct, même convention que les autres sections.
+  const ecosystemCards: ReactNode[] = [];
+  if (intelligence.identity.actors.length > 0 || intelligence.identity.infrastructures.length > 0) {
+    const actorsByRole = intelligence.identity.actors.reduce<Record<string, number>>((acc, actor) => { acc[actor.role] = (acc[actor.role] ?? 0) + 1; return acc; }, {});
+    ecosystemCards.push(
+      <div key="identity" className={`rounded-lg ${p.cardBorder} ${p.cardBg} p-3`}>
+        <p className={`${p.faint} uppercase tracking-wide`}>Sur ce territoire</p>
+        {intelligence.identity.actors.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {Object.entries(actorsByRole).map(([role, count]) => (
+              <span key={role} className={tone === "atlas" ? "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize text-muted-foreground" : "etat-tag etat-tag--stable capitalize"}>{role.replaceAll("_", " ")} · {count}</span>
+            ))}
+          </div>
+        )}
+        {intelligence.identity.infrastructures.length > 0 && (
+          <div className={`mt-2 space-y-1 ${intelligence.identity.actors.length > 0 ? "border-t pt-2" : ""}`}>
+            {intelligence.identity.infrastructures.slice(0, 4).map((infra) => (
+              <div key={infra.id} className="flex items-center justify-between gap-2">
+                <span className={`truncate capitalize ${p.text}`}>{infra.name}</span>
+                <span className={`shrink-0 capitalize ${p.faint}`}>{infra.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+  if (intelligence.networkCapacities.length > 0) {
+    ecosystemCards.push(
+      <div key="network" className={`rounded-lg ${p.cardBorder} ${p.cardBg} p-3`}>
+        <p className={`${p.faint} uppercase tracking-wide`}>Capacités du réseau mobilisables ailleurs</p>
+        <div className="mt-1.5 space-y-1.5">{intelligence.networkCapacities.slice(0, 3).map((service) => (
+          <div key={service.id} className="flex items-center justify-between gap-2">
+            <span className={`truncate ${p.text}`}>{service.name}</span>
+            <span className={`shrink-0 ${p.faint}`}>{partnerServiceStatusLabel[service.status]}</span>
+          </div>
+        ))}</div>
+        <Link href="/app/organisation" className={`mt-2 inline-flex items-center gap-1 text-xs font-bold ${p.link}`}>Voir dans le réseau <ArrowRight size={12} /></Link>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className={`rounded-xl ${p.cardBorder} ${p.cardBg} p-4`}>
@@ -179,6 +231,17 @@ export function TerritoryDossierSections({ intelligence, tone }: { intelligence:
               <Link href={`/app/initiatives?need=${need.id}`} className={`shrink-0 text-xs font-bold ${p.link}`}>Ouvrir <ArrowRight size={12} className="inline" /></Link>
             </div>
           ))}
+        </Section>
+
+        {/* XXL-R4 (§16, §22) — Écosystème, remonté avant "Ce que nous ne
+            savons pas" (ordre du mandat : se passe/émerge → savons →
+            ne savons pas → écosystème → action — regroupé ici juste
+            après "ce qui se passe/émerge" car c'est la même famille de
+            lecture "qui/quoi est là"). Fusionne l'ancienne section "Qui
+            peut agir ?" (LOT 7) avec identity.actors/infrastructures,
+            jusqu'ici jamais montrés dans ce dossier partagé. */}
+        <Section tone={tone} icon={UsersRound} title="Écosystème" hint="Acteurs et capacités du territoire, puis ce que le réseau rend mobilisable ailleurs — jamais une recommandation automatique, la décision de mobiliser reste humaine." empty="Écosystème documenté insuffisant sur ce territoire pour le moment — l'absence d'acteur ou de capacité enregistré ne signifie pas qu'aucun n'existe réellement.">
+          {ecosystemCards}
         </Section>
 
         <Section tone={tone} icon={HelpCircle} title="Ce que nous ne savons pas" hint="Connaissances manquantes identifiées explicitement — signature du produit : ce qui manque compte autant que ce qui est su." empty="Aucune connaissance manquante formalisée sur ce territoire pour le moment.">
@@ -243,25 +306,6 @@ export function TerritoryDossierSections({ intelligence, tone }: { intelligence:
               ))}</div>
             </div>
           )}
-        </Section>
-
-        {/* LOT 7 (mandat "Actor & Trust Network") §17/§18/§29 — "qui peut
-            agir ?" : capacités du Network potentiellement mobilisables sur
-            ce territoire, jamais un fournisseur recommandé automatiquement
-            (la mobilisation reste une décision humaine, cf. Situation
-            Room/dossier). Absence de capacité documentée ≠ absence réelle
-            (mandat §19 Kayar, même doctrine que §30 du LOT 5) — le dire
-            explicitement plutôt que laisser un silence se lire comme
-            "aucune capacité". */}
-        <Section tone={tone} icon={UsersRound} title="Qui peut agir ?" hint="Capacités du réseau potentiellement mobilisables — jamais une recommandation automatique, la décision de mobiliser reste humaine." empty="Réseau documenté insuffisant sur ce territoire pour ce type de besoin — l'absence de capacité enregistrée ne signifie pas qu'aucune n'existe réellement.">
-          {intelligence.networkCapacities.slice(0, 4).map((service) => (
-            <div key={service.id} className={`rounded-lg ${p.cardBorder} ${p.cardBg} p-3`}>
-              <div className="flex flex-wrap items-center justify-between gap-2"><p className={p.heading}>{service.name}</p><TrustPill trust={service.trust} tone={tone} /></div>
-              <p className={`mt-1 ${p.muted}`}>Condition d’activation · {service.activationConditions}</p>
-              <p className={`mt-1.5 ${p.faint}`}>Statut · {partnerServiceStatusLabel[service.status]}{service.updatedAt ? ` · mise à jour ${formatDate(service.updatedAt)}` : ""}</p>
-              <Link href="/app/organisation" className={`mt-2 inline-flex items-center gap-1 text-xs font-bold ${p.link}`}>Voir dans le réseau <ArrowRight size={12} /></Link>
-            </div>
-          ))}
         </Section>
 
         <Section tone={tone} icon={Target} title="Ce qui a été réalisé" hint="Résultats concrets enregistrés — ce qui a été produit, distinct de ce qui a changé." empty="Aucun résultat enregistré sur ce territoire pour le moment.">

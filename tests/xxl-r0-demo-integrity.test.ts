@@ -7,7 +7,7 @@ import { buildWorkdayView, capItemsForDisplay } from "../src/domain/workday";
 import { computeIntelligenceFeed } from "../src/domain/intelligence-feed";
 import { NumberTicker } from "../src/components/magicui/number-ticker";
 import { groupFeedItems } from "../src/components/ecosystem/IntelligenceFeed";
-import { positions as atlasTerritoryPositions } from "../src/components/ecosystem/ProfessionalAtlasWorkspace";
+import { coastlineViewBox, territoryMapPositions } from "../src/domain/territory-map-positions";
 
 // XXL-R0 — Demo Integrity (mandat CEO, "éliminer les incohérences
 // visibles qui peuvent décrédibiliser une démonstration avant de
@@ -152,17 +152,22 @@ test("TEST D — Intelligence Feed regroupe les intitulés identiques sans perdr
   }
 });
 
-// TEST E — Atlas professionnel : aucune position littorale ne s'approche
-// de la zone où la légende "Quais uniquement…" est désormais ancrée
-// (right-5, cf. ProfessionalAtlasWorkspace.tsx) — garde structurel contre
-// la réapparition de la collision de texte identifiée par l'audit entre
-// cette légende et l'étiquette de Saint-Louis.
-test("TEST E — aucune position de territoire Atlas ne peut plus entrer en collision avec la légende repositionnée", () => {
-  const ATLAS_LEGEND_SAFE_LEFT_PERCENT = 60;
-  const positionEntries = Object.entries(atlasTerritoryPositions);
+// TEST E — Atlas professionnel (mis à jour XXL-R4 : la carte percentage-
+// based d'origine a été remplacée par CoastlineTerritoryMap, le vrai
+// tracé littoral calibré — cf. domain/territory-map-positions.ts) :
+// aucune position de territoire ne s'approche de la zone où la légende
+// "Niveau d'attention" / "Quais uniquement…" est ancrée (right-5, cf.
+// ProfessionalAtlasWorkspace.tsx) — garde structurel contre la
+// réapparition de la collision de texte déjà identifiée une fois par
+// l'audit XXL-R0 entre une légende ancrée à droite et un marqueur.
+test("TEST E — aucune position de territoire Atlas (CoastlineTerritoryMap) ne peut entrer en collision avec la légende ancrée à droite", () => {
+  const ATLAS_LEGEND_SAFE_X_PERCENT = 60;
+  const [viewBoxX, , viewBoxWidth] = coastlineViewBox.split(" ").map(Number);
+  const positionEntries = Object.entries(territoryMapPositions);
   assert.ok(positionEntries.length >= 18, "le référentiel de positions littorales ne doit pas régresser en nombre de territoires couverts");
-  for (const [territoryId, [left]] of positionEntries) {
-    assert.ok(left <= ATLAS_LEGEND_SAFE_LEFT_PERCENT, `${territoryId} (left:${left}%) dépasse la zone laissée libre pour la légende ancrée à droite — risque de collision réintroduit`);
+  for (const [territoryId, [x]] of positionEntries) {
+    const xPercent = ((x - viewBoxX) / viewBoxWidth) * 100;
+    assert.ok(xPercent <= ATLAS_LEGEND_SAFE_X_PERCENT, `${territoryId} (x:${xPercent.toFixed(1)}%) dépasse la zone laissée libre pour la légende ancrée à droite — risque de collision réintroduit`);
   }
 });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import {
   Activity,
@@ -24,7 +25,8 @@ import {
   ShipWheel,
   Sparkles,
   Store,
-  UsersRound
+  UsersRound,
+  Waves
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { TrustBadge } from "@/components/shared/StatusBadges";
@@ -33,6 +35,7 @@ import type { ProductState, SituationStatus, TrustLevel } from "@/domain/types";
 import { buildTerritoryIntelligence, currentTerritoryView, hasSufficientKnowledge } from "@/domain/territory-intelligence";
 import { TerritoryDossierSections } from "@/components/territories/TerritoryDossierSections";
 import { TerritoryIdentity } from "@/components/foundations";
+import { CoastlineTerritoryMap } from "@/components/territories/CoastlineTerritoryMap";
 
 // Lot 5 (mandat "Atlas & Territoire") §21 — la lens "Situation" devient
 // "Aujourd'hui" : elle continue de lire les Situations mais intègre
@@ -51,46 +54,38 @@ const lenses: Array<{ id: Lens; label: string; icon: typeof Activity }> = [
   { id: "durabilite", label: "Durabilité", icon: Leaf }
 ];
 
-// Positions littorales — corrigées (post-Lot 4, resserrage visuel) :
-// cet objet ne définissait que 6 des 18 territoires réels
-// (demo-state.ts, territoryRows). Les 12 manquants retombaient tous
-// sur le même repli [50, 50] et s'empilaient au même point, un bug
-// plus sérieux qu'une simple imprécision de calibrage. Reprend les 18
-// positions déjà vérifiées de TerritoryMap.tsx (src/components/
-// territories/TerritoryMap.tsx) — pourcentages gauche/haut, ordre
-// nord-sud cohérent avec les latitudes réelles (territoryRows),
-// dégagement large et vérifié par rapport au tracé côtier
-// (.ops-landmass, clip-path) de cette vue : aucune position ne
-// s'approche de la terre. Choisi plutôt qu'un recalibrage indépendant
-// pour garder les deux cartes illustratives du produit cohérentes
-// entre elles.
-export const positions: Record<string, [number, number]> = {
-  "saint-louis": [43, 9],
-  lompoul: [34, 15],
-  "fass-boye": [49, 21],
-  kayar: [36, 27],
-  yoff: [47, 33],
-  ouakam: [34, 38],
-  soumbedioune: [48, 41],
-  hann: [59, 43],
-  rufisque: [49, 48],
-  popenguine: [35, 52],
-  mbour: [49, 57],
-  joal: [37, 63],
-  foundiougne: [51, 68],
-  djiffer: [37, 73],
-  missirah: [50, 78],
-  kafountine: [34, 84],
-  elinkine: [48, 89],
-  "cap-skirring": [36, 95]
+// XXL-R4 (§4, §6, §9) — la carte percentage-based ci-dessus (positions,
+// retirée) était une géométrie fictive : 18 points sur une forme CSS
+// abstraite (.ops-landmass), aucun rapport avec le vrai tracé du
+// littoral. CoastlineTerritoryMap (déjà utilisée par /app/pilotage et,
+// dans son idée d'origine, par l'Atlas public) porte le VRAI tracé
+// calibré (coastlinePath/territoryMapPositions, domain/territory-map-
+// positions.ts) — réutilisée telle quelle plutôt qu'une nouvelle
+// géométrie inventée pour ce lot (§33 : améliorer l'existant, pas un
+// nouveau moteur cartographique). Couleurs adaptées au fond marine de
+// ce poste de travail (mêmes teintes D9 que le reste de cette vue),
+// land plus sombre qu'--etat-offwhite-dim (défaut clair) pour rester
+// lisible sur #0b1a2a.
+const coastlineTone = {
+  stable: "#1d4468",
+  vigilance: "#c68a2c",
+  critique: "#b6522f",
+  land: "#132436",
+  landStroke: "#3a5875"
 };
 
-// Palette D9 dédiée à la carte : aucune incidence sur le moteur spatial.
-const mapActivityStyle = {
-  critique: { dot: "bg-[#b6522f]", ring: "ring-[#b6522f]/28" },
-  vigilance: { dot: "bg-[#c68a2c]", ring: "ring-[#c68a2c]/26" },
-  stable: { dot: "bg-[#1d4468]", ring: "ring-[#1d4468]/24" }
-} as const;
+// Légende "Niveau d'attention" (mêmes 3 catégories et mêmes couleurs que
+// /app/etat, cf. glyphBorderColor/statusTagLabel — pas un nouveau
+// vocabulaire pour cette carte). Copie locale volontaire (3 lignes)
+// plutôt qu'un import de components/etat/shared.tsx : ce fichier de
+// poste de travail Coordinateur n'a pas besoin d'entraîner le module
+// État (forms, Drawer…) pour 3 libellés déjà verrouillés par le
+// référentiel D9 — même discipline que AtlasImageMap.tsx.
+const attentionLabel: Record<"critique" | "vigilance" | "stable", string> = {
+  critique: "Critique",
+  vigilance: "Vigilance",
+  stable: "Stable"
+};
 
 type WorkbenchItem = {
   id: string;
@@ -251,7 +246,17 @@ function buildWorkbench(state: ProductState, territoryId: string, lens: Lens, sp
 
 export function ProfessionalAtlasWorkspace() {
   const { state } = useProduct();
-  const [selectedId, setSelectedId] = useState("joal");
+  // XXL-R4 (§27-28, §38) — "le lien vers le nouvel Atlas/dossier doit
+  // être naturel" : ?territoire=<id> permet à l'Espace État (TerritoryDetail,
+  // etat/shared.tsx) et à Aujourd'hui de pointer directement sur un
+  // territoire précis de ce poste de travail, au lieu d'atterrir sur
+  // "joal" par défaut puis forcer une resélection manuelle. Lecture une
+  // seule fois à l'initialisation (comportement volontairement identique
+  // à /app/initiatives?need=/?opportunity=) — la sélection reste ensuite
+  // un état local classique, pas une source de vérité URL à synchroniser
+  // en continu (hors périmètre de ce lot).
+  const searchParams = useSearchParams();
+  const [selectedId, setSelectedId] = useState(() => searchParams.get("territoire") ?? "joal");
   const [lens, setLens] = useState<Lens>("aujourdhui");
   const [period, setPeriod] = useState("today");
   const [speciesId, setSpeciesId] = useState("all");
@@ -410,50 +415,52 @@ export function ProfessionalAtlasWorkspace() {
               </div>
             </div>
 
+            {/* XXL-R4 (§4, §6, §9) — la matière principale de l'Atlas Pro :
+                le vrai tracé littoral (CoastlineTerritoryMap, coastlinePath
+                calibré), plus une grille de 18 points sur une forme CSS
+                abstraite. Réutilise le composant déjà éprouvé par
+                /app/pilotage (même géométrie, mêmes 18 territoires) —
+                aucune nouvelle carte inventée pour ce lot. Un seul repère
+                par territoire (point + label si non "stable" + pulse si
+                critique) : pas de pin Google, pas de tooltip à 8 lignes
+                par marqueur (§8) — le détail dérivé ("Aujourd'hui à
+                [territoire]") vit dans le panneau contextuel ci-contre,
+                pas empilé sur la carte. */}
             <div className="ops-map-canvas absolute inset-0 pt-20">
-              <div className="ops-landmass" />
-              <div className="absolute bottom-5 left-5 z-20 text-[10px] font-bold uppercase tracking-[.2em] text-white/22">Océan Atlantique</div>
-              {/* XXL-R0 (Demo Integrity, correctif n°3) — repositionnée de
-                  left-5 (bord gauche) vers right-5 (bord droit) : aucune des
-                  18 positions littorales (const positions ci-dessus) ne
-                  dépasse 59% de largeur (Hann), tout le flanc droit du
-                  canevas reste donc structurellement libre. L'ancienne
-                  position, côté gauche en haut du canevas, entrait en
-                  collision visuelle avec l'étiquette de Saint-Louis
-                  (left:43, top:9 — le marqueur le plus proche du coin
-                  supérieur gauche) : texte de la légende et texte de
-                  l'étiquette se chevauchaient à 1440 et 1280px. Pas un
-                  redesign de la carte — seulement un déplacement mécanique
-                  pour lever la collision réelle identifiée par l'audit. */}
-              {/* hidden en dessous de sm (mobile étroit) : sur un canevas
-                  ~350px de large, même ancrée à droite, cette légende
-                  informative (pas un contrôle) resterait trop large pour
-                  ne jamais approcher la zone des marqueurs — "dégradé
-                  honnêtement" veut dire absente plutôt qu'à nouveau en
-                  collision partielle. Réapparaît dès sm (≥640px), où
-                  right-5 + max-w-[240px] reste dans la zone structurellement
-                  libre (aucune position littorale ne dépasse 59% de
-                  largeur). */}
-              <div className="absolute right-5 top-24 z-20 hidden max-w-[240px] rounded-lg border border-white/10 bg-[#0b1a2a]/78 px-3 py-2 text-right text-[10px] font-semibold text-white/46 backdrop-blur sm:block">Quais uniquement · les objets métier s’ouvrent dans le poste de travail</div>
-              {state.territories.map((item) => {
-                const [left, top] = positions[item.id] ?? [50, 50];
-                const active = item.id === territory.id;
-                const openCount = state.situations.filter((candidate) => candidate.territoryId === item.id && candidate.status !== "reglee").length;
-                const tone = mapActivityStyle[item.activity];
-                return (
-                  <button key={item.id} onClick={() => setSelectedId(item.id)} style={{ left: `${left}%`, top: `${top}%` }} className={`group absolute z-20 -translate-x-1/2 -translate-y-1/2 text-left ${active ? "scale-110" : "hover:scale-105"}`} aria-label={`Ouvrir le quai de ${item.name}`}>
-                    <span className={`absolute left-1/2 top-1/2 size-7 -translate-x-1/2 -translate-y-1/2 rounded-full ${active ? `ring-4 ${tone.ring}` : openCount > 0 ? `ring-2 ${tone.ring}` : ""}`} />
-                    <span className={`relative block size-3.5 rounded-full border-2 border-white ${tone.dot} shadow-[0_0_0_2px_rgba(255,255,255,.08)]`} />
-                    <span className={`absolute left-5 top-1/2 w-max max-w-[220px] -translate-y-1/2 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold backdrop-blur ${active ? "border-white/20 bg-[#17283a] text-white shadow-sm" : "border-white/10 bg-[#0b1a2a]/82 text-white/68"}`}>
-                      <span className="flex items-center gap-2">{item.name}{openCount > 0 && <span className="text-[#c68a2c]">{openCount}</span>}</span>
-                      {/* Mandat §20 — résumé dérivé, jamais figé, visible
-                          au survol ou pour le territoire sélectionné :
-                          pas une 12e étiquette permanente par marqueur. */}
-                      <span className={`mt-1 block text-[10px] font-normal normal-case text-white/55 ${active ? "block" : "hidden group-hover:block"}`}>{mapSummary(item.id)}</span>
-                    </span>
-                  </button>
-                );
-              })}
+              <CoastlineTerritoryMap
+                territories={state.territories.map((item) => ({ id: item.id, name: item.name, activity: item.activity }))}
+                selectedId={territory.id}
+                onSelect={setSelectedId}
+                colors={coastlineTone}
+              />
+              <div className="pointer-events-none absolute bottom-5 left-5 z-20 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em] text-white/30"><Waves size={13} /> Océan Atlantique</div>
+              {/* Légende "Niveau d'attention" — mêmes 3 catégories et
+                  couleurs que /app/etat (glyphBorderColor/statusTagLabel),
+                  pas un nouveau vocabulaire cartographique. Ancrée en
+                  haut à droite : tous les territoires calibrés
+                  (territoryMapPositions) restent dans le tiers gauche du
+                  tracé (TEST xxl-r4, garde structurel), le flanc droit
+                  reste donc libre pour cette légende comme pour
+                  "Quais uniquement" avant elle. hidden sous sm — même
+                  discipline XXL-R0 : dégradée honnêtement plutôt qu'en
+                  collision sur un canevas mobile étroit. */}
+              {/* top-24 (pas top-5) : la barre d'outils (territoire/période/
+                  espèce) est absolute inset-x-0 top-0 z-30 sur ~72-80px de
+                  haut — une légende à top-5 se retrouve cachée dessous
+                  (z-20 < z-30), seule sa dernière ligne dépassant. Même
+                  ancrage top-24 que "Quais uniquement" avant elle. */}
+              <div className="pointer-events-none absolute right-5 top-24 z-20 hidden max-w-[180px] rounded-lg border border-white/10 bg-[#0b1a2a]/82 px-3 py-2.5 backdrop-blur sm:block">
+                <p className="text-[9px] font-bold uppercase tracking-[.14em] text-white/40">Niveau d’attention</p>
+                <div className="mt-2 space-y-1.5">
+                  {(["critique", "vigilance", "stable"] as const).map((status) => (
+                    <div key={status} className="flex items-center gap-2">
+                      <span className="size-2 rounded-full" style={{ backgroundColor: coastlineTone[status] }} />
+                      <span className="text-[11px] font-semibold text-white/72">{attentionLabel[status]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="pointer-events-none absolute right-5 top-[13.5rem] z-20 hidden max-w-[200px] rounded-lg border border-white/10 bg-[#0b1a2a]/78 px-3 py-2 text-right text-[10px] font-semibold text-white/46 backdrop-blur sm:block">Quais uniquement · les objets métier s’ouvrent dans le poste de travail</div>
             </div>
           </div>
 
@@ -475,6 +482,16 @@ export function ProfessionalAtlasWorkspace() {
                 tone="dark"
               />
             </div>
+
+            {/* XXL-R4 (§15, §18) — "Aujourd'hui" du territoire prévisualisé,
+                une phrase réelle dérivée (mapSummary, déjà réutilisée
+                depuis LOT 5, désormais affichée ici plutôt qu'en tooltip
+                de carte) avant tout autre chiffre — répond directement à
+                "qu'est-ce qui caractérise actuellement ce territoire ?"
+                (§18) en lisant uniquement currentTerritoryView (jamais un
+                mélange historique/actuel). */}
+            <p className="mt-4 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[.12em] text-white/45"><Sparkles size={11} /> Aujourd’hui</p>
+            <p className="mt-1.5 text-sm font-semibold leading-6 text-white/88">{mapSummary(territory.id)}</p>
 
             {/* A12 — grille typographique (valeur, label, séparateurs
                 fins) : plus de mini-widgets à fond plein. */}
