@@ -10,6 +10,7 @@
 // (mandat §20) : "Besoin collectif", "Constat Mbàmbulaan", jamais
 // "CollectiveNeed"/"Finding" à l'écran.
 import { useState } from "react";
+import Link from "next/link";
 import { CircleHelp, Compass, MapPinned, Sparkles, UsersRound } from "lucide-react";
 import type { CollectiveNeed, ProductState } from "@/domain/types";
 import { collectiveNeedStatusLabels, fieldMissionStatusLabels, observationNatureLabels } from "@/domain/types";
@@ -97,7 +98,7 @@ export function CollectiveNeedDossier({ need, state, onDone }: { need: Collectiv
       setPendingStatus(null);
     }
   };
-  const territories = need.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
+  const territories = need.territoryIds.map((id) => state.territories.find((item) => item.id === id)).filter((item): item is NonNullable<typeof item> => Boolean(item));
   const explainingFindings = findingsReferencedBy(state, need.sourceRefs);
   const sources = need.sourceRefs.map((ref) => resolveSourceRefDisplay(state, ref)).filter((item): item is NonNullable<typeof item> => Boolean(item));
   // Ce que nous devons encore comprendre (mandat §9) — priorité au(x)
@@ -123,7 +124,15 @@ export function CollectiveNeedDossier({ need, state, onDone }: { need: Collectiv
       <div>
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Ce qui émerge</p>
         <h2 className="mt-2 text-lg font-semibold leading-6">{need.title}</h2>
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"><UsersRound size={13} /> {territories.join(" · ")}</p>
+        <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+          <UsersRound size={13} />
+          {territories.map((territory, index) => (
+            <span key={territory.id}>
+              <Link href={`/app/atlas?territoire=${territory.id}`} className="font-semibold text-[#1d4468] hover:underline">{territory.name}</Link>
+              {index < territories.length - 1 ? " ·" : ""}
+            </span>
+          ))}
+        </p>
       </div>
 
       {explainingFindings.length > 0 && (

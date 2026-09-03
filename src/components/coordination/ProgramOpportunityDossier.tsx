@@ -7,6 +7,7 @@
 // à qualifier et plusieurs pistes d'intervention, jamais une seule
 // solution "recommandée".
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, Compass } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import type { ProductState, ProgramOpportunity } from "@/domain/types";
@@ -38,7 +39,7 @@ const QUALIFIABLE_STATUSES = new Set<ProgramOpportunity["status"]>(["detected", 
 export function ProgramOpportunityDossier({ opportunity, state, onDone }: { opportunity: ProgramOpportunity; state: ProductState; onDone: () => void }) {
   const [constituting, setConstituting] = useState(false);
   const [qualifyFormOpen, setQualifyFormOpen] = useState(false);
-  const territories = opportunity.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
+  const territories = opportunity.territoryIds.map((id) => state.territories.find((item) => item.id === id)).filter((item): item is NonNullable<typeof item> => Boolean(item));
   const evidence = opportunity.evidenceRefs.map((ref) => resolveSourceRefDisplay(state, ref)).filter((item): item is NonNullable<typeof item> => Boolean(item));
   // LOT 3 (mandat §15) : l'opportunité accède aux nouvelles preuves
   // terrain sans duplication manuelle — même filtrage par
@@ -71,7 +72,14 @@ export function ProgramOpportunityDossier({ opportunity, state, onDone }: { oppo
       <div className="grid grid-cols-2 gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Territoires</p>
-          <p className="mt-1.5 text-sm">{territories.join(" · ")}</p>
+          <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-sm">
+            {territories.map((territory, index) => (
+              <span key={territory.id}>
+                <Link href={`/app/atlas?territoire=${territory.id}`} className="font-semibold text-[#1d4468] hover:underline">{territory.name}</Link>
+                {index < territories.length - 1 ? " ·" : ""}
+              </span>
+            ))}
+          </p>
         </div>
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Bénéficiaires potentiels</p>

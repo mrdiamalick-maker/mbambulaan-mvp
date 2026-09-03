@@ -7,7 +7,8 @@
 // HISTORIQUE UTILE (faits, jamais une notation). Consomme uniquement
 // buildOrganizationNetworkProfile (aucune donnée recalculée ici) — pas de
 // nouvelle route, ouvert en Sheet depuis /app/organisation.
-import { ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { describeCapacityAvailability, type OrganizationNetworkProfile } from "@/domain/actor-network";
@@ -51,7 +52,20 @@ export function OrganizationProfileSheet({ profile }: { profile: OrganizationNet
 
       <section>
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Où</p>
-        <p className="mt-2 text-sm">{territories.length > 0 ? territories.map((item) => item.name).join(" · ") : "Aucun territoire connu pour l'instant."}</p>
+        {/* XXL-R5 (§33) — territoire cliquable vers l'Atlas professionnel :
+            "même objet, autre profondeur", pas un texte mort. */}
+        {territories.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-x-1.5 gap-y-1 text-sm">
+            {territories.map((item, index) => (
+              <span key={item.id}>
+                <Link href={`/app/atlas?territoire=${item.id}`} className="font-semibold text-[#1d4468] hover:underline">{item.name}</Link>
+                {index < territories.length - 1 ? " ·" : ""}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-muted-foreground">Aucun territoire connu pour l’instant.</p>
+        )}
       </section>
 
       <section>
@@ -107,9 +121,17 @@ export function OrganizationProfileSheet({ profile }: { profile: OrganizationNet
           <div className="rounded-lg border p-3"><p className="text-lg font-bold">{openCommitments.length}</p><p className="text-xs text-muted-foreground">engagement(s) ouvert(s)</p></div>
           <div className="rounded-lg border p-3"><p className="text-lg font-bold">{closedCommitments.length}</p><p className="text-xs text-muted-foreground">engagement(s) terminé(s)</p></div>
         </div>
+        {/* XXL-R5 (§34) — relation Réseau → Programme rendue visible et
+            cliquable (elle existait déjà, jamais inférée) : ancre vers la
+            carte du programme sur /app/initiatives (id posé sur
+            InitiativeCard, cf. initiatives/page.tsx). */}
         {initiatives.length > 0 && (
           <div className="mt-3 space-y-1.5">
-            {initiatives.map((initiative) => <p key={initiative.id} className="text-xs leading-5 text-muted-foreground">Programme · {initiative.title}</p>)}
+            {initiatives.map((initiative) => (
+              <Link key={initiative.id} href={`/app/initiatives#initiative-${initiative.id}`} className="flex items-center gap-1.5 text-xs font-semibold leading-5 text-[#1d4468] hover:text-[#1d4468]/70">
+                Programme · {initiative.title} <ArrowRight size={11} />
+              </Link>
+            ))}
           </div>
         )}
         <p className="mt-2 text-[11px] leading-4 text-muted-foreground">Faits d’engagement, pas une note de fiabilité — un engagement terminé n’implique aucune performance calculée.</p>

@@ -14,6 +14,7 @@
 // et une commande de qualification humaine.
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   Building2,
@@ -27,6 +28,7 @@ import {
   MapPin,
   Network,
   Radio,
+  Search,
   ShieldCheck,
   UserCheck,
   UsersRound
@@ -69,8 +71,18 @@ const QUALIFYING_ROLES = new Set(["administrateur", "coordinateur", "gestionnair
 
 export function OrganizationWorkspace() {
   const { state, role, actorId: sessionActorId } = useProduct();
-  const [profileOrganizationId, setProfileOrganizationId] = useState<string | null>(null);
+  // XXL-R5 (§14, §33) — ?organisation=<id> permet à un profil Réseau
+  // d'être ouvert directement depuis un lien externe (Programmes,
+  // dossier territorial…), même discipline que ?territoire= côté Atlas
+  // (R4) : lu une seule fois à l'initialisation, la sélection reste
+  // ensuite un état local classique.
+  const searchParams = useSearchParams();
+  const [profileOrganizationId, setProfileOrganizationId] = useState<string | null>(() => searchParams.get("organisation"));
   const [networkTerritoryFilter, setNetworkTerritoryFilter] = useState("");
+  // §22 — recherche centrale sur ce qui existe réellement : nom de
+  // capacité, catégorie, organisation, territoire. Un seul champ texte,
+  // pas quatre filtres fictifs.
+  const [networkSearch, setNetworkSearch] = useState("");
   const [qualifySignal, setQualifySignal] = useState<Signal | null>(null);
   const [pendingContributions, setPendingContributions] = useState<PublicContribution[]>([]);
   const [contributionsLoading, setContributionsLoading] = useState(true);
@@ -123,9 +135,24 @@ export function OrganizationWorkspace() {
   // si tous appartenaient à mon organisation. Deux ensembles désormais
   // explicitement distincts.
   const ownServices = state.partnerServices.filter((service) => service.organizationId === organization?.id);
-  const networkServices = state.partnerServices
+  // XXL-R5 (§30, "la capacité doit devenir la matière principale du
+  // Réseau") — chaque service du réseau porte désormais son organisation
+  // et ses territoires résolus (jamais recalculés ailleurs), pour un
+  // affichage QUI/OÙ/QUE PEUT-IL APPORTER/CONFIANCE/FRAÎCHEUR en une
+  // seule ligne (§23), avant tout clic sur une organisation.
+  const networkCapacities = state.partnerServices
     .filter((service) => service.organizationId !== organization?.id && service.status !== "a_activer")
-    .filter((service) => !networkTerritoryFilter || service.territoryIds.includes(networkTerritoryFilter));
+    .filter((service) => !networkTerritoryFilter || service.territoryIds.includes(networkTerritoryFilter))
+    .map((service) => ({
+      service,
+      owner: state.organizations.find((item) => item.id === service.organizationId),
+      territories: service.territoryIds.map((tid) => state.territories.find((item) => item.id === tid)).filter((item): item is NonNullable<typeof item> => Boolean(item))
+    }))
+    .filter(({ service, owner, territories }) => {
+      if (!networkSearch.trim()) return true;
+      const haystack = [service.name, service.category, owner?.name, ...territories.map((item) => item.name)].join(" ").toLowerCase();
+      return haystack.includes(networkSearch.trim().toLowerCase());
+    });
   const openCommitments = state.coordinationSpaces.flatMap((space) => space.commitments).filter((commitment) => members.some((member) => member.id === commitment.actorId) && commitment.status !== "terminee");
 
   const otherOrganizations = state.organizations.filter((item) => item.id !== organization?.id);
@@ -248,19 +275,82 @@ export function OrganizationWorkspace() {
         </section>
       )}
 
+      {/* XXL-R5 (§30-31, "capability-first discovery") — la capacité
+          devient la matière principale : recherche + résultats structurés
+          en lignes (QUI/OÙ/QUE PEUT-IL APPORTER/CONFIANCE/FRAÎCHEUR, §23)
+          AVANT l'annuaire d'organisations, pas l'inverse. Une seule
+          recherche texte (nom/catégorie/organisation/territoire, §22),
+          plus le filtre territoire déjà existant — pas de filtres
+          fictifs. */}
       <section>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-[#1d4468]"><Building2 size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Organisations du réseau</p></div>
-          <label className="text-xs">
-            <select value={networkTerritoryFilter} onChange={(event) => setNetworkTerritoryFilter(event.target.value)} className="rounded-md border bg-background px-2.5 py-1.5 text-xs font-semibold outline-none">
-              <option value="">Tous les territoires</option>
-              {state.territories.map((territory) => <option key={territory.id} value={territory.id}>{territory.name}</option>)}
-            </select>
+        <div className="flex items-center gap-2 text-[#1d4468]"><Factory size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Capacités du réseau</p></div>
+        <h2 className="mt-2 text-lg font-semibold">Que peut apporter le réseau, où, sur quelle base ?</h2>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <label className="relative block flex-1">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={networkSearch}
+              onChange={(event) => setNetworkSearch(event.target.value)}
+              placeholder="Rechercher une capacité, une organisation, un territoire…"
+              aria-label="Rechercher dans le réseau"
+              className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm font-semibold outline-none focus:border-primary"
+            />
           </label>
+          <select value={networkTerritoryFilter} onChange={(event) => setNetworkTerritoryFilter(event.target.value)} aria-label="Filtrer par territoire" className="h-10 rounded-md border bg-background px-2.5 text-xs font-semibold outline-none">
+            <option value="">Tous les territoires</option>
+            {state.territories.map((territory) => <option key={territory.id} value={territory.id}>{territory.name}</option>)}
+          </select>
         </div>
+
+        <div className="mt-4 divide-y border-y">{networkCapacities.map(({ service, owner, territories }) => (
+          <article key={service.id} className="py-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{service.category}</p>
+                <h3 className="mt-1.5 text-sm font-semibold">{service.name}</h3>
+                {owner && <button type="button" onClick={() => setProfileOrganizationId(owner.id)} className="mt-1 text-xs font-bold text-[#1d4468] hover:text-[#1d4468]/70">{owner.name} · voir le profil</button>}
+              </div>
+              <TrustBadge trust={service.trust} />
+            </div>
+            {territories.length > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <MapPin size={12} className="text-muted-foreground" />
+                {territories.map((territory) => (
+                  <Link key={territory.id} href={`/app/atlas?territoire=${territory.id}`} className="text-xs font-semibold text-[#1d4468] hover:underline">{territory.name}</Link>
+                ))}
+              </div>
+            )}
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">Activation : {service.activationConditions}</p>
+            {/* Fraîcheur (§26-27) — jamais une disponibilité temps réel : un
+                PartnerService référencé reste une capacité connue, pas une
+                réservation. updatedAt optionnel dans le modèle (absent pour
+                les services édités directement dans le Demo World) — dit
+                honnêtement plutôt que fabriqué. */}
+            <p className="mt-1.5 text-[11px] text-muted-foreground">{service.updatedAt ? `Mise à jour · ${new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(service.updatedAt))}` : "Date de mise à jour non renseignée — à revérifier avant mobilisation."}</p>
+          </article>
+        ))}</div>
+        {networkCapacities.length === 0 && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            {networkSearch.trim()
+              ? "Nous ne disposons pas encore d’information suffisante pour cette recherche."
+              : networkTerritoryFilter
+                ? "Aucune capacité documentée actuellement pour ce territoire — l’absence de capacité enregistrée ne signifie pas qu’aucune n’existe réellement."
+                : "Aucune capacité de réseau documentée pour le moment."}
+          </p>
+        )}
+        <Button variant="link" className="mt-4 px-0" asChild><Link href="/app/coordination">Ouvrir la salle de coordination <ArrowRight size={14} /></Link></Button>
+      </section>
+
+      {/* Annuaire — reste disponible mais secondaire (§39, "réduire la
+          cardification, résultats en lignes structurées") : la même
+          recherche s'y applique pour rester cohérente avec la liste de
+          capacités ci-dessus. */}
+      <section className="border-t pt-8">
+        <div className="flex items-center gap-2 text-[#1d4468]"><Building2 size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Organisations du réseau</p></div>
         <div className="mt-4 divide-y border-y">{otherOrganizations.map((org) => {
           const orgServices = state.partnerServices.filter((service) => service.organizationId === org.id && (!networkTerritoryFilter || service.territoryIds.includes(networkTerritoryFilter)));
           if (networkTerritoryFilter && orgServices.length === 0) return null;
+          if (networkSearch.trim() && !org.name.toLowerCase().includes(networkSearch.trim().toLowerCase())) return null;
           return (
             <button key={org.id} type="button" onClick={() => setProfileOrganizationId(org.id)} className="flex w-full items-center justify-between gap-3 py-4 text-left transition hover:bg-muted/30">
               <div className="min-w-0"><p className="truncate text-sm font-semibold">{org.name}</p><p className="mt-1 text-xs text-muted-foreground">{orgServices.length} capacité(s) documentée(s)</p></div>
@@ -268,22 +358,6 @@ export function OrganizationWorkspace() {
             </button>
           );
         })}</div>
-      </section>
-
-      <section>
-        <div className="flex items-center gap-2 text-[#1d4468]"><Factory size={18} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Capacités du réseau</p></div>
-        <h2 className="mt-2 text-lg font-semibold">Services documentés hors de mon organisation</h2>
-        <div className="mt-4 divide-y border-y">{networkServices.map((service) => {
-          const owner = state.organizations.find((item) => item.id === service.organizationId);
-          return (
-            <article key={service.id} className="py-4">
-              <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{service.category} · {owner?.name}</p><h3 className="mt-1.5 text-sm font-semibold">{service.name}</h3></div><TrustBadge trust={service.trust} /></div>
-              <p className="mt-3 text-xs leading-5 text-muted-foreground">Activation : {service.activationConditions}</p>
-            </article>
-          );
-        })}</div>
-        {networkServices.length === 0 && <p className="mt-3 text-sm text-muted-foreground">{networkTerritoryFilter ? "Réseau documenté insuffisant pour ce territoire — l’absence de capacité enregistrée ne signifie pas qu’aucune n’existe réellement." : "Aucune capacité de réseau documentée pour le moment."}</p>}
-        <Button variant="link" className="mt-4 px-0" asChild><Link href="/app/coordination">Ouvrir la salle de coordination <ArrowRight size={14} /></Link></Button>
       </section>
 
       <section className="border-t pt-8">

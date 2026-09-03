@@ -60,6 +60,25 @@ const budgetStatusCaption: Record<Initiative["budgetStatus"], string> = {
   valide: "budget simulé à titre indicatif"
 };
 
+// XXL-R5 (§13) — "chaque territoire doit être ouvrable vers Atlas" :
+// remplace les jointures de texte brut (territories.join(" · ")) par des
+// liens réels vers /app/atlas?territoire=<id> (même deep-link que R4),
+// réutilisé partout où cette page affiche des territoires.
+function TerritoryTags({ territoryIds, state }: { territoryIds: string[]; state: ProductState }) {
+  const territories = territoryIds.map((id) => state.territories.find((item) => item.id === id)).filter((item): item is NonNullable<typeof item> => Boolean(item));
+  if (territories.length === 0) return null;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-1.5">
+      {territories.map((territory, index) => (
+        <span key={territory.id}>
+          <Link href={`/app/atlas?territoire=${territory.id}`} className="font-semibold text-[#1d4468] hover:underline">{territory.name}</Link>
+          {index < territories.length - 1 ? " ·" : ""}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 const needStatusVariant: Record<CollectiveNeed["status"], "marine" | "amber" | "success" | "outline"> = {
   emerging: "outline",
   qualifying: "marine",
@@ -157,7 +176,6 @@ function InitiativesPageContent() {
         ) : (
           <div className="mt-4 divide-y border-y">
             {emergingNeeds.map((need) => {
-              const territories = need.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
               return (
                 <div key={need.id} className="grid gap-3 py-4 md:grid-cols-[1fr_auto] md:items-center">
                   <div className="min-w-0">
@@ -165,7 +183,7 @@ function InitiativesPageContent() {
                       <Badge variant={needStatusVariant[need.status]}>{collectiveNeedStatusLabels[need.status]}</Badge>
                       <p className="truncate text-sm font-semibold">{need.title}</p>
                     </div>
-                    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground"><UsersRound size={13} /> {territories.join(" · ")}</p>
+                    <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"><UsersRound size={13} /> <TerritoryTags territoryIds={need.territoryIds} state={state} /></p>
                   </div>
                   <button onClick={() => setNeedDrawerId(need.id)} className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-[#1d4468] hover:text-[#1d4468]/70">Ouvrir le dossier <ArrowRight size={14} /></button>
                 </div>
@@ -186,7 +204,6 @@ function InitiativesPageContent() {
         ) : (
           <div className="mt-4 divide-y border-y">
             {opportunities.map((opportunity) => {
-              const territories = opportunity.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
               return (
                 <div key={opportunity.id} className="grid gap-3 py-4 md:grid-cols-[1fr_auto] md:items-center">
                   <div className="min-w-0">
@@ -195,7 +212,7 @@ function InitiativesPageContent() {
                       <Badge variant="outline">Maturité {programOpportunityMaturityLabels[opportunity.maturity].toLowerCase()}</Badge>
                       <p className="truncate text-sm font-semibold">{opportunity.problem}</p>
                     </div>
-                    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground"><UsersRound size={13} /> {territories.join(" · ")}</p>
+                    <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"><UsersRound size={13} /> <TerritoryTags territoryIds={opportunity.territoryIds} state={state} /></p>
                   </div>
                   <button onClick={() => setOpportunityDrawerId(opportunity.id)} className="flex shrink-0 items-center gap-1.5 text-sm font-bold text-[#b6522f] hover:text-[#b6522f]/70">Ouvrir le dossier <ArrowRight size={14} /></button>
                 </div>
@@ -328,14 +345,31 @@ function InitiativeCard({ initiative, state }: { initiative: Initiative; state: 
   const [learningFormOpen, setLearningFormOpen] = useState(false);
   const [impactFormOutcome, setImpactFormOutcome] = useState<Outcome | null>(null);
 
+  const ownerOrganization = owner ? state.organizations.find((item) => item.id === owner.organizationId) : undefined;
+
   return (
-    <section className="overflow-hidden rounded-2xl border">
+    // XXL-R5 (§14) — ancre stable pour un deep-link direct depuis le
+    // profil Réseau d'une organisation reliée (OrganizationProfileSheet).
+    <section id={`initiative-${initiative.id}`} className="scroll-mt-6 overflow-hidden rounded-2xl border">
       <div className="bg-sidebar p-6 text-sidebar-foreground">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-sidebar-foreground/60">Programme · {initiative.territoryIds.length} territoire(s)</p>
             <h2 className="mt-2 max-w-3xl text-xl font-semibold tracking-tight">{initiative.title}</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-sidebar-foreground/70">{initiative.objective}</p>
+            {/* XXL-R5 (§13) — territoires du programme, ouvrables vers l'Atlas. */}
+            <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-sidebar-foreground/70">
+              {initiative.territoryIds.map((tid, index) => {
+                const territory = state.territories.find((item) => item.id === tid);
+                if (!territory) return null;
+                return (
+                  <span key={tid}>
+                    <Link href={`/app/atlas?territoire=${territory.id}`} className="font-semibold text-sidebar-foreground underline decoration-sidebar-foreground/30 underline-offset-2 hover:decoration-sidebar-foreground">{territory.name}</Link>
+                    {index < initiative.territoryIds.length - 1 ? " ·" : ""}
+                  </span>
+                );
+              })}
+            </p>
           </div>
           <Badge variant={initiativeStatusVariant[initiative.status]} className="w-fit">{initiativeStatusLabel[initiative.status]}</Badge>
         </div>
@@ -345,7 +379,16 @@ function InitiativeCard({ initiative, state }: { initiative: Initiative; state: 
         <div className="p-5"><Banknote size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{initiative.budgetFcfa !== undefined ? money.format(initiative.budgetFcfa) : "À estimer"}</p><p className="text-xs text-muted-foreground">{budgetStatusCaption[initiative.budgetStatus]}</p></div>
         <div className="p-5 sm:border-l"><CircleDollarSign size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{money.format(secured + instructed)}</p><p className="text-xs text-muted-foreground">confirmé ou en instruction</p></div>
         <div className="p-5 xl:border-l"><Flag size={19} className="text-[#1d4468]" /><p className="mt-3 text-2xl font-bold">{initiative.territoryIds.length}</p><p className="text-xs text-muted-foreground">territoires reliés</p></div>
-        <div className="p-5 sm:border-l"><UsersRound size={19} className="text-[#1d4468]" /><p className="mt-3 font-bold">{owner?.name}</p><p className="text-xs text-muted-foreground">responsable de l’initiative</p></div>
+        {/* XXL-R5 (§14) — responsable relié à son organisation, ouvrable
+            vers son profil Réseau quand elle est connue (jamais inféré). */}
+        <div className="p-5 sm:border-l"><UsersRound size={19} className="text-[#1d4468]" />
+          {ownerOrganization ? (
+            <Link href={`/app/organisation?organisation=${ownerOrganization.id}`} className="mt-3 block font-bold text-[#1d4468] hover:underline">{owner?.name}</Link>
+          ) : (
+            <p className="mt-3 font-bold">{owner?.name}</p>
+          )}
+          <p className="text-xs text-muted-foreground">responsable de l’initiative{ownerOrganization ? ` · ${ownerOrganization.name}` : ""}</p>
+        </div>
       </div>
 
       <div className="grid gap-8 p-5 lg:grid-cols-2 lg:p-6">
@@ -371,10 +414,15 @@ function InitiativeCard({ initiative, state }: { initiative: Initiative; state: 
           <div className="mt-4 divide-y border-y">
             {initiative.funding.map((fund) => {
               const partner = state.actors.find((item) => item.id === fund.partnerId);
+              const partnerOrganization = partner ? state.organizations.find((item) => item.id === partner.organizationId) : undefined;
               return (
                 <div key={fund.id} className="py-4">
                   <div className="flex items-center justify-between gap-4">
-                    <strong className="text-sm">{partner?.name}</strong>
+                    {partnerOrganization ? (
+                      <Link href={`/app/organisation?organisation=${partnerOrganization.id}`} className="text-sm font-bold text-[#1d4468] hover:underline">{partner?.name}</Link>
+                    ) : (
+                      <strong className="text-sm">{partner?.name}</strong>
+                    )}
                     <Badge variant={fundingStatusVariant[fund.status]}>{fundingStatusLabel[fund.status]}</Badge>
                   </div>
                   <p className="mt-2 text-lg font-bold">{money.format(fund.amountFcfa)}</p>
