@@ -24,6 +24,7 @@ import { applyKnowledgePipelineCommand, promoteSignalToSituation } from "./knowl
 import { applyFieldMissionCommand } from "./field-mission";
 import { applyImpactCommand } from "./impact";
 import { applyActorNetworkCommand } from "./actor-network";
+import { applyInitiativeLifecycleCommand } from "./initiative-lifecycle";
 
 // Le moteur de rapprochement Lot ↔ ServiceRequest (§5.11) ne concerne que
 // les intentions d'approvisionnement : une demande de formation ou de
@@ -92,6 +93,7 @@ const transitions: Record<
     | "create_service_request"
     | "plan_field_commitment"
     | "create_initiative"
+    | "update_initiative_status"
     | "create_field_mission"
     | "update_field_mission_status"
     | "record_observation"
@@ -912,6 +914,13 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   if (command.type === "create_initiative") {
     return applyInitiativeCommand(state, command);
   }
+  // update_initiative_status (P2.5-A) — même famille que
+  // qualify_signal_as_network_capacity ci-dessous : un fichier dédié
+  // plutôt qu'ajouté ici, le cycle de vie d'un Programme est un domaine
+  // fonctionnel distinct de sa création (create_initiative, ci-dessus).
+  if (command.type === "update_initiative_status") {
+    return applyInitiativeLifecycleCommand(state, command);
+  }
   if (command.type === "plan_field_commitment") {
     return applyFieldCommitmentCommand(state, command);
   }
@@ -1154,6 +1163,7 @@ export type WorkflowAction = Exclude<
   | "create_service_request"
   | "plan_field_commitment"
   | "create_initiative"
+  | "update_initiative_status"
   | "create_field_mission"
   | "update_field_mission_status"
   | "record_observation"

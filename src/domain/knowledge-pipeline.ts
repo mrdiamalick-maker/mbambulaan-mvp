@@ -432,6 +432,22 @@ function applyCreateProgramOpportunity(state: ProductState, command: Extract<Com
   // requireSourceRefs n'est donc pas appliqué ici, seule la résolution
   // des références réellement citées est vérifiée.
   requireResolvedSourceRefs(state, command.evidenceRefs, "Une opportunité de programme");
+  // desiredOutcomes (P2.5-A, mandat "Programme Lifecycle Foundation", §11)
+  // — seule validation ajoutée à la porte de création d'une opportunité de
+  // programme ce lot. Contrairement à evidenceRefs (ci-dessus, vide
+  // délibéré et commenté comme tel), rien ici ne documentait l'absence de
+  // résultat recherché comme un choix assumé — plutôt qu'un oubli du
+  // modèle. ProgramOpportunityForm.tsx impose déjà ce minimum côté client
+  // (mandat §1) : un contrôle client n'est jamais une preuve d'intégrité
+  // côté Core (même principe que P2.1-B.1, "les données envoyées par le
+  // client ne sont jamais une preuve d'autorisation" — ici appliqué à la
+  // donnée elle-même, pas seulement à l'autorisation). knowledgeGaps et
+  // maturity restent volontairement intouchés (mandat §11 : une inconnue
+  // documentée ne doit jamais bloquer la création, la maturité ne doit
+  // jamais devenir un score d'approbation opaque).
+  if (!command.desiredOutcomes.some((item) => item.trim())) {
+    throw new Error("Une opportunité de programme doit énoncer au moins un résultat recherché.");
+  }
 
   const opportunity: ProgramOpportunity = {
     id: id("popp"),

@@ -288,7 +288,7 @@ test("une ProgramOpportunity encore détectée (non qualifiée) ne peut pas deve
     hypotheses: [],
     knowledgeGaps: [],
     possibleInterventions: [],
-    desiredOutcomes: [],
+    desiredOutcomes: ["Résultat recherché"],
     possibleIndicators: [],
     maturity: "faible"
   });

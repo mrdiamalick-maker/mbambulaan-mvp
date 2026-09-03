@@ -30,6 +30,14 @@ export function InitiativeForm({
   const [title, setTitle] = useState("");
   const [objective, setObjective] = useState(programOpportunity.desiredOutcomes.join(" ; "));
   const [budgetFcfa, setBudgetFcfa] = useState("");
+  // budgetValidated (P2.5-A, mandat "Programme Lifecycle Foundation", §5) —
+  // seul geste du domaine qui permet aujourd'hui à un programme d'atteindre
+  // la porte "budget validé" du passage cadrage → financee (cf.
+  // initiative-lifecycle.ts) : budgetStatus se fixe uniquement à la
+  // création, aucune commande ne le modifie ensuite. Case à cocher plutôt
+  // qu'un statut par défaut : "validé" reste une affirmation forte, jamais
+  // présumée par la simple saisie d'un montant.
+  const [budgetValidated, setBudgetValidated] = useState(false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const territories = programOpportunity.territoryIds.map((id) => state.territories.find((item) => item.id === id)?.name ?? id);
@@ -46,7 +54,7 @@ export function InitiativeForm({
         title,
         objective,
         budgetFcfa: budget,
-        budgetStatus: budget !== undefined ? "estime" : "a_estimer",
+        budgetStatus: budget !== undefined ? (budgetValidated ? "valide" : "estime") : "a_estimer",
         programOpportunityId: programOpportunity.id
       });
       if (ok) onDone();
@@ -75,6 +83,12 @@ export function InitiativeForm({
         Budget indicatif (FCFA) — facultatif
         <input type="number" min={1} step={1} value={budgetFcfa} onChange={(event) => setBudgetFcfa(event.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:border-primary" placeholder="Laisser vide si le budget reste à estimer" />
       </label>
+      {budgetFcfa.trim() && (
+        <label className="flex items-start gap-2 text-xs font-semibold">
+          <input type="checkbox" checked={budgetValidated} onChange={(event) => setBudgetValidated(event.target.checked)} className="mt-0.5" />
+          <span>Ce montant est validé — pas seulement estimé. Un budget validé est requis pour faire passer ce programme en financement.</span>
+        </label>
+      )}
       <p className="text-xs text-muted-foreground">Le programme démarre en cadrage. Sans montant saisi, le budget reste explicitement « à estimer » — l’instruction financière se construit ensuite, à part de ce cadrage.</p>
       {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
       <div className="flex gap-2">

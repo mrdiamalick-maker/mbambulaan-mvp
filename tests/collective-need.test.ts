@@ -242,7 +242,7 @@ test("update_collective_need_status refuse de modifier un besoin déjà converti
     hypotheses: [],
     knowledgeGaps: [],
     possibleInterventions: [],
-    desiredOutcomes: [],
+    desiredOutcomes: ["Résultat recherché"],
     possibleIndicators: [],
     maturity: "faible"
   });

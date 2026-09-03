@@ -1551,6 +1551,16 @@ export type Command =
       maturity: ProgramOpportunityMaturity;
     }
   | { type: "update_program_opportunity_status"; programOpportunityId: string; actorId: string; status: Exclude<ProgramOpportunityStatus, "detected" | "converted_to_program">; note?: string }
+  // update_initiative_status (P2.5-A, mandat "Programme Lifecycle
+  // Foundation") — transition explicite du cycle de vie d'un Programme,
+  // toujours un geste humain (jamais de progression automatique, cf.
+  // applyUpdateInitiativeStatus, src/domain/initiative-lifecycle.ts).
+  // status exclut "cadrage" : ce n'est jamais une destination de
+  // transition, uniquement l'état de création (create_initiative). La
+  // légalité stricte (cadrage → financee → execution → terminee, aucun
+  // saut, aucun retour arrière) est vérifiée par le domaine, pas par ce
+  // type — le type autorise large, initiative-lifecycle.ts restreint.
+  | { type: "update_initiative_status"; initiativeId: string; actorId: string; status: Exclude<Initiative["status"], "cadrage">; note?: string }
   // --- LOT 3 — Terrain (mandat "observer, vérifier et fiabiliser la
   // réalité") : create_field_mission ne crée jamais de Commitment (mandat
   // §8, "Mission ≠ Commitment" — contrairement à l'ancien

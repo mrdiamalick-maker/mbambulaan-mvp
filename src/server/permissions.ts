@@ -32,6 +32,11 @@ const all: Command["type"][] = [
   "convert_post",
   "flag_price",
   "create_initiative",
+  // update_initiative_status (P2.5-A, mandat "Programme Lifecycle
+  // Foundation", §13) — mêmes rôles que create_initiative : faire
+  // progresser un programme reste le même geste de coordination que le
+  // créer, jamais élargi à un rôle qui ne pouvait déjà pas le créer.
+  "update_initiative_status",
   // LOT 0 — pipeline de connaissance (mandat "aligner le Core métier avec
   // le Blueprint V1"). report_signal_and_open_situation/
   // convert_message_to_signal_and_situation reprennent respectivement les
@@ -141,6 +146,8 @@ const allowed: Record<Role, Command["type"][]> = {
     "coordinate",
     "create_decision",
     "create_initiative",
+    // P2.5-A — même mandat que create_initiative déjà ouvert à ce rôle.
+    "update_initiative_status",
     "update_signal_disposition",
     "promote_signal_to_situation",
     "record_finding",
@@ -178,6 +185,8 @@ const allowed: Record<Role, Command["type"][]> = {
     "coordinate",
     "create_decision",
     "create_initiative",
+    // P2.5-A — même mandat que create_initiative déjà ouvert à ce rôle.
+    "update_initiative_status",
     "update_signal_disposition",
     "promote_signal_to_situation",
     "record_finding",

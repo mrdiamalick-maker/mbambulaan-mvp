@@ -20,6 +20,7 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { ExportActions } from "@/components/reporting/ExportActions";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { CollectiveNeedDossier } from "@/components/coordination/CollectiveNeedDossier";
 import { ProgramOpportunityDossier } from "@/components/coordination/ProgramOpportunityDossier";
@@ -28,7 +29,9 @@ import { OutcomeForm } from "@/components/impact/OutcomeForm";
 import { ImpactForm } from "@/components/impact/ImpactForm";
 import { LearningForm } from "@/components/impact/LearningForm";
 import type { CollectiveNeed, Funding, Initiative, Outcome, ProductState, ProgramOpportunity } from "@/domain/types";
-import { attributionLevelLabels, collectiveNeedStatusLabels, impactStatusLabels, programOpportunityMaturityLabels, programOpportunityStatusLabels } from "@/domain/types";
+import { attributionLevelLabels, collectiveNeedStatusLabels, impactStatusLabels, programOpportunityMaturityLabels, programOpportunityStatusLabels, serviceRequestIntentLabels } from "@/domain/types";
+import { traceInitiativeOrigin } from "@/domain/initiative-lifecycle";
+import { canRole } from "@/server/permissions";
 
 const money = new Intl.NumberFormat("fr-FR", { notation: "compact", style: "currency", currency: "XOF", maximumFractionDigits: 0 });
 
@@ -64,6 +67,30 @@ const budgetStatusCaption: Record<Initiative["budgetStatus"], string> = {
   estime: "budget estimé, à confirmer",
   valide: "budget simulé à titre indicatif"
 };
+
+// Cycle de vie du Programme (P2.5-A, mandat "Programme Lifecycle
+// Foundation") — une seule destination possible par statut, jamais un
+// sélecteur générique (même principe que nextTransitionsFor dans
+// CollectiveNeedDossier.tsx) : la légalité réelle et ses portes (budget
+// validé + financement confirmé pour "financee", au moins un résultat
+// enregistré pour "terminee") restent vérifiées côté domaine
+// (initiative-lifecycle.ts) — ce bouton n'expose que le geste suivant
+// possible dans le récit du programme, jamais tous les statuts que le
+// type autorise techniquement.
+type InitiativeTransition = { status: Exclude<Initiative["status"], "cadrage">; label: string };
+
+function nextInitiativeTransitionFor(status: Initiative["status"]): InitiativeTransition | undefined {
+  switch (status) {
+    case "cadrage":
+      return { status: "financee", label: "Confirmer le financement" };
+    case "financee":
+      return { status: "execution", label: "Démarrer l'exécution" };
+    case "execution":
+      return { status: "terminee", label: "Clore le programme" };
+    case "terminee":
+      return undefined;
+  }
+}
 
 // XXL-R5 (§13) — "chaque territoire doit être ouvrable vers Atlas" :
 // remplace les jointures de texte brut (territories.join(" · ")) par des
@@ -294,7 +321,7 @@ function InitiativesPageContent() {
         <div className="space-y-10 print:hidden">
           {filteredInitiatives.length === 0 && <p className="text-sm text-muted-foreground">Aucun programme ne correspond à ce filtre pour le moment.</p>}
           {(programsExpanded ? filteredInitiatives : filteredInitiatives.slice(0, PROGRAMS_VISIBLE_COUNT)).map((initiative) => (
-            <InitiativeCard key={initiative.id} initiative={initiative} state={state} />
+            <InitiativeCard key={initiative.id} initiative={initiative} state={state} onOpenOpportunity={setOpportunityDrawerId} />
           ))}
           {/* XXL-RC1 (§4) — "Voir tout"/"Réduire" : bascule d'affichage sur
               la même liste déjà filtrée (filteredInitiatives), jamais un
@@ -317,7 +344,7 @@ function InitiativesPageContent() {
         </div>
 
         <div className="hidden space-y-10 print:block">
-          {state.initiatives.map((initiative) => <InitiativeCard key={initiative.id} initiative={initiative} state={state} />)}
+          {state.initiatives.map((initiative) => <InitiativeCard key={initiative.id} initiative={initiative} state={state} onOpenOpportunity={setOpportunityDrawerId} />)}
         </div>
       </section>
 
@@ -360,7 +387,8 @@ function InitiativesPageContent() {
 
 // Extrait tel quel de la version précédente (mandat §21 : ne pas
 // reconstruire le portefeuille) — inchangé.
-function InitiativeCard({ initiative, state }: { initiative: Initiative; state: ProductState }) {
+function InitiativeCard({ initiative, state, onOpenOpportunity }: { initiative: Initiative; state: ProductState; onOpenOpportunity: (id: string) => void }) {
+  const { run, role } = useProduct();
   const secured = initiative.funding.filter((item) => item.status === "confirme").reduce((sum, item) => sum + item.amountFcfa, 0);
   const instructed = initiative.funding.filter((item) => item.status === "en_instruction").reduce((sum, item) => sum + item.amountFcfa, 0);
   const owner = state.actors.find((item) => item.id === initiative.ownerId);
@@ -384,8 +412,23 @@ function InitiativeCard({ initiative, state }: { initiative: Initiative; state: 
   const [outcomeFormOpen, setOutcomeFormOpen] = useState(false);
   const [learningFormOpen, setLearningFormOpen] = useState(false);
   const [impactFormOutcome, setImpactFormOutcome] = useState<Outcome | null>(null);
+  const [transitionPending, setTransitionPending] = useState(false);
 
   const ownerOrganization = owner ? state.organizations.find((item) => item.id === owner.organizationId) : undefined;
+
+  // P2.5-A — cycle de vie + traçabilité inverse de l'origine.
+  const canTransition = canRole(role, "update_initiative_status");
+  const nextTransition = nextInitiativeTransitionFor(initiative.status);
+  const transitionInitiative = async () => {
+    if (!nextTransition) return;
+    setTransitionPending(true);
+    try {
+      await run({ type: "update_initiative_status", initiativeId: initiative.id, status: nextTransition.status });
+    } finally {
+      setTransitionPending(false);
+    }
+  };
+  const origin = traceInitiativeOrigin(state, initiative);
 
   return (
     // XXL-R5 (§14) — ancre stable pour un deep-link direct depuis le
@@ -411,7 +454,14 @@ function InitiativeCard({ initiative, state }: { initiative: Initiative; state: 
               })}
             </p>
           </div>
-          <Badge variant={initiativeStatusVariant[initiative.status]} className="w-fit">{initiativeStatusLabel[initiative.status]}</Badge>
+          <div className="flex flex-col items-start gap-2 lg:items-end">
+            <Badge variant={initiativeStatusVariant[initiative.status]} className="w-fit">{initiativeStatusLabel[initiative.status]}</Badge>
+            {canTransition && nextTransition && (
+              <Button size="sm" disabled={transitionPending} onClick={transitionInitiative}>
+                {transitionPending ? "…" : nextTransition.label}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -430,6 +480,61 @@ function InitiativeCard({ initiative, state }: { initiative: Initiative; state: 
           <p className="text-xs text-muted-foreground">responsable de l’initiative{ownerOrganization ? ` · ${ownerOrganization.name}` : ""}</p>
         </div>
       </div>
+
+      {/* P2.5-A (mandat "Programme Lifecycle Foundation", §8/§9/§12) —
+          traçabilité inverse de l'origine : jamais un Programme sans
+          "pourquoi", même quand cette raison remonte à une opportunité de
+          développement qualifiée plutôt qu'à un budget. Les deux voies
+          légitimes (ProgramOpportunity qualifiée, ServiceRequests
+          regroupées) restent distinctement affichées — un programme
+          historique sans l'une ou l'autre le dit honnêtement plutôt que de
+          fabriquer une origine. */}
+      <section className="border-b p-5 lg:p-6">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Pourquoi ce programme existe</p>
+        {origin.kind === "program_opportunity" && origin.programOpportunity ? (
+          <div className="mt-3 space-y-3">
+            <button
+              onClick={() => onOpenOpportunity(origin.programOpportunity!.id)}
+              className="flex w-full items-center justify-between gap-4 rounded-lg border px-4 py-3 text-left text-sm transition hover:bg-muted"
+            >
+              <span className="min-w-0">
+                <span className="block truncate font-semibold">{origin.programOpportunity.problem}</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">Opportunité de programme · {programOpportunityStatusLabels[origin.programOpportunity.status]}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-[#1d4468]">Ouvrir l’opportunité <ArrowRight size={13} /></span>
+            </button>
+            {origin.collectiveNeed && (
+              <div className="rounded-lg border border-dashed p-3">
+                <p className="text-xs font-semibold">{origin.collectiveNeed.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Besoin collectif d’origine · {collectiveNeedStatusLabels[origin.collectiveNeed.status]}</p>
+              </div>
+            )}
+            {origin.collectiveNeedSources.length > 0 && (
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Sources à l’origine du besoin</p>
+                <ul className="mt-1.5 space-y-1">
+                  {origin.collectiveNeedSources.map((item) => (
+                    <li key={`${item.ref.objectType}-${item.ref.objectId}`} className="text-xs leading-4">
+                      <span className="font-semibold">{item.label}</span>{item.detail ? <span className="text-muted-foreground"> — {item.detail}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : origin.kind === "grouped_service_requests" ? (
+          <div className="mt-3 space-y-2">
+            <p className="text-xs text-muted-foreground">Constitué en regroupant {origin.serviceRequests.length} demandes de service de même intention :</p>
+            <ul className="space-y-1">
+              {origin.serviceRequests.map((request) => (
+                <li key={request.id} className="text-xs leading-4"><span className="font-semibold">{request.reference}</span> — {serviceRequestIntentLabels[request.intent]}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">Programme antérieur à la traçabilité structurée de l’origine — non reconstitué.</p>
+        )}
+      </section>
 
       <div className="grid gap-8 p-5 lg:grid-cols-2 lg:p-6">
         <section>
