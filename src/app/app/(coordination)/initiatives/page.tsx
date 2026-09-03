@@ -29,7 +29,7 @@ import { OutcomeForm } from "@/components/impact/OutcomeForm";
 import { ImpactForm } from "@/components/impact/ImpactForm";
 import { LearningForm } from "@/components/impact/LearningForm";
 import type { CollectiveNeed, Funding, Initiative, Outcome, PartnerService, ProductState, ProgramOpportunity, ProgrammeOrganizationEngagementStatus } from "@/domain/types";
-import { attributionLevelLabels, collectiveNeedStatusLabels, impactStatusLabels, programOpportunityMaturityLabels, programOpportunityStatusLabels, programmeOrganizationEngagementRoleLabels, programmeOrganizationEngagementStatusLabels, serviceRequestIntentLabels } from "@/domain/types";
+import { attributionLevelLabels, collectiveNeedStatusLabels, impactStatusLabels, programOpportunityMaturityLabels, programOpportunityStatusLabels, programmeOrganizationEngagementRoleLabels, programmeOrganizationEngagementStatusLabels, serviceRequestIntentLabels, verificationStatusLabels } from "@/domain/types";
 import { traceInitiativeOrigin } from "@/domain/initiative-lifecycle";
 import { engagementsForInitiative, findProgrammeCapabilityCandidates } from "@/domain/programme-mobilization";
 import { TrustBadge } from "@/components/shared/StatusBadges";
@@ -466,6 +466,14 @@ function InitiativeCard({ initiative, state, onOpenOpportunity }: { initiative: 
   const engagements = engagementsForInitiative(state, initiative.id);
   const [consideringOrganizationId, setConsideringOrganizationId] = useState<string | null>(null);
   const [engagementPendingId, setEngagementPendingId] = useState<string | null>(null);
+  // selectedRepresentatives (micro-correctif Product, post-P2.5-B) —
+  // "Actor X est un représentant connu de Organization Y" (fait affiché,
+  // ActorRelationship) n'implique JAMAIS "Actor X est le contact retenu
+  // pour CET engagement" (choix humain, propre à ce geste de
+  // mobilisation) : même lorsqu'un seul représentant est connu, jamais
+  // rempli automatiquement — l'humain choisit explicitement, ou laisse
+  // vide. Clé = organizationId, valeur = actorId choisi (ou "").
+  const [selectedRepresentatives, setSelectedRepresentatives] = useState<Record<string, string>>({});
 
   const considerCandidate = async (organizationId: string) => {
     if (!candidateCapability) return;
@@ -474,10 +482,7 @@ function InitiativeCard({ initiative, state, onOpenOpportunity }: { initiative: 
     // mobilise un partenaire de mise en œuvre — jamais un sélecteur de
     // rôle séparé, pour rester compact (mandat §12).
     const role = candidateCapability === "financement" ? "funder" : "implementer";
-    const candidate = candidates.find((item) => item.organization.id === organizationId);
-    // Représentant associé automatiquement seulement s'il n'y en a qu'un
-    // seul de connu — jamais un choix ambigu fait à la place de l'humain.
-    const representativeActorId = candidate?.representatives.length === 1 ? candidate.representatives[0].relationship.actorId : undefined;
+    const representativeActorId = selectedRepresentatives[organizationId] || undefined;
     setConsideringOrganizationId(organizationId);
     try {
       await run({
@@ -698,7 +703,7 @@ function InitiativeCard({ initiative, state, onOpenOpportunity }: { initiative: 
                       </p>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
                         {candidate.representatives.length > 0
-                          ? `Représentant${candidate.representatives.length > 1 ? "s" : ""} : ${candidate.representatives.map((item) => `${item.actor?.name ?? "Acteur introuvable"} (${item.relationship.verificationStatus})`).join(", ")}`
+                          ? `Représentant${candidate.representatives.length > 1 ? "s" : ""} connu${candidate.representatives.length > 1 ? "s" : ""} : ${candidate.representatives.map((item) => `${item.actor?.name ?? "Acteur introuvable"} — ${verificationStatusLabels[item.relationship.verificationStatus]}`).join(", ")}`
                           : "Représentant documenté non identifié."}
                       </p>
                     </div>
@@ -706,6 +711,28 @@ function InitiativeCard({ initiative, state, onOpenOpportunity }: { initiative: 
                       <TrustBadge trust={candidate.partnerService.trust} />
                     </div>
                   </div>
+                  {/* Représentant retenu POUR CET ENGAGEMENT — distinct de
+                      "représentant connu de l'organisation" ci-dessus
+                      (micro-correctif Product) : un choix explicite de
+                      l'humain, jamais présumé, même s'il n'existe qu'un
+                      seul représentant connu. Facultatif dans tous les cas
+                      — l'organisation reste considérable sans aucun
+                      représentant associé. */}
+                  {!existingEngagement && candidate.representatives.length > 0 && (
+                    <label className="mt-3 block text-xs font-semibold text-muted-foreground">
+                      Représentant pour cette mobilisation (facultatif)
+                      <select
+                        value={selectedRepresentatives[candidate.organization.id] ?? ""}
+                        onChange={(event) => setSelectedRepresentatives((prev) => ({ ...prev, [candidate.organization.id]: event.target.value }))}
+                        className="mt-1.5 h-9 w-full max-w-xs rounded-md border bg-background px-3 text-xs font-semibold text-foreground"
+                      >
+                        <option value="">Aucun représentant associé</option>
+                        {candidate.representatives.map((item) => (
+                          <option key={item.relationship.id} value={item.relationship.actorId}>{item.actor?.name ?? "Acteur introuvable"} — {verificationStatusLabels[item.relationship.verificationStatus]}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                   <div className="mt-3">
                     {existingEngagement ? (
                       <Badge variant={engagementStatusVariant[existingEngagement.status]}>{programmeOrganizationEngagementStatusLabels[existingEngagement.status]}</Badge>

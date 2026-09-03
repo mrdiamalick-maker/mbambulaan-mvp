@@ -119,9 +119,15 @@ test("TEST G — candidate projection creates no state", () => {
   assert.equal(state.programmeOrganizationEngagements.length, before);
 });
 
-// TEST H — "Considérer" crée exactement un engagement.
-test("TEST H — consider creates exactly one engagement", () => {
+// TEST H — "Considérer" crée exactement un engagement. Micro-correctif
+// Product (post-P2.5-B) : org-froid a exactement UN représentant connu
+// (relation-prestataire-froid-representant) — "un représentant connu de
+// l'organisation" n'implique JAMAIS "le contact retenu pour CET
+// engagement" (§6.A du micro-correctif) : sans choix explicite,
+// representativeActorId doit rester undefined, même à un seul candidat.
+test("TEST H — consider creates exactly one engagement (aucun représentant présumé, même un seul connu)", () => {
   const { state, initiative } = buildKayarInitiative(createDemoState());
+  assert.equal(state.actorRelationships.filter((item) => item.organizationId === "org-froid" && item.kind === "representant").length, 1, "org-froid doit avoir exactement un représentant connu pour ce test");
   const next = applyCommand(state, {
     type: "create_programme_organization_engagement",
     actorId: CORD,
@@ -134,6 +140,7 @@ test("TEST H — consider creates exactly one engagement", () => {
   assert.equal(engagements.length, 1);
   assert.equal(engagements[0].status, "considered");
   assert.equal(engagements[0].createdByActorId, CORD);
+  assert.equal(engagements[0].representativeActorId, undefined, "jamais rempli automatiquement, même à un seul représentant connu");
 });
 
 // TEST I — doublon exact (même programme+organisation+rôle+capacité)
@@ -323,6 +330,37 @@ test("representativeActorId doit résoudre vers un Actor réel ET porter une rel
     () => applyCommand(state, { type: "create_programme_organization_engagement", actorId: CORD, initiativeId: initiative.id, organizationId: "org-froid", role: "implementer", capabilityCategory: "maintenance", representativeActorId: "act-mareyeur-sud" }),
     /n'est pas enregistré comme représentant/
   );
+});
+
+// §6.C (micro-correctif) — un membre ou un relais de la BONNE organisation
+// reste refusé : seule une relation "representant" habilite, jamais
+// "membre"/"relais" même pour la même organisation exacte.
+test("un membre ou un relais (même bonne organisation) ne peut jamais être choisi comme représentant", () => {
+  const { state, initiative } = buildKayarInitiative(createDemoState());
+  // act-transform est "membre" de org-mareyeurs (relation-transform-gie-membre),
+  // jamais "representant" — même organisation, mauvaise nature de relation.
+  assert.throws(
+    () => applyCommand(state, { type: "create_programme_organization_engagement", actorId: CORD, initiativeId: initiative.id, organizationId: "org-mareyeurs", role: "implementer", capabilityCategory: "logistique", representativeActorId: "act-transform" }),
+    /n'est pas enregistré comme représentant/
+  );
+  // act-operateur est "relais" de org-site (relation-operateur-site-relais),
+  // jamais "representant" non plus.
+  assert.throws(
+    () => applyCommand(state, { type: "create_programme_organization_engagement", actorId: CORD, initiativeId: initiative.id, organizationId: "org-site", role: "implementer", capabilityCategory: "logistique", representativeActorId: "act-operateur" }),
+    /n'est pas enregistré comme représentant/
+  );
+});
+
+// §6.D (micro-correctif) — un candidat SANS aucun représentant documenté
+// reste considérable : representativeActorId absent ne bloque jamais
+// create_programme_organization_engagement.
+test("un candidat sans représentant documenté reste engageable sans representativeActorId", () => {
+  const { state, initiative } = buildKayarInitiative(createDemoState());
+  assert.equal(state.actorRelationships.filter((item) => item.organizationId === "org-partner" && item.kind === "representant").length, 0, "org-partner ne doit avoir aucun représentant documenté pour ce test");
+  const next = applyCommand(state, { type: "create_programme_organization_engagement", actorId: CORD, initiativeId: initiative.id, organizationId: "org-partner", role: "funder", capabilityCategory: "financement" });
+  const engagement = engagementsForInitiative(next, initiative.id)[0];
+  assert.equal(engagement.status, "considered");
+  assert.equal(engagement.representativeActorId, undefined);
 });
 
 test("create_programme_organization_engagement / update_programme_organization_engagement_status suivent exactement les rôles de create_actor_relationship", () => {
