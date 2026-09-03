@@ -19,6 +19,7 @@ import {
 } from "@/components/etat/shared";
 import type { FieldVisit } from "@/domain/ministry/field-visit";
 import type { Situation } from "@/domain/types";
+import { TrustIndicator } from "@/components/foundations";
 
 // Registre complet "Situations à arbitrer" — extrait de /app/etat (mandat
 // "Brief national", navigation par page, 2026-08-26). Contenu et logique
@@ -134,6 +135,7 @@ export default function ArbitragesPage() {
                   <th className="px-4 py-3 font-bold">Situation</th>
                   <th className="px-4 py-3 font-bold">Territoire</th>
                   <th className="px-4 py-3 font-bold">Urgence</th>
+                  <th className="px-4 py-3 font-bold">Connaissance</th>
                   <th className="px-4 py-3 font-bold">Étape</th>
                   <th className="px-4 py-3 font-bold">Échéance</th>
                   <th className="px-4 py-3 font-bold">Responsable</th>
@@ -151,6 +153,7 @@ export default function ArbitragesPage() {
                       <td className="px-4 py-3"><p className="font-semibold text-[var(--etat-navy-950)]">{situation.title}</p><p className="mt-0.5 text-xs text-[var(--etat-stone-600)]">{situation.nextStep}</p></td>
                       <td className="px-4 py-3 text-[var(--etat-stone-600)]">{territory?.name ?? situation.territoryId}</td>
                       <td className="px-4 py-3"><span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : "etat-tag--vigilance"}`}>{priorityLabels[situation.priority]}</span></td>
+                      <td className="px-4 py-3"><TrustIndicator trust={situation.trust} /></td>
                       <td className="px-4 py-3 text-[var(--etat-stone-600)]">{stageLabel}</td>
                       <td className="px-4 py-3 text-[var(--etat-stone-600)]">{situation.dueAt ? new Date(situation.dueAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) : "—"}</td>
                       <td className="px-4 py-3 text-[var(--etat-stone-600)]">{responsable?.name ?? "—"}</td>
@@ -179,6 +182,7 @@ export default function ArbitragesPage() {
                     <div>
                       <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{territory?.name ?? situation.territoryId} · {situation.title}</p><span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : "etat-tag--vigilance"}`}>{priorityLabels[situation.priority]}</span></div>
                       <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{situation.nextStep}</p>
+                      <div className="mt-1.5"><TrustIndicator trust={situation.trust} /></div>
                       <p className="mt-1 text-[11px] text-[var(--etat-stone-400)]">Étape {stageLabel.toLowerCase()}</p>
                     </div>
                   </div>

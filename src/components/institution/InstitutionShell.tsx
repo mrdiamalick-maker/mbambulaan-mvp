@@ -92,8 +92,11 @@ export function InstitutionShell({
           <Button variant="ghost" size="sm" className="hidden gap-1.5 text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground sm:inline-flex" onClick={start}>
             <PlayCircle size={15} /> Présentation guidée
           </Button>
+          {/* XXL-R2 (§8, couleurs sémantiques — même correctif que
+              SiteHeader.tsx en R1) : pastille alignée sur --mb-success au
+              lieu du vert Tailwind par défaut, hors palette. */}
           <Badge variant="outline" className="hidden gap-1.5 border-white/15 text-sidebar-foreground/70 xl:inline-flex">
-            <span className="size-1.5 rounded-full bg-emerald-400" />
+            <span className="size-1.5 rounded-full" style={{ background: "var(--mb-success)" }} />
             {persistence === "postgresql" ? "Base de production" : "Mode démonstration · données non opérationnelles"}
           </Badge>
           {/* Cloche : compte réel de notifications non lues pour le rôle

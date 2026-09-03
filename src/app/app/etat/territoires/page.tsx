@@ -16,6 +16,7 @@ import {
 } from "@/components/etat/shared";
 import type { Situation, Territory } from "@/domain/types";
 import type { VigilanceCase } from "@/domain/ministry/vigilance";
+import { AttentionItem, EditorialSection } from "@/components/foundations";
 
 // Registre complet "Territoires" — mandat CEO "2 changements décidés"
 // (2026-08-28), même schéma d'extraction que /app/etat/arbitrages et
@@ -67,6 +68,22 @@ export default function TerritoiresPage() {
   const vigilanceCount = filteredTerritories.filter((item) => item.activity === "vigilance").length;
   const criticalCount = filteredTerritories.filter((item) => item.activity === "critique").length;
 
+  // XXL-R2 (§8 du mandat) — "À surveiller" : jamais un score fabriqué,
+  // seulement les territoires réellement classés vigilance/critique dans
+  // ce filtre, triés par attention puis par situations ouvertes,
+  // plafonnés à 5. Absent si aucun territoire ne le justifie — jamais
+  // rempli pour "faire une section".
+  const attentionRank: Record<Territory["activity"], number> = { critique: 2, vigilance: 1, stable: 0 };
+  const territoriesToWatch = filteredTerritories
+    .map((territory) => ({
+      territory,
+      openSituations: state.situations.filter((item) => item.territoryId === territory.id && item.status !== "reglee").length,
+      fragileInfra: state.infrastructures.filter((item) => item.territoryId === territory.id && item.status !== "operationnelle").length
+    }))
+    .filter((item) => item.territory.activity !== "stable")
+    .sort((a, b) => attentionRank[b.territory.activity] - attentionRank[a.territory.activity] || b.openSituations - a.openSituations)
+    .slice(0, 5);
+
   return (
     <div className="etat-scope min-h-screen bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
       <EtatRegistryHeader
@@ -79,6 +96,7 @@ export default function TerritoiresPage() {
           { label: "En vigilance", value: vigilanceCount, detail: `${criticalCount} critique(s)`, tone: criticalCount > 0 ? "critical" : vigilanceCount > 0 ? "attention" : "positive" },
           { label: "Capacités fragiles", value: fragileInfrastructureCount, detail: "Fragiles ou indisponibles", tone: fragileInfrastructureCount > 0 ? "attention" : "positive" }
         ]}
+        signature
       >
           <label className="block">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Région</p>
@@ -107,6 +125,28 @@ export default function TerritoiresPage() {
             </select>
           </label>
       </EtatRegistryHeader>
+
+      {territoriesToWatch.length > 0 && (
+        <div className="etat-panel mt-5 p-6 lg:p-7">
+          <EditorialSection eyebrow="Où concentrer l’attention" title="À surveiller">
+            <p>{territoriesToWatch.length} territoire(s) classé(s) en vigilance ou critique dans ce filtre — jamais un classement fabriqué, seulement l’activité réellement enregistrée.</p>
+          </EditorialSection>
+          <div className="mt-3 divide-y" style={{ borderColor: "var(--mb-hairline-soft)" }}>
+            {territoriesToWatch.map(({ territory, openSituations, fragileInfra }) => (
+              <AttentionItem
+                key={territory.id}
+                level={territory.activity}
+                levelLabel={statusTagLabel[territory.activity]}
+                territory={territory.region}
+                reason={territory.name}
+                nextStep={`${openSituations} situation(s) ouverte(s)${fragileInfra > 0 ? ` · ${fragileInfra} capacité(s) fragile(s)` : ""}`}
+                ctaLabel="Voir le territoire"
+                onAction={() => setTerritoryDrawer(territory)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="etat-panel mt-5 p-6 lg:p-7">
       {filteredTerritories.length === 0 ? (

@@ -14,7 +14,8 @@ export function EditorialSection({
 }: {
   eyebrow?: string;
   title?: ReactNode;
-  children: ReactNode;
+  /** Optionnel : un titre de groupe seul (ex. tiers de registre, XXL-R2) reste une EditorialSection valide sans corps de texte. */
+  children?: ReactNode;
   /** Donnée ou média secondaire, en colonne à droite sur desktop. */
   aside?: ReactNode;
   className?: string;
@@ -23,10 +24,12 @@ export function EditorialSection({
     <section className={className}>
       {eyebrow && <p className="mb-eyebrow">{eyebrow}</p>}
       {title && <h2 className="mb-section-title mt-2">{title}</h2>}
-      <div className={aside ? "mt-3 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(220px,.32fr)]" : "mt-3"}>
-        <div className="mb-body min-w-0 max-w-2xl [&_p]:mb-3 [&_p:last-child]:mb-0">{children}</div>
-        {aside && <div className="min-w-0">{aside}</div>}
-      </div>
+      {(children || aside) && (
+        <div className={aside ? "mt-3 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(220px,.32fr)]" : "mt-3"}>
+          {children && <div className="mb-body min-w-0 max-w-2xl [&_p]:mb-3 [&_p:last-child]:mb-0">{children}</div>}
+          {aside && <div className="min-w-0">{aside}</div>}
+        </div>
+      )}
     </section>
   );
 }

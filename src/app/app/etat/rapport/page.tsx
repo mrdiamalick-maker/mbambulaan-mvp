@@ -267,8 +267,14 @@ export default function EtatReportPage() {
           document linéaire complet (rappel CEO), sans rien d'autre y
           être caché ou conditionné à un état d'interface. */}
       <div className="mx-5 mt-5 flex flex-wrap items-center justify-between gap-3 print:hidden lg:mx-8 lg:mt-6">
-        <Link href="/app/etat" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--etat-navy-800)]"><ArrowLeft size={15} /> Retour à l’Espace État</Link>
-        <div className="flex gap-2">
+        {/* XXL-R2 (§6, grammaire commune) — même libellé exact que les 3
+            autres registres (etat-back-link/EtatRegistryHeader) : "Retour
+            à l'Espace État" pointait déjà vers /app/etat mais avec un mot
+            différent pour la même destination — un des petits écarts qui
+            faisaient sembler Résultats moins de la même famille. */}
+        <Link href="/app/etat" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--etat-navy-800)]"><ArrowLeft size={15} /> Retour au Brief national</Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/app/etat/redevabilite" className="etat-btn etat-btn-outline">Registre des décisions</Link>
           <button onClick={() => window.print()} className="etat-btn etat-btn-outline"><Printer size={15} /> Version imprimable</button>
           <button onClick={download} className="etat-btn etat-btn-primary"><Download size={15} /> Télécharger (.md)</button>
         </div>

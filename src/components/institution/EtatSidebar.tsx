@@ -38,12 +38,24 @@ import { FileCheck2, Home, LayoutGrid, LogOut, MapPin, Scale, Settings } from "l
 // masquage CSS — reste dans le backlog produit (pas dans ce fichier)
 // pour un sprint de raffinement post-rencontre, pas supprimé du projet,
 // juste plus une ligne grisée ici tant qu'aucune page ne l'accompagne.
+// XXL-R2 (§4 du mandat, "une navigation État claire") : libellés alignés
+// sur les 5 niveaux de lecture demandés — "Vue d'ensemble" devient "Brief
+// national" (c'est la même page, /app/etat, seul le nom change pour
+// nommer ce qu'elle est réellement) ; "Rapports & redevabilité" devient
+// "Résultats" (§18, arbitrage rendu ce lot : /app/etat/rapport est déjà
+// la lecture la plus complète — synthèse exécutive, baseline/actuel/
+// cible, financements, chaîne situation→preuve — donc la vraie
+// destination "Résultats" ; /app/etat/redevabilite, plus étroite [un
+// registre de décisions], reste volontairement hors de ce rail et
+// continue à se lire comme une sous-profondeur, atteignable depuis le
+// Brief national et depuis Rapport lui-même — jamais une 6e destination
+// principale, cf. commentaire dans rapport/page.tsx).
 const navItems = [
-  { href: "/app/etat", label: "Vue d’ensemble", icon: Home },
+  { href: "/app/etat", label: "Brief national", icon: Home },
   { href: "/app/etat/territoires", label: "Territoires", icon: MapPin },
   { href: "/app/etat/arbitrages", label: "Arbitrages", icon: Scale },
   { href: "/app/etat/programmes", label: "Programmes", icon: LayoutGrid },
-  { href: "/app/etat/rapport", label: "Rapports & redevabilité", icon: FileCheck2 }
+  { href: "/app/etat/rapport", label: "Résultats", icon: FileCheck2 }
 ] as const;
 
 // Couleurs D9 en valeurs littérales, pas en var(--etat-*) : ce shell est
@@ -66,17 +78,18 @@ const D9 = {
 export function EtatSidebar({ onLogout }: { onLogout: () => void }) {
   const pathname = usePathname();
 
-  // Retrait du premier écran (mandat "Brief national", arbitrage
-  // 2026-08-23, Décision "Option A") : la sidebar permanente disparaît de
-  // /app/etat lui-même — "pas six modules concurrents à l'ouverture" — mais
-  // /app/etat/rapport la garde, explicitement ("reste un explorateur de
-  // preuves formelles où la navigation permanente a du sens"). Ce n'est pas
-  // un retour silencieux à l'A14 d'origine : c'est un nouvel arbitrage,
-  // scopé à cette seule route, qui prévaut sur la Décision 1 du mandat
-  // précédent (sidebar partagée sur les deux pages). onEtatPage n'a donc
-  // plus qu'un seul rôle : ce garde de sortie précoce.
-  if (pathname === "/app/etat") return null;
-
+  // XXL-R2 (§3, §6, §41.A) — renverse l'arbitrage "Option A" du mandat
+  // Brief national (2026-08-23), qui retirait la sidebar de /app/etat
+  // lui-même ("pas six modules concurrents à l'ouverture"). Ce nouvel
+  // arbitrage, explicite dans le mandat courant, part du même constat que
+  // le CEO : "le Brief national paraît isolé des autres pages /app/etat"
+  // — masquer la seule navigation permanente précisément sur la page la
+  // plus visitée était la cause structurelle de cet isolement, pas une
+  // qualité éditoriale à préserver. Le Brief garde toute sa composition
+  // narrative (rien retiré de son contenu) ; il gagne seulement le même
+  // repère de navigation que Territoires/Arbitrages/Programmes/Résultats
+  // ont toujours eu — condition explicite de "grammaire commune" (§6) et
+  // du test de continuité (§32).
   return (
     <aside className="hidden w-56 shrink-0 flex-col bg-white p-3 lg:flex" style={{ borderRight: `1px solid ${D9.line}` }}>
       <nav className="flex flex-1 flex-col gap-0.5">

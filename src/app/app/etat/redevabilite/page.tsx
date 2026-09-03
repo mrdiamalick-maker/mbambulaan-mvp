@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Drawer } from "@/components/etat/Drawer";
@@ -9,6 +10,7 @@ import { DecisionIcon } from "@/components/etat/MotifIcons";
 import { Mission, MissionForm, SituationDetail, priorityToTag } from "@/components/etat/shared";
 import { attributionLevelLabels, decisionTypeLabels, type Situation } from "@/domain/types";
 import { outcomesForResults, resultsForSituation } from "@/domain/situation-narrative";
+import { KnowledgeState } from "@/components/foundations";
 
 // Registre complet "Décisions exécutées & résultats observés" — extrait de
 // /app/etat (mandat "Brief national", navigation par page, 2026-08-26).
@@ -67,6 +69,11 @@ export default function RedevabilitePage() {
             ))}
           </select>
         </label>
+        {/* XXL-R2 (§18) — lien réciproque vers Rapport (nav "Résultats") :
+            ce registre reste une sous-profondeur, jamais une 6e
+            destination concurrente — il pointe explicitement vers la
+            lecture complète plutôt que de prétendre l'égaler. */}
+        <Link href="/app/etat/rapport" className="etat-btn etat-btn-outline self-end">Voir le rapport complet</Link>
       </EtatRegistryHeader>
 
       <div className="etat-panel mt-5 p-6 lg:p-7">
@@ -115,7 +122,11 @@ export default function RedevabilitePage() {
                             <span className="text-[var(--etat-stone-400)]"> ({attributionLevelLabels[situationOutcome.attribution].toLowerCase()})</span>
                           </p>
                         ) : (
-                          <p className="text-[11px] leading-4 text-[var(--etat-stone-400)]"><span className="font-bold text-[var(--etat-navy-950)]">Effet · </span>Impact non encore mesuré.</p>
+                          // XXL-R2 (§17, §26) — "Impact à mesurer" traité
+                          // comme une limite de connaissance honnête
+                          // (KnowledgeState), pas comme une ligne grise
+                          // anonyme parmi d'autres.
+                          <KnowledgeState level="a_verifier">Impact non encore mesuré</KnowledgeState>
                         )}
                       </div>
                     )}
