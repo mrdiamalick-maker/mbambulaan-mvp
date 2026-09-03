@@ -15,6 +15,25 @@ import {
 import { publicTerritories } from "@/data/public-atlas";
 import { trackPublicEvent } from "@/lib/public-analytics";
 import { BlurFade } from "@/components/magicui/blur-fade";
+// XXL-R6 (mandat CEO "Public Coherence", §5) — le tracé littoral vivait
+// ici en chaîne dupliquée, coïncidant caractère pour caractère avec
+// coastlinePath (domain/territory-map-positions.ts, la même géométrie
+// dont Brief national, Atlas Pro et /app/pilotage dérivent tous
+// désormais leur carte, cf. XXL-R5.5) sans jamais l'importer — un risque
+// de divergence silencieuse si l'un des deux tracés était un jour
+// retouché sans l'autre. Convergence strictement technique : une seule
+// source du tracé partagée par les 3 cartes du produit ("même ADN
+// cartographique"), aucun changement visuel (chaîne strictement
+// identique), aucun changement de viewBox (0 0 1000 1400 conservé, cf.
+// plus bas — l'espace de coordonnées du tracé est inchangé par le
+// recadrage "181 78 704 1122" de R5.5), aucun import de
+// CoastlineTerritoryMap lui-même : ce composant suppose un Territory.
+// activity ("stable"/"vigilance"/"critique") que le Public n'a jamais et
+// ne doit jamais recevoir (§6/§7 du mandat) — Public garde son propre
+// rendu de marqueurs (palette pub-*, positions mapPosition propres au
+// jeu de données public, qui couvre plus de territoires que les 18 du
+// Core).
+import { coastlinePath } from "@/domain/territory-map-positions";
 
 export function PublicAtlasWorkspace() {
   const [region, setRegion] = useState("all");
@@ -87,9 +106,13 @@ export function PublicAtlasWorkspace() {
                 l'intérieur des terres par rapport à sa propre ligne de
                 marqueurs (isPointInFill faux pour 15/18 des marqueurs
                 d'origine, y compris Joal) — vérifié à nouveau ici après
-                correction : les 22 marqueurs sont dans le remplissage. */}
+                correction : les 22 marqueurs sont dans le remplissage.
+                XXL-R6 : ce même tracé est désormais importé
+                (coastlinePath) plutôt que recopié en dur, cf. commentaire
+                d'import plus haut — la chaîne elle-même est strictement
+                inchangée. */}
             <path
-              d="M 315 145 L 610 118 L 790 205 L 845 365 L 804 510 L 738 610 L 760 705 L 690 772 L 735 812 L 700 860 L 730 1015 L 680 1095 L 605 1140 L 520 1160 L 376 1135 L 341 1090 L 401 1055 L 311 1040 L 306 965 L 316 900 L 386 868 L 341 855 L 354 792 L 338 758 L 332 739 L 326 720 L 336 696 L 318 684 L 292 642 L 271 610 L 262 575 L 254 528 L 241 450 L 228 372 L 221 292 L 234 205 Z"
+              d={coastlinePath}
               fill="var(--pub-ivory-200)"
               stroke="var(--pub-deep-900)"
               strokeOpacity="0.45"
