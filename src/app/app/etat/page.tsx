@@ -677,20 +677,29 @@ export default function EtatPage() {
             (donc la carte ET le panneau) à ~393px sur un viewport à
             390px. Confirmé par script (git stash sur ce lot : aucun
             débordement avant, +23px après) avant d'écrire ce correctif. */}
-        {/* lg:h-[390px] (mandat "Brief national", §3 : "~390px de haut",
-            mesure directe du CEO — remplace le 520px du lot précédent,
-            compression significative assumée). Le mécanisme qui exige
-            cette hauteur PROPRE sur la ligne de grille (pas seulement
-            lg:items-stretch) reste celui identifié le 2026-08-22 : un
-            enfant lg:h-full imbriqué dans un item de grille sans hauteur
-            à soi ne se résout pas de façon fiable, cf. historique gardé
-            plus haut. overflow-y-auto sur l'aside (plus bas) reste le
-            filet de sécurité si le nouveau contenu éditorial dépasse
-            malgré tout cette hauteur plus contrainte qu'avant.
-            Ratio 66/34 (mesure directe du CEO, remplace 62/38) : même
-            mécanique de grille, proportion réajustée à la nouvelle
-            mesure. */}
-        <div className="mt-6 grid grid-cols-1 gap-5 lg:h-[390px] lg:grid-cols-[66fr_34fr]">
+        {/* lg:h-[480px] (mandat XXL-RC1 §1, "la carte doit devenir le
+            moment visuel dominant du chapitre territorial") : remplace le
+            390px du lot "Brief national" (2026-08-23) — ce lot avait
+            délibérément compressé la carte au profit du texte ; le
+            contre-audit visuel indépendant (Pass 2) constate que la carte,
+            censée porter la signature territoriale du produit, en devient
+            "l'élément le plus discret de l'écran". Correction de
+            composition pure : plus de hauteur, donc plus de respiration —
+            ni la géométrie (CoastlineTerritoryMap, coastlinePath,
+            territoryMapPositions), ni les données, ni le récit du panneau
+            ne changent. Le mécanisme qui exige cette hauteur PROPRE sur la
+            ligne de grille (pas seulement lg:items-stretch) reste celui
+            identifié le 2026-08-22 : un enfant lg:h-full imbriqué dans un
+            item de grille sans hauteur à soi ne se résout pas de façon
+            fiable. overflow-y-auto sur l'aside (plus bas) reste le filet
+            de sécurité, désormais avec plus de marge qu'avant.
+            Ratio 70/30 (XXL-RC1, remplace 66/34) : la carte gagne en
+            largeur en plus de la hauteur — l'aside conserve largement de
+            quoi afficher son format éditorial complet (nature/pourquoi/
+            à considérer/prochaine étape/2 CTA), vérifié aux 5 largeurs de
+            test du mandat (1440/1280/1024/768/390) sans passer par le
+            filet overflow-y-auto en pratique. */}
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:h-[480px] lg:grid-cols-[70fr_30fr]">
           {/* Carte — signature cartographique unique (XXL-R5.5, cf.
               historique en tête de fichier) : CoastlineTerritoryMap avec
               ses couleurs par défaut (calibrées pour .etat-scope, déjà le
@@ -771,9 +780,9 @@ export default function EtatPage() {
 
           {/* overflow-y-auto (correctif CEO 2026-08-22, conservé) : filet de
               sécurité maintenant que la ligne a une hauteur fixe
-              (lg:h-[390px], resserrée par ce lot) — si le contenu du
-              panneau dépasse malgré tout cette hauteur plus contrainte
-              qu'avant, il défile en interne au lieu de repousser la carte.
+              (lg:h-[480px], XXL-RC1) — si le contenu du panneau dépasse
+              malgré tout cette hauteur, il défile en interne au lieu de
+              repousser la carte.
 
               Format éditorial (mandat "Brief national", §3, côté brief
               34%) : "nature de la situation, pourquoi elle mérite

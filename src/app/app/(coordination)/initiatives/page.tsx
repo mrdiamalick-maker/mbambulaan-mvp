@@ -15,7 +15,7 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Banknote, CircleDollarSign, Compass, Flag, Layers, Target, UsersRound } from "lucide-react";
+import { ArrowRight, Banknote, ChevronDown, ChevronUp, CircleDollarSign, Compass, Flag, Layers, Target, UsersRound } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { ExportActions } from "@/components/reporting/ExportActions";
@@ -31,6 +31,11 @@ import type { CollectiveNeed, Funding, Initiative, Outcome, ProductState, Progra
 import { attributionLevelLabels, collectiveNeedStatusLabels, impactStatusLabels, programOpportunityMaturityLabels, programOpportunityStatusLabels } from "@/domain/types";
 
 const money = new Intl.NumberFormat("fr-FR", { notation: "compact", style: "currency", currency: "XOF", maximumFractionDigits: 0 });
+
+// XXL-RC1 (§4) — mêmes 3 éléments par défaut que les teneurs "3 + Voir
+// tout" déjà en place ailleurs dans le produit (État, Aujourd'hui) : pas
+// un chiffre choisi au hasard pour cette page précise.
+const PROGRAMS_VISIBLE_COUNT = 3;
 
 const initiativeStatusLabel: Record<Initiative["status"], string> = {
   cadrage: "Cadrage",
@@ -117,6 +122,16 @@ function InitiativesPageContent() {
   const searchParams = useSearchParams();
   const [territoryFilter, setTerritoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<Initiative["status"] | "all">("all");
+  // XXL-RC1 (§4) — progressive disclosure : le contre-audit visuel (Pass 2,
+  // §4/§9) constate que la section 3 devient longue et répétitive dès que
+  // le portefeuille compte plusieurs programmes (chaque InitiativeCard est
+  // un bloc complet — hero + métriques + progression — pas une ligne).
+  // Aucune donnée cachée en permanence : PROGRAMS_VISIBLE_COUNT ne
+  // détermine que le rendu initial, "Voir tout"/"Réduire" révèle/replie la
+  // même liste déjà filtrée (filteredInitiatives), jamais un second appel
+  // ni une priorité fabriquée. Même seuil que les teneurs "3 + Voir tout"
+  // déjà en place ailleurs dans le produit (État, Aujourd'hui).
+  const [programsExpanded, setProgramsExpanded] = useState(false);
   // Identifiants, pas les objets eux-mêmes : après une action dans le
   // dossier ouvert (qualifier une opportunité, par ex.), state se
   // rafraîchit via useProduct — dériver l'objet affiché à chaque rendu
@@ -161,7 +176,12 @@ function InitiativesPageContent() {
     <div className="shadcn-scope space-y-10 bg-background p-5 pb-16 lg:p-8">
       <div>
         <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">Programmes &amp; développement</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">Des besoins collectifs aux interventions structurées</h1>
+        {/* XXL-RC1 (§5.C) — mb-page-title (mb-foundations.css, display
+            serif partagé Landing/Public/État/Aujourd'hui) remplace le
+            sans-serif ad hoc : seul le vrai titre de page, jamais les
+            sous-titres de section ni les titres de carte plus bas — même
+            discipline "modérée" que le reste de ce lot. */}
+        <h1 className="mb-page-title mt-2">Des besoins collectifs aux interventions structurées</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Mbàmbulaan transforme les besoins collectifs documentés en interventions structurées, sans confondre problème identifié et solution décidée.</p>
       </div>
 
@@ -273,7 +293,27 @@ function InitiativesPageContent() {
 
         <div className="space-y-10 print:hidden">
           {filteredInitiatives.length === 0 && <p className="text-sm text-muted-foreground">Aucun programme ne correspond à ce filtre pour le moment.</p>}
-          {filteredInitiatives.map((initiative) => <InitiativeCard key={initiative.id} initiative={initiative} state={state} />)}
+          {(programsExpanded ? filteredInitiatives : filteredInitiatives.slice(0, PROGRAMS_VISIBLE_COUNT)).map((initiative) => (
+            <InitiativeCard key={initiative.id} initiative={initiative} state={state} />
+          ))}
+          {/* XXL-RC1 (§4) — "Voir tout"/"Réduire" : bascule d'affichage sur
+              la même liste déjà filtrée (filteredInitiatives), jamais un
+              second calcul ni une page distincte — les programmes au-delà
+              du seuil restent les mêmes objets réels, seulement pas
+              encore affichés par défaut. */}
+          {filteredInitiatives.length > PROGRAMS_VISIBLE_COUNT && (
+            <button
+              type="button"
+              onClick={() => setProgramsExpanded((value) => !value)}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border py-3 text-sm font-semibold text-muted-foreground transition hover:text-foreground"
+            >
+              {programsExpanded ? (
+                <>Réduire <ChevronUp size={14} /></>
+              ) : (
+                <>Voir les {filteredInitiatives.length - PROGRAMS_VISIBLE_COUNT} autres programmes <ChevronDown size={14} /></>
+              )}
+            </button>
+          )}
         </div>
 
         <div className="hidden space-y-10 print:block">

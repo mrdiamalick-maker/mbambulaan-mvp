@@ -58,7 +58,20 @@ export function NumberTicker({
 }: NumberTickerProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const motionValue = useMotionValue(direction === "down" ? value : startValue);
-  const springValue = useSpring(motionValue, { damping: 60, stiffness: 100 });
+  // XXL-RC1 (§5.B) — ressort resserré (stiffness 100 → 340, damping 60 →
+  // 42) : le contre-audit visuel (Pass 2, §9/V-09, confirmant le P2 du
+  // premier audit) constate qu'une capture prise moins de ~1,5-2s après
+  // l'affichage d'une bande de chiffres institutionnelle (Brief national,
+  // Atlas Pro, Programmes…) peut figer une valeur transitoire du compteur
+  // — jamais une valeur incohérente entre deux tuiles au repos (chaque
+  // NumberTicker converge indépendamment vers sa propre `value`, déjà
+  // correcte), mais un risque réel de photo "fausse" en plein comptage.
+  // Ce réglage fait converger un écart typique (quelques dizaines
+  // d'unités) en ~250-350ms au lieu de ~1,5-3s, sans supprimer l'effet ni
+  // toucher prefers-reduced-motion (toujours honoré juste en dessous,
+  // inchangé) — un ressort plus vif, pas un chiffre qui saute sans
+  // transition.
+  const springValue = useSpring(motionValue, { damping: 42, stiffness: 340 });
 
   useEffect(() => {
     const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;

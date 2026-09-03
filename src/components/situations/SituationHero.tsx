@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Actor, Situation, Territory } from "@/domain/types";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +52,15 @@ export function SituationHero({
               <span className="mb-evidence" style={{ color: "var(--mb-terracotta-500)" }}>Situation opérationnelle</span>
               <span style={{ color: "rgba(247,243,233,.5)" }}>{situation.reference}</span>
             </div>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">{situation.title}</h1>
+            {/* XXL-RC1 (§5.C) — mb-page-title (display serif partagé
+                Landing/Public/État/Aujourd'hui/Programmes/Réseau) : ce
+                hero (partagé Room/Drawer État) en était le seul grand
+                titre encore en sans-serif. color inline override, même
+                motif que PageIntro.tsx tone="dark" (mb-page-title fixe
+                --mb-navy-950 par défaut, illisible sur ce fond marine —
+                pas une nouvelle teinte, la même utilisée par PageIntro
+                pour ce cas déjà résolu ailleurs dans le produit). */}
+            <h1 className="mb-page-title mt-3" style={{ color: "#fdfbf5" }}>{situation.title}</h1>
             {/* Certains dossiers portent la même chaîne en title et
                 description (donnée réelle, non modifiée ici — §42) : ne
                 pas répéter la phrase telle quelle sous le titre dans ce
@@ -71,7 +80,14 @@ export function SituationHero({
         className="grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0"
         style={{ borderTop: "1px solid rgba(247,243,233,.12)", borderColor: "rgba(247,243,233,.12)" }}
       >
-        <HeroMeta label="Territoire" value={territory?.name ?? "Non défini"} />
+        {/* XXL-RC1 (§5.A) — territoire cliquable vers l'Atlas (déjà le
+            motif partout ailleurs dans le produit — État, Réseau,
+            Programmes) : ce hero, partagé Room/Drawer, ne le faisait pas
+            encore, un vrai cul-de-sac Situation → Territoire confirmé par
+            les deux audits de release. href seulement quand territory
+            résout à un vrai objet — "Non défini" reste du texte inerte,
+            jamais un lien vers rien. */}
+        <HeroMeta label="Territoire" value={territory?.name ?? "Non défini"} href={territory ? `/app/atlas?territoire=${territory.id}` : undefined} />
         <HeroMeta label="Responsable" value={responsible?.name ?? "À désigner"} />
         <HeroMeta
           label="Dernière évolution"
@@ -83,11 +99,15 @@ export function SituationHero({
   );
 }
 
-function HeroMeta({ label, value, detail }: { label: string; value: string; detail?: string }) {
+function HeroMeta({ label, value, detail, href }: { label: string; value: string; detail?: string; href?: string }) {
   return (
     <div className="px-6 py-4 md:px-8" style={{ borderColor: "rgba(247,243,233,.12)" }}>
       <p className="mb-evidence" style={{ color: "rgba(247,243,233,.45)" }}>{label}</p>
-      <p className="mt-1.5 text-sm font-semibold leading-5">{value}</p>
+      {href ? (
+        <Link href={href} className="mt-1.5 block text-sm font-semibold leading-5 underline decoration-[rgba(247,243,233,.35)] underline-offset-2 transition hover:decoration-[rgba(247,243,233,.8)]">{value}</Link>
+      ) : (
+        <p className="mt-1.5 text-sm font-semibold leading-5">{value}</p>
+      )}
       {detail && <p className="mt-0.5 text-xs" style={{ color: "rgba(247,243,233,.55)" }}>{detail}</p>}
     </div>
   );

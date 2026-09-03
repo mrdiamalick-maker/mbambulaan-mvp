@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { usePresentationGuide } from "@/components/providers/PresentationGuideProvider";
-import { EtatSidebar } from "@/components/institution/EtatSidebar";
+import { EtatMobileNav, EtatSidebar } from "@/components/institution/EtatSidebar";
 
 // Entrée technique distincte pour l'Espace État (D9, PRODUCT_DECISION_LOG.md) :
 // pas AppSidebar/SidebarProvider composés différemment, une structure de
@@ -69,6 +69,12 @@ export function InstitutionShell({
             sans distinction visuelle du nom du produit. orgName reste
             dynamique (organization?.name, jamais un texte recopié
             d'une maquette). */}
+        {/* XXL-RC1 (§2) — déclencheur du tiroir de navigation État, visible
+            uniquement sous 1024px (même point de rupture que EtatSidebar,
+            qui reste inchangée au-dessus) : sans lui, Territoires/
+            Arbitrages/Programmes/Résultats étaient injoignables sous ce
+            seuil (P1 confirmé par les deux audits de release). */}
+        <EtatMobileNav onLogout={onLogout} />
         <Link href="/app/etat" className="flex shrink-0 items-center gap-2.5">
           <span className="grid size-8 place-items-center rounded-md bg-primary text-sm font-black text-primary-foreground">M</span>
           <span className="hidden text-sm font-semibold sm:inline">Mbàmbulaan</span>

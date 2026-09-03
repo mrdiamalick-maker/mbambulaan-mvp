@@ -154,10 +154,21 @@ function greeting() {
   return "Bonsoir";
 }
 
+// XXL-RC1 (§3) — la barre latérale colorée par ligne (une par urgence,
+// répétée sur chacun des N éléments de "Votre travail") a été retirée :
+// le Badge (déjà présent, même couleur, mêmes 3 valeurs
+// urgencyBadgeVariant) porte déjà cette information — la barre ne
+// faisait que la répéter en aplat sur toute la hauteur de la ligne. Sur
+// une liste de 5+ éléments, cette répétition verticale était le premier
+// facteur de l'effet "file de tickets" identifié par le contre-audit
+// visuel (Pass 2, §3/§9) : aucune information perdue en la retirant,
+// glyphBorderColor reste utilisé plus bas (Top 3, repère de catégorie) —
+// seul cet usage-ci en ligne de liste disparaît. py-5 (au lieu de py-4) :
+// un peu plus de respiration verticale par ligne, même esprit que
+// l'augmentation d'espacement du composant dans son ensemble.
 function ItemRow({ item }: { item: WorkdayItem }) {
   return (
-    <div className="relative flex flex-col gap-3 py-4 pl-4 md:flex-row md:flex-wrap md:items-center md:justify-between">
-      <span className="absolute inset-y-2 left-0 w-1 rounded-full" style={{ backgroundColor: glyphBorderColor[urgencyTag[item.urgency]] }} aria-hidden="true" />
+    <div className="flex flex-col gap-3 py-5 md:flex-row md:flex-wrap md:items-center md:justify-between">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={urgencyBadgeVariant[item.urgency]}>{categoryLabel[item.category]}</Badge>
@@ -234,7 +245,11 @@ export function WorkdayHub({ state, actorId, role }: { state: ProductState; acto
   const territoryFor = (name?: string) => (name ? state.territories.find((item) => item.name === name) : undefined);
 
   return (
-    <div className="shadcn-scope space-y-10 bg-background p-5 pb-16 lg:p-8">
+    // XXL-RC1 (§3) — space-y-14 (au lieu de space-y-10) : plus de
+    // respiration entre chapitres, même logique que les pt-8 (au lieu de
+    // pt-6) sur chaque section ci-dessous — un seul geste de composition
+    // cohérent, pas une valeur isolée.
+    <div className="shadcn-scope space-y-14 bg-background p-5 pb-16 lg:p-8">
       {/* XXL-R3 (§4) — l'eyebrow redevient la date (repère temporel
           stable), le vrai titre devient un état dérivé ("N priorités
           demandent votre attention" / état calme si 0) plutôt qu'une
@@ -299,24 +314,30 @@ export function WorkdayHub({ state, actorId, role }: { state: ProductState; acto
         )}
       </section>
 
+      {/* XXL-RC1 (§3) — eyebrow "Votre travail" repassé en
+          text-muted-foreground (comme "Ce que vous attendez"/"Ce qui a
+          changé" juste en dessous, jamais en text-primary/terracotta) :
+          la couleur d'accent reste réservée à "Vos priorités" seule —
+          Top 3 reste la seule pièce centrale de la page, les registres
+          secondaires ne se disputent plus la même emphase visuelle. */}
       {rest.length > 0 && (
-        <section className="border-t pt-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">Votre travail</p>
-          <div className="mt-2 divide-y border-y">
+        <section className="border-t pt-8">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Votre travail</p>
+          <div className="mt-3 divide-y border-y">
             <CappedList items={rest} visibleCount={WORK_LIST_VISIBLE_COUNT} renderItem={(item) => <ItemRow key={item.id} item={item} />} />
           </div>
         </section>
       )}
 
       {view.waitingOnOthers.length > 0 && (
-        <section className="border-t pt-6">
+        <section className="border-t pt-8">
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Ce que vous attendez des autres</p>
-          <div className="mt-2 space-y-1">
+          <div className="mt-3 space-y-1">
             <CappedList
               items={view.waitingOnOthers}
               visibleCount={WORK_LIST_VISIBLE_COUNT}
               renderItem={(item) => (
-                <Link key={item.id} href={item.href} className="flex items-center justify-between gap-2 rounded-md px-2 py-2 text-xs hover:bg-accent">
+                <Link key={item.id} href={item.href} className="flex items-center justify-between gap-2 rounded-md px-2 py-2.5 text-xs hover:bg-accent">
                   <span><span className="font-semibold">{item.title}</span> — {item.detail}</span>
                   <ArrowRight size={13} className="shrink-0 text-muted-foreground" />
                 </Link>
@@ -331,11 +352,11 @@ export function WorkdayHub({ state, actorId, role }: { state: ProductState; acto
           chevron d'action, horodatage réel affiché — WorkdayChangeItem.at,
           déjà calculé par buildWorkdayView mais jamais montré jusqu'ici). */}
       {view.whatChanged.length > 0 && (
-        <section className="border-t pt-6">
+        <section className="border-t pt-8">
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Ce qui a changé</p>
-          <div className="mt-2 space-y-2.5">
+          <div className="mt-3 space-y-3">
             {view.whatChanged.map((item) => (
-              <Link key={item.id} href={item.href} className="block rounded-md px-2 py-1.5 hover:bg-accent">
+              <Link key={item.id} href={item.href} className="block rounded-md px-2 py-2 hover:bg-accent">
                 <p className="text-sm font-semibold">{item.title}</p>
                 <p className="mb-evidence mt-0.5">{new Date(item.at).toLocaleDateString("fr-FR", { day: "2-digit", month: "long" })} · {item.detail}</p>
               </Link>
@@ -346,7 +367,7 @@ export function WorkdayHub({ state, actorId, role }: { state: ProductState; acto
 
       {/* §11 — raccourcis secondaires, 4 au maximum, jamais un module
           reconstruit ici. */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t pt-6 text-xs font-semibold" style={{ borderColor: "var(--mb-hairline-soft)" }}>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t pt-8 text-xs font-semibold" style={{ borderColor: "var(--mb-hairline-soft)" }}>
         {secondaryShortcuts.map((shortcut) => (
           <Link key={shortcut.href} href={shortcut.href} className="text-muted-foreground hover:text-foreground">{shortcut.label} →</Link>
         ))}
