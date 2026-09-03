@@ -65,6 +65,7 @@ const categoryLabel: Record<WorkdayItem["category"], string> = {
   qualification_finding: "À qualifier",
   qualification_besoin: "Développement",
   qualification_reseau: "Réseau",
+  qualification_intake: "À qualifier",
   gouvernance: "Gouvernance"
 };
 
@@ -83,6 +84,7 @@ const categoryTheme: Record<WorkdayItem["category"], string> = {
   qualification_finding: "des qualifications",
   qualification_besoin: "du développement de programme",
   qualification_reseau: "de la qualification réseau",
+  qualification_intake: "des remontées à qualifier",
   gouvernance: "de la gouvernance"
 };
 

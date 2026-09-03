@@ -36,7 +36,20 @@ import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { channelMeta, glyphBorderColor, priorityLabels, priorityToTag } from "@/lib/status-tokens";
 import type { PublicRequest, PublicRequestIntent } from "@/domain/public/request";
-import { serviceRequestIntentLabels, type AuditEntry, type CatchLine, type Capacity, type IncomingMessage, type Priority, type ProductState, type ServiceRequest, type ServiceRequestIntent, type Signal } from "@/domain/types";
+import {
+  incomingMessageDismissReasonLabels,
+  serviceRequestIntentLabels,
+  type AuditEntry,
+  type CatchLine,
+  type Capacity,
+  type IncomingMessage,
+  type IncomingMessageDismissReason,
+  type Priority,
+  type ProductState,
+  type ServiceRequest,
+  type ServiceRequestIntent,
+  type Signal
+} from "@/domain/types";
 
 // Relais généralisé (Lot A, canal simulé) : une entrée d'audit compte comme
 // "relais visible dans le fil" seulement si elle porte la mention que
@@ -79,7 +92,13 @@ const views: Array<{ id: View; label: string; icon: typeof Boxes }> = [
   { id: "rapprochements", label: "Rapprochements", icon: Network },
   { id: "missions", label: "Missions en cours", icon: ClipboardCheck },
   { id: "demandes_publiques", label: "Demandes publiques", icon: Inbox },
-  { id: "messages_entrants", label: "Messages entrants", icon: MessageSquare },
+  // "À qualifier" plutôt que "Messages entrants" seul (P2.1-B, mandat
+  // "Qualification Workspace", §4 : vocabulaire "À QUALIFIER" côté
+  // utilisateur) — le libellé de l'onglet reste "Messages entrants" (déjà
+  // établi, Lot A, décrit fidèlement le canal simulé) mais porte
+  // désormais ce sous-titre pour signaler explicitement la file
+  // d'action, sans renommer une surface déjà connue des utilisateurs.
+  { id: "messages_entrants", label: "Messages entrants — à qualifier", icon: MessageSquare },
   // LOT 8 — Maritime Intelligence Engine (mandat "détecter, expliquer,
   // prioriser sans décider à la place de l'humain") : "Intelligence Feed"
   // réutilise cet onglet existant plutôt qu'une nouvelle route (§13).
@@ -189,7 +208,19 @@ function formatAge(iso: string) {
 export function CoordinationWorkspace() {
   const { state, actorId: sessionActorId, role } = useProduct();
   const searchParams = useSearchParams();
-  const [view, setView] = useState<View>(() => resolveInitialView(searchParams.get("view")));
+  // canQualifyIntake (P2.1-B, mandat "Qualification Workspace", §1 :
+  // "READ ≠ QUALIFY") — même source de vérité que le serveur
+  // (server/permissions.ts, assertCan) : un rôle qui ne peut pas
+  // convertir une remontée ne doit même pas voir l'onglet qui y mène,
+  // pas seulement se le voir refuser à l'action. GET /api/state ne lui
+  // renvoie de toute façon plus state.incomingMessages (P2.1-B, Fondation
+  // "Sécurité des intakes bruts", server/access-projection.ts) : ce
+  // garde-fou UI est une seconde ligne, pas la seule.
+  const canQualifyIntake = canRole(role, "convert_message_to_signal");
+  const [view, setView] = useState<View>(() => {
+    const resolved = resolveInitialView(searchParams.get("view"));
+    return resolved === "messages_entrants" && !canQualifyIntake ? "besoins" : resolved;
+  });
   const [territoryId, setTerritoryId] = useState("all");
   const [query, setQuery] = useState("");
   const [needsExpanded, setNeedsExpanded] = useState(false);
@@ -260,6 +291,10 @@ export function CoordinationWorkspace() {
   const urgentTerritory = state.territories.find((item) => item.id === urgentNeed?.territoryId);
   const urgentSpecies = state.species.find((item) => item.id === urgentNeed?.speciesId);
   const selectedView = views.find((item) => item.id === view) ?? views[0];
+  // visibleViews (P2.1-B, §1) — "Messages entrants" retiré de la
+  // navigation pour tout rôle sans convert_message_to_signal, jamais
+  // seulement masqué visuellement derrière une action qui échouerait.
+  const visibleViews = canQualifyIntake ? views : views.filter((item) => item.id !== "messages_entrants");
 
   const filteredNeeds = openNeeds
     .filter((need) => {
@@ -360,7 +395,7 @@ export function CoordinationWorkspace() {
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">{selectedView.label}</h2>
           </div>
           <nav className="-mx-1 flex min-w-0 gap-1 overflow-x-auto px-1 pb-1" aria-label="Changer de vue de coordination">
-            {views.map(({ id, label, icon: Icon }) => {
+            {visibleViews.map(({ id, label, icon: Icon }) => {
               const active = view === id;
               return (
                 <button
@@ -568,15 +603,26 @@ export function CoordinationWorkspace() {
             au relais généralisé — même grammaire visuelle, jamais fusionné
             avec les fils de messages (aucun lien de données fabriqué entre
             les déclarants génériques et les bénéficiaires réels). */}
-        {view === "messages_entrants" && (
+        {view === "messages_entrants" && canQualifyIntake && (
           <div className="space-y-8">
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Radio size={12} className="text-[#1d8a5f]" /> Canal simulé · aucun message WhatsApp/téléphonie réel n’est envoyé ou reçu — le fil est reconstitué pour la démonstration.
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Vocabulaire P2.1-B (§4/§5) : "À qualifier" comme en-tête
+                  d'action, distinct du fil historique complet ci-dessous
+                  (qui reste, lui, la même surface Lot A qu'avant ce lot —
+                  un message converti/écarté n'y disparaît jamais). */}
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                À qualifier · {pendingIncomingMessages.length} remontée{pendingIncomingMessages.length > 1 ? "s" : ""}
+              </p>
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Radio size={12} className="text-[#1d8a5f]" /> Canal simulé · aucun message WhatsApp/téléphonie réel n’est envoyé ou reçu — le fil est reconstitué pour la démonstration.
+              </p>
+            </div>
             <div className="space-y-6">
               {incomingMessagesThread.length ? incomingMessagesThread.map((message) => (
                 <IncomingMessageThread key={message.id} message={message} state={state} />
-              )) : <Empty label="Aucun message entrant pour le moment." />}
+              )) : (
+                <Empty label="Aucune remontée à qualifier actuellement." detail="Les nouvelles remontées apparaîtront ici avant leur transformation en Signal." />
+              )}
             </div>
             <div className="space-y-4 border-t pt-6">
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Rapprochements relayés</p>
@@ -670,8 +716,19 @@ function CapacityRow({ capacity, state }: { capacity: Capacity; state: ProductSt
   );
 }
 
-function Empty({ label }: { label: string }) {
-  return <div className="grid min-h-44 place-items-center rounded-xl border border-dashed bg-card/40 p-8 text-center"><div><Snowflake className="mx-auto text-muted-foreground" /><p className="mt-3 text-sm font-semibold text-muted-foreground">{label}</p></div></div>;
+// detail optionnel (P2.1-B, §22 : empty state "à qualifier" — un second
+// rappel discret, jamais un KPI à 0 ni une décoration) — additif, tous
+// les appels existants sans detail restent inchangés.
+function Empty({ label, detail }: { label: string; detail?: string }) {
+  return (
+    <div className="grid min-h-44 place-items-center rounded-xl border border-dashed bg-card/40 p-8 text-center">
+      <div>
+        <Snowflake className="mx-auto text-muted-foreground" />
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">{label}</p>
+        {detail && <p className="mt-1 text-xs text-muted-foreground">{detail}</p>}
+      </div>
+    </div>
+  );
 }
 
 // Ligne + action de conversion — pont PublicRequest → Produit, étape 3/3
@@ -822,7 +879,11 @@ function IncomingMessageThread({
   state: ProductState;
 }) {
   const { run } = useProduct();
-  const [open, setOpen] = useState(false);
+  // "qualify" (dossier de qualification, §7/§8) vs "dismiss" (écartement,
+  // §13) — deux gestes distincts, jamais ouverts en même temps : le
+  // coordinateur choisit l'un ou l'autre, jamais les deux à la fois sur
+  // la même remontée.
+  const [mode, setMode] = useState<"closed" | "qualify" | "dismiss">("closed");
   const [territoryId, setTerritoryId] = useState(() => {
     const needle = (message.territoryHint ?? "").toLowerCase().trim();
     if (!needle) return "";
@@ -834,31 +895,45 @@ function IncomingMessageThread({
   const [description, setDescription] = useState(message.body);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [dismissReason, setDismissReason] = useState<IncomingMessageDismissReason>("doublon");
+  const [dismissNote, setDismissNote] = useState("");
+  const [duplicateOfSignalId, setDuplicateOfSignalId] = useState("");
+  const [dismissPending, setDismissPending] = useState(false);
+  const [dismissError, setDismissError] = useState("");
   const meta = channelMeta[message.channel];
   const converted = message.status === "converti";
+  const dismissed = message.status === "ecarte";
+  const settled = converted || dismissed;
 
-  // L'indicateur envoyé/lu ne s'anime que pour une conversion qui vient de
-  // se produire pendant cette visite — capturé une seule fois au montage,
-  // jamais recalculé ensuite (même logique que seenRelayAuditIdsRef).
-  const wasAlreadyConvertedAtMountRef = useRef(converted);
-  const justConverted = converted && !wasAlreadyConvertedAtMountRef.current;
-  const [tick, setTick] = useState<"envoye" | "lu">(justConverted ? "envoye" : "lu");
+  // L'indicateur envoyé/lu ne s'anime que pour une conversion/un écartement
+  // qui vient de se produire pendant cette visite — capturé une seule fois
+  // au montage, jamais recalculé ensuite (même logique que
+  // seenRelayAuditIdsRef).
+  const wasAlreadySettledAtMountRef = useRef(settled);
+  const justSettled = settled && !wasAlreadySettledAtMountRef.current;
+  const [tick, setTick] = useState<"envoye" | "lu">(justSettled ? "envoye" : "lu");
 
   useEffect(() => {
-    if (!justConverted) return;
+    if (!justSettled) return;
     setTick("envoye");
     const timer = window.setTimeout(() => setTick("lu"), 1500);
     return () => window.clearTimeout(timer);
-  }, [justConverted]);
+  }, [justSettled]);
 
-  // Le signal résultant n'est jamais déduit de l'état local du formulaire
-  // (qui n'existe pas si la conversion a eu lieu avant ce montage) : on le
-  // relit dans state.signals via reportedBy + channel, repris à l'identique
-  // du message par convert_message_to_signal (rules.ts) — donnée réelle,
-  // pas un texte fabriqué côté affichage.
-  const resultingSignal = converted
-    ? state.signals.find((item) => item.reportedBy === message.reportedBy && item.channel === message.channel)
+  // Provenance (P2.1-B §11, garantie par P2.1-A) — resultingSignalId est
+  // désormais une référence structurelle (Signal.sourceRef ↔
+  // IncomingMessage.resultingSignalId), plus une heuristique reportedBy +
+  // channel : donnée réelle et fiable, pas devinée côté affichage.
+  const resultingSignal = converted && message.resultingSignalId
+    ? state.signals.find((item) => item.id === message.resultingSignalId)
     : undefined;
+  // Aucune surface dédiée à un Signal seul n'existe aujourd'hui (audit
+  // P2.1-B §11 : Signal n'apparaît qu'embarqué dans une Situation ou
+  // l'Intelligence Feed, jamais dans une page qui lui soit propre) — pas
+  // de deep-link fabriqué faute de destination réelle, seulement la
+  // confirmation textuelle ci-dessous.
+
+  const duplicateSignal = message.duplicateOfSignalId ? state.signals.find((item) => item.id === message.duplicateOfSignalId) : undefined;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -869,12 +944,12 @@ function IncomingMessageThread({
     setError("");
     setPending(true);
     try {
-      // LOT 0.1 : convert_message_to_signal ne crée plus qu'un Signal —
-      // ce parcours ("convertir un message entrant") exprime réellement
-      // l'intention d'ouvrir un dossier tout de suite, wrapper legacy
-      // documenté (mandat §5) plutôt que découplé silencieusement.
+      // P2.1-B (mandat "Qualification Workspace", §12) : convert_message_to_signal
+      // seul — plus jamais convert_message_to_signal_and_situation ici.
+      // "Qualifier comme signal" ne doit créer ni Finding, ni Situation,
+      // ni CollectiveNeed, ni ProgramOpportunity automatiquement.
       const ok = await run({
-        type: "convert_message_to_signal_and_situation",
+        type: "convert_message_to_signal",
         messageId: message.id,
         territoryId,
         category,
@@ -882,37 +957,66 @@ function IncomingMessageThread({
         description
       });
       if (!ok) {
-        setError("La conversion en signal a échoué.");
+        setError("La qualification en signal a échoué.");
         return;
       }
-      setOpen(false);
+      setMode("closed");
     } finally {
       setPending(false);
     }
   };
 
+  const submitDismiss = async (event: FormEvent) => {
+    event.preventDefault();
+    setDismissError("");
+    setDismissPending(true);
+    try {
+      const ok = await run({
+        type: "dismiss_incoming_message",
+        messageId: message.id,
+        reason: dismissReason,
+        note: dismissNote.trim() || undefined,
+        duplicateOfSignalId: dismissReason === "doublon" && duplicateOfSignalId ? duplicateOfSignalId : undefined
+      });
+      if (!ok) {
+        setDismissError("L’écartement a échoué.");
+        return;
+      }
+      setMode("closed");
+    } finally {
+      setDismissPending(false);
+    }
+  };
+
   return (
     <article className="space-y-3">
-      {/* Bulle entrante — le message tel qu'il est arrivé par le canal. */}
+      {/* SOURCE ORIGINALE (mandat §7/§8) — la bulle entrante, jamais
+          réécrite. L'étiquette n'apparaît qu'à l'ouverture du dossier de
+          qualification : c'est à ce moment précis que la distinction
+          source/interprétation compte, pas en lecture passive du fil. */}
+      {mode === "qualify" && <p className="ml-11 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Source originale</p>}
       <div className="flex items-start gap-3">
         <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-[#0b1a2a]/[.08] text-[#0b1a2a]"><meta.icon size={14} /></span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold">{message.reportedBy}</p>
             <Badge variant="marine">{messageChannelLabel[message.channel]}</Badge>
-            {message.territoryHint && <span className="text-xs font-semibold text-muted-foreground">{message.territoryHint}</span>}
+            {/* Territoire déclaré / à confirmer (mandat §9) — jamais
+                présenté comme un fait vérifié : un texte libre du canal
+                d'origine, pas encore un Territory réel. */}
+            {message.territoryHint && <span className="text-xs font-semibold text-muted-foreground">Territoire déclaré : {message.territoryHint} (à confirmer)</span>}
           </div>
           <div className="mt-1.5 inline-block max-w-xl rounded-2xl rounded-tl-sm border bg-card px-4 py-2.5 text-sm leading-6">{message.body}</div>
-          <p className="mt-1 text-xs text-muted-foreground">{formatAge(message.receivedAt)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Reçu {formatAge(message.receivedAt)}</p>
         </div>
       </div>
 
-      {/* Composeur de conversion — dans le fil, jamais un bloc administratif
-          détaché : étiqueté explicitement comme le geste du coordinateur. */}
-      {!converted && (
-        open ? (
+      {/* Composeur de qualification / écartement — dans le fil, jamais un
+          bloc administratif détaché. */}
+      {!settled && (
+        mode === "qualify" ? (
           <form onSubmit={submit} className="ml-11 space-y-3 rounded-lg border border-dashed bg-card/60 p-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Conversion — geste du coordinateur</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ce que nous comprenons — geste du coordinateur</p>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <label className="block text-xs font-semibold text-muted-foreground">
                 Territoire
@@ -936,27 +1040,76 @@ function IncomingMessageThread({
               Description
               <textarea required rows={3} value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm font-semibold text-foreground" />
             </label>
-            <p className="text-[11px] text-muted-foreground">Description pré-remplie à partir du message — à ajuster si besoin. Aucune catégorie n’est déduite automatiquement : c’est un choix du coordinateur à la conversion.</p>
+            <p className="text-[11px] text-muted-foreground">Titre/description pré-remplis à partir du message — à corriger librement : vous structurez l’information, vous ne réécrivez pas la source (toujours visible ci-dessus). Aucune catégorie n’est déduite automatiquement.</p>
+            {/* "Ce qui manque" (mandat §16) — rappel statique, jamais un
+                KnowledgeGap automatique : le modèle Signal actuel ne porte
+                pas de champ dédié à une information manquante. */}
+            <p className="text-[11px] text-muted-foreground">Certaines informations peuvent rester à confirmer après qualification.</p>
             {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={pending} size="sm">{pending ? "Conversion…" : "Créer le signal"} <ArrowRight /></Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>Annuler</Button>
+              <Button type="submit" disabled={pending} size="sm">{pending ? "Qualification…" : "Qualifier comme signal"} <ArrowRight /></Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setMode("closed")}>Annuler</Button>
+            </div>
+          </form>
+        ) : mode === "dismiss" ? (
+          <form onSubmit={submitDismiss} className="ml-11 space-y-3 rounded-lg border border-dashed bg-card/60 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Écarter — geste du coordinateur, tracé</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-xs font-semibold text-muted-foreground">
+                Raison
+                <select value={dismissReason} onChange={(event) => setDismissReason(event.target.value as IncomingMessageDismissReason)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
+                  {Object.entries(incomingMessageDismissReasonLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+              {/* Doublon (mandat §14) — référence structurelle optionnelle
+                  vers un Signal déjà existant, jamais un matching
+                  automatique : le coordinateur choisit lui-même, ou laisse
+                  vide et l'explique dans la note. */}
+              {dismissReason === "doublon" && (
+                <label className="block text-xs font-semibold text-muted-foreground">
+                  Signal existant (facultatif)
+                  <select value={duplicateOfSignalId} onChange={(event) => setDuplicateOfSignalId(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
+                    <option value="">Non identifié précisément</option>
+                    {state.signals.slice(0, 50).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+                  </select>
+                </label>
+              )}
+            </div>
+            <label className="block text-xs font-semibold text-muted-foreground">
+              Note (facultative)
+              <input value={dismissNote} onChange={(event) => setDismissNote(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground" placeholder="Contexte court, si utile — jamais obligatoire" />
+            </label>
+            {dismissError && <p className="text-xs font-semibold text-destructive">{dismissError}</p>}
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" disabled={dismissPending} size="sm" variant="outline">{dismissPending ? "Écartement…" : "Confirmer l’écartement"}</Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setMode("closed")}>Annuler</Button>
             </div>
           </form>
         ) : (
-          <div className="ml-11"><Button size="sm" variant="outline" onClick={() => setOpen(true)}>Convertir en signal <ArrowRight /></Button></div>
+          <div className="ml-11 flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => setMode("qualify")}>Qualifier comme signal <ArrowRight /></Button>
+            <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => setMode("dismiss")}>Écarter</Button>
+          </div>
         )
       )}
 
       {/* Bulle sortante — confirmation simulée du système, une fois
-          converti. Ticks envoyé/lu purement cosmétiques (aucun effet sur
-          les données), animés seulement si justConverted. */}
-      {converted && (
+          qualifié ou écarté. Ticks envoyé/lu purement cosmétiques (aucun
+          effet sur les données), animés seulement si justSettled. */}
+      {settled && (
         <div className="flex justify-end">
           <div className="inline-flex max-w-xl items-start gap-2 rounded-2xl rounded-tr-sm bg-[#0b1a2a] px-4 py-2.5 text-sm text-white">
             <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
             <div>
-              <p className="font-semibold">Converti en signal{resultingSignal ? ` · « ${resultingSignal.title} »` : ""}</p>
+              {converted ? (
+                <p className="font-semibold">Signal créé depuis cette remontée{resultingSignal ? ` · « ${resultingSignal.title} »` : ""}</p>
+              ) : (
+                <p className="font-semibold">
+                  Écarté · {message.dismissedReason ? incomingMessageDismissReasonLabels[message.dismissedReason] : ""}
+                  {duplicateSignal ? ` — doublon de « ${duplicateSignal.title} »` : ""}
+                  {message.dismissedNote ? ` — ${message.dismissedNote}` : ""}
+                </p>
+              )}
               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-white/70">
                 <span>{tick === "lu" ? "Lu" : "Envoyé"} · simulé</span>
                 {tick === "lu" ? <CheckCheck size={13} className="text-[#8fd6c4]" /> : <Check size={13} />}

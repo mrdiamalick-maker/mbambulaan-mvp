@@ -412,6 +412,22 @@ export const signalCategoryLabels: Record<Signal["category"], string> = {
 // s'applique pas ici. `reportedBy` reprend le champ déjà utilisé par
 // Signal pour distinguer l'auteur apparent du message du coordinateur
 // qui le convertit.
+// IncomingMessageDismissReason (P2.1-B, mandat "Qualification Workspace",
+// §13) — cycle minimal nouveau/converti/écarté plutôt qu'un statut
+// "rejected" complexe : une remontée qui ne peut/doit pas devenir un
+// Signal (doublon, information insuffisante, hors périmètre) ne doit pas
+// rester éternellement "nouveau" dans une vraie file opérationnelle.
+// Raison structurée légère (4 valeurs), jamais un moteur de classification
+// — le coordinateur choisit, rien n'est déduit.
+export type IncomingMessageDismissReason = "doublon" | "information_insuffisante" | "hors_perimetre" | "autre";
+
+export const incomingMessageDismissReasonLabels: Record<IncomingMessageDismissReason, string> = {
+  doublon: "Doublon",
+  information_insuffisante: "Information insuffisante",
+  hors_perimetre: "Hors périmètre",
+  autre: "Autre"
+};
+
 export interface IncomingMessage {
   id: string;
   channel: Signal["channel"];
@@ -422,7 +438,9 @@ export interface IncomingMessage {
   reportedBy: string;
   body: string;
   receivedAt: string;
-  status: "nouveau" | "converti";
+  // "ecarte" (P2.1-B, §13) — additif : un message "converti" ou "nouveau"
+  // créé avant ce lot reste valide tel quel, aucune migration requise.
+  status: "nouveau" | "converti" | "ecarte";
   // Traçabilité inverse (P2.1-A, mandat "Intake Traceability & Data
   // Access Foundation") — renseignés uniquement par applyMessageToSignalOnly
   // (rules.ts) au moment de la conversion, jamais à la création du
@@ -432,6 +450,18 @@ export interface IncomingMessage {
   resultingSignalId?: string;
   convertedAt?: string;
   convertedByActorId?: string;
+  // Écartement (P2.1-B, §13/§14) — renseignés uniquement par
+  // applyDismissIncomingMessage (rules.ts) au moment de l'écartement.
+  // "Doublon" reste un geste humain (mandat §14, "aucun matching
+  // automatique") : duplicateOfSignalId n'est renseigné que si le
+  // coordinateur identifie lui-même le Signal existant — jamais déduit,
+  // jamais obligatoire même quand reason === "doublon" (une note libre
+  // suffit si aucun Signal précis n'est identifié).
+  dismissedReason?: IncomingMessageDismissReason;
+  dismissedNote?: string;
+  dismissedAt?: string;
+  dismissedByActorId?: string;
+  duplicateOfSignalId?: string;
 }
 
 export interface Situation {
@@ -1318,6 +1348,14 @@ export type Command =
   // "incoming_message", objectId: messageId }.
   | { type: "create_signal"; actorId: string; territoryId?: string; title: string; description: string; channel: Signal["channel"]; category?: Signal["category"]; sourceRef?: SignalSourceRef }
   | { type: "convert_message_to_signal"; actorId: string; messageId: string; territoryId: string; category: Signal["category"]; title: string; description: string }
+  // dismiss_incoming_message (P2.1-B, mandat "Qualification Workspace",
+  // §13/§14/§15) — l'autre issue possible pour une remontée brute encore
+  // "nouveau" (l'autre étant convert_message_to_signal) : un geste humain
+  // audité, jamais un rejet automatique. note optionnelle (§15, jamais de
+  // texte administratif obligatoire) ; duplicateOfSignalId optionnel,
+  // renseigné seulement si le coordinateur identifie lui-même le Signal
+  // existant (§14, aucun matching automatique).
+  | { type: "dismiss_incoming_message"; actorId: string; messageId: string; reason: IncomingMessageDismissReason; note?: string; duplicateOfSignalId?: string }
   | { type: "qualify"; situationId: string; actorId: string }
   | { type: "prioritize"; situationId: string; actorId: string }
   | { type: "coordinate"; situationId: string; actorId: string }

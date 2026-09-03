@@ -30,6 +30,11 @@ export type WorkdayCategory =
   | "qualification_finding"
   | "qualification_besoin"
   | "qualification_reseau"
+  // qualification_intake (P2.1-B, mandat "Qualification Workspace", §19) —
+  // profondeur distincte de qualification_finding (mandat §20, "ne pas
+  // fusionner À qualifier et Intelligence Feed" : Signal brut → Signal
+  // structuré, pas détection → Finding).
+  | "qualification_intake"
   | "gouvernance";
 
 export type WorkdayUrgency = "critique" | "vigilance" | "normale";
@@ -88,6 +93,7 @@ const CATEGORY_RANK: Record<WorkdayCategory, number> = {
   qualification_finding: 3,
   qualification_besoin: 3,
   qualification_reseau: 3,
+  qualification_intake: 3,
   gouvernance: 3
 };
 
@@ -262,6 +268,42 @@ function buildFindingItems(state: ProductState, role: Role, territoryIds: Set<st
   return items;
 }
 
+// --- Remontées brutes à qualifier (P2.1-B, mandat "Qualification
+// Workspace", §19) -------------------------------------------------------
+//
+// Mêmes rôles que convert_message_to_signal/dismiss_incoming_message
+// (permissions.ts) — mirroré plutôt qu'importé (le domaine ne dépend
+// jamais du serveur, même discipline que FINDING_REVIEW_ROLES ci-dessus).
+// IncomingMessage ne porte aucune affectation individuelle structurée
+// (pas de champ "responsableId") : mandat §19, "si l'affectation
+// responsable n'est pas structurée, ne pas fabriquer de responsabilité"
+// — mais l'éligibilité par rôle est déjà le même palier de responsabilité
+// que buildFindingItems/buildDevelopmentItems ci-dessus emploient pour
+// leurs propres files partagées, pas une exception inventée ici. Un seul
+// item agrégé (pas un par message, mandat §19 "ne pas polluer Top 3
+// arbitrairement") pointant vers la file réelle dans Coordination.
+const INTAKE_QUALIFY_ROLES: Role[] = ["administrateur", "coordinateur", "operateur"];
+
+function buildIntakeItems(state: ProductState, role: Role): WorkdayItem[] {
+  if (!INTAKE_QUALIFY_ROLES.includes(role)) return [];
+  const pending = state.incomingMessages.filter((item) => item.status === "nouveau").length;
+  if (pending === 0) return [];
+  return [
+    {
+      id: "intake:pending",
+      category: "qualification_intake",
+      title: `${pending} remontée${pending > 1 ? "s" : ""} à qualifier`,
+      why: "Message entrant reçu, pas encore transformé en Signal ni écarté.",
+      ctaLabel: "Qualifier les remontées",
+      href: "/app/coordination?view=messages_entrants",
+      // Jamais critique/vigilance (mandat §5 : "une entrée brute n'est pas
+      // encore critique") — une remontée non qualifiée reste un travail en
+      // attente, jamais une urgence fabriquée par ce lot.
+      urgency: "normale"
+    }
+  ];
+}
+
 // --- CollectiveNeed / ProgramOpportunity nécessitant une étape humaine --
 
 const DEVELOPMENT_ROLES: Role[] = ["administrateur", "coordinateur", "gestionnaire_organisation"];
@@ -415,6 +457,7 @@ export function buildWorkdayView(state: ProductState, actorId: string, role: Rol
     ...buildCommitmentItems(state, actorId, nowMs),
     ...buildMissionItems(state, actorId, nowMs),
     ...buildFindingItems(state, role, territoryIds),
+    ...buildIntakeItems(state, role),
     ...buildDevelopmentItems(state, role, territoryIds),
     ...buildNetworkItems(state, actorId, role, nowMs),
     ...buildGovernanceItems(state, role)

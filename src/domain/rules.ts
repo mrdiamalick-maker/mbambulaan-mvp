@@ -19,7 +19,7 @@ import type {
   Situation,
   SituationStatus
 } from "./types";
-import { communicationChannelLabels, decisionTypeLabels, evidenceTypeLabels } from "./types";
+import { communicationChannelLabels, decisionTypeLabels, evidenceTypeLabels, incomingMessageDismissReasonLabels } from "./types";
 import { applyKnowledgePipelineCommand, promoteSignalToSituation } from "./knowledge-pipeline";
 import { applyFieldMissionCommand } from "./field-mission";
 import { applyImpactCommand } from "./impact";
@@ -73,6 +73,7 @@ const transitions: Record<
     | "reset_demo"
     | "create_signal"
     | "convert_message_to_signal"
+    | "dismiss_incoming_message"
     | "wait"
     | "resume"
     | "announce_return"
@@ -797,7 +798,10 @@ function applyMessageToSignalOnly(state: ProductState, command: Extract<Command,
   if (!state.territories.some((item) => item.id === command.territoryId)) throw new Error("Territoire inconnu.");
   const message = state.incomingMessages.find((item) => item.id === command.messageId);
   if (!message) throw new Error("Message introuvable.");
-  if (message.status === "converti") throw new Error("Ce message a déjà été converti.");
+  // "!== nouveau" plutôt que "=== converti" (P2.1-B, §13) : un message déjà
+  // écarté ne doit pas non plus pouvoir être converti — même garde
+  // d'idempotence, étendue au nouveau statut "ecarte".
+  if (message.status !== "nouveau") throw new Error(message.status === "ecarte" ? "Ce message a été écarté." : "Ce message a déjà été converti.");
   const channelLabels: Record<Signal["channel"], string> = {
     terrain: "Terrain",
     telephone: "Téléphone",
@@ -843,6 +847,51 @@ function applyMessageToSignalOnly(state: ProductState, command: Extract<Command,
     )
   };
   return withAudit(next, command.actorId, "signal", signalId, command.type, command.title.trim());
+}
+
+// applyDismissIncomingMessage (P2.1-B, mandat "Qualification Workspace",
+// §13/§14/§15) — l'autre issue possible pour une remontée "nouveau" :
+// jamais un Signal créé, jamais une classification automatique. Même
+// garde d'idempotence que la conversion (statut !== "nouveau" → rejeté) —
+// un message ne peut être écarté qu'une fois, ni écarté après avoir été
+// converti.
+function applyDismissIncomingMessage(state: ProductState, command: Extract<Command, { type: "dismiss_incoming_message" }>): ProductState {
+  const message = state.incomingMessages.find((item) => item.id === command.messageId);
+  if (!message) throw new Error("Message introuvable.");
+  if (message.status !== "nouveau") throw new Error(message.status === "converti" ? "Ce message a déjà été converti." : "Ce message a déjà été écarté.");
+  // duplicateOfSignalId (§14) — validé contre un Signal réel s'il est
+  // fourni, jamais accepté tel quel : même discipline que territoryId sur
+  // applyMessageToSignalOnly ci-dessus (référence structurée, jamais du
+  // texte libre non vérifié).
+  if (command.duplicateOfSignalId && !state.signals.some((item) => item.id === command.duplicateOfSignalId)) {
+    throw new Error("Le signal référencé comme doublon est introuvable.");
+  }
+
+  const dismissedAt = timestamp();
+  const next: ProductState = {
+    ...state,
+    incomingMessages: state.incomingMessages.map((item) =>
+      item.id === message.id
+        ? {
+            ...item,
+            status: "ecarte" as const,
+            dismissedReason: command.reason,
+            dismissedNote: command.note?.trim() || undefined,
+            dismissedAt,
+            dismissedByActorId: command.actorId,
+            duplicateOfSignalId: command.duplicateOfSignalId
+          }
+        : item
+    )
+  };
+  return withAudit(
+    next,
+    command.actorId,
+    "incoming_message",
+    message.id,
+    command.type,
+    `${incomingMessageDismissReasonLabels[command.reason]}${command.note?.trim() ? ` — ${command.note.trim()}` : ""}`
+  );
 }
 
 export function applyCommand(state: ProductState, command: Command): ProductState {
@@ -927,6 +976,12 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   // message entrant (marqué "converti"), plus de Situation automatique.
   if (command.type === "convert_message_to_signal") {
     return applyMessageToSignalOnly(state, command);
+  }
+
+  // dismiss_incoming_message (P2.1-B) — même famille que create_signal/
+  // convert_message_to_signal ci-dessus, pas le pipeline de connaissance.
+  if (command.type === "dismiss_incoming_message") {
+    return applyDismissIncomingMessage(state, command);
   }
 
   // report_signal_and_open_situation / convert_message_to_signal_and_situation
@@ -1080,6 +1135,7 @@ export type WorkflowAction = Exclude<
   | (typeof KNOWLEDGE_PIPELINE_COMMAND_TYPES)[number]
   | "create_signal"
   | "convert_message_to_signal"
+  | "dismiss_incoming_message"
   | "reset_demo"
   | "wait"
   | "announce_return"

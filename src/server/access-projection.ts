@@ -31,7 +31,7 @@
 // visibility === "publique", seul palier qui ne dépend d'aucune
 // résolution d'organisation. Jamais l'inverse : une incertitude ne se
 // résout jamais vers "visible".
-import { RELAY_ROLES } from "./permissions";
+import { RELAY_ROLES, canRole } from "./permissions";
 import type {
   Actor,
   Communication,
@@ -330,18 +330,43 @@ function projectInitiatives(initiatives: Initiative[], hiddenSituationIds: Set<s
   });
 }
 
+// canAccessRawIntake — P2.1-B (mandat "Qualification Workspace", §2 :
+// "garantir que IncomingMessage n'est PAS renvoyé par GET /api/state à un
+// rôle qui n'est pas autorisé à traiter ces entrées"). Volontairement PAS
+// un nouveau modèle Visibility sur IncomingMessage (mandat §2, "si un
+// gating par rôle suffit honnêtement") : un gating par rôle, réutilisant
+// la même source de vérité qui décide déjà QUI peut réellement qualifier
+// une remontée (server/permissions.ts, assertCan) — READ ≠ QUALIFY (§1) :
+// un rôle qui ne peut pas convertir/écarter une remontée ne doit pas
+// pouvoir la lire dans la réponse projetée non plus. "institution" est un
+// rôle transverse en lecture (TRANSVERSE_READ_ROLES ci-dessus, hérité de
+// P2.1-A pour Situation) mais n'a jamais eu convert_message_to_signal
+// dans permissions.ts — ce gating s'applique donc aussi aux rôles
+// transverses, pas seulement à la cascade des rôles non transverses.
+function canAccessRawIntake(role: Role): boolean {
+  return canRole(role, "convert_message_to_signal");
+}
+
 // projectStateForSession — point d'entrée unique. Rôles transverses :
 // état complet, comportement inchangé (§7 du mandat P2.1-A initial,
-// reconfirmé ici). Autres rôles : state.situations filtré comme avant
-// (P2.1-A), PUIS chaque objet dépendant projeté à partir du vrai graphe
-// relationnel ci-dessus — jamais un moteur ABAC/RBAC générique, jamais
-// une extrapolation au-delà des relations réellement présentes dans le
-// modèle. ServiceRequest/Capacity/Opportunity/Signal/CollectiveNeed
-// (hors sourceRefs)/ProgramOpportunity (hors evidenceRefs)/
+// reconfirmé ici) — SAUF incomingMessages, désormais gaté par rôle même
+// pour un rôle transverse (§2, ci-dessus). Autres rôles : state.situations
+// filtré comme avant (P2.1-A), PUIS chaque objet dépendant projeté à
+// partir du vrai graphe relationnel ci-dessus — jamais un moteur ABAC/RBAC
+// générique, jamais une extrapolation au-delà des relations réellement
+// présentes dans le modèle. ServiceRequest/Capacity/Opportunity/Signal/
+// CollectiveNeed (hors sourceRefs)/ProgramOpportunity (hors evidenceRefs)/
 // Actors/Organizations/Territories restent non filtrés — catégorie C ou
 // fan non exclusif, documenté ci-dessus, pas un oubli.
 export function projectStateForSession(state: ProductState, session: ProjectionSession): ProductState {
-  if (TRANSVERSE_READ_ROLES.includes(session.role)) return state;
+  const rawIntakeAllowed = canAccessRawIntake(session.role);
+
+  if (TRANSVERSE_READ_ROLES.includes(session.role)) {
+    // Chemin le plus fréquent (coordinateur/administrateur/operateur ont
+    // tous les trois convert_message_to_signal) : aucune copie, même
+    // référence renvoyée — comportement strictement inchangé.
+    return rawIntakeAllowed ? state : { ...state, incomingMessages: [] };
+  }
 
   const viewerOrganizationId = resolveOrganizationId(state.actors, session.actorId);
   const viewerOrganization = state.organizations.find((item) => item.id === viewerOrganizationId);
@@ -399,6 +424,7 @@ export function projectStateForSession(state: ProductState, session: ProjectionS
     learnings,
     initiatives,
     collectiveNeeds,
-    programOpportunities
+    programOpportunities,
+    incomingMessages: rawIntakeAllowed ? state.incomingMessages : []
   };
 }

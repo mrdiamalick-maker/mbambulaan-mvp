@@ -3,6 +3,11 @@ import type { Command, Role } from "@/domain/types";
 const all: Command["type"][] = [
   "create_signal",
   "convert_message_to_signal",
+  // dismiss_incoming_message (P2.1-B, mandat "Qualification Workspace",
+  // §1) — mêmes rôles que convert_message_to_signal : READ ≠ QUALIFY,
+  // l'écartement est le même geste de qualification que la conversion,
+  // jamais ouvert à un rôle qui ne peut déjà pas convertir.
+  "dismiss_incoming_message",
   "qualify",
   "prioritize",
   "coordinate",
@@ -81,6 +86,7 @@ const allowed: Record<Role, Command["type"][]> = {
   operateur: [
     "create_signal",
     "convert_message_to_signal",
+    "dismiss_incoming_message",
     "report_signal_and_open_situation",
     "convert_message_to_signal_and_situation",
     "update_signal_disposition",
