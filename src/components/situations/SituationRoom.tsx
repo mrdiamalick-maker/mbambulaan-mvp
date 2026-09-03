@@ -1,25 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, MessageCircleMore, MessageSquare, PhoneCall, Sparkles } from "lucide-react";
+import { Compass, Mail, MessageCircleMore, MessageSquare, PhoneCall } from "lucide-react";
 import { communicationChannelLabels, communicationStatusLabels, evidenceTypeLabels, type CommunicationChannel, type CommunicationStatus, type ProductState, type Situation } from "@/domain/types";
-import { buildValueTrail, resultsForSituation } from "@/domain/situation-narrative";
-import { TensionGlyph } from "@/components/etat/TensionGlyph";
+import {
+  buildValueTrail,
+  findKnowledgeGapForSituation,
+  resolveFindingForSituation,
+  resolveSourceRefDisplay,
+  resultsForSituation
+} from "@/domain/situation-narrative";
 import { EngagementIcon, PreuveIcon } from "@/components/etat/MotifIcons";
 import { ChannelBadge } from "@/components/shared/StatusBadges";
-import { NarrativeFlow, TrustIndicator, type NarrativeFlowStep } from "@/components/foundations";
+import { EvidenceLine, KnowledgeState } from "@/components/foundations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SituationAction } from "@/components/situations/SituationAction";
 import { SituationTimeline } from "@/components/situations/SituationTimeline";
+import { SituationHero } from "@/components/situations/SituationHero";
+import { WhyMbambulaan, ValueTrailSection } from "@/components/situations/SituationNarrative";
 import { EvidenceForm } from "@/components/situations/EvidenceForm";
 import { CommunicationForm } from "@/components/situations/CommunicationForm";
 import { CoordinationProposal } from "@/components/coordination/CoordinationProposal";
 import { OutcomeForm } from "@/components/impact/OutcomeForm";
 import { LearningForm } from "@/components/impact/LearningForm";
-import { priorityLabels, priorityToTag } from "@/lib/status-tokens";
+import { priorityToTag } from "@/lib/status-tokens";
 
 const communicationChannelIcons: Record<CommunicationChannel, typeof PhoneCall> = {
   whatsapp: MessageCircleMore,
@@ -95,6 +101,17 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
   const valueTrail = buildValueTrail(state, situation);
   const situationResults = resultsForSituation(state, situation);
 
+  // XXL-R3 (§17-18, §21-22) — convergence Drawer/Room : la Situation Room
+  // n'affichait jusqu'ici ni "pourquoi Mbàmbulaan vous le signale" ni la
+  // limite de connaissance associée, alors même que c'est la personne qui
+  // agit sur le dossier — le drawer État seul les montrait. Mêmes
+  // dérivations pures que etat/shared.tsx (SituationDetail), aucune
+  // logique dupliquée.
+  const finding = resolveFindingForSituation(state, situation);
+  const sourceElements = finding ? finding.sourceRefs.map((ref) => resolveSourceRefDisplay(state, ref)).filter((item): item is NonNullable<typeof item> => Boolean(item)) : [];
+  const knowledgeGap = findKnowledgeGapForSituation(state, situation);
+  const lastEvolution = situation.history[situation.history.length - 1];
+
   const alternativeCapacities = state.capacities
     .filter((item) => item.status === "disponible")
     .map((item) => {
@@ -106,33 +123,31 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
 
   return (
     <div className="space-y-7">
-      <Card className="overflow-hidden border-none bg-sidebar text-sidebar-foreground">
-        <CardContent className="p-6 md:p-10">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center">
-            <TensionGlyph status={tag} size={90} pulse={situation.priority === "critique"} />
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="font-bold uppercase tracking-widest text-primary">Situation opérationnelle</span>
-                <span className="text-sidebar-foreground/50">{situation.reference}</span>
-              </div>
-              <h1 className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">{situation.title}</h1>
-              <p className="mt-3 max-w-2xl text-sm text-sidebar-foreground/70">{situation.description}</p>
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Badge variant={statusVariant[situation.status]}>{statusLabels[situation.status]}</Badge>
-                <Badge variant={tag === "critique" ? "terracotta" : tag === "vigilance" ? "amber" : "marine"}>{priorityLabels[situation.priority]}</Badge>
-                <TrustIndicator trust={situation.trust} />
-                <ChannelBadge signal={signal} />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* XXL-R3 (§17) — hero de dossier partagé (SituationHero) : territoire /
+          titre / phrase / priorité / état / responsable / dernière évolution,
+          même composition que le drawer État — remplace le Card sombre +
+          grille ContextItem séparée d'avant (deux blocs pour une seule
+          information). "Prochaine décision" quittait le hero : sa valeur
+          réelle (situation.nextStep) est désormais la Recommandation
+          ci-dessous, jamais fusionnée avec les Décisions réellement prises
+          (CoordinationProposal). */}
+      <SituationHero
+        situation={situation}
+        territory={territory}
+        responsible={responsible}
+        tag={tag}
+        statusLabel={statusLabels[situation.status]}
+        statusVariant={statusVariant[situation.status]}
+        lastEvolution={lastEvolution}
+      />
+      <div className="flex flex-wrap items-center gap-2"><ChannelBadge signal={signal} /></div>
 
-      <div className="grid divide-y border-y lg:grid-cols-3 lg:divide-x lg:divide-y-0">
-        <ContextItem label="Territoire" value={territory?.name ?? "Non défini"} />
-        <ContextItem label="Responsable" value={responsible?.name ?? "À désigner"} />
-        <ContextItem label="Prochaine décision" value={situation.nextStep} accent />
-      </div>
+      <WhyMbambulaan finding={finding} sources={sourceElements} />
+      {knowledgeGap && (
+        <div className="rounded-xl border p-4" style={{ borderColor: "var(--mb-hairline)" }}>
+          <KnowledgeState level="a_verifier">{knowledgeGap.statement}</KnowledgeState>
+        </div>
+      )}
 
       <SituationAction situation={situation} />
       <SituationTimeline status={situation.status} />
@@ -167,6 +182,17 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
         </div>
       </section>
 
+      {/* XXL-R3 (§18) — Recommandation, distincte de la Décision : une
+          orientation proposée par Mbàmbulaan (finding.nextStep en priorité,
+          sinon situation.nextStep), jamais confondue avec les décisions
+          effectivement prises et tracées ci-dessous (CoordinationProposal).
+          Même distinction et même texte que le drawer État. */}
+      <div className="border-t pt-7">
+        <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground"><Compass size={14} /> Recommandation</p>
+        <p className="mt-2 max-w-2xl text-sm leading-6">{finding?.nextStep ?? situation.nextStep}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground/70">Une orientation proposée — distincte d’une décision effectivement prise (ci-dessous).</p>
+      </div>
+
       <CoordinationProposal coordination={coordination} state={state} situationId={situation.id} />
 
       <section className="space-y-5 border-t pt-7">
@@ -189,7 +215,7 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
                     <div key={evidence.id} className="py-3">
                       <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-semibold">{evidenceTypeLabels[evidence.type]} — {evidence.label}</p>{evidence.commitmentId && <Badge variant="marine">Engagement lié</Badge>}</div>
                       <p className="mt-0.5 text-xs text-muted-foreground">{evidence.detail}</p>
-                      <p className="mt-1 text-[11px] text-muted-foreground/70">{new Date(evidence.recordedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}{author ? ` · ${author.name}` : ""}</p>
+                      <EvidenceLine className="mt-1" source={new Date(evidence.recordedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })} detail={author?.name} />
                     </div>
                   );
                 })}
@@ -221,30 +247,36 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
         </div>
       </section>
 
+      {/* XXL-R3 (§18) — Résultat : rupture visuelle claire avec les Preuves
+          ci-dessus (bordure + fond distincts), jamais fondu avec la liste
+          de preuves qui l'accompagne — un résultat constaté est un énoncé,
+          pas une pièce jointe de plus. situation.result reste la même
+          donnée que le drawer État affiche déjà ; la Room ne l'affichait
+          nulle part jusqu'ici alors qu'elle mène l'action. */}
+      <section className="rounded-xl border p-5" style={{ borderColor: "var(--mb-hairline)", background: "var(--mb-cream-200)" }}>
+        <p className="mb-evidence" style={{ color: "var(--mb-navy-800)" }}>Résultat</p>
+        {situation.result ? (
+          <>
+            <p className="mt-2 text-sm font-medium leading-6" style={{ color: "var(--mb-navy-950)" }}>{situation.result}</p>
+            {situation.confirmation && <p className="mt-1 text-xs leading-5" style={{ color: "var(--mb-stone-600)" }}>{situation.confirmation}</p>}
+          </>
+        ) : (
+          <p className="mt-2 text-sm" style={{ color: "var(--mb-stone-400)" }}>Effet à confirmer — aucun résultat constaté pour le moment.</p>
+        )}
+      </section>
+
       <section className="space-y-5 border-t pt-7">
         <div>
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#1d4468]"><Sparkles size={14} /> De la réalité à la valeur</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468]">De la réalité à la valeur</p>
           <h2 className="mt-2 text-xl font-semibold tracking-tight">Ce qui a été fait, ce qui a changé, ce que nous en retenons.</h2>
         </div>
         {/* XXL-R1 (§28, surface témoin B) — remplace les 8 cases empilées
             (effet "checklist" identifié par l'Audit Maritime Intelligence)
             par NarrativeFlow (§18.8) : un rythme vertical continu, jamais
-            de BPMN. Même donnée réelle (buildValueTrail), rien de
-            fabriqué — "à confirmer" devient l'état "pending" plutôt qu'une
-            case vide identique aux autres. */}
-        <NarrativeFlow
-          steps={valueTrail.map((step): NarrativeFlowStep => ({
-            id: step.key,
-            label: step.label,
-            state: step.proven ? "done" : "pending",
-            content: (
-              <>
-                {step.detail}
-                {!step.proven && <span className="ml-1.5" style={{ color: "var(--mb-stone-400)" }}>— à confirmer</span>}
-              </>
-            )
-          }))}
-        />
+            de BPMN. XXL-R3 (§18) — ValueTrailSection (SituationNarrative.tsx)
+            partagée avec le drawer État, même donnée réelle
+            (buildValueTrail), rien de fabriqué. */}
+        <ValueTrailSection steps={valueTrail} />
         {/* XXL-R1 (§34, vérification mobile) — débordement horizontal
             pré-existant trouvé lors de la vérification de cette surface
             témoin (390px) : le libellé long ("...nécessite un résultat")
@@ -300,15 +332,6 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
           <LearningForm situationId={situation.id} onDone={() => setLearningDrawerOpen(false)} onCancel={() => setLearningDrawerOpen(false)} />
         </SheetContent>
       </Sheet>
-    </div>
-  );
-}
-
-function ContextItem({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
-  return (
-    <div className="px-0 py-4 lg:px-5">
-      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className={`mt-2 text-sm font-semibold leading-5 ${accent ? "text-[#b6522f]" : "text-foreground"}`}>{value}</p>
     </div>
   );
 }

@@ -10,7 +10,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ArrowRight, ArrowUpRight, Compass, HelpCircle, Send, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Compass, HelpCircle, Send, UsersRound } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { decisionTypeLabels, evidenceTypeLabels, signalDispositionLabels, type Situation, type Territory } from "@/domain/types";
 import { channelMeta, trustLabels } from "@/lib/status-tokens";
@@ -18,7 +18,6 @@ import { fieldVisitObjectiveLabels, type FieldVisitObjective } from "@/domain/mi
 import {
   buildValueTrail,
   collectSituationSignals,
-  describeFindingTrust,
   findKnowledgeGapForSituation,
   relatedDecisionsForSituation,
   resolveFindingForSituation,
@@ -33,6 +32,9 @@ import {
 } from "@/domain/ministry/vigilance";
 import { buildTerritoryIntelligence } from "@/domain/territory-intelligence";
 import { TerritoryDossierSections } from "@/components/territories/TerritoryDossierSections";
+import { EvidenceLine, KnowledgeState } from "@/components/foundations";
+import { SituationHero } from "@/components/situations/SituationHero";
+import { WhyMbambulaan, ValueTrailSection } from "@/components/situations/SituationNarrative";
 
 export const priorityLabels: Record<Situation["priority"], string> = { critique: "Critique", haute: "Élevé", moyenne: "Moyen", faible: "Faible" };
 export const priorityToTag: Record<Situation["priority"], "stable" | "vigilance" | "critique"> = { critique: "critique", haute: "vigilance", moyenne: "stable", faible: "stable" };
@@ -233,43 +235,26 @@ export function SituationDetail({ situation, state, onPlanVisit }: { situation: 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : tag === "vigilance" ? "etat-tag--vigilance" : "etat-tag--stable"}`}>{priorityLabels[situation.priority]}</span>
-        <span className="text-xs text-[var(--etat-stone-600)]">{situation.reference} · {territory?.name ?? situation.territoryId}</span>
-      </div>
+      {/* XXL-R3 (§17-18) — SituationHero partagé avec la Situation Room
+          (Coordinateur) : même composition territoire/titre/phrase/
+          priorité/état/responsable/dernière évolution, plutôt que la
+          simple ligne de badges d'avant. La "Description" et "Étape
+          actuelle" qui suivaient ici séparément sont désormais portées par
+          le hero (phrase + badge d'état) — retirées pour ne plus répéter
+          deux fois la même information. */}
+      <SituationHero
+        situation={situation}
+        territory={territory}
+        responsible={responsable}
+        tag={tag}
+        statusLabel={stageLabel}
+        lastEvolution={situation.history[situation.history.length - 1]}
+      />
 
-      {finding && (
-        <div className="rounded-xl border border-[var(--etat-line)] bg-[var(--etat-offwhite)] p-4">
-          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-[var(--etat-navy-800)]"><Sparkles size={13} /> Pourquoi Mbàmbulaan vous le signale</p>
-          <div className="mt-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Ce que Mbàmbulaan a compris</p>
-            <p className="mt-1 text-sm font-medium leading-6 text-[var(--etat-navy-950)]">{finding.statement}</p>
-          </div>
-          <div className="mt-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Pourquoi</p>
-            <p className="mt-1 text-sm leading-6 text-[var(--etat-stone-600)]">{finding.explanation}</p>
-          </div>
-          {sourceElements.length > 0 && (
-            <div className="mt-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Éléments utilisés</p>
-              <ul className="mt-1.5 space-y-1">
-                {sourceElements.map((item) => (
-                  <li key={`${item.ref.objectType}-${item.ref.objectId}`} className="text-xs leading-4 text-[var(--etat-navy-950)]">
-                    <span className="font-semibold">{item.label}</span>{item.detail ? <span className="text-[var(--etat-stone-600)]"> — {item.detail}</span> : null}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <div className="mt-3 flex items-start gap-1.5 border-t border-[var(--etat-line)] pt-3">
-            <ShieldCheck size={13} className="mt-0.5 shrink-0 text-[var(--etat-navy-600)]" />
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Niveau de confiance</p>
-              <p className="mt-0.5 text-xs leading-4 text-[var(--etat-navy-950)]">{describeFindingTrust(finding)}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* XXL-R3 (§17-18) — WhyMbambulaan partagé avec la Situation Room :
+          même composant, mêmes données (finding, sourceElements), rien de
+          changé dans leur calcul ci-dessus. */}
+      <WhyMbambulaan finding={finding} sources={sourceElements} />
 
       {signals.length > 0 && (
         <div>
@@ -298,31 +283,30 @@ export function SituationDetail({ situation, state, onPlanVisit }: { situation: 
         </div>
       )}
 
-      <div>
-        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]"><HelpCircle size={13} /> Ce que nous ne savons pas</p>
-        <p className="mt-1.5 text-sm leading-6 text-[var(--etat-navy-950)]">
-          {knowledgeGap ? knowledgeGap.statement : "Aucun angle mort critique identifié dans le dossier actuel — cela ne garantit pas l’exhaustivité de la connaissance disponible."}
-        </p>
-      </div>
+      {/* XXL-R3 (§18) — traitement élégant du Knowledge Gap (KnowledgeState,
+          primitive R1) plutôt qu'un simple paragraphe : un angle mort a la
+          même dignité visuelle que ce qui est su. Sans gap identifié, le
+          texte honnête d'origine reste (ce n'est pas un niveau de
+          connaissance en soi — pas de KnowledgeState forcé sur une absence
+          de donnée à afficher). */}
+      {knowledgeGap ? (
+        <div className="rounded-xl border border-[var(--etat-line)] bg-white p-4">
+          <KnowledgeState level="a_verifier">{knowledgeGap.statement}</KnowledgeState>
+        </div>
+      ) : (
+        <div>
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]"><HelpCircle size={13} /> Ce que nous ne savons pas</p>
+          <p className="mt-1.5 text-sm leading-6 text-[var(--etat-navy-950)]">Aucun angle mort critique identifié dans le dossier actuel — cela ne garantit pas l’exhaustivité de la connaissance disponible.</p>
+        </div>
+      )}
 
+      {/* XXL-R3 (§17) — Échéance et motif d'attente : seuls champs de ce
+          qui s'appelait "Étape actuelle"/"Description" à ne pas déjà
+          être portés par le hero (phrase, état, responsable). */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Description</p>
-        <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.description}</p>
-      </div>
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Étape actuelle · {stageLabel}</p>
-        <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.nextStep}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Échéance</p>
+        <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.dueAt ? new Date(situation.dueAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) : "Non renseignée"}</p>
         {situation.waitingReason && <p className="mt-1 text-xs text-[var(--etat-stone-600)]">Motif d’attente : {situation.waitingReason}</p>}
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Échéance</p>
-          <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{situation.dueAt ? new Date(situation.dueAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) : "Non renseignée"}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Responsable</p>
-          <p className="mt-1 text-sm text-[var(--etat-navy-950)]">{responsable?.name ?? "Non désigné"}</p>
-        </div>
       </div>
 
       <div>
@@ -402,13 +386,16 @@ export function SituationDetail({ situation, state, onPlanVisit }: { situation: 
         ) : (
           <div className="mt-2 space-y-1.5">
             {evidences.map((evidence) => (
-              <p key={evidence.id} className="text-xs leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{evidenceTypeLabels[evidence.type]}</span> — {evidence.label}</p>
+              <EvidenceLine key={evidence.id} source={<span className="font-semibold" style={{ color: "var(--etat-navy-950)" }}>{evidenceTypeLabels[evidence.type]}</span>} detail={evidence.label} />
             ))}
           </div>
         )}
       </div>
 
-      <div>
+      {/* XXL-R3 (§18) — Résultat : même rupture visuelle claire qu'en
+          Situation Room (bordure + fond distincts), jamais fondu avec les
+          Preuves qui précèdent. */}
+      <div className="rounded-xl border border-[var(--etat-line)] bg-[var(--etat-offwhite)] p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Résultat</p>
         {situation.result ? (
           <>
@@ -420,18 +407,14 @@ export function SituationDetail({ situation, state, onPlanVisit }: { situation: 
         )}
       </div>
 
+      {/* XXL-R3 (§18) — Chaîne de valeur : ValueTrailSection partagée avec
+          la Situation Room (SituationNarrative.tsx), même NarrativeFlow
+          (§18.8 R1) plutôt que ces cercles numérotés propres au drawer —
+          même donnée réelle (buildValueTrail), un seul récit. */}
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Chaîne de valeur</p>
-        <div className="mt-2 space-y-1.5">
-          {valueTrail.map((step, index) => (
-            <div key={step.key} className="flex items-start gap-2">
-              <span className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${step.proven ? "bg-[var(--etat-navy-600)] text-white" : "border border-dashed border-[var(--etat-stone-400)] text-[var(--etat-stone-400)]"}`}>{index + 1}</span>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-[var(--etat-navy-950)]">{step.label}{!step.proven && <span className="ml-1.5 font-normal text-[var(--etat-stone-400)]">— à confirmer</span>}</p>
-                <p className="text-[11px] leading-4 text-[var(--etat-stone-600)]">{step.detail}</p>
-              </div>
-            </div>
-          ))}
+        <div className="mt-2">
+          <ValueTrailSection steps={valueTrail} />
         </div>
       </div>
 
