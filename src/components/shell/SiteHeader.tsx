@@ -46,8 +46,11 @@ export function SiteHeader({
         {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
       </div>
       <div className="ml-auto flex items-center gap-2">
+        {/* XXL-R1 (§8, couleurs sémantiques) — pastille "succès" alignée sur
+            --mb-success plutôt que le vert Tailwind par défaut (emerald-500,
+            hors palette), seule occurrence trouvée dans le chrome partagé. */}
         <Badge variant="outline" className="hidden gap-1.5 xl:inline-flex">
-          <span className="size-1.5 rounded-full bg-emerald-500" />
+          <span className="size-1.5 rounded-full" style={{ background: "var(--mb-success)" }} />
           {persistence === "postgresql" ? "Base de production" : "Mode démonstration · données non opérationnelles"}
         </Badge>
         <Button variant="ghost" size="icon" className="relative" aria-label={`${unread} notifications non lues`}>

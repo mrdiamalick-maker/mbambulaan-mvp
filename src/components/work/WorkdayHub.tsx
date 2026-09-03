@@ -21,6 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { CoordinatorSignalForm } from "@/components/work/CoordinatorSignalForm";
 import { glyphBorderColor } from "@/lib/status-tokens";
+import { AttentionItem, PageIntro } from "@/components/foundations";
 
 const urgencyTag: Record<WorkdayItem["urgency"], "critique" | "vigilance" | "stable"> = {
   critique: "critique",
@@ -160,33 +161,37 @@ export function WorkdayHub({ state, actorId, role }: { state: ProductState; acto
 
   return (
     <div className="shadcn-scope space-y-8 bg-background p-5 pb-16 lg:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-[#1d4468] capitalize">{dateLabel}</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">{greeting()}, {actor?.name?.split(" ")[0] ?? ""}.</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Voici ce qui demande votre attention aujourd’hui, pourquoi cela vous concerne, et où agir.</p>
-        </div>
-        <Button variant="outline" onClick={() => setSignalOpen(true)}><Radio /> Signaler une situation</Button>
-      </div>
+      {/* XXL-R1 (§29, surface témoin C) — en-tête devenu PageIntro (§18.1) ;
+          Top 3 devenu trois AttentionItem (§18.4) dans un seul panneau
+          plutôt que trois cartes bordées-ombrées individuelles (cause
+          principale de l'effet générique identifiée par l'audit sur
+          l'écran le plus utilisé du produit). Reconstruction complète
+          d'Aujourd'hui hors scope — réservée à XXL-R3 (audit §10). */}
+      <PageIntro
+        eyebrow={dateLabel}
+        title={`${greeting()}, ${actor?.name?.split(" ")[0] ?? ""}.`}
+        dek="Voici ce qui demande votre attention aujourd’hui, pourquoi cela vous concerne, et où agir."
+        action={<Button variant="outline" onClick={() => setSignalOpen(true)}><Radio /> Signaler une situation</Button>}
+        signature
+      />
 
       <section>
         <p className="text-xs font-bold uppercase tracking-widest text-primary">Vos priorités</p>
         {top3.length === 0 ? (
           <Card className="mt-3"><CardContent className="p-6"><p className="text-sm text-muted-foreground">Rien ne demande votre attention immédiate pour le moment.</p></CardContent></Card>
         ) : (
-          <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <div className="mt-2 overflow-hidden rounded-lg border px-4 [&>a:last-child]:border-b-0 [&>div:last-child]:border-b-0" style={{ borderColor: "var(--mb-hairline-soft)", background: "var(--mb-cream-100)" }}>
             {top3.map((item) => (
-              <Card key={item.id} className="relative overflow-hidden">
-                <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: glyphBorderColor[urgencyTag[item.urgency]] }} aria-hidden="true" />
-                <CardContent className="flex h-full flex-col gap-3 p-5">
-                  <Badge variant={urgencyBadgeVariant[item.urgency]} className="w-fit">{categoryLabel[item.category]}</Badge>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold">{item.title}</p>
-                    <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{item.why}</p>
-                  </div>
-                  <Button size="sm" asChild><Link href={item.href}>{item.ctaLabel} <ArrowRight size={14} /></Link></Button>
-                </CardContent>
-              </Card>
+              <AttentionItem
+                key={item.id}
+                level={urgencyTag[item.urgency]}
+                levelLabel={categoryLabel[item.category]}
+                territory={item.territoryName}
+                reason={item.title}
+                nextStep={item.why}
+                ctaLabel={item.ctaLabel}
+                href={item.href}
+              />
             ))}
           </div>
         )}

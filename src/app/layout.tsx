@@ -7,6 +7,7 @@ import "./brand.css";
 import "./public-design-system.css";
 import "./produit-design-system.css";
 import "./etat-design-system.css";
+import "./mb-foundations.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();

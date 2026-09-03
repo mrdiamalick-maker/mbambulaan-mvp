@@ -9,6 +9,7 @@ import { Drawer } from "@/components/etat/Drawer";
 import { SituationIcon } from "@/components/etat/MotifIcons";
 import { AtlasImageMap } from "@/components/etat/AtlasImageMap";
 import { NumberTicker } from "@/components/magicui/number-ticker";
+import { PageIntro } from "@/components/foundations";
 import {
   Mission,
   MissionForm,
@@ -495,11 +496,13 @@ export default function EtatPage() {
           Filtres Périmètre/Période inchangés (même mécanisme, même
           libellés) — repositionnés à droite de cette même bande plutôt
           que dans leur propre toolbar séparée, comme demandé. */}
+      {/* XXL-R1 (§27, surface témoin A) — seul le bloc titre+phrase devient
+          la primitive PageIntro (§18.1) ; tout le reste de la page (carte,
+          chapitres, filtres) reste inchangé. Test de non-régression : même
+          H1 sémantique "Brief national", même etatGeneralSentence en dek,
+          aucune donnée ni mécanique touchée. */}
       <div className="etat-panel mt-3 flex flex-wrap items-center justify-between gap-6 px-5 py-4">
-        <div>
-          <h1 className="etat-display text-3xl not-italic text-[var(--etat-navy-950)]">Brief national</h1>
-          <p className="mt-1 text-sm text-[var(--etat-stone-600)]">{etatGeneralSentence}</p>
-        </div>
+        <PageIntro title="Brief national" dek={etatGeneralSentence} className="flex-1" />
         <div className="flex flex-wrap items-end gap-6">
           <label className="block">
             <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>

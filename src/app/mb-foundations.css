@@ -1,0 +1,237 @@
+/* Mbàmbulaan — Design Foundations (XXL-R1)
+   ===========================================================================
+   Fondation de langage produit commune à Public (pub-*), État (etat-*) et au
+   système shadcn du Pro (shadcn-theme.css) — PAS un quatrième système
+   parallèle. Chaque valeur ci-dessous est reprise TELLE QUELLE d'un système
+   déjà en production (jamais une nouvelle couleur inventée) : voir la
+   colonne « source » de chaque token. L'objectif de ce fichier n'est pas de
+   remplacer pub-scope/etat-scope/shadcn-theme — qui restent la référence
+   pour leurs espaces respectifs et ne sont pas touchés ici — mais de donner
+   au reste du Produit professionnel (Atlas, Aujourd'hui, Situation,
+   Coordination…), qui n'avait jusqu'ici AUCUNE couche de tokens partagée
+   (seulement du hex Tailwind arbitraire répété écran par écran), le même
+   vocabulaire que Public et État ont déjà.
+
+   Portée : variables globales sur :root (pas de classe .mb-scope à ajouter
+   partout) + un petit jeu de classes utilitaires préfixées .mb- pour les
+   primitives de src/components/foundations/. Rien ici ne redéfinit une
+   classe pub-* / etat-* / shadcn existante — additif uniquement, cf. audit
+   §5 (XXL-R1 return, point 1) pour l'inventaire complet legacy → cible. */
+
+:root {
+  /* ---- Couleurs verrouillées (§6 du mandat XXL-R1) ----
+     Source : pub-scope (--pub-deep-900/--pub-turquoise-500/--pub-ivory-100)
+     et shadcn-theme.css (--background/--primary), déjà strictement ces
+     mêmes valeurs — reprises ici pour que Atlas/Aujourd'hui/Situation, qui
+     ne passent par aucun des deux, puissent enfin les consommer aussi. */
+  --mb-navy-950: #071627;   /* = --etat-navy-950 */
+  --mb-navy-900: #0b1a2a;   /* = --pub-deep-900 / marine de référence */
+  --mb-navy-800: #13263a;   /* = --pub-deep-800 */
+  --mb-navy-700: #1d3449;   /* = --pub-deep-700 */
+  --mb-navy-600: #1d4468;   /* = --etat-navy-600 */
+  --mb-navy-400: #30485f;   /* = --pub-deep-600 */
+
+  --mb-terracotta-700: #8f3f22;
+  --mb-terracotta-600: #b6522f;  /* = --pub-turquoise-500 / --primary shadcn */
+  --mb-terracotta-500: #c56745;  /* = --pub-turquoise-400 */
+  --mb-terracotta-300: #d98a6d;  /* = --pub-turquoise-300 */
+
+  --mb-cream-100: #f7f3e9;   /* = --pub-ivory-100 / --background shadcn */
+  --mb-cream-200: #eee8dc;   /* = --pub-ivory-200 */
+  --mb-paper: #ffffff;       /* = --pub-surface / --card shadcn */
+
+  --mb-stone-900: #172331;   /* = --pub-stone-900 */
+  --mb-stone-700: #3f4b58;   /* = --pub-stone-700 */
+  --mb-stone-600: #5c6a74;   /* = --etat-stone-600 */
+  --mb-stone-400: #8c9aa2;   /* = --etat-stone-400 */
+  --mb-stone-300: #b9b8b2;   /* = --pub-stone-300 */
+  --mb-hairline: rgba(16, 41, 68, .13);        /* = --etat-line */
+  --mb-hairline-soft: rgba(217, 227, 227, .82); /* = .hairline (globals.css) */
+
+  /* ---- Couleurs sémantiques (§8) ----
+     Reprises des variantes Badge déjà en production (components/ui/badge.tsx)
+     — pas une nouvelle palette. Tension connue et assumée, pas corrigée
+     ici (cf. audit XXL-R1, dette visuelle) : "danger" partage la même
+     teinte que l'accent d'action --mb-terracotta-600, exactement comme le
+     fait déjà Badge variant="terracotta" pour la confiance contestée ET la
+     sévérité critique. Un vrai second accent "danger" distinct de l'accent
+     d'action est un arbitrage de palette, pas une fondation — laissé pour
+     R2+. */
+  --mb-success: #1d8a5f;
+  --mb-warning: #c68a2c;    /* = --etat-ocre */
+  --mb-danger: #b6522f;     /* = --mb-terracotta-600, assumé (voir ci-dessus) */
+  --mb-info: #1d4468;       /* = --mb-navy-600, neutre/informationnel */
+
+  /* ---- Typographie (§9-§10) ----
+     Le stack serif est déjà partagé mot pour mot par pub-scope
+     (--pub-font-display) ET etat-scope (--etat-font-display) — première
+     preuve concrète que Public et État convergent déjà sans le savoir.
+     Body/Operational reprend le sans-serif système de globals.css (Inter
+     puis system-ui) — aucune police web supplémentaire chargée (§35,
+     performance). Evidence utilise un mono système (aucun coût réseau) :
+     aucun registre mono n'existait avant R1 dans le Produit — c'est la
+     seule police "nouvelle" de cette fondation, et elle ne charge rien. */
+  --mb-type-font-display: ui-serif, Iowan Old Style, Apple Garamond, Baskerville, "Palatino Linotype", "URW Palladio", P052, serif;
+  --mb-type-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mb-type-font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Échelle — 8 rôles (§9). Taille / hauteur de ligne / graisse / tracking.
+     Les rôles PAGE TITLE et SECTION TITLE se distinguent de DISPLAY par
+     l'usage (un "statement" institutionnel vs un titre d'espace/section),
+     pas nécessairement par une famille différente — les trois restent
+     serif éditorial, seule l'échelle change. */
+  --mb-type-display-size: clamp(2.1rem, 1.4rem + 3vw, 3.4rem);
+  --mb-type-display-lh: 1.06;
+  --mb-type-display-weight: 600;
+  --mb-type-display-tracking: -0.01em;
+
+  --mb-type-page-title-size: clamp(1.5rem, 1.2rem + 1.1vw, 2rem);
+  --mb-type-page-title-lh: 1.12;
+  --mb-type-page-title-weight: 600;
+
+  --mb-type-section-title-size: 1.25rem;
+  --mb-type-section-title-lh: 1.25;
+  --mb-type-section-title-weight: 600;
+
+  --mb-type-dossier-title-size: 1.05rem;
+  --mb-type-dossier-title-lh: 1.3;
+  --mb-type-dossier-title-weight: 600;
+
+  --mb-type-body-size: 0.9375rem;
+  --mb-type-body-lh: 1.6;
+  --mb-type-body-weight: 400;
+
+  --mb-type-operational-size: 0.8125rem;
+  --mb-type-operational-lh: 1.45;
+  --mb-type-operational-weight: 600;
+
+  --mb-type-evidence-size: 0.6875rem;
+  --mb-type-evidence-lh: 1.4;
+  --mb-type-evidence-weight: 500;
+  --mb-type-evidence-tracking: 0.02em;
+
+  --mb-type-metric-size: 1.75rem;
+  --mb-type-metric-lh: 1;
+  --mb-type-metric-weight: 700;
+
+  /* ---- Géométrie (§13) ----
+     Quatre familles + pill, jamais un seul rayon universel. Valeurs
+     reprises de ce qui existe déjà ailleurs (etat-panel: 14px, pub-radius-
+     lg: 30px) plutôt qu'inventées, pour que la convergence soit visible. */
+  --mb-radius-editorial: 3px;
+  --mb-radius-workspace: 12px;
+  --mb-radius-interactive: 8px;
+  --mb-radius-floating: 22px;
+  --mb-radius-pill: 999px;
+
+  /* ---- Ombres (§14) ---- Un seul token : l'élévation réelle (flottant). */
+  --mb-shadow-floating: 0 24px 60px -12px rgba(11, 26, 42, .28);
+
+  /* ---- Containers (§11) ---- */
+  --mb-container-narrative: 46rem;   /* ~736px — lecture concentrée */
+  --mb-container-workspace: 74rem;   /* ~1184px — poste de travail standard */
+  --mb-container-spatial: 88rem;     /* ~1408px — Atlas / grandes visualisations */
+
+  /* ---- Rythme vertical (§12) ---- */
+  --mb-space-section: 4rem;
+  --mb-space-section-sm: 2.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Les surfaces professionnelles restent en pratique toujours sur fond
+     crème (§7 : "ne pas mettre toute l'application en dark mode") — ce
+     bloc ne fait qu'assurer qu'un futur composant lisant ces tokens dans
+     un contexte sombre (rare, cf. .etat-canvas-dark) reste lisible, sans
+     changer le comportement par défaut de la crème dominante. */
+  :root {
+    --mb-hairline-soft: rgba(217, 227, 227, .22);
+  }
+}
+
+@layer components {
+  /* ---- Classes utilitaires primitives (préfixe mb-, additif) ---- */
+
+  .mb-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--mb-type-font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--mb-terracotta-600);
+  }
+
+  .mb-display {
+    font-family: var(--mb-type-font-display);
+    font-size: var(--mb-type-display-size);
+    line-height: var(--mb-type-display-lh);
+    font-weight: var(--mb-type-display-weight);
+    letter-spacing: var(--mb-type-display-tracking);
+    color: var(--mb-navy-950);
+    text-wrap: balance;
+  }
+
+  .mb-page-title {
+    font-family: var(--mb-type-font-display);
+    font-size: var(--mb-type-page-title-size);
+    line-height: var(--mb-type-page-title-lh);
+    font-weight: var(--mb-type-page-title-weight);
+    color: var(--mb-navy-950);
+    text-wrap: balance;
+  }
+
+  .mb-section-title {
+    font-family: var(--mb-type-font-display);
+    font-size: var(--mb-type-section-title-size);
+    line-height: var(--mb-type-section-title-lh);
+    font-weight: var(--mb-type-section-title-weight);
+    color: var(--mb-navy-950);
+  }
+
+  .mb-dossier-title {
+    font-family: var(--mb-type-font-display);
+    font-size: var(--mb-type-dossier-title-size);
+    line-height: var(--mb-type-dossier-title-lh);
+    font-weight: var(--mb-type-dossier-title-weight);
+    color: var(--mb-navy-950);
+  }
+
+  .mb-body {
+    font-family: var(--mb-type-font-body);
+    font-size: var(--mb-type-body-size);
+    line-height: var(--mb-type-body-lh);
+    color: var(--mb-stone-700);
+  }
+
+  .mb-operational {
+    font-family: var(--mb-type-font-body);
+    font-size: var(--mb-type-operational-size);
+    line-height: var(--mb-type-operational-lh);
+    font-weight: var(--mb-type-operational-weight);
+    color: var(--mb-navy-950);
+  }
+
+  .mb-evidence {
+    font-family: var(--mb-type-font-mono);
+    font-size: var(--mb-type-evidence-size);
+    line-height: var(--mb-type-evidence-lh);
+    font-weight: var(--mb-type-evidence-weight);
+    letter-spacing: var(--mb-type-evidence-tracking);
+    color: var(--mb-stone-600);
+  }
+
+  .mb-metric-value {
+    font-family: var(--mb-type-font-display);
+    font-size: var(--mb-type-metric-size);
+    line-height: var(--mb-type-metric-lh);
+    font-weight: var(--mb-type-metric-weight);
+    color: var(--mb-navy-950);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mb-container-narrative { max-width: var(--mb-container-narrative); margin-inline: auto; }
+  .mb-container-workspace { max-width: var(--mb-container-workspace); margin-inline: auto; }
+  .mb-container-spatial { max-width: var(--mb-container-spatial); margin-inline: auto; }
+}

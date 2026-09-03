@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import type { ProductState, SituationStatus, TrustLevel } from "@/domain/types";
 import { buildTerritoryIntelligence, currentTerritoryView, hasSufficientKnowledge } from "@/domain/territory-intelligence";
 import { TerritoryDossierSections } from "@/components/territories/TerritoryDossierSections";
+import { TerritoryIdentity } from "@/components/foundations";
 
 // Lot 5 (mandat "Atlas & Territoire") §21 — la lens "Situation" devient
 // "Aujourd'hui" : elle continue de lire les Situations mais intègre
@@ -83,13 +84,6 @@ export const positions: Record<string, [number, number]> = {
   elinkine: [48, 89],
   "cap-skirring": [36, 95]
 };
-
-// Le dossier territorial reste sur son traitement actuel jusqu'au Livrable 2.
-const activityStyle = {
-  critique: { dot: "bg-[#ff755e]", ring: "ring-[#ff755e]/30", label: "Action requise" },
-  vigilance: { dot: "bg-[#f3b84f]", ring: "ring-[#f3b84f]/30", label: "Sous vigilance" },
-  stable: { dot: "bg-[#57dbc8]", ring: "ring-[#57dbc8]/30", label: "Stable" }
-} as const;
 
 // Palette D9 dédiée à la carte : aucune incidence sur le moteur spatial.
 const mapActivityStyle = {
@@ -464,17 +458,23 @@ export function ProfessionalAtlasWorkspace() {
           </div>
 
           <aside className="order-1 bg-[#0b1a2a] p-5 text-white xl:order-2 lg:p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div><p className="text-[10px] font-bold uppercase tracking-[.14em] text-white/45">Dossier territorial</p><h2 className="mt-2 text-2xl font-black tracking-[-.035em]">Quai de {territory.name}</h2><p className="mt-1 text-xs text-white/45">{site?.source ?? "Référentiel territorial"} · {territory.region}</p></div>
-              <span className={`mt-1 size-2.5 rounded-full ${activityStyle[territory.activity].dot}`} />
+            {/* XXL-R1 (§30, surface témoin D) — remplace le h2 manuel +
+                point d'activité + mention de connaissance séparée par
+                TerritoryIdentity (§18.5, primitive) en tonalité sombre —
+                même glyphe TensionGlyph que le reste du produit (Situation,
+                Brief national), pas un second langage de statut pour
+                l'Atlas. "Dossier territorial" reste l'eyebrow, hors
+                primitive (propre à ce panneau, pas au territoire lui-même). */}
+            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-white/45">Dossier territorial</p>
+            <div className="mt-2">
+              <TerritoryIdentity
+                name={`Quai de ${territory.name}`}
+                region={`${site?.source ?? "Référentiel territorial"} · ${territory.region}`}
+                status={territory.activity}
+                knowledgeSufficient={territoryKnowledgeSufficient}
+                tone="dark"
+              />
             </div>
-
-            {/* Mandat §30 — l'absence de signal ne doit jamais se lire
-                comme une stabilité : le dit explicitement plutôt que de
-                laisser le point d'activité seul porter cette lecture. */}
-            {!territoryKnowledgeSufficient && (
-              <p className="mt-3 text-xs text-white/45">Connaissance insuffisante sur ce territoire — peu d’éléments récents disponibles.</p>
-            )}
 
             {/* A12 — grille typographique (valeur, label, séparateurs
                 fins) : plus de mini-widgets à fond plein. */}

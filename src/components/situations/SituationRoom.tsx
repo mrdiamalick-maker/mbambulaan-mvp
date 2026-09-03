@@ -6,7 +6,8 @@ import { communicationChannelLabels, communicationStatusLabels, evidenceTypeLabe
 import { buildValueTrail, resultsForSituation } from "@/domain/situation-narrative";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { EngagementIcon, PreuveIcon } from "@/components/etat/MotifIcons";
-import { ChannelBadge, TrustBadge } from "@/components/shared/StatusBadges";
+import { ChannelBadge } from "@/components/shared/StatusBadges";
+import { NarrativeFlow, TrustIndicator, type NarrativeFlowStep } from "@/components/foundations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -119,7 +120,7 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <Badge variant={statusVariant[situation.status]}>{statusLabels[situation.status]}</Badge>
                 <Badge variant={tag === "critique" ? "terracotta" : tag === "vigilance" ? "amber" : "marine"}>{priorityLabels[situation.priority]}</Badge>
-                <TrustBadge trust={situation.trust} />
+                <TrustIndicator trust={situation.trust} />
                 <ChannelBadge signal={signal} />
               </div>
             </div>
@@ -225,19 +226,35 @@ export function SituationRoom({ situation, state }: { situation: Situation; stat
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#1d4468]"><Sparkles size={14} /> De la réalité à la valeur</p>
           <h2 className="mt-2 text-xl font-semibold tracking-tight">Ce qui a été fait, ce qui a changé, ce que nous en retenons.</h2>
         </div>
-        <div className="space-y-2">
-          {valueTrail.map((step, index) => (
-            <div key={step.key} className="flex items-start gap-2.5 rounded-lg border bg-muted/20 p-3">
-              <span className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${step.proven ? "bg-[#1d4468] text-white" : "border border-dashed text-muted-foreground"}`}>{index + 1}</span>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold">{step.label}{!step.proven && <span className="ml-1.5 font-normal text-muted-foreground">— à confirmer</span>}</p>
-                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{step.detail}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* XXL-R1 (§28, surface témoin B) — remplace les 8 cases empilées
+            (effet "checklist" identifié par l'Audit Maritime Intelligence)
+            par NarrativeFlow (§18.8) : un rythme vertical continu, jamais
+            de BPMN. Même donnée réelle (buildValueTrail), rien de
+            fabriqué — "à confirmer" devient l'état "pending" plutôt qu'une
+            case vide identique aux autres. */}
+        <NarrativeFlow
+          steps={valueTrail.map((step): NarrativeFlowStep => ({
+            id: step.key,
+            label: step.label,
+            state: step.proven ? "done" : "pending",
+            content: (
+              <>
+                {step.detail}
+                {!step.proven && <span className="ml-1.5" style={{ color: "var(--mb-stone-400)" }}>— à confirmer</span>}
+              </>
+            )
+          }))}
+        />
+        {/* XXL-R1 (§34, vérification mobile) — débordement horizontal
+            pré-existant trouvé lors de la vérification de cette surface
+            témoin (390px) : le libellé long ("...nécessite un résultat")
+            héritait whitespace-nowrap du composant Button partagé, qui ne
+            peut pas se rétrécir sous sa largeur de contenu dans un
+            conteneur flex-wrap. Corrigé localement (whitespace-normal +
+            largeur bornée) sans toucher au composant Button lui-même,
+            utilisé par des centaines d'autres boutons du produit. */}
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" disabled={situationResults.length === 0} onClick={() => setOutcomeDrawerOpen(true)}>
+          <Button variant="outline" className="h-auto min-h-9 max-w-full whitespace-normal text-left" disabled={situationResults.length === 0} onClick={() => setOutcomeDrawerOpen(true)}>
             {situationResults.length === 0 ? "Documenter le changement observé (nécessite un résultat)" : "Documenter le changement observé"}
           </Button>
           <Button variant="outline" onClick={() => setLearningDrawerOpen(true)}>Enregistrer un apprentissage</Button>
