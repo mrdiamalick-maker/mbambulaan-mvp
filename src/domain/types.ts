@@ -314,6 +314,28 @@ export const signalDispositionLabels: Record<SignalDisposition, string> = {
   ecarte: "Écarté"
 };
 
+// SignalSourceRef — référence typée vers l'objet brut à l'origine d'un
+// Signal (P2.1-A, mandat "Intake Traceability & Data Access Foundation").
+// Même esprit que KnowledgeSourceRef ci-dessous — traçabilité structurée,
+// jamais du texte libre — mais un type volontairement distinct :
+// KnowledgeSourceRef se résout contre les tableaux de ProductState
+// (resolveKnowledgeSourceRef, knowledge-pipeline.ts), alors que
+// PublicRequest/PublicContribution vivent hors ProductState (persistance
+// isolée, cf. server/public-repository.ts) — un objectType commun aurait
+// laissé croire à une résolution possible qui n'existe pas ici. "direct"
+// couvre un Signal saisi sans intake préalable (create_signal appelé
+// directement par un rôle terrain/coordination, hors message/
+// PublicRequest/PublicContribution) — pas d'objectId, il n'existe aucun
+// objet source distinct du Signal lui-même. Optionnel sur Signal
+// (ci-dessous) : additif, aucune migration des signaux déjà créés
+// (Demo World compris) qui restent sans sourceRef plutôt que d'en
+// fabriquer un rétroactivement.
+export type SignalSourceRef =
+  | { objectType: "incoming_message"; objectId: string }
+  | { objectType: "public_request"; objectId: string }
+  | { objectType: "public_contribution"; objectId: string }
+  | { objectType: "direct" };
+
 export interface Signal {
   id: string;
   // Optionnel (LOT 0.4, mandat "Public Request → Core Signal") : une
@@ -355,6 +377,13 @@ export interface Signal {
   // référence du Finding de rattachement...) — optionnelle, jamais
   // fabriquée si l'acteur n'en a saisi aucune.
   dispositionNote?: string;
+  // sourceRef (P2.1-A) — d'où vient réellement ce Signal (message entrant
+  // converti, PublicRequest/PublicContribution, ou saisie directe).
+  // Renseigné par applySignalOnlyCreation/applyMessageToSignalOnly
+  // (rules.ts), jamais par l'appelant directement au-delà du sourceRef
+  // qu'il transmet dans la commande create_signal. Optionnel : les
+  // signaux créés avant ce lot (Demo World compris) n'en portent pas.
+  sourceRef?: SignalSourceRef;
 }
 
 // Étiquettes lisibles pour Signal["category"] — réutilisées par
@@ -394,6 +423,15 @@ export interface IncomingMessage {
   body: string;
   receivedAt: string;
   status: "nouveau" | "converti";
+  // Traçabilité inverse (P2.1-A, mandat "Intake Traceability & Data
+  // Access Foundation") — renseignés uniquement par applyMessageToSignalOnly
+  // (rules.ts) au moment de la conversion, jamais à la création du
+  // message. Additifs : un message "converti" créé avant ce lot reste
+  // sans ces trois champs plutôt que d'en fabriquer une valeur rétroactive
+  // — status === "converti" seul reste la source de vérité historique.
+  resultingSignalId?: string;
+  convertedAt?: string;
+  convertedByActorId?: string;
 }
 
 export interface Situation {
@@ -1269,7 +1307,16 @@ export type Command =
   // infrastructure") : renseignée seulement quand réellement déterminable
   // par l'appelant (jamais déduite de mots-clés libres côté rules.ts) —
   // repli sur "autre" si absente, cf. applySignalOnlyCreation.
-  | { type: "create_signal"; actorId: string; territoryId?: string; title: string; description: string; channel: Signal["channel"]; category?: Signal["category"] }
+  // sourceRef optionnel (P2.1-A, mandat "Intake Traceability & Data
+  // Access Foundation") : absent pour une saisie directe (repli "direct"
+  // dans applySignalOnlyCreation, rules.ts) — renseigné explicitement par
+  // les ponts Public (public-request-signal-bridge.ts,
+  // public-contribution-signal-bridge.ts) pour tracer la PublicRequest/
+  // PublicContribution d'origine. convert_message_to_signal n'a pas
+  // besoin de son propre sourceRef : il porte déjà messageId, dont
+  // applyMessageToSignalOnly dérive directement { objectType:
+  // "incoming_message", objectId: messageId }.
+  | { type: "create_signal"; actorId: string; territoryId?: string; title: string; description: string; channel: Signal["channel"]; category?: Signal["category"]; sourceRef?: SignalSourceRef }
   | { type: "convert_message_to_signal"; actorId: string; messageId: string; territoryId: string; category: Signal["category"]; title: string; description: string }
   | { type: "qualify"; situationId: string; actorId: string }
   | { type: "prioritize"; situationId: string; actorId: string }

@@ -122,7 +122,14 @@ export async function attemptPublicRequestSignalSync(
         territoryId,
         title: `${request.intent} — demande de l'espace public`,
         description: request.description,
-        channel: publicRequestSourceToSignalChannel(request.source)
+        channel: publicRequestSourceToSignalChannel(request.source),
+        // sourceRef (P2.1-A, mandat "Intake Traceability & Data Access
+        // Foundation") — trace la PublicRequest d'origine sur le Signal
+        // produit, symétrique à PublicRequest.coreSignalId (traçabilité
+        // déjà existante dans l'autre sens, cf. public-repository.ts) :
+        // la paire forme désormais une traçabilité bidirectionnelle sans
+        // qu'aucun champ supplémentaire n'ait été ajouté à PublicRequest.
+        sourceRef: { objectType: "public_request", objectId: request.id }
       },
       `public-request:${request.id}`
     );

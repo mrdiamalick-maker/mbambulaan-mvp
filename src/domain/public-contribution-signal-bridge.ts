@@ -61,7 +61,12 @@ export async function attemptPublicContributionSignalSync(
         title: `Capacité proposée — ${contribution.actorType} (espace public)`,
         description: `${contribution.services} — territoires déclarés : ${contribution.territories}`,
         channel: "espace_public",
-        category: resolveContributionSignalCategory(contribution.actorType)
+        category: resolveContributionSignalCategory(contribution.actorType),
+        // sourceRef (P2.1-A) — même discipline que le pont PublicRequest
+        // (public-request-signal-bridge.ts) : symétrique à
+        // PublicContribution.coreSignalId, sans nouveau champ sur
+        // PublicContribution elle-même.
+        sourceRef: { objectType: "public_contribution", objectId: contribution.id }
       },
       `public-contribution:${contribution.id}`
     );

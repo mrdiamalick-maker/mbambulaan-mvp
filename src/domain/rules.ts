@@ -779,7 +779,14 @@ function applySignalOnlyCreation(state: ProductState, command: Extract<Command, 
     description: command.description.trim(),
     trust: "declaree",
     source: command.channel === "poste_quai" ? "Poste de quai" : "Déclaration terrain",
-    disposition: "nouveau"
+    disposition: "nouveau",
+    // sourceRef (P2.1-A) — "direct" en repli : create_signal est aussi
+    // appelé sans sourceRef par les rôles terrain/coordination qui
+    // saisissent un signal sans intake préalable (aucun message ni
+    // PublicRequest/PublicContribution à l'origine). Les ponts Public
+    // (public-request-signal-bridge.ts, public-contribution-signal-bridge.ts)
+    // renseignent explicitement le leur.
+    sourceRef: command.sourceRef ?? { objectType: "direct" }
   };
   const next: ProductState = { ...state, signals: [signal, ...state.signals] };
   return withAudit(next, command.actorId, "signal", signalId, command.type, command.title.trim());
@@ -812,12 +819,28 @@ function applyMessageToSignalOnly(state: ProductState, command: Extract<Command,
     trust: "declaree",
     source: `Message entrant (${channelLabels[message.channel]}) converti par le coordinateur`,
     reportedBy: message.reportedBy,
-    disposition: "nouveau"
+    disposition: "nouveau",
+    // sourceRef (P2.1-A) — dérivé directement de messageId, déjà porté
+    // par la commande : pas de champ sourceRef séparé sur
+    // convert_message_to_signal (cf. commentaire sur le variant Command
+    // dans types.ts).
+    sourceRef: { objectType: "incoming_message", objectId: message.id }
   };
+  const convertedAt = timestamp();
   const next: ProductState = {
     ...state,
     signals: [signal, ...state.signals],
-    incomingMessages: state.incomingMessages.map((item) => (item.id === message.id ? { ...item, status: "converti" as const } : item))
+    // Traçabilité inverse (P2.1-A) — le message converti pointe désormais
+    // vers le Signal qu'il a produit, symétrique à Signal.sourceRef
+    // ci-dessus. status === "converti" reste la garde d'idempotence
+    // existante (ligne plus haut : un message déjà converti ne peut pas
+    // l'être une seconde fois) — ces trois champs ne font qu'exposer,
+    // structurellement, ce que cette garde protégeait déjà implicitement.
+    incomingMessages: state.incomingMessages.map((item) =>
+      item.id === message.id
+        ? { ...item, status: "converti" as const, resultingSignalId: signalId, convertedAt, convertedByActorId: command.actorId }
+        : item
+    )
   };
   return withAudit(next, command.actorId, "signal", signalId, command.type, command.title.trim());
 }
