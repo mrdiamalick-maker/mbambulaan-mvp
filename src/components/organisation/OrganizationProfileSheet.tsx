@@ -33,7 +33,7 @@ const partnerServiceStatusLabel: Record<string, string> = {
 };
 
 export function OrganizationProfileSheet({ profile }: { profile: OrganizationNetworkProfile }) {
-  const { organization, members, verifiedMembers, territories, services, capacities, openCommitments, closedCommitments, initiatives, relationships } = profile;
+  const { organization, members, verifiedMembers, territories, services, capacities, openCommitments, closedCommitments, initiatives, relationships, engagedInitiatives } = profile;
 
   return (
     <div className="space-y-6 px-1">
@@ -131,6 +131,25 @@ export function OrganizationProfileSheet({ profile }: { profile: OrganizationNet
         )}
         <p className="mt-2 text-[11px] leading-4 text-muted-foreground">Faits d’engagement, pas une note de fiabilité — un engagement terminé n’implique aucune performance calculée.</p>
       </section>
+
+      {/* Programmes auxquels elle contribue (P2.5-B, mandat §16) — lien
+          retour, distinct de "Où est-elle déjà mobilisée" ci-dessus
+          (Commitment, engagements individuels de coordination) : ici,
+          uniquement les ProgrammeOrganizationEngagement au statut
+          "engaged" — une contribution d'organisation confirmée, jamais
+          une simple candidature encore "considérée"/"contactée". */}
+      {engagedInitiatives.length > 0 && (
+        <section>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Programmes auxquels elle contribue</p>
+          <div className="mt-2 space-y-1.5">
+            {engagedInitiatives.map(({ engagement, initiative }) => (
+              <Link key={engagement.id} href={initiative ? `/app/initiatives#initiative-${initiative.id}` : "/app/initiatives"} className="flex items-center gap-1.5 text-xs font-semibold leading-5 text-[#1d4468] hover:text-[#1d4468]/70">
+                Programme · {initiative?.title ?? "Programme introuvable"} <ArrowRight size={11} />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Membres habilités</p>

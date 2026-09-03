@@ -91,6 +91,12 @@ const all: Command["type"][] = [
   "create_actor_relationship",
   "update_actor_relationship_verification",
   "update_organization_verification",
+  // P2.5-B — Ecosystem Mobilization Foundation (mandat §21) : même
+  // cohorte de gouvernance réseau que create_actor_relationship
+  // ci-dessus — considérer/faire progresser une organisation pour un
+  // programme reste un geste de coordination.
+  "create_programme_organization_engagement",
+  "update_programme_organization_engagement_status",
   "reset_demo"
 ];
 
@@ -188,7 +194,11 @@ const allowed: Record<Role, Command["type"][]> = {
     // ouvert à ce rôle.
     "create_actor_relationship",
     "update_actor_relationship_verification",
-    "update_organization_verification"
+    "update_organization_verification",
+    // P2.5-B — même mandat que create_actor_relationship déjà ouvert à ce
+    // rôle.
+    "create_programme_organization_engagement",
+    "update_programme_organization_engagement_status"
   ],
   coordinateur: all,
   institution: [
@@ -234,6 +244,10 @@ const allowed: Record<Role, Command["type"][]> = {
     "create_actor_relationship",
     "update_actor_relationship_verification",
     "update_organization_verification",
+    // P2.5-B — même mandat que create_actor_relationship déjà ouvert à ce
+    // rôle.
+    "create_programme_organization_engagement",
+    "update_programme_organization_engagement_status",
     "reset_demo"
   ],
   partenaire: ["create_community_post"]

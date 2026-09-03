@@ -28,9 +28,11 @@ import { ResultForm } from "@/components/impact/ResultForm";
 import { OutcomeForm } from "@/components/impact/OutcomeForm";
 import { ImpactForm } from "@/components/impact/ImpactForm";
 import { LearningForm } from "@/components/impact/LearningForm";
-import type { CollectiveNeed, Funding, Initiative, Outcome, ProductState, ProgramOpportunity } from "@/domain/types";
-import { attributionLevelLabels, collectiveNeedStatusLabels, impactStatusLabels, programOpportunityMaturityLabels, programOpportunityStatusLabels, serviceRequestIntentLabels } from "@/domain/types";
+import type { CollectiveNeed, Funding, Initiative, Outcome, PartnerService, ProductState, ProgramOpportunity, ProgrammeOrganizationEngagementStatus } from "@/domain/types";
+import { attributionLevelLabels, collectiveNeedStatusLabels, impactStatusLabels, programOpportunityMaturityLabels, programOpportunityStatusLabels, programmeOrganizationEngagementRoleLabels, programmeOrganizationEngagementStatusLabels, serviceRequestIntentLabels } from "@/domain/types";
 import { traceInitiativeOrigin } from "@/domain/initiative-lifecycle";
+import { engagementsForInitiative, findProgrammeCapabilityCandidates } from "@/domain/programme-mobilization";
+import { TrustBadge } from "@/components/shared/StatusBadges";
 import { canRole } from "@/server/permissions";
 
 const money = new Intl.NumberFormat("fr-FR", { notation: "compact", style: "currency", currency: "XOF", maximumFractionDigits: 0 });
@@ -67,6 +69,27 @@ const budgetStatusCaption: Record<Initiative["budgetStatus"], string> = {
   estime: "budget estimé, à confirmer",
   valide: "budget simulé à titre indicatif"
 };
+
+// P2.5-B — Ecosystem Mobilization Foundation. Même vocabulaire que
+// QualifySignalForm.tsx (copie locale volontaire, même discipline que le
+// reste de ce fichier — chaque surface porte ses propres libellés courts,
+// pas d'export centralisé pour 5 valeurs).
+const capabilityCategoryLabel: Record<PartnerService["category"], string> = {
+  logistique: "Logistique / transport",
+  froid: "Froid",
+  maintenance: "Maintenance",
+  financement: "Financement",
+  assurance: "Assurance"
+};
+const engagementStatusVariant: Record<ProgrammeOrganizationEngagementStatus, "marine" | "amber" | "success" | "outline"> = {
+  considered: "outline",
+  contacted: "marine",
+  engaged: "success",
+  declined: "outline"
+};
+function formatEngagementDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
+}
 
 // Cycle de vie du Programme (P2.5-A, mandat "Programme Lifecycle
 // Foundation") — une seule destination possible par statut, jamais un
@@ -430,6 +453,55 @@ function InitiativeCard({ initiative, state, onOpenOpportunity }: { initiative: 
   };
   const origin = traceInitiativeOrigin(state, initiative);
 
+  // P2.5-B (mandat "Ecosystem Mobilization Foundation") — la capacité
+  // choisie ici concerne UNIQUEMENT ce geste de mobilisation, jamais une
+  // prétention à définir l'intégralité des besoins du programme (mandat
+  // §3 : ne jamais ajouter neededCapabilities à ProgramOpportunity/
+  // Initiative). candidateCapability reste local à ce composant, jamais
+  // persisté tant qu'aucune organisation n'est "Considérée".
+  const [candidateCapability, setCandidateCapability] = useState<PartnerService["category"] | "">("");
+  const canMobilize = canRole(role, "create_programme_organization_engagement");
+  const canTransitionEngagement = canRole(role, "update_programme_organization_engagement_status");
+  const candidates = candidateCapability ? findProgrammeCapabilityCandidates(state, initiative, candidateCapability) : [];
+  const engagements = engagementsForInitiative(state, initiative.id);
+  const [consideringOrganizationId, setConsideringOrganizationId] = useState<string | null>(null);
+  const [engagementPendingId, setEngagementPendingId] = useState<string | null>(null);
+
+  const considerCandidate = async (organizationId: string) => {
+    if (!candidateCapability) return;
+    // Rôle dérivé de la capacité choisie (mandat §10) : "financement"
+    // mobilise un partenaire financier potentiel, toute autre capacité
+    // mobilise un partenaire de mise en œuvre — jamais un sélecteur de
+    // rôle séparé, pour rester compact (mandat §12).
+    const role = candidateCapability === "financement" ? "funder" : "implementer";
+    const candidate = candidates.find((item) => item.organization.id === organizationId);
+    // Représentant associé automatiquement seulement s'il n'y en a qu'un
+    // seul de connu — jamais un choix ambigu fait à la place de l'humain.
+    const representativeActorId = candidate?.representatives.length === 1 ? candidate.representatives[0].relationship.actorId : undefined;
+    setConsideringOrganizationId(organizationId);
+    try {
+      await run({
+        type: "create_programme_organization_engagement",
+        initiativeId: initiative.id,
+        organizationId,
+        role,
+        capabilityCategory: candidateCapability,
+        representativeActorId
+      });
+    } finally {
+      setConsideringOrganizationId(null);
+    }
+  };
+
+  const transitionEngagement = async (engagementId: string, status: Exclude<ProgrammeOrganizationEngagementStatus, "considered">) => {
+    setEngagementPendingId(engagementId);
+    try {
+      await run({ type: "update_programme_organization_engagement_status", engagementId, status });
+    } finally {
+      setEngagementPendingId(null);
+    }
+  };
+
   return (
     // XXL-R5 (§14) — ancre stable pour un deep-link direct depuis le
     // profil Réseau d'une organisation reliée (OrganizationProfileSheet).
@@ -579,6 +651,122 @@ function InitiativeCard({ initiative, state, onOpenOpportunity }: { initiative: 
           </div>
         </section>
       </div>
+
+      {/* P2.5-B (mandat "Ecosystem Mobilization Foundation") — premier
+          maillon du moteur CONNECTER. Principe fondateur (§1), rappelé
+          dans le code car il gouverne toute cette section : CAPABLE ≠
+          CONSIDÉRÉ ≠ CONTACTÉ ≠ ENGAGÉ. Le sélecteur de capacité ci-dessous
+          ne modifie jamais ProgramOpportunity/Initiative — il ne fait que
+          choisir, pour CE geste de mobilisation, quelle vocabulaire de
+          PartnerService.category chercher (mandat §3) ; findProgrammeCapabilityCandidates
+          est une projection pure, jamais un écrit. */}
+      <section className="border-t p-5 lg:p-6">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Mobiliser l’écosystème — qui peut contribuer ?</p>
+        <p className="mt-1.5 text-xs leading-5 text-muted-foreground">Une capacité déclarée dans le réseau n’est jamais une organisation déjà engagée — chaque étape reste un geste humain distinct, tracé.</p>
+
+        <label className="mt-4 block text-xs font-semibold text-muted-foreground">
+          Quelle capacité ce programme recherche-t-il ?
+          <select
+            value={candidateCapability}
+            onChange={(event) => setCandidateCapability(event.target.value as PartnerService["category"] | "")}
+            className="mt-1.5 h-10 w-full max-w-xs rounded-md border bg-background px-3 text-sm font-semibold text-foreground"
+          >
+            <option value="">Choisir une capacité…</option>
+            {Object.entries(capabilityCategoryLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+
+        {candidateCapability && (
+          <div className="mt-4 space-y-3">
+            {candidates.length === 0 && (
+              <p className="text-sm text-muted-foreground">Aucune organisation du réseau ne déclare « {capabilityCategoryLabel[candidateCapability]} » sur un territoire de ce programme pour le moment.</p>
+            )}
+            {candidates.map((candidate) => {
+              const existingEngagement = engagements.find(
+                (item) => item.organizationId === candidate.organization.id && item.capabilityCategory === candidateCapability
+              );
+              const matchingTerritories = candidate.matchingTerritoryIds
+                .map((tid) => state.territories.find((item) => item.id === tid)?.name ?? tid)
+                .join(", ");
+              return (
+                <div key={candidate.organization.id} className="rounded-lg border p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link href={`/app/organisation?organisation=${candidate.organization.id}`} className="text-sm font-bold text-[#1d4468] hover:underline">{candidate.organization.name}</Link>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Pourquoi cette organisation ? Fournit « {capabilityCategoryLabel[candidateCapability]} », couvre {matchingTerritories}, capacité {candidate.partnerService.status === "qualifie" ? "qualifiée" : candidate.partnerService.status === "a_activer" ? "à activer" : "référencée"}.
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {candidate.representatives.length > 0
+                          ? `Représentant${candidate.representatives.length > 1 ? "s" : ""} : ${candidate.representatives.map((item) => `${item.actor?.name ?? "Acteur introuvable"} (${item.relationship.verificationStatus})`).join(", ")}`
+                          : "Représentant documenté non identifié."}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <TrustBadge trust={candidate.partnerService.trust} />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    {existingEngagement ? (
+                      <Badge variant={engagementStatusVariant[existingEngagement.status]}>{programmeOrganizationEngagementStatusLabels[existingEngagement.status]}</Badge>
+                    ) : canMobilize ? (
+                      <Button size="sm" variant="outline" disabled={consideringOrganizationId === candidate.organization.id} onClick={() => considerCandidate(candidate.organization.id)}>
+                        {consideringOrganizationId === candidate.organization.id ? "…" : "Considérer"}
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {engagements.length > 0 && (
+          <div className="mt-6 space-y-2 border-t pt-4">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Organisations mobilisées</p>
+            {engagements.map((engagement) => {
+              const organization = state.organizations.find((item) => item.id === engagement.organizationId);
+              const representative = engagement.representativeActorId ? state.actors.find((item) => item.id === engagement.representativeActorId) : undefined;
+              return (
+                <div key={engagement.id} className="rounded-lg border p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold">{organization?.name ?? "Organisation introuvable"}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {programmeOrganizationEngagementRoleLabels[engagement.role]}
+                        {engagement.capabilityCategory ? ` · ${capabilityCategoryLabel[engagement.capabilityCategory]}` : ""}
+                        {representative ? ` · Représentant·e : ${representative.name}` : ""}
+                      </p>
+                    </div>
+                    <Badge variant={engagementStatusVariant[engagement.status]}>{programmeOrganizationEngagementStatusLabels[engagement.status]}</Badge>
+                  </div>
+                  {engagement.note && <p className="mt-1.5 text-xs leading-4 text-muted-foreground">{engagement.note}</p>}
+                  <p className="mt-1.5 text-[11px] text-muted-foreground">Dernière évolution : {formatEngagementDate(engagement.updatedAt ?? engagement.createdAt)}</p>
+                  {canTransitionEngagement && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {engagement.status === "considered" && (
+                        <Button size="sm" variant="outline" disabled={engagementPendingId === engagement.id} onClick={() => transitionEngagement(engagement.id, "contacted")}>
+                          {engagementPendingId === engagement.id ? "…" : "Marquer comme contactée"}
+                        </Button>
+                      )}
+                      {engagement.status === "contacted" && (
+                        <>
+                          <Button size="sm" disabled={engagementPendingId === engagement.id} onClick={() => transitionEngagement(engagement.id, "engaged")}>
+                            {engagementPendingId === engagement.id ? "…" : "Confirmer la participation"}
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-muted-foreground" disabled={engagementPendingId === engagement.id} onClick={() => transitionEngagement(engagement.id, "declined")}>
+                            Décliner
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <section className="border-t p-5 lg:p-6">
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Situations liées</p>

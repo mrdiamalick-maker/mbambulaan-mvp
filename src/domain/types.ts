@@ -1141,6 +1141,70 @@ export interface Initiative {
   serviceRequestIds?: string[];
 }
 
+// ProgrammeOrganizationEngagement (P2.5-B, mandat "Ecosystem Mobilization
+// Foundation") — le premier objet du moteur CONNECTER. Principe fondateur
+// du mandat (§1) : CAPABLE ≠ CONSIDÉRÉ ≠ CONTACTÉ ≠ ENGAGÉ. Un
+// rapprochement PartnerService (capacité déclarée par une organisation)
+// ne crée jamais cet objet automatiquement — il n'existe qu'après un
+// geste humain explicite (create_programme_organization_engagement,
+// programme-mobilization.ts). "capabilityCategory" ici ne réécrit PAS
+// ProgramOpportunity/Initiative avec un besoin structuré générique
+// (explicitement hors périmètre, mandat §3/§28) : c'est la capacité
+// choisie par l'humain POUR CE GESTE DE MOBILISATION précis, jamais une
+// prétention à représenter l'intégralité des besoins du programme.
+export type ProgrammeOrganizationEngagementRole = "implementer" | "funder";
+
+// Lifecycle strictement séquentiel (mandat §6) — considered → contacted →
+// engaged/declined, aucun saut, aucun retour arrière — même discipline
+// que INITIATIVE_LEGAL_TRANSITIONS (P2.5-A) et VERIFICATION_LEGAL_TRANSITIONS
+// (P2.2-A). "declined" n'est atteignable que depuis "contacted" (on ne
+// peut pas décliner une sollicitation jamais envoyée) ; "engaged" et
+// "declined" sont tous deux terminaux dans ce lot.
+export type ProgrammeOrganizationEngagementStatus = "considered" | "contacted" | "engaged" | "declined";
+
+export const programmeOrganizationEngagementRoleLabels: Record<ProgrammeOrganizationEngagementRole, string> = {
+  implementer: "Partenaire de mise en œuvre",
+  funder: "Partenaire financier potentiel"
+};
+
+export const programmeOrganizationEngagementStatusLabels: Record<ProgrammeOrganizationEngagementStatus, string> = {
+  considered: "Considérée",
+  contacted: "Contactée",
+  engaged: "Engagée",
+  declined: "Déclinée"
+};
+
+export interface ProgrammeOrganizationEngagement {
+  id: string;
+  initiativeId: string;
+  organizationId: string;
+  role: ProgrammeOrganizationEngagementRole;
+  // capabilityCategory reprend le vocabulaire déjà existant de
+  // PartnerService.category (mandat §3) — jamais un nouveau champ sur
+  // ProgramOpportunity/Initiative. Optionnel : un engagement peut aussi
+  // naître sans capacité précise associée (rare, mais le modèle ne force
+  // pas une catégorie fictive si le geste humain n'en fournit pas).
+  capabilityCategory?: PartnerService["category"];
+  status: ProgrammeOrganizationEngagementStatus;
+  createdAt: string;
+  createdByActorId: string;
+  updatedAt?: string;
+  updatedByActorId?: string;
+  // representativeActorId (mandat §8) — jamais obligatoire : une
+  // organisation reste considérable/contactable même si aucun
+  // représentant n'est encore documenté. Quand renseigné, doit résoudre
+  // vers un Actor réel portant une ActorRelationship "representant" pour
+  // cette Organization (validé par applyCreateProgrammeOrganizationEngagement,
+  // jamais déduit).
+  representativeActorId?: string;
+  // note — un seul champ texte libre court, réutilisé à la création comme
+  // à chaque transition (même discipline que ActorRelationship.note,
+  // P2.2-A) : jamais de deuxième système d'historique, jamais de detail
+  // de valeur de contrat/probabilité/ranking (mandat §2, explicitement
+  // exclus).
+  note?: string;
+}
+
 // Impact & Learning (LOT 4, mandat "de l'action à la valeur démontrable")
 // — quatrième capacité fondamentale : Mbàmbulaan distingue explicitement
 // ce qui a été FAIT (Result), ce qui a CHANGÉ (Outcome) et l'EFFET plus
@@ -1394,6 +1458,10 @@ export interface ProductState {
   communityPosts: CommunityPost[];
   partnerServices: PartnerService[];
   initiatives: Initiative[];
+  // programmeOrganizationEngagements (P2.5-B) — additif, même discipline
+  // que actorRelationships ci-dessus : jamais embarqué dans Initiative ni
+  // dans Organization, une provenance et un cycle de vie propres.
+  programmeOrganizationEngagements: ProgrammeOrganizationEngagement[];
   learnings: Learning[];
   // Result/Outcome/ImpactEvidence (LOT 4, mandat "de l'action à la valeur
   // démontrable") — additifs, même discipline que
@@ -1818,6 +1886,26 @@ export type Command =
   // que ci-dessus, appliquée à Organization.verificationStatus (LOT 7,
   // jusqu'ici jamais mutée par aucune commande — audit P2.2 confirmé).
   | { type: "update_organization_verification"; actorId: string; organizationId: string; verificationStatus: Exclude<VerificationStatus, "declaree">; note?: string }
+  // --- P2.5-B — Ecosystem Mobilization Foundation. `actorId` reste
+  // l'émetteur du geste (qui enregistre la considération, pour l'audit) —
+  // aucun champ "subject" séparé n'est nécessaire ici (contrairement à
+  // create_actor_relationship) : l'objet concerné est déjà entièrement
+  // désigné par initiativeId + organizationId, aucune ambiguïté possible.
+  | {
+      type: "create_programme_organization_engagement";
+      actorId: string;
+      initiativeId: string;
+      organizationId: string;
+      role: ProgrammeOrganizationEngagementRole;
+      capabilityCategory?: PartnerService["category"];
+      representativeActorId?: string;
+      note?: string;
+    }
+  // status exclut "considered" : jamais une destination de transition,
+  // uniquement l'état de création — légalité stricte (considered →
+  // contacted → engaged/declined) vérifiée par le domaine
+  // (programme-mobilization.ts), pas par ce type.
+  | { type: "update_programme_organization_engagement_status"; actorId: string; engagementId: string; status: Exclude<ProgrammeOrganizationEngagementStatus, "considered">; note?: string }
   | { type: "reset_demo"; actorId: string };
 
 export type CommandInput = Command extends infer Item

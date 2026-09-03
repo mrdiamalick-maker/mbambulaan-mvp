@@ -26,6 +26,7 @@ import { applyImpactCommand } from "./impact";
 import { applyActorNetworkCommand } from "./actor-network";
 import { applyInitiativeLifecycleCommand } from "./initiative-lifecycle";
 import { applyActorRelationshipCommand } from "./actor-relationship";
+import { applyProgrammeMobilizationCommand } from "./programme-mobilization";
 
 // Le moteur de rapprochement Lot ↔ ServiceRequest (§5.11) ne concerne que
 // les intentions d'approvisionnement : une demande de formation ou de
@@ -106,6 +107,8 @@ const transitions: Record<
     | "create_actor_relationship"
     | "update_actor_relationship_verification"
     | "update_organization_verification"
+    | "create_programme_organization_engagement"
+    | "update_programme_organization_engagement_status"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -962,6 +965,13 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   ) {
     return applyActorRelationshipCommand(state, command);
   }
+  // P2.5-B — Ecosystem Mobilization Foundation, délégué à un fichier dédié
+  // (même discipline que actor-relationship.ts/initiative-lifecycle.ts) :
+  // considérer/faire progresser une organisation pour un programme est un
+  // domaine fonctionnel distinct de la création de l'Initiative elle-même.
+  if (command.type === "create_programme_organization_engagement" || command.type === "update_programme_organization_engagement_status") {
+    return applyProgrammeMobilizationCommand(state, command);
+  }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
   }
@@ -1195,6 +1205,8 @@ export type WorkflowAction = Exclude<
   | "create_actor_relationship"
   | "update_actor_relationship_verification"
   | "update_organization_verification"
+  | "create_programme_organization_engagement"
+  | "update_programme_organization_engagement_status"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {

@@ -380,6 +380,12 @@ function canAccessRawIntake(role: Role): boolean {
 // retirés de la réponse) — seul Actor.phone est individuellement masqué
 // via projectActors ci-dessus, uniquement dans la branche non transverse
 // (mandat §15 : les rôles transverses restent autorisés à le voir).
+// programmeOrganizationEngagements (P2.5-B) rejoint la même catégorie C,
+// pour la même raison : Initiative et Organization ne sont jamais retirés
+// de la réponse, donc l'engagement qui les relie ne l'est pas non plus.
+// Aucune donnée personnelle n'est portée par cet objet (mandat §22, "pas
+// de détail de contact privé dans l'engagement") — pas de restriction de
+// champ nécessaire au-delà de ce qui existe déjà.
 export function projectStateForSession(state: ProductState, session: ProjectionSession): ProductState {
   const rawIntakeAllowed = canAccessRawIntake(session.role);
 

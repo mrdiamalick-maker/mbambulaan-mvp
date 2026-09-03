@@ -1492,6 +1492,23 @@ export function createDemoState(): ProductState {
         reviewedAt: now,
         reviewedByActorId: "act-coordinateur",
         note: "Relais de collecte confirmé au poste de quai"
+      },
+      // relation-prestataire-froid-representant (P2.5-B, audit §19/§20/§21)
+      // — sans cette relation, le scénario vertical Kayar/Joal butait
+      // exactement là où l'audit l'avait prédit : une capacité réelle
+      // (froid ET désormais maintenance, org-froid) sans aucun
+      // représentant documenté pour la porter.
+      {
+        id: "relation-prestataire-froid-representant",
+        actorId: "act-prestataire",
+        organizationId: "org-froid",
+        kind: "representant",
+        verificationStatus: "documentee",
+        createdAt: now,
+        createdByActorId: "act-coordinateur",
+        reviewedAt: now,
+        reviewedByActorId: "act-coordinateur",
+        note: "Responsable technique de Froid Sénégal Services"
       }
     ],
     territories,
@@ -2528,8 +2545,24 @@ export function createDemoState(): ProductState {
       { id: "service-logistique-national", organizationId: "org-logistique", name: "Lignes froides littorales mutualisées", category: "logistique", territoryIds: territoryRows.map(([id]) => id), status: "qualifie", trust: "observee", activationConditions: "Volume consolidé, itinéraire et température cible confirmés" },
       { id: "service-finance-bleue", organizationId: "org-finance", name: "Cofinancement d’équipements productifs", category: "financement", territoryIds: territoryRows.map(([id]) => id), status: "a_activer", trust: "declaree", activationConditions: "Besoin qualifié, gouvernance et plan de maintenance documentés" },
       { id: "service-saloum", organizationId: "org-saloum", name: "Regroupement et transformation estuarienne", category: "logistique", territoryIds: ["foundiougne", "djiffer", "missirah"], status: "reference", trust: "observee", activationConditions: "Fenêtre de collecte et volumes confirmés par les relais" },
-      { id: "service-metrologie-djiffer", organizationId: "org-froid", name: "Contrôle et recalibrage des équipements de pesée", category: "maintenance", territoryIds: ["djiffer"], status: "qualifie", trust: "documentee", activationConditions: "Équipement isolé, masse étalon disponible et relevé avant/après exigé" }
+      { id: "service-metrologie-djiffer", organizationId: "org-froid", name: "Contrôle et recalibrage des équipements de pesée", category: "maintenance", territoryIds: ["djiffer"], status: "qualifie", trust: "documentee", activationConditions: "Équipement isolé, masse étalon disponible et relevé avant/après exigé" },
+      // service-maintenance-kayar (P2.5-B, audit §17/§21) — l'audit a
+      // confirmé qu'aucune capacité "maintenance" ne couvrait Kayar : la
+      // seule capacité "maintenance" de org-froid (service-maintenance-sud)
+      // reste scopée à la Casamance, distincte territorialement. Plutôt
+      // que d'étirer artificiellement cette capacité vers un territoire
+      // qu'elle ne nomme pas, correction la plus honnête : une entrée
+      // minimale supplémentaire, même organisation (aucune nouvelle
+      // organisation créée), qui documente réellement ce que le scénario
+      // vertical Kayar exige.
+      { id: "service-maintenance-kayar", organizationId: "org-froid", name: "Maintenance moteur et équipements de quai", category: "maintenance", territoryIds: ["kayar", "fass-boye"], status: "reference", trust: "declaree", activationConditions: "Diagnostic partagé avec le relais territorial et pièces disponibles" }
     ],
+    // programmeOrganizationEngagements (P2.5-B) — délibérément vide : le
+    // mandat §1/§5 exige qu'aucun rapprochement de capacité ne crée un
+    // engagement automatiquement. La démonstration vivante (§18) construit
+    // la chaîne complète via de vraies commandes (test + Playwright),
+    // jamais un état pré-peuplé qui simulerait un geste humain jamais posé.
+    programmeOrganizationEngagements: [],
     initiatives: [
       {
         id: "init-froid",

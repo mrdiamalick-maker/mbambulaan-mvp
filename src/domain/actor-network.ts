@@ -17,9 +17,10 @@
 //    explicite qui rattache à une Organization existante OU crée une
 //    "organisation candidate" (verificationStatus "declaree"), puis crée
 //    un PartnerService qui conserve sa provenance (sourceRef → Signal).
-import type { Actor, ActorRelationship, Capacity, Command, Commitment, FieldMission, Infrastructure, Initiative, Organization, PartnerService, ProductState, Signal } from "./types";
+import type { Actor, ActorRelationship, Capacity, Command, Commitment, FieldMission, Infrastructure, Initiative, Organization, PartnerService, ProductState, ProgrammeOrganizationEngagement, Signal } from "./types";
 import { id, timestamp, withAudit } from "./rules";
 import { relationshipsForActor, relationshipsForOrganization } from "./actor-relationship";
+import { engagementsForOrganization } from "./programme-mobilization";
 
 // --- Projections pures --------------------------------------------------
 
@@ -103,6 +104,14 @@ export interface OrganizationNetworkProfile {
   // une relation traverse volontairement les organisations (ex. Actor dont
   // l'organisation primaire diffère de celle qu'il représente/relaie).
   relationships: Array<{ relationship: ActorRelationship; actor?: Actor }>;
+  // engagedInitiatives (P2.5-B, mandat §16) — lien retour Réseau →
+  // Programme, réutilisant le MÊME objet ProgrammeOrganizationEngagement
+  // que le sens Programme → Réseau (aucun second modèle de données) :
+  // uniquement les engagements au statut "engaged" (mandat §16, explicite
+  // "pour status engaged"), jamais "considered"/"contacted" — un
+  // rapprochement encore en cours de qualification n'est pas encore une
+  // contribution réelle.
+  engagedInitiatives: Array<{ engagement: ProgrammeOrganizationEngagement; initiative?: Initiative }>;
 }
 
 export function buildOrganizationNetworkProfile(state: ProductState, organizationId: string): OrganizationNetworkProfile | undefined {
@@ -142,6 +151,9 @@ export function buildOrganizationNetworkProfile(state: ProductState, organizatio
     relationship,
     actor: state.actors.find((item) => item.id === relationship.actorId)
   }));
+  const engagedInitiatives = engagementsForOrganization(state, organizationId)
+    .filter((item) => item.status === "engaged")
+    .map((engagement) => ({ engagement, initiative: state.initiatives.find((item) => item.id === engagement.initiativeId) }));
 
   return {
     organization,
@@ -154,7 +166,8 @@ export function buildOrganizationNetworkProfile(state: ProductState, organizatio
     openCommitments,
     closedCommitments,
     relationships,
-    initiatives
+    initiatives,
+    engagedInitiatives
   };
 }
 
