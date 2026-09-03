@@ -49,6 +49,23 @@ export interface Actor {
   verified: boolean;
 }
 
+// VerificationStatus (P2.2-A, mandat "Actor & Relationship Foundation",
+// §5) — grammaire explicable partagée par Organization.verificationStatus
+// (LOT 7) et ActorRelationship.verificationStatus (ci-dessous) : "declaree"
+// (auto-déclaré), "documentee" (des éléments l'étayent), "verifiee"
+// (confirmé par un geste humain de coordination). Volontairement PAS
+// TrustLevel (10 paliers) : la confiance de connaissance d'un Signal/
+// Finding répond à "cette affirmation est-elle fiable ?", jamais à
+// "cette identité/relation est-elle la bonne personne/organisation ?" —
+// deux questions différentes que ce lot refuse de mélanger (mandat §5).
+export type VerificationStatus = "declaree" | "documentee" | "verifiee";
+
+export const verificationStatusLabels: Record<VerificationStatus, string> = {
+  declaree: "Déclarée",
+  documentee: "Documentée",
+  verifiee: "Vérifiée"
+};
+
 export interface Organization {
   id: string;
   name: string;
@@ -77,8 +94,54 @@ export interface Organization {
   // organisation candidate créée via qualify_signal_as_network_capacity
   // (mandat §13, jamais "verifiee" à la création). Absent = les
   // organisations existantes du Demo World (déjà connues/documentées
-  // avant ce lot) — pas de migration rétroactive fabriquée.
-  verificationStatus?: "declaree" | "documentee" | "verifiee";
+  // avant ce lot) — pas de migration rétroactive fabriquée. Absent est
+  // traité comme "declaree" par update_organization_verification (P2.2-A,
+  // §9) pour la seule question de légalité de transition — jamais réécrit
+  // rétroactivement tant qu'aucune transition n'a été demandée.
+  verificationStatus?: VerificationStatus;
+}
+
+// ActorRelationship (P2.2-A, mandat "Actor & Relationship Foundation") —
+// un objet métier léger unique pour représenter une relation Actor →
+// Organization (mandat §3, pas de relation Actor→Actor générique tant
+// qu'aucun besoin réel ne l'exige). Trois natures seulement (mandat §4) :
+// "membre" (appartenance), "representant" (habilité à parler au nom de
+// l'organisation), "relais" (relais de remontée/collecte pour le compte de
+// l'organisation). Jamais inférées l'une de l'autre — "representant"
+// n'implique PAS "membre" sauf si les deux relations existent réellement
+// (mandat §4, garde-fou explicite) : create_actor_relationship ne crée
+// jamais qu'UNE seule relation à la fois.
+export type ActorRelationshipKind = "membre" | "representant" | "relais";
+
+export const actorRelationshipKindLabels: Record<ActorRelationshipKind, string> = {
+  membre: "Membre",
+  representant: "Représente",
+  relais: "Relais"
+};
+
+export interface ActorRelationship {
+  id: string;
+  actorId: string;
+  organizationId: string;
+  kind: ActorRelationshipKind;
+  // verificationStatus démarre toujours à "declaree" à la création
+  // (jamais choisi par le créateur, même discipline que PartnerService.
+  // trust dans qualify_signal_as_network_capacity, actor-network.ts) —
+  // seule update_actor_relationship_verification peut la faire progresser.
+  verificationStatus: VerificationStatus;
+  createdAt: string;
+  createdByActorId: string;
+  // Renseignés uniquement par update_actor_relationship_verification
+  // (mandat §6) — absents tant qu'aucune revue humaine n'a eu lieu au-delà
+  // de la déclaration initiale.
+  reviewedAt?: string;
+  reviewedByActorId?: string;
+  // Base courte et optionnelle de la relation ou de sa vérification (ex.
+  // "Présidente du GIE", "Confirmé lors de la mission terrain du...") —
+  // jamais un système de gestion de preuves (mandat §6, "ne pas créer un
+  // Evidence Management System") : un seul champ texte libre, réutilisé à
+  // la création comme à chaque revue.
+  note?: string;
 }
 
 export interface Territory {
@@ -372,6 +435,15 @@ export interface Signal {
   // canal brut. Absent : le déclarant et le saisisseur sont la même
   // personne (cas majoritaire, aucune migration requise).
   reportedBy?: string;
+  // reportedByActorId (P2.2-A, mandat "Actor & Relationship Foundation",
+  // §10/§11) — additif, structurel : quand le déclarant réel correspond à
+  // un Actor déjà connu du Core, cette référence le distingue de
+  // actorId (l'acteur qui SAISIT/qualifie, ex. un relais) — "Moussa,
+  // relais Mbàmbulaan" (actorId) ≠ "Ibrahima, pêcheur ayant réellement
+  // donné l'information" (reportedByActorId). Ne remplace jamais
+  // `reportedBy` (texte libre, conservé tel quel comme repli historique) :
+  // les deux peuvent coexister, aucune migration rétroactive.
+  reportedByActorId?: string;
   disposition: SignalDisposition;
   // Note libre associée à la disposition courante (motif d'écartement,
   // référence du Finding de rattachement...) — optionnelle, jamais
@@ -436,6 +508,12 @@ export interface IncomingMessage {
   // PublicRequest.territory) — la conversion exige un choix explicite.
   territoryHint?: string;
   reportedBy: string;
+  // reportedByActorId (P2.2-A, §10) — même distinction que sur Signal :
+  // renseigné uniquement quand le déclarant réel de ce message correspond
+  // à un Actor déjà connu (ex. Demo World, ou choisi par le coordinateur à
+  // la qualification via convert_message_to_signal.reportedByActorId).
+  // `reportedBy` (texte libre) reste le repli historique, jamais retiré.
+  reportedByActorId?: string;
   body: string;
   receivedAt: string;
   // "ecarte" (P2.1-B, §13) — additif : un message "converti" ou "nouveau"
@@ -1276,6 +1354,11 @@ export interface ProductState {
   tenant: Tenant;
   organizations: Organization[];
   actors: Actor[];
+  // actorRelationships (P2.2-A) — additif, même discipline que
+  // fieldMissions/observations (LOT 3) : un tableau ProductState dédié,
+  // jamais embarqué dans Actor/Organization (une relation a sa propre
+  // provenance/vérification, distincte des deux objets qu'elle relie).
+  actorRelationships: ActorRelationship[];
   territories: Territory[];
   sites: Site[];
   infrastructures: Infrastructure[];
@@ -1347,7 +1430,13 @@ export type Command =
   // applyMessageToSignalOnly dérive directement { objectType:
   // "incoming_message", objectId: messageId }.
   | { type: "create_signal"; actorId: string; territoryId?: string; title: string; description: string; channel: Signal["channel"]; category?: Signal["category"]; sourceRef?: SignalSourceRef }
-  | { type: "convert_message_to_signal"; actorId: string; messageId: string; territoryId: string; category: Signal["category"]; title: string; description: string }
+  // reportedByActorId (P2.2-A, §12) — optionnel, permet au coordinateur de
+  // désigner explicitement le déclarant réel s'il le connaît et qu'il
+  // diffère de l'acteur qui qualifie (mandat "Relay vs Declarant") ; si
+  // absent, applyMessageToSignalOnly reprend celui déjà porté par le
+  // message le cas échéant (rules.ts) — jamais déduit, jamais un Actor créé
+  // à la volée depuis cette commande.
+  | { type: "convert_message_to_signal"; actorId: string; messageId: string; territoryId: string; category: Signal["category"]; title: string; description: string; reportedByActorId?: string }
   // dismiss_incoming_message (P2.1-B, mandat "Qualification Workspace",
   // §13/§14/§15) — l'autre issue possible pour une remontée brute encore
   // "nouveau" (l'autre étant convert_message_to_signal) : un geste humain
@@ -1710,6 +1799,25 @@ export type Command =
         activationConditions: string;
       };
     }
+  // --- P2.2-A — Actor & Relationship Foundation. create_actor_relationship
+  // est le seul chemin de création d'une ActorRelationship (mandat §7 :
+  // "aucune suppression physique silencieuse" — donc aucune commande de
+  // suppression non plus, une relation créée reste, seule sa vérification
+  // progresse). `actorId` reste l'émetteur du geste (qui l'enregistre,
+  // pour l'audit) — `subjectActorId` est l'Actor réellement concerné par
+  // la relation, distinct pour ne jamais confondre "qui déclare" et "qui
+  // est déclaré" (même discipline que reportedByActorId ci-dessus).
+  | { type: "create_actor_relationship"; actorId: string; subjectActorId: string; organizationId: string; kind: ActorRelationshipKind; note?: string }
+  // verificationStatus exclut "declaree" : jamais une destination de
+  // transition, uniquement l'état de création (même discipline que
+  // update_initiative_status, P2.5-A) — légalité stricte
+  // (declaree → documentee → verifiee, aucun saut, aucun retour arrière)
+  // vérifiée par le domaine (actor-relationship.ts), pas par ce type.
+  | { type: "update_actor_relationship_verification"; actorId: string; actorRelationshipId: string; verificationStatus: Exclude<VerificationStatus, "declaree">; note?: string }
+  // update_organization_verification (mandat §9) — même grammaire/légalité
+  // que ci-dessus, appliquée à Organization.verificationStatus (LOT 7,
+  // jusqu'ici jamais mutée par aucune commande — audit P2.2 confirmé).
+  | { type: "update_organization_verification"; actorId: string; organizationId: string; verificationStatus: Exclude<VerificationStatus, "declaree">; note?: string }
   | { type: "reset_demo"; actorId: string };
 
 export type CommandInput = Command extends infer Item

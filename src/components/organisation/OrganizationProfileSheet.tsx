@@ -12,6 +12,7 @@ import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TrustBadge } from "@/components/shared/StatusBadges";
 import { describeCapacityAvailability, type OrganizationNetworkProfile } from "@/domain/actor-network";
+import { actorRelationshipKindLabels, verificationStatusLabels } from "@/domain/types";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
@@ -25,12 +26,6 @@ const organizationTypeLabel: Record<string, string> = {
   partenaire: "Partenaire"
 };
 
-const verificationLabel: Record<string, string> = {
-  declaree: "Déclarée",
-  documentee: "Documentée",
-  verifiee: "Vérifiée"
-};
-
 const partnerServiceStatusLabel: Record<string, string> = {
   reference: "Référencée",
   qualifie: "Qualifiée",
@@ -38,14 +33,14 @@ const partnerServiceStatusLabel: Record<string, string> = {
 };
 
 export function OrganizationProfileSheet({ profile }: { profile: OrganizationNetworkProfile }) {
-  const { organization, members, verifiedMembers, territories, services, capacities, openCommitments, closedCommitments, initiatives } = profile;
+  const { organization, members, verifiedMembers, territories, services, capacities, openCommitments, closedCommitments, initiatives, relationships } = profile;
 
   return (
     <div className="space-y-6 px-1">
       <div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">{organizationTypeLabel[organization.type] ?? organization.type}</Badge>
-          <Badge variant="outline">{verificationLabel[organization.verificationStatus ?? "documentee"]}</Badge>
+          <Badge variant="outline">{verificationStatusLabels[organization.verificationStatus ?? "documentee"]}</Badge>
         </div>
         <p className="mt-2 text-xs leading-5 text-muted-foreground">Identité déclarée, documentée ou vérifiée — jamais un score : c’est un fait à vérifier, pas une note.</p>
       </div>
@@ -140,6 +135,34 @@ export function OrganizationProfileSheet({ profile }: { profile: OrganizationNet
       <section>
         <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Membres habilités</p>
         <p className="mt-2 flex items-center gap-1.5 text-sm">{verifiedMembers.length}/{members.length} identités vérifiées <ShieldCheck size={13} className="text-[#1d8a5f]" /></p>
+      </section>
+
+      {/* Relations déclarées (P2.2-A, mandat §13) — membre/représentant/
+          relais, avec statut de vérification : distinct de "Membres
+          habilités" ci-dessus (Actor.organizationId, appartenance
+          primaire) — une relation documente un geste humain explicite de
+          rattachement/habilitation, jamais déduite de l'appartenance.
+          "Représente" n'implique jamais "Membre" (mandat §4/§20). */}
+      <section>
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Relations déclarées</p>
+        {relationships.length === 0 ? (
+          <p className="mt-2 text-sm text-muted-foreground">Aucune relation Membre/Représentant/Relais documentée pour cette organisation à ce stade.</p>
+        ) : (
+          <div className="mt-2 space-y-2">
+            {relationships.map(({ relationship, actor }) => (
+              <div key={relationship.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{actor?.name ?? "Acteur introuvable"}</p>
+                  {relationship.note && <p className="mt-0.5 text-xs leading-4 text-muted-foreground">{relationship.note}</p>}
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Badge variant="outline">{actorRelationshipKindLabels[relationship.kind]}</Badge>
+                  <Badge variant="outline">{verificationStatusLabels[relationship.verificationStatus]}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

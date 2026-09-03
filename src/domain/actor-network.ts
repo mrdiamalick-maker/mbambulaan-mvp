@@ -17,8 +17,9 @@
 //    explicite qui rattache à une Organization existante OU crée une
 //    "organisation candidate" (verificationStatus "declaree"), puis crée
 //    un PartnerService qui conserve sa provenance (sourceRef → Signal).
-import type { Actor, Capacity, Command, Commitment, FieldMission, Infrastructure, Initiative, Organization, PartnerService, ProductState, Signal } from "./types";
+import type { Actor, ActorRelationship, Capacity, Command, Commitment, FieldMission, Infrastructure, Initiative, Organization, PartnerService, ProductState, Signal } from "./types";
 import { id, timestamp, withAudit } from "./rules";
+import { relationshipsForActor, relationshipsForOrganization } from "./actor-relationship";
 
 // --- Projections pures --------------------------------------------------
 
@@ -37,6 +38,11 @@ export interface ActorNetworkProfile {
   closedCommitments: Commitment[];
   missions: FieldMission[];
   initiatives: Initiative[];
+  // relationships (P2.2-A, mandat §14) — les ActorRelationship dont cet
+  // Actor est le sujet (member/representant/relais de quelle(s)
+  // organisation(s)), lues à la demande via relationshipsForActor
+  // (actor-relationship.ts) — aucune duplication locale.
+  relationships: ActorRelationship[];
 }
 
 export function buildActorNetworkProfile(state: ProductState, actorId: string): ActorNetworkProfile | undefined {
@@ -55,6 +61,7 @@ export function buildActorNetworkProfile(state: ProductState, actorId: string): 
 
   const missions = state.fieldMissions.filter((item) => item.responsibleActorId === actorId);
   const initiatives = state.initiatives.filter((item) => item.ownerId === actorId);
+  const relationships = relationshipsForActor(state, actorId);
 
   return {
     actor,
@@ -64,7 +71,8 @@ export function buildActorNetworkProfile(state: ProductState, actorId: string): 
     openCommitments,
     closedCommitments,
     missions,
-    initiatives
+    initiatives,
+    relationships
   };
 }
 
@@ -84,6 +92,17 @@ export interface OrganizationNetworkProfile {
   openCommitments: Commitment[];
   closedCommitments: Commitment[];
   initiatives: Initiative[];
+  // relationships (P2.2-A, mandat §13) — les ActorRelationship réellement
+  // déclarées pour cette organisation (membre/représentant/relais),
+  // distinctes de `members` ci-dessus (Actor.organizationId, appartenance
+  // primaire déjà existante depuis LOT 7) : une relation documente un
+  // GESTE humain de rattachement/habilitation, jamais déduite de
+  // l'appartenance primaire (mandat §4/§20, garde-fou explicite —
+  // "representative n'implique PAS member"). L'Actor sujet est résolu ici
+  // (pas seulement son id) car il n'appartient pas forcément à `members` —
+  // une relation traverse volontairement les organisations (ex. Actor dont
+  // l'organisation primaire diffère de celle qu'il représente/relaie).
+  relationships: Array<{ relationship: ActorRelationship; actor?: Actor }>;
 }
 
 export function buildOrganizationNetworkProfile(state: ProductState, organizationId: string): OrganizationNetworkProfile | undefined {
@@ -119,6 +138,10 @@ export function buildOrganizationNetworkProfile(state: ProductState, organizatio
   const allCommitments = state.coordinationSpaces.flatMap((space) => space.commitments).filter((item) => memberIds.has(item.actorId));
   const openCommitments = allCommitments.filter((item) => item.status !== "terminee");
   const closedCommitments = allCommitments.filter((item) => item.status === "terminee");
+  const relationships = relationshipsForOrganization(state, organizationId).map((relationship) => ({
+    relationship,
+    actor: state.actors.find((item) => item.id === relationship.actorId)
+  }));
 
   return {
     organization,
@@ -130,6 +153,7 @@ export function buildOrganizationNetworkProfile(state: ProductState, organizatio
     capacities,
     openCommitments,
     closedCommitments,
+    relationships,
     initiatives
   };
 }

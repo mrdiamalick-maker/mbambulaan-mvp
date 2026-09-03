@@ -898,6 +898,12 @@ function IncomingMessageThread({
   const [dismissReason, setDismissReason] = useState<IncomingMessageDismissReason>("doublon");
   const [dismissNote, setDismissNote] = useState("");
   const [duplicateOfSignalId, setDuplicateOfSignalId] = useState("");
+  // reportedByActorId (P2.2-A, mandat §12) — pré-rempli si le message le
+  // porte déjà (Demo World ou saisi en amont) ; le coordinateur reste
+  // libre de le changer ou de le laisser vide ("Personne non encore
+  // référencée") — jamais de création d'Actor depuis cette UI (mandat §12).
+  const [reportedByActorId, setReportedByActorId] = useState(message.reportedByActorId ?? "");
+  const declarantActor = message.reportedByActorId ? state.actors.find((item) => item.id === message.reportedByActorId) : undefined;
   const [dismissPending, setDismissPending] = useState(false);
   const [dismissError, setDismissError] = useState("");
   const meta = channelMeta[message.channel];
@@ -954,7 +960,8 @@ function IncomingMessageThread({
         territoryId,
         category,
         title,
-        description
+        description,
+        reportedByActorId: reportedByActorId || undefined
       });
       if (!ok) {
         setError("La qualification en signal a échoué.");
@@ -1000,6 +1007,13 @@ function IncomingMessageThread({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold">{message.reportedBy}</p>
+            {/* Déclarant structuré (P2.2-A, mandat §11/§12) — quand le
+                déclarant réel correspond à un Actor déjà connu, son
+                identité structurée s'affiche à côté du texte libre
+                ci-dessus, jamais à sa place (le texte reste la source
+                originale telle que reçue). "Moussa, relais" (qui qualifie)
+                ≠ "Ibrahima, déclarant réel" (reportedByActorId). */}
+            {declarantActor && <Badge variant="outline">Déclarant · {declarantActor.name}</Badge>}
             <Badge variant="marine">{messageChannelLabel[message.channel]}</Badge>
             {/* Territoire déclaré / à confirmer (mandat §9) — jamais
                 présenté comme un fait vérifié : un texte libre du canal
@@ -1039,6 +1053,18 @@ function IncomingMessageThread({
             <label className="block text-xs font-semibold text-muted-foreground">
               Description
               <textarea required rows={3} value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1.5 w-full rounded-md border bg-background px-3 py-2 text-sm font-semibold text-foreground" />
+            </label>
+            {/* Déclarant réel (P2.2-A, mandat §12) — sélection d'un Actor
+                existant lorsqu'il est connu, jamais une création depuis
+                cette UI. Distinct de l'acteur qui qualifie (vous,
+                actorId) : "Personne non encore référencée" reste le repli
+                honnête par défaut. */}
+            <label className="block text-xs font-semibold text-muted-foreground">
+              Déclarant réel — si connu (facultatif)
+              <select value={reportedByActorId} onChange={(event) => setReportedByActorId(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm font-semibold text-foreground">
+                <option value="">Personne non encore référencée</option>
+                {state.actors.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
             </label>
             <p className="text-[11px] text-muted-foreground">Titre/description pré-remplis à partir du message — à corriger librement : vous structurez l’information, vous ne réécrivez pas la source (toujours visible ci-dessus). Aucune catégorie n’est déduite automatiquement.</p>
             {/* "Ce qui manque" (mandat §16) — rappel statique, jamais un

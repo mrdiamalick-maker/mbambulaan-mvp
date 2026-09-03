@@ -25,6 +25,7 @@ import { applyFieldMissionCommand } from "./field-mission";
 import { applyImpactCommand } from "./impact";
 import { applyActorNetworkCommand } from "./actor-network";
 import { applyInitiativeLifecycleCommand } from "./initiative-lifecycle";
+import { applyActorRelationshipCommand } from "./actor-relationship";
 
 // Le moteur de rapprochement Lot ↔ ServiceRequest (§5.11) ne concerne que
 // les intentions d'approvisionnement : une demande de formation ou de
@@ -102,6 +103,9 @@ const transitions: Record<
     | "record_impact"
     | "record_learning"
     | "qualify_signal_as_network_capacity"
+    | "create_actor_relationship"
+    | "update_actor_relationship_verification"
+    | "update_organization_verification"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -825,6 +829,11 @@ function applyMessageToSignalOnly(state: ProductState, command: Extract<Command,
     trust: "declaree",
     source: `Message entrant (${channelLabels[message.channel]}) converti par le coordinateur`,
     reportedBy: message.reportedBy,
+    // reportedByActorId (P2.2-A, §12) — le coordinateur peut désigner
+    // explicitement le déclarant à la qualification (command.reportedByActorId,
+    // toujours prioritaire) ; à défaut, reprend celui déjà porté par le
+    // message (Demo World ou saisi en amont) — jamais déduit.
+    reportedByActorId: command.reportedByActorId ?? message.reportedByActorId,
     disposition: "nouveau",
     // sourceRef (P2.1-A) — dérivé directement de messageId, déjà porté
     // par la commande : pas de champ sourceRef séparé sur
@@ -941,6 +950,17 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   }
   if (command.type === "qualify_signal_as_network_capacity") {
     return applyActorNetworkCommand(state, command);
+  }
+  // P2.2-A — Actor & Relationship Foundation, délégué à un fichier dédié
+  // (même discipline que initiative-lifecycle.ts/actor-network.ts) : la
+  // création/vérification de relations Actor↔Organization est un domaine
+  // fonctionnel distinct de la création de l'Initiative ou du Signal.
+  if (
+    command.type === "create_actor_relationship" ||
+    command.type === "update_actor_relationship_verification" ||
+    command.type === "update_organization_verification"
+  ) {
+    return applyActorRelationshipCommand(state, command);
   }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
@@ -1172,6 +1192,9 @@ export type WorkflowAction = Exclude<
   | "record_impact"
   | "record_learning"
   | "qualify_signal_as_network_capacity"
+  | "create_actor_relationship"
+  | "update_actor_relationship_verification"
+  | "update_organization_verification"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {

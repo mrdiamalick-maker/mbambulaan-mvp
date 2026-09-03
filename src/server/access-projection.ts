@@ -330,6 +330,23 @@ function projectInitiatives(initiatives: Initiative[], hiddenSituationIds: Set<s
   });
 }
 
+// projectActors — P2.2-A (mandat "Actor & Relationship Foundation", §15) :
+// l'audit P2.2 a confirmé qu'Actor.phone était livré tel quel à toute
+// session authentifiée, quel que soit son rôle — "l'existence de l'Actor
+// dans le réseau ≠ le droit de voir ses coordonnées personnelles" (mandat
+// §15, principe explicite). Règle retenue (la plus faible défendable, pas
+// un modèle de consentement complet, mandat §15) : les rôles transverses
+// de coordination (TRANSVERSE_READ_ROLES ci-dessus) voient toujours le
+// téléphone — cf. le repli anticipé dans projectStateForSession, aucun
+// appel à cette fonction dans cette branche ; un viewer non transverse le
+// voit seulement pour les Actors de sa propre organisation ; sinon
+// l'Actor reste visible (jamais retiré) mais phone est vidé — aucun
+// chiffre du numéro masqué ne doit survivre dans la réponse sérialisée
+// (mandat §23).
+function projectActors(actors: Actor[], viewer: { organizationId: string | undefined }): Actor[] {
+  return actors.map((actor) => (actor.organizationId === viewer.organizationId ? actor : { ...actor, phone: "" }));
+}
+
 // canAccessRawIntake — P2.1-B (mandat "Qualification Workspace", §2 :
 // "garantir que IncomingMessage n'est PAS renvoyé par GET /api/state à un
 // rôle qui n'est pas autorisé à traiter ces entrées"). Volontairement PAS
@@ -357,7 +374,12 @@ function canAccessRawIntake(role: Role): boolean {
 // présentes dans le modèle. ServiceRequest/Capacity/Opportunity/Signal/
 // CollectiveNeed (hors sourceRefs)/ProgramOpportunity (hors evidenceRefs)/
 // Actors/Organizations/Territories restent non filtrés — catégorie C ou
-// fan non exclusif, documenté ci-dessus, pas un oubli.
+// fan non exclusif, documenté ci-dessus, pas un oubli. actorRelationships
+// (P2.2-A) rejoint cette catégorie C : accessible dès lors qu'Actor et
+// Organization le sont (toujours le cas, ni l'un ni l'autre jamais
+// retirés de la réponse) — seul Actor.phone est individuellement masqué
+// via projectActors ci-dessus, uniquement dans la branche non transverse
+// (mandat §15 : les rôles transverses restent autorisés à le voir).
 export function projectStateForSession(state: ProductState, session: ProjectionSession): ProductState {
   const rawIntakeAllowed = canAccessRawIntake(session.role);
 
@@ -371,6 +393,7 @@ export function projectStateForSession(state: ProductState, session: ProjectionS
   const viewerOrganizationId = resolveOrganizationId(state.actors, session.actorId);
   const viewerOrganization = state.organizations.find((item) => item.id === viewerOrganizationId);
   const viewer = { organizationId: viewerOrganizationId, organization: viewerOrganization, role: session.role };
+  const actors = projectActors(state.actors, viewer);
 
   const situations = state.situations.filter((situation) => isSituationVisible(situation, state.actors, viewer));
   const visibleSituationIds = new Set(situations.map((item) => item.id));
@@ -410,6 +433,7 @@ export function projectStateForSession(state: ProductState, session: ProjectionS
 
   return {
     ...state,
+    actors,
     situations,
     decisions,
     coordinationSpaces,

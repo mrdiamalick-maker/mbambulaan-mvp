@@ -1448,6 +1448,52 @@ export function createDemoState(): ProductState {
     tenant: { id: "tenant-demo", name: "Démonstration nationale Mbàmbulaan", mode: "demonstration" },
     organizations,
     actors,
+    // actorRelationships (P2.2-A) — quelques relations réalistes
+    // seulement, jamais un peuplement systématique (mandat §18) :
+    // A. Rokhaya Fall (transformatrice, org-transform) aussi membre
+    //    déclarée du GIE des mareyeurs de la Petite-Côte (org-mareyeurs) ;
+    // B. Aminata Coly, présidente représentante vérifiée de ce même GIE —
+    //    "representant" jamais déduit de "membre" (mandat §4/§20) :
+    //    Aminata ne porte elle-même aucune relation "membre" ici, la
+    //    démonstration tient sur ces 2 relations distinctes ;
+    // C. Awa Diouf (operateur), relais documenté de org-site — l'agent qui
+    //    qualifie msg-poste-quai-1 ci-dessus, distinct du déclarant réel
+    //    (Babacar Guèye, reportedByActorId) — scénario vertical §19.
+    actorRelationships: [
+      {
+        id: "relation-transform-gie-membre",
+        actorId: "act-transform",
+        organizationId: "org-mareyeurs",
+        kind: "membre",
+        verificationStatus: "declaree",
+        createdAt: now,
+        createdByActorId: "act-coordinateur"
+      },
+      {
+        id: "relation-mareyeur-sud-gie-representante",
+        actorId: "act-mareyeur-sud",
+        organizationId: "org-mareyeurs",
+        kind: "representant",
+        verificationStatus: "verifiee",
+        createdAt: now,
+        createdByActorId: "act-coordinateur",
+        reviewedAt: now,
+        reviewedByActorId: "act-coordinateur",
+        note: "Présidente du GIE des mareyeurs de la Petite-Côte"
+      },
+      {
+        id: "relation-operateur-site-relais",
+        actorId: "act-operateur",
+        organizationId: "org-site",
+        kind: "relais",
+        verificationStatus: "documentee",
+        createdAt: now,
+        createdByActorId: "act-coordinateur",
+        reviewedAt: now,
+        reviewedByActorId: "act-coordinateur",
+        note: "Relais de collecte confirmé au poste de quai"
+      }
+    ],
     territories,
     sites,
     infrastructures,
@@ -1482,7 +1528,12 @@ export function createDemoState(): ProductState {
     incomingMessages: [
       { id: "msg-whatsapp-1", channel: "whatsapp_structure", territoryHint: "Kayar", reportedBy: "Aïda Fall (mareyeuse, message vocal WhatsApp)", body: "Le thiof se vend cher aujourd’hui à Kayar, plusieurs acheteurs en même temps mais je ne sais pas si c’est partout pareil. Vous pouvez regarder ?", receivedAt: now, status: "nouveau" },
       { id: "msg-telephone-1", channel: "telephone", territoryHint: "Djiffer", reportedBy: "Responsable du site de pesée de Djiffer (appel)", body: "La balance du quai donne des résultats différents depuis ce matin pour un même lot pesé deux fois. On continue à peser ou on attend un contrôle ?", receivedAt: now, status: "nouveau" },
-      { id: "msg-poste-quai-1", channel: "poste_quai", territoryHint: "Saint-Louis", reportedBy: "Un capitaine (note vocale relayée par l’agent de quai)", body: "Note vocale transcrite par l’agent : « On a un souci avec la glace ce matin, la production tourne au ralenti et deux pirogues attendent déjà pour charger. »", receivedAt: now, status: "nouveau" },
+      // reportedByActorId (P2.2-A, scénario vertical §19) : Babacar Guèye
+      // (act-capitaine-saint) est le déclarant réel — la note vocale est
+      // saisie par l'agent de quai (Awa Diouf, act-operateur, relais
+      // documenté de org-site, cf. actorRelationships ci-dessous), jamais
+      // le même acteur. reportedBy (texte) reste inchangé, additif.
+      { id: "msg-poste-quai-1", channel: "poste_quai", territoryHint: "Saint-Louis", reportedBy: "Un capitaine (note vocale relayée par l’agent de quai)", reportedByActorId: "act-capitaine-saint", body: "Note vocale transcrite par l’agent : « On a un souci avec la glace ce matin, la production tourne au ralenti et deux pirogues attendent déjà pour charger. »", receivedAt: now, status: "nouveau" },
       { id: "msg-terrain-1", channel: "terrain", territoryHint: "Mbour", reportedBy: "Un opérateur de quai (constat direct)", body: "Constat direct au quai de Mbour : un des deux véhicules de transport habituels ne s’est pas présenté ce matin, les lots en attente de départ s’accumulent.", receivedAt: now, status: "nouveau" }
     ],
     // distinct du trust de la situation ("verifiee") une fois vérifiée.

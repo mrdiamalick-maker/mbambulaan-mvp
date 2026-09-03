@@ -83,6 +83,14 @@ const all: Command["type"][] = [
   // geste de coordination, jamais celui d'un acteur de terrain
   // individuel — même mandat que create_initiative/create_field_mission.
   "qualify_signal_as_network_capacity",
+  // P2.2-A — Actor & Relationship Foundation (mandat §9) : même famille de
+  // gouvernance réseau que qualify_signal_as_network_capacity déjà
+  // ci-dessus — enregistrer/vérifier une relation ou l'identité d'une
+  // organisation reste un geste de coordination, jamais celui d'un acteur
+  // de terrain individuel.
+  "create_actor_relationship",
+  "update_actor_relationship_verification",
+  "update_organization_verification",
   "reset_demo"
 ];
 
@@ -175,7 +183,12 @@ const allowed: Record<Role, Command["type"][]> = {
     "record_impact",
     "record_learning",
     // LOT 7 — même mandat que create_initiative déjà ouvert à ce rôle.
-    "qualify_signal_as_network_capacity"
+    "qualify_signal_as_network_capacity",
+    // P2.2-A — même mandat que qualify_signal_as_network_capacity déjà
+    // ouvert à ce rôle.
+    "create_actor_relationship",
+    "update_actor_relationship_verification",
+    "update_organization_verification"
   ],
   coordinateur: all,
   institution: [
@@ -216,6 +229,11 @@ const allowed: Record<Role, Command["type"][]> = {
     // LOT 7 — même mandat que create_initiative déjà ouvert à ce rôle
     // (institution porte aussi la gouvernance du réseau de partenaires).
     "qualify_signal_as_network_capacity",
+    // P2.2-A — même mandat que qualify_signal_as_network_capacity déjà
+    // ouvert à ce rôle.
+    "create_actor_relationship",
+    "update_actor_relationship_verification",
+    "update_organization_verification",
     "reset_demo"
   ],
   partenaire: ["create_community_post"]
