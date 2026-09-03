@@ -9,17 +9,11 @@ import { TerrainShell } from "@/components/terrain/TerrainShell";
 // conditionnel dans l'un des deux, l'entrée technique du Terrain mobile ne
 // partage pas leur code de composition (D9).
 export function TerrainProductShell({ children }: { children: React.ReactNode }) {
-  const { state, actorId, loading, error } = useProduct();
+  const { state, actorId, loading, error, logout } = useProduct();
   const actor = state?.actors.find((item) => item.id === actorId);
 
-  const logout = () => {
-    void fetch("/api/auth/logout", { method: "POST" }).finally(() => {
-      window.location.href = "/";
-    });
-  };
-
   return (
-    <TerrainShell actorName={actor?.name} onLogout={logout} error={error} showLoading={loading && !state}>
+    <TerrainShell actorName={actor?.name} onLogout={() => void logout()} error={error} showLoading={loading && !state}>
       {children}
     </TerrainShell>
   );

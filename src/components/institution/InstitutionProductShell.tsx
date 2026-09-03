@@ -10,7 +10,7 @@ import { InstitutionShell } from "@/components/institution/InstitutionShell";
 // dans ProductShell : l'entrée technique de l'Espace État ne partage pas
 // le code de composition du shell partagé (D9).
 export function InstitutionProductShell({ children }: { children: React.ReactNode }) {
-  const { state, actorId, persistence, loading, error } = useProduct();
+  const { state, actorId, persistence, loading, error, logout } = useProduct();
   const actor = state?.actors.find((item) => item.id === actorId);
   const organization = state?.organizations.find((item) => item.id === actor?.organizationId);
 
@@ -28,12 +28,6 @@ export function InstitutionProductShell({ children }: { children: React.ReactNod
     if (state && !lastRefreshedAt) setLastRefreshedAt(new Date());
   }, [state, lastRefreshedAt]);
 
-  const logout = () => {
-    void fetch("/api/auth/logout", { method: "POST" }).finally(() => {
-      window.location.href = "/";
-    });
-  };
-
   return (
     <InstitutionShell
       orgName={organization?.name}
@@ -41,7 +35,7 @@ export function InstitutionProductShell({ children }: { children: React.ReactNod
       persistence={persistence}
       unread={unread}
       lastRefreshedAt={lastRefreshedAt}
-      onLogout={logout}
+      onLogout={() => void logout()}
       error={error}
       showLoading={loading && !state}
     >
