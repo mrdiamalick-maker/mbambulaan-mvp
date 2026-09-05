@@ -6,6 +6,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createDemoState } from "../src/data/demo-state";
 import { CoastlineTerritoryMap } from "../src/components/territories/CoastlineTerritoryMap";
+import { TerritoryAtlasCanvas } from "../src/components/territories/TerritoryAtlasCanvas";
 import { territoryMapPositions } from "../src/domain/territory-map-positions";
 
 // XXL-R5.5 — Cartographic Signature (mandat CEO "une signature
@@ -14,26 +15,41 @@ import { territoryMapPositions } from "../src/domain/territory-map-positions";
 // sur /app/etat, le fond photo + caméra AtlasImageMap (jugé "trop sombre"
 // et "recadré comme une image", §2) par CoastlineTerritoryMap — déjà la
 // carte de /app/pilotage et (depuis XXL-R4) de l'Atlas professionnel —
-// avec ses couleurs D9 par défaut (fond clair). Les tests ci-dessous
-// portent sur ce que ce lot a réellement changé : une seule primitive
-// cartographique partagée, présence de tous les territoires documentés
-// (pas seulement ceux qui méritent attention), et le retrait effectif du
-// fond photo/caméra sur le Brief national.
+// avec ses couleurs D9 par défaut (fond clair).
+//
+// P2.DESIGN-1A, addendum CEO "Cartography is non-negotiable" — renversement
+// EXPLICITE et assumé de la doctrine "une signature cartographique, pas
+// trois" ci-dessus, pour l'Espace État uniquement : l'addendum autorise en
+// toutes lettres à ne pas protéger CoastlineTerritoryMap.tsx et à
+// construire un rendu cartographique dédié, plus premium, pour l'Espace
+// État. Nouvelle doctrine, remplaçant l'ancienne pour ce périmètre précis :
+// "une signature cartographique pour l'Espace État (TerritoryAtlasCanvas,
+// Brief national + Territoires), une autre pour Public/Pro/Pilotage
+// (CoastlineTerritoryMap, non modifié, hors périmètre de ce lot)" — jamais
+// une troisième. TEST A ci-dessous est réécrit pour vérifier cette
+// nouvelle réalité plutôt que l'ancienne ; TEST B/C sont dupliqués pour
+// TerritoryAtlasCanvas (mêmes garanties réelles attendues du nouveau
+// composant) sans supprimer les versions CoastlineTerritoryMap (toujours
+// vraies, /app/pilotage et l'Atlas professionnel en dépendent encore).
 function readSource(relativePath: string): string {
   return readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), "utf-8");
 }
 (globalThis as Record<string, unknown>).React = React;
 
 const etatPageSource = readSource("../src/app/app/etat/page.tsx");
+const etatTerritoiresSource = readSource("../src/app/app/etat/territoires/page.tsx");
 const atlasProSource = readSource("../src/components/ecosystem/ProfessionalAtlasWorkspace.tsx");
 
-// TEST A — une seule primitive cartographique : le Brief national et
-// l'Atlas professionnel importent tous les deux CoastlineTerritoryMap,
-// jamais un second composant carte (mandat §4/§17, "une signature
-// cartographique, pas trois").
-test("TEST A — Brief national et Atlas professionnel partagent la même primitive cartographique", () => {
-  assert.ok(etatPageSource.includes('from "@/components/territories/CoastlineTerritoryMap"'), "le Brief national doit consommer CoastlineTerritoryMap");
-  assert.ok(atlasProSource.includes('from "@/components/territories/CoastlineTerritoryMap"'), "l'Atlas professionnel doit consommer CoastlineTerritoryMap");
+// TEST A — une signature cartographique par périmètre, jamais trois
+// (mandat §4/§17, réinterprété par l'addendum P2.DESIGN-1A) : le Brief
+// national ET Territoires (les deux surfaces cartographiques de l'Espace
+// État) partagent la même primitive dédiée TerritoryAtlasCanvas ; l'Atlas
+// professionnel, lui, continue de consommer CoastlineTerritoryMap, non
+// modifié — la preuve que le rendu État n'a pas fui vers/depuis le Pro.
+test("TEST A — l'Espace État partage sa propre primitive cartographique, distincte et sans effet sur le Pro", () => {
+  assert.ok(etatPageSource.includes('from "@/components/territories/TerritoryAtlasCanvas"'), "le Brief national doit consommer TerritoryAtlasCanvas");
+  assert.ok(etatTerritoiresSource.includes('from "@/components/territories/TerritoryAtlasCanvas"'), "Territoires doit consommer TerritoryAtlasCanvas");
+  assert.ok(atlasProSource.includes('from "@/components/territories/CoastlineTerritoryMap"'), "l'Atlas professionnel doit rester sur CoastlineTerritoryMap, non affecté par le rendu État");
   // La chaîne "AtlasImageMap" reste légitimement présente dans les
   // commentaires d'historique (doctrine du fichier : jamais réécrire
   // rétroactivement le passé) — seuls l'import et l'usage JSX du
@@ -45,12 +61,14 @@ test("TEST A — Brief national et Atlas professionnel partagent la même primit
 // TEST B — présence territoriale ≠ niveau d'attention (mandat §6) : le
 // Brief national passe TOUS les territoires réels à la carte, jamais un
 // sous-ensemble filtré sur l'attention — c'est la liste latérale
-// ("À arbitrer"), pas la carte elle-même, qui reste scopée.
+// ("À arbitrer"), pas la carte elle-même, qui reste scopée. Rendu via
+// TerritoryAtlasCanvas (P2.DESIGN-1A) : c'est réellement ce composant que
+// /app/etat monte désormais, pas CoastlineTerritoryMap.
 test("TEST B — le Brief national dessine tous les territoires documentés, pas seulement ceux en attention", () => {
   assert.ok(etatPageSource.includes("territories={state.territories}"), "la carte doit recevoir state.territories tel quel, sans filtre sur l'activité");
   const state = createDemoState();
   const html = renderToStaticMarkup(
-    React.createElement(CoastlineTerritoryMap, {
+    React.createElement(TerritoryAtlasCanvas, {
       territories: state.territories.map((item) => ({ id: item.id, name: item.name, activity: item.activity })),
       onSelect: () => {}
     })
@@ -63,18 +81,35 @@ test("TEST B — le Brief national dessine tous les territoires documentés, pas
 // TEST C — stable ≠ invisible (mandat §7) : un territoire "stable" reste
 // un marqueur réel sur la carte (discret, sans libellé permanent), jamais
 // absent du tracé — seul le libellé texte est réservé aux territoires en
-// vigilance/critique (comportement natif de CoastlineTerritoryMap).
+// vigilance/critique (même règle héritée, désormais portée par
+// TerritoryAtlasCanvas).
 test("TEST C — un territoire stable reste un marqueur visible sur la carte, jamais invisible", () => {
   const state = createDemoState();
   const stableTerritory = state.territories.find((item) => item.activity === "stable");
   assert.ok(stableTerritory, "ce test suppose au moins un territoire stable dans le jeu de démonstration");
   const html = renderToStaticMarkup(
-    React.createElement(CoastlineTerritoryMap, {
+    React.createElement(TerritoryAtlasCanvas, {
       territories: [{ id: stableTerritory!.id, name: stableTerritory!.name, activity: "stable" }],
       onSelect: () => {}
     })
   );
   assert.ok(html.includes(`Ouvrir ${stableTerritory!.name}`), "le marqueur du territoire stable doit être rendu (bouton cliquable), même sans libellé texte permanent");
+});
+
+// TEST C2 — CoastlineTerritoryMap (Pro/Public/Pilotage, non modifié) garde
+// exactement le même comportement qu'avant ce lot : non-régression directe
+// sur le composant que ce lot n'a pas touché.
+test("TEST C2 — CoastlineTerritoryMap (Pro/Public/Pilotage) reste inchangé : tous les territoires restent des marqueurs cliquables", () => {
+  const state = createDemoState();
+  const html = renderToStaticMarkup(
+    React.createElement(CoastlineTerritoryMap, {
+      territories: state.territories.map((item) => ({ id: item.id, name: item.name, activity: item.activity })),
+      onSelect: () => {}
+    })
+  );
+  for (const territory of state.territories) {
+    assert.ok(html.includes(`Ouvrir ${territory.name}`), `${territory.name} doit rester un marqueur cliquable sur CoastlineTerritoryMap (Pro/Pilotage)`);
+  }
 });
 
 // TEST D — aucune donnée géographique fabriquée (mandat §26) : les 18

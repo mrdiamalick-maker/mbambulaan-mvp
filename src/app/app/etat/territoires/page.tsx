@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Drawer } from "@/components/etat/Drawer";
 import { EtatRegistryHeader } from "@/components/etat/EtatRegistryHeader";
+import { TerritoryAtlasCanvas, atlasSeaBackground } from "@/components/territories/TerritoryAtlasCanvas";
 import {
   Mission,
   MissionForm,
@@ -126,6 +127,54 @@ export default function TerritoiresPage() {
           </label>
       </EtatRegistryHeader>
 
+      {/* P2.DESIGN-1A (§6) — cette page ("Territoires", l'équivalent réel de
+          l'étape "Atlas territorial" de la doctrine) n'affichait jusqu'ici
+          qu'un registre texte/tableau, sans aucune carte : la relation
+          carte ↔ territoire ↔ dossier que le mandat demande d'installer
+          n'existait nulle part sur cette page (elle vit sur /app/etat
+          [Brief national] et /app/atlas Pro, jamais ici). Ajout du même
+          socle cartographique unique déjà utilisé partout ailleurs
+          (CoastlineTerritoryMap, aucune nouvelle géométrie inventée),
+          couplé à une liste compacte des mêmes territoires déjà filtrés
+          (filteredTerritories, pas un second calcul) : cliquer sur un
+          marqueur OU une ligne de la liste ouvre directement le même
+          Drawer TerritoryDetail que le reste de la page — cohérent avec
+          l'unique mécanisme de "dossier" déjà en usage sur tout l'Espace
+          État, pas un second système de fiche inline inventé pour cette
+          page. selectedId reflète le dossier actuellement ouvert (surlign
+          purement visuel, aucune donnée supplémentaire). */}
+      <div className="etat-panel mt-5 overflow-hidden lg:grid lg:grid-cols-[280px_1fr]">
+        <div className="border-b border-[var(--etat-line)] lg:border-b-0 lg:border-r">
+          <p className="etat-eyebrow px-5 pt-5">Territoires affichés · {filteredTerritories.length}</p>
+          <div className="mt-3 max-h-[220px] divide-y divide-[var(--etat-line)] overflow-y-auto lg:max-h-[440px]">
+            {filteredTerritories.length === 0 ? (
+              <p className="px-5 pb-5 text-sm text-[var(--etat-stone-600)]">Aucun territoire ne correspond à ce filtre.</p>
+            ) : filteredTerritories.map((territory) => (
+              <button
+                key={territory.id}
+                onClick={() => setTerritoryDrawer(territory)}
+                className="flex w-full items-center justify-between gap-2 px-5 py-2.5 text-left transition hover:bg-[var(--etat-offwhite-dim)]"
+                aria-current={territoryDrawer?.id === territory.id ? "true" : undefined}
+                style={territoryDrawer?.id === territory.id ? { backgroundColor: "var(--etat-terracotta-dim)" } : undefined}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-[var(--etat-navy-950)]">{territory.name}</span>
+                  <span className="block text-[11px] text-[var(--etat-stone-400)]">{territory.region}</span>
+                </span>
+                <StatusBadge status={territory.activity} />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="relative aspect-[4/5] sm:aspect-[16/9] lg:aspect-auto lg:h-[460px]" style={{ background: atlasSeaBackground }}>
+          <TerritoryAtlasCanvas
+            territories={filteredTerritories}
+            selectedId={territoryDrawer?.id}
+            onSelect={(id) => setTerritoryDrawer(state.territories.find((item) => item.id === id) ?? null)}
+          />
+        </div>
+      </div>
+
       {territoriesToWatch.length > 0 && (
         <div className="etat-panel mt-5 p-6 lg:p-7">
           <EditorialSection eyebrow="Où concentrer l’attention" title="À surveiller">
@@ -149,11 +198,12 @@ export default function TerritoiresPage() {
       )}
 
       <div className="etat-panel mt-5 p-6 lg:p-7">
+      <p className="etat-eyebrow">Registre complet</p>
       {filteredTerritories.length === 0 ? (
-        <p className="text-sm text-[var(--etat-stone-600)]">Aucun territoire ne correspond à ce filtre pour le moment.</p>
+        <p className="mt-3 text-sm text-[var(--etat-stone-600)]">Aucun territoire ne correspond à ce filtre pour le moment.</p>
       ) : (
         <>
-          <div className="hidden overflow-x-auto md:block">
+          <div className="mt-3 hidden overflow-x-auto md:block">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-[var(--etat-line)] text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">

@@ -79,9 +79,17 @@ export function InstitutionShell({
           <span className="grid size-8 place-items-center rounded-md bg-primary text-sm font-black text-primary-foreground">M</span>
           <span className="hidden text-sm font-semibold sm:inline">Mbàmbulaan</span>
         </Link>
+        {/* P2.DESIGN-1A (§11) — le repli, jamais rendu en pratique (l'acteur
+            institution de démonstration résout toujours à une organisation
+            réelle du jeu de données, "Cellule nationale de coordination",
+            elle-même neutre — aucun ministère réel nommé), citait
+            littéralement un Ministère précis dans le code source. Remplacé
+            par une identité neutre pour ne jamais laisser croire, même en
+            cas d'organisation non résolue, que Mbàmbulaan affiche un vrai
+            client institutionnel. */}
         <span className="hidden items-baseline gap-2 truncate text-xs md:flex">
           <span className="font-bold text-sidebar-primary">Espace État</span>
-          <span className="truncate text-sidebar-foreground/60">{orgName ?? "Ministère de la Pêche et de l’Économie Maritime"}</span>
+          <span className="truncate text-sidebar-foreground/60">{orgName ?? "Institution partenaire — démonstration"}</span>
         </span>
         <div className="ml-auto flex items-center gap-2">
           {/* Raffinement visuel (maquette validée, arbitrage CEO

@@ -7,7 +7,7 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
 import { SituationIcon } from "@/components/etat/MotifIcons";
-import { CoastlineTerritoryMap } from "@/components/territories/CoastlineTerritoryMap";
+import { TerritoryAtlasCanvas, atlasSeaBackground } from "@/components/territories/TerritoryAtlasCanvas";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { PageIntro } from "@/components/foundations";
 import {
@@ -769,8 +769,17 @@ export default function EtatPage() {
               </div>
             </div>
 
-            <div className="relative aspect-[4/5] p-4 sm:aspect-[3/4] lg:aspect-auto lg:h-full">
-              <CoastlineTerritoryMap
+            {/* P2.DESIGN-1A (addendum CEO "Cartography is non-negotiable") —
+                TerritoryAtlasCanvas remplace CoastlineTerritoryMap ici :
+                même donnée géométrique réelle et calibrée
+                (territory-map-positions.ts, aucune position inventée),
+                rendu entièrement neuf (mer pleine cadre, texture, ombre
+                portée, étiquettes en pastille) scopé à cette page et à
+                /app/etat/territoires — CoastlineTerritoryMap reste
+                inchangé pour Public/Pro/Pilotage, hors périmètre de ce
+                lot. */}
+            <div className="relative aspect-[4/5] sm:aspect-[3/4] lg:aspect-auto lg:h-full" style={{ background: atlasSeaBackground }}>
+              <TerritoryAtlasCanvas
                 territories={state.territories}
                 selectedId={cameraTargetId ?? undefined}
                 onSelect={(id) => { setSelectedTerritoryId(id); setCameraForcedNational(false); }}

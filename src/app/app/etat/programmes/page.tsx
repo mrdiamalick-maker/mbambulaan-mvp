@@ -27,6 +27,19 @@ const programmeGroups: { key: "execution" | "conception" | "terminee"; title: st
   { key: "terminee", title: "Terminés", statuses: ["terminee"] }
 ];
 
+// P2.DESIGN-1A (§10, signature de confiance) — Initiative.budgetStatus est
+// un champ réel du Core (domain/types.ts), déjà affiché dans le Pro
+// (app/(coordination)/initiatives/page.tsx, budgetStatusCaption) mais
+// jamais montré côté État jusqu'ici : le seul montant sans distinction
+// "à estimer/estimé/simulé" laisse croire à une précision budgétaire
+// souvent non garantie. Même 3 libellés que le Pro, pas un second
+// vocabulaire inventé pour cette page.
+const budgetStatusCaption: Record<Initiative["budgetStatus"], string> = {
+  a_estimer: "budget non encore chiffré",
+  estime: "budget estimé, à confirmer",
+  valide: "budget simulé à titre indicatif"
+};
+
 // XXL-R2 — carte programme extraite en composant propre (inchangée dans
 // son contenu) pour être réutilisable à la fois en liste plate (un statut
 // filtré) et groupée par tiers réels (§15, filtre "Tous les statuts").
@@ -62,6 +75,7 @@ function ProgrammeCard({ programme, state }: { programme: Initiative; state: Pro
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Budget / financement</p>
           <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{programme.budgetFcfa !== undefined ? formatFcfa(programme.budgetFcfa) : "Budget à estimer"}</p>
+          <p className="mt-0.5 text-[11px] text-[var(--etat-stone-600)]">{budgetStatusCaption[programme.budgetStatus]}</p>
           <p className="mt-0.5 text-[11px] text-[var(--etat-stone-600)]">{formatFcfa(confirmed)} confirmés{totalFunding > 0 ? ` sur ${formatFcfa(totalFunding)} identifiés` : ""}</p>
         </div>
         <div>
