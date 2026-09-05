@@ -5,7 +5,12 @@ import { PublicAnalyticsTracker } from "@/components/public/PublicAnalyticsTrack
 import "./globals.css";
 import "./brand.css";
 import "./public-design-system.css";
-import "./produit-design-system.css";
+// produit-design-system.css (P2.DESIGN-0 §3) — import retiré : 0
+// consommateur confirmé (aucune classe .op-* ni .op-scope utilisée dans
+// tout src/**/*.tsx) pour un fichier censé porter le langage visuel de
+// Coordination/Pro. Fichier conservé sur disque, non chargé, en attente
+// d'une suppression complète dans un lot de nettoyage ultérieur — voir
+// son en-tête pour le détail.
 import "./etat-design-system.css";
 import "./mb-foundations.css";
 
@@ -39,7 +44,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#071d26"
+  // P2.DESIGN-0 (§10) — alignée sur le marine verrouillé (#0B1A2A) ; la
+  // valeur précédente (#071d26) venait de --mb-navy (brand.css), un
+  // navy legacy distinct de la palette de marque, jamais destiné à
+  // piloter la couleur système PWA/navigateur.
+  themeColor: "#0B1A2A"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

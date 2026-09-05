@@ -1,8 +1,8 @@
 // Badges partagés — canal d'origine et niveau de confiance — utilisés
 // par CoordinatorHub (Lot 3) et SituationRoom (Lot 4). Composants
-// shadcn (Badge), pas la palette sarcelle des anciens Badges.tsx
-// (src/components/ui/Badges.tsx, toujours utilisé par SituationRow
-// pour le registre /app/situations des rôles hors périmètre).
+// shadcn (Badge), pas la palette sarcelle de l'ancien src/components/
+// ui/Badges.tsx — supprimé en P2.DESIGN-0 (§5), 0 consommateur restant
+// (SituationRow s'appuie déjà sur ce fichier-ci, pas sur l'ancien).
 //
 // Resserrage visuel (post-Lot 4) : variantes pleines plutôt qu'outline
 // — un badge de confiance contestée/expirée doit se voir immédiatement,

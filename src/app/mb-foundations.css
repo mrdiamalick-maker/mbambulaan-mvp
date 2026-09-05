@@ -63,6 +63,24 @@
   --mb-info: #1d4468;       /* = --mb-navy-600, neutre/informationnel */
 
   /* ---- Typographie (§9-§10) ----
+     P2.DESIGN-0 (§7) — confirmation : la hiérarchie à 7 rôles demandée
+     par le mandat existe déjà intégralement ci-dessous, rien à créer :
+       Display/Hero  → .mb-display
+       Page title    → .mb-page-title
+       Section title → .mb-section-title
+       Object title  → .mb-dossier-title (titre d'un objet ouvert en
+                        détail — dossier territoire/situation/programme)
+       Body          → .mb-body
+       Meta          → .mb-evidence (mono, discret — source/date/preuve)
+       Label         → .mb-eyebrow (mono, majuscule) ou .mb-operational
+                        selon le contexte (étiquette éditoriale vs
+                        étiquette d'état opérationnel)
+     La serif éditoriale (--mb-type-font-display) n'habille QUE Display/
+     Page title/Section title/Object title — jamais Body/Meta/Label ni
+     un composant de formulaire, table ou opération (mandat §7) : c'est
+     déjà la règle ci-dessous, aucune classe .mb-* n'applique la serif
+     à un rôle opérationnel.
+
      Le stack serif est déjà partagé mot pour mot par pub-scope
      (--pub-font-display) ET etat-scope (--etat-font-display) — première
      preuve concrète que Public et État convergent déjà sans le savoir.
@@ -127,7 +145,15 @@
   /* ---- Ombres (§14) ---- Un seul token : l'élévation réelle (flottant). */
   --mb-shadow-floating: 0 24px 60px -12px rgba(11, 26, 42, .28);
 
-  /* ---- Containers (§11) ---- */
+  /* ---- Containers (§11) ----
+     P2.DESIGN-0 (§8) — alias de vocabulaire mandat ↔ fichier, mêmes
+     valeurs, rien de nouveau :
+       EDITORIAL   → --mb-container-narrative (lecture, un seul flux)
+       OPERATIONAL → --mb-container-workspace (poste de travail dense)
+       SPATIAL     → --mb-container-spatial (carte, grande visualisation)
+     Une seule famille de composants (mb-foundations + shadcn), trois
+     largeurs de lecture différentes selon l'usage de la page — pas trois
+     applications séparées (mandat §8). */
   --mb-container-narrative: 46rem;   /* ~736px — lecture concentrée */
   --mb-container-workspace: 74rem;   /* ~1184px — poste de travail standard */
   --mb-container-spatial: 88rem;     /* ~1408px — Atlas / grandes visualisations */
@@ -235,3 +261,78 @@
   .mb-container-workspace { max-width: var(--mb-container-workspace); margin-inline: auto; }
   .mb-container-spatial { max-width: var(--mb-container-spatial); margin-inline: auto; }
 }
+
+/* =============================================================================
+   P2.DESIGN-0 (§6) — SURFACE / PANNEAU / CARTE / LIGNE
+   =============================================================================
+   Distinction demandée par le mandat avant la future refonte visuelle,
+   documentée ici plutôt qu'ajoutée en composants : chaque rôle a déjà un
+   porteur existant, mandat §6 ("ne pas créer si une primitive existante
+   couvre déjà le besoin"). Objectif : que la prochaine direction
+   artistique puisse composer un écran sans tout enfermer dans le même
+   "rounded-lg border shadow" — quatre grammaires, un seul système.
+
+   SURFACE éditoriale — fond de section qui porte un propos, pas un objet
+     précis (hero, bloc de contexte). Porteurs existants : .surface/
+     .surface-dark (globals/brand.css, legacy) côté Public/pages non
+     migrées ; EditorialSection (foundations/) côté État/Situation.
+
+   PANNEAU fonctionnel — bloc dense d'un espace de travail (filtre,
+     formulaire, liste d'actions) : pas un propos, un outil. Porteur :
+     Card (shadcn, components/ui/card.tsx) utilisé en mode "conteneur",
+     pas en mode "objet cliquable".
+
+   CARTE objet — représente UN objet métier réel et identifiable
+     (Territoire, Situation, Initiative, Organisation…), cliquable vers
+     son détail. Porteur : Card (shadcn) en mode "objet", jamais un
+     <div rounded-* border> ad hoc.
+
+   LIGNE / registre — plusieurs objets de même nature listés pour
+     comparaison/balayage (registre, table). Porteurs existants :
+     ListItemCard (components/ui/), table.tsx (shadcn), ou une ligne de
+     <table> classique — jamais une grille de cards quand une liste
+     comparable est demandée (c'est l'anti-motif nommé par le mandat G1,
+     "accumulation de cards").
+
+   Ce que ce lot NE fait PAS : renommer .surface/Card en de nouvelles
+   classes .mb-surface/.mb-panel/.mb-card/.mb-ligne — cela ferait entrer
+   ce fichier dans une refonte visuelle (hors mandat P2.DESIGN-0, §11).
+   La bascule effective de chaque écran signature vers la bonne grammaire
+   se fera lot par lot, guidée par les maquettes à venir. */
+
+/* =============================================================================
+   P2.DESIGN-0 (§5) — GRAMMAIRE DEMANDÉE : ÉTAT DES LIEUX
+   =============================================================================
+   PageHeader/PageIntro   → PageIntro.tsx (foundations/) — ui/PageHeader.tsx,
+                            le doublon abandonné depuis le Lot 7 (0 usage
+                            réel, seulement des commentaires "abandonné
+                            pour…"), a été supprimé dans ce lot.
+   SectionHeader          → couvert par .mb-section-title + EditorialSection,
+                            pas un composant séparé — aucune primitive
+                            manquante identifiée.
+   Surface / Panel        → voir bloc SURFACE/PANNEAU/CARTE/LIGNE ci-dessus.
+   EditorialSection       → components/foundations/EditorialSection.tsx.
+   MetricStatement        → components/foundations/MetricStatement.tsx ;
+                            ui/Metric.tsx (doublon "ocean/lagoon/sand/coral",
+                            0 usage réel) supprimé dans ce lot.
+   EvidenceLine           → components/foundations/EvidenceLine.tsx.
+   TrustIndicator         → components/foundations/TrustIndicator.tsx.
+   KnowledgeState         → components/foundations/KnowledgeState.tsx.
+   TerritoryIdentity      → components/foundations/TerritoryIdentity.tsx
+                            (distinct de TerritorySignature.tsx, le motif
+                            graphique décoratif de territoire — deux rôles
+                            différents, pas un doublon : conservés tels
+                            quels, tous deux consommés réellement).
+   SignalMark             → components/foundations/SignalMark.tsx.
+   EmptyState             → AUCUNE primitive dédiée aujourd'hui : chaque
+                            écran écrit son propre message "Aucun … pour
+                            l'instant" en <p> ad hoc. Gap réel, non
+                            comblé ici : construire cette primitive sans
+                            la direction visuelle à venir reviendrait à
+                            deviner sa forme — dette assumée, à faire une
+                            fois les maquettes disponibles.
+   ActionBar              → AUCUNE primitive dédiée aujourd'hui : les
+                            barres d'actions de page sont des <div
+                            className="flex gap-…"> ad hoc, écran par
+                            écran. Même traitement qu'EmptyState — gap
+                            réel, dette assumée, différée aux maquettes. */

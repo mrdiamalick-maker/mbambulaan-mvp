@@ -1,4 +1,14 @@
-/* Mbàmbulaan Produit — système de design dédié à app.mbambulaan.sn.
+/* DÉPRÉCIÉ (P2.DESIGN-0, §3) — plus importé depuis src/app/layout.tsx.
+   Audit G1 puis re-vérification P2.DESIGN-0 : 0 consommateur dans tout
+   src/ (tous les .tsx) pour .op-scope et chacune des classes ci-dessous (Atlas
+   Pro, Coordination, Réseau vivent tous sur shadcn/legacy, jamais sur ce
+   fichier). Conservé sur disque tel quel (non réécrit, non étendu) en
+   attente d'une suppression complète dans un lot de nettoyage ultérieur
+   — ne pas migrer de nouvelles pages vers ce système, ne pas en repartir
+   pour la Coordination : mb-foundations.css + shadcn-theme.css sont le
+   socle transversal retenu (P2.DESIGN-0 §2).
+
+   Mbàmbulaan Produit — système de design dédié à app.mbambulaan.sn.
    Distinct du site Public (pub-*, éditorial, turquoise/ivoire/laiton) et de
    l'ancien tableau de bord (brand.css / globals.css, classes .surface,
    .ops-*) : ce fichier ne redéfinit ni ne surcharge ces classes, il ajoute
