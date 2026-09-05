@@ -24,14 +24,22 @@ function readSource(relativePath: string): string {
 (globalThis as Record<string, unknown>).React = React;
 
 // TEST A — navigation État accessible sous desktop sans modifier desktop
-// (mandat §7.A) : EtatSidebar (desktop, hidden lg:flex) reste strictement
-// inchangée dans sa classe de repli ; EtatMobileNav (nouveau, XXL-RC1 §2)
-// existe, est gardée lg:hidden, et consomme la MÊME liste navItems que la
-// sidebar desktop — une seule source des 5 destinations, jamais deux
-// listes à maintenir en parallèle.
+// (mandat §7.A) : EtatSidebar (desktop, hidden lg:flex) garde son repli
+// hidden/lg:flex ; EtatMobileNav (nouveau, XXL-RC1 §2) existe, est gardée
+// lg:hidden, et consomme la MÊME liste navItems que la sidebar desktop —
+// une seule source des 5 destinations, jamais deux listes à maintenir en
+// parallèle.
+// P2.DESIGN-1A.2 (North Star Claude Design) — la classe exacte pinée ici
+// (w-56, bg-white, p-3) appartenait à l'habillage clair d'avant ce lot :
+// le mandat autorise explicitement la reconstruction complète de la
+// présentation (sidebar marine 252px du prototype fourni), tant que le
+// VRAI garde-fou de ce test — le repli responsive hidden/lg:flex qui
+// empêche desktop et mobile de s'afficher en même temps — reste intact.
+// Assertion mise à jour sur ce garde-fou réel plutôt que sur des classes
+// de couleur/largeur devenues volontairement obsolètes.
 test("TEST A — la sidebar État desktop reste inchangée, le nouveau menu mobile partage les mêmes routes", () => {
   const source = readSource("../src/components/institution/EtatSidebar.tsx");
-  assert.ok(source.includes('"hidden w-56 shrink-0 flex-col bg-white p-3 lg:flex"'), "la sidebar desktop doit garder exactement son repli d'origine (hidden … lg:flex)");
+  assert.ok(source.includes('hidden h-screen w-[252px] shrink-0 flex-col lg:flex'), "la sidebar desktop doit garder son repli responsive (hidden … lg:flex)");
   assert.ok(source.includes("export function EtatMobileNav"), "EtatMobileNav doit être exporté (nouveau, XXL-RC1)");
   assert.ok(source.includes("lg:hidden"), "le déclencheur mobile doit être gardé lg:hidden — jamais visible en même temps que la sidebar desktop");
   assert.ok(source.includes("export const navItems"), "navItems doit être exporté et rester la source unique des 5 destinations État");

@@ -86,7 +86,7 @@ export default function TerritoiresPage() {
     .slice(0, 5);
 
   return (
-    <div className="etat-scope min-h-screen bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
+    <div className="px-6 pb-16 pt-8 lg:px-[60px] lg:pt-10">
       <EtatRegistryHeader
         eyebrow="Territoires suivis — registre complet"
         title="Comprendre où agir, territoire par territoire."
@@ -100,11 +100,11 @@ export default function TerritoiresPage() {
         signature
       >
           <label className="block">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Région</p>
+            <p className="etat-filter-label">Région</p>
             <select
               value={regionFilter}
               onChange={(event) => setRegionFilter(event.target.value)}
-              className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
+              className="etat-filter-select"
             >
               <option value="all">Toutes les régions</option>
               {regions.map((region) => (
@@ -113,11 +113,11 @@ export default function TerritoiresPage() {
             </select>
           </label>
           <label className="block">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Activité</p>
+            <p className="etat-filter-label">Activité</p>
             <select
               value={activityFilter}
               onChange={(event) => setActivityFilter(event.target.value as "all" | "stable" | "vigilance" | "critique")}
-              className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
+              className="etat-filter-select"
             >
               <option value="all">Tous les niveaux</option>
               <option value="stable">Stable</option>
@@ -145,7 +145,7 @@ export default function TerritoiresPage() {
           purement visuel, aucune donnée supplémentaire). */}
       <div className="etat-panel mt-5 overflow-hidden lg:grid lg:grid-cols-[280px_1fr]">
         <div className="border-b border-[var(--etat-line)] lg:border-b-0 lg:border-r">
-          <p className="etat-eyebrow px-5 pt-5">Territoires affichés · {filteredTerritories.length}</p>
+          <p className="etat-eyebrow px-5 pt-5"><span className="etat-eyebrow-dot" />Territoires affichés · {filteredTerritories.length}</p>
           <div className="mt-3 max-h-[220px] divide-y divide-[var(--etat-line)] overflow-y-auto lg:max-h-[440px]">
             {filteredTerritories.length === 0 ? (
               <p className="px-5 pb-5 text-sm text-[var(--etat-stone-600)]">Aucun territoire ne correspond à ce filtre.</p>
@@ -198,7 +198,7 @@ export default function TerritoiresPage() {
       )}
 
       <div className="etat-panel mt-5 p-6 lg:p-7">
-      <p className="etat-eyebrow">Registre complet</p>
+      <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Registre complet</p>
       {filteredTerritories.length === 0 ? (
         <p className="mt-3 text-sm text-[var(--etat-stone-600)]">Aucun territoire ne correspond à ce filtre pour le moment.</p>
       ) : (
@@ -243,7 +243,7 @@ export default function TerritoiresPage() {
               const openSituations = state.situations.filter((item) => item.territoryId === territory.id && item.status !== "reglee").length;
               const fragileInfra = state.infrastructures.filter((item) => item.territoryId === territory.id && item.status !== "operationnelle").length;
               return (
-                <article key={territory.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--etat-line)] p-4">
+                <article key={territory.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[3px] border border-[var(--etat-line)] p-4">
                   <div>
                     <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{territory.name}</p><StatusBadge status={territory.activity} /></div>
                     <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{territory.region}</p>

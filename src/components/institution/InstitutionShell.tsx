@@ -1,9 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Bell, Clock, LogOut, PlayCircle } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Bell, LogOut, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,16 +22,28 @@ import { EtatMobileNav, EtatSidebar } from "@/components/institution/EtatSidebar
 //
 // A14 ("pas de rail de navigation permanent pour l'Espace État") est
 // consciemment renversée ici (mandat CEO "nouvelle DA Vue d'ensemble",
-// arbitrage Lot 0 2026-08-23, Décision 1 : "l'Option A est retenue, le
-// shell partagé porte la sidebar — /app/etat/rapport en hérite aussi dès
-// ce lot, avant sa propre passe de validation dédiée. C'est cohérent,
-// pas une incohérence à corriger plus tard.") — ce n'est pas un oubli de
-// mise à jour du commentaire A14 d'origine, c'est le nouvel arbitrage qui
-// prévaut explicitement sur l'ancien.
+// arbitrage Lot 0 2026-08-23, Décision 1) — historique complet dans
+// git blame de ce fichier.
+//
+// P2.DESIGN-1A.2 (North Star Claude Design, addendum CEO) — shell
+// reconstruit pour correspondre au prototype fourni (Espace Etat.dc.html) :
+// sidebar marine pleine hauteur (EtatSidebar, 252px) + en-tête clair
+// (#FBF8F0) au lieu du header sombre "bg-sidebar" générique. .etat-scope
+// posé ici, à la racine du shell (pas seulement sur le contenu des
+// pages) : sidebar, header et contenu partagent exactement les mêmes
+// tokens --etat-* et la même police (--font-etat-*, chargée par
+// src/app/app/etat/layout.tsx via next/font/google) — un seul système,
+// pas un habillage par page.
 function initials(name?: string) {
   if (!name) return "MB";
   return name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
 }
+
+// La barre de recherche du prototype ("Rechercher un territoire, une
+// situation…") n'a pas d'équivalent fonctionnel réel dans le référentiel
+// (aucune recherche transverse État aujourd'hui) : l'ajouter ici serait un
+// habillage vide, contraire au mandat ("n'afficher que les capacités
+// réellement supportées"). Volontairement omise plutôt que simulée.
 
 export function InstitutionShell({
   children,
@@ -59,114 +68,81 @@ export function InstitutionShell({
 }) {
   const { start } = usePresentationGuide();
   return (
-    <div className="shadcn-scope private-shell flex min-h-screen flex-col bg-background">
-      <header className="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 bg-sidebar px-5 text-sidebar-foreground lg:px-8">
-        {/* Lot 1 (Refonte Premium XXL, mandat §2) : wordmark "Mbàmbulaan"
-            (même patron que AppSidebar.tsx, cohérence inter-shells) +
-            "Espace État" détaché en terracotta (text-sidebar-primary,
-            même token verrouillé D9 que le reste du produit, pas une
-            teinte inventée) — auparavant un seul libellé "Espace État"
-            sans distinction visuelle du nom du produit. orgName reste
-            dynamique (organization?.name, jamais un texte recopié
-            d'une maquette). */}
-        {/* XXL-RC1 (§2) — déclencheur du tiroir de navigation État, visible
-            uniquement sous 1024px (même point de rupture que EtatSidebar,
-            qui reste inchangée au-dessus) : sans lui, Territoires/
-            Arbitrages/Programmes/Résultats étaient injoignables sous ce
-            seuil (P1 confirmé par les deux audits de release). */}
-        <EtatMobileNav onLogout={onLogout} />
-        <Link href="/app/etat" className="flex shrink-0 items-center gap-2.5">
-          <span className="grid size-8 place-items-center rounded-md bg-primary text-sm font-black text-primary-foreground">M</span>
-          <span className="hidden text-sm font-semibold sm:inline">Mbàmbulaan</span>
-        </Link>
-        {/* P2.DESIGN-1A (§11) — le repli, jamais rendu en pratique (l'acteur
-            institution de démonstration résout toujours à une organisation
-            réelle du jeu de données, "Cellule nationale de coordination",
-            elle-même neutre — aucun ministère réel nommé), citait
-            littéralement un Ministère précis dans le code source. Remplacé
-            par une identité neutre pour ne jamais laisser croire, même en
-            cas d'organisation non résolue, que Mbàmbulaan affiche un vrai
-            client institutionnel. */}
-        <span className="hidden items-baseline gap-2 truncate text-xs md:flex">
-          <span className="font-bold text-sidebar-primary">Espace État</span>
-          <span className="truncate text-sidebar-foreground/60">{orgName ?? "Institution partenaire — démonstration"}</span>
-        </span>
-        <div className="ml-auto flex items-center gap-2">
-          {/* Raffinement visuel (maquette validée, arbitrage CEO
-              2026-08-18) : horodatage réel — capturé au premier
-              chargement des données (InstitutionProductShell.tsx), pas
-              une heure fixe recopiée de la maquette. Masqué tant que
-              rien n'est encore chargé plutôt que d'afficher une valeur
-              vide ou inventée. */}
+    <div className="etat-scope flex min-h-screen">
+      {/* Sidebar : reste visible même pendant le chargement plutôt que
+          d'apparaître seulement une fois les données prêtes — chrome
+          stable, pas un flash de mise en page. Masquée sous lg
+          (EtatSidebar gère son propre `hidden lg:flex`). */}
+      <EtatSidebar onLogout={onLogout} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-[62px] shrink-0 items-center gap-5 border-b border-[var(--etat-line)] px-6 lg:px-[34px]" style={{ background: "var(--etat-warm-white)" }}>
+          {/* XXL-RC1 (§2) — déclencheur du tiroir de navigation État,
+              visible uniquement sous 1024px (même point de rupture que
+              EtatSidebar, masquée au-dessus) : sans lui, Atlas/
+              Arbitrages/Programmes/Résultats étaient injoignables sous
+              ce seuil. */}
+          <EtatMobileNav onLogout={onLogout} />
+          <div className="flex-1" />
+          {/* Horodatage réel — capturé au premier chargement des données
+              (InstitutionProductShell.tsx), pas une heure fixe recopiée
+              d'une maquette. Masqué tant que rien n'est encore chargé. */}
           {lastRefreshedAt && (
-            <span className="hidden items-center gap-1.5 text-xs text-sidebar-foreground/60 lg:inline-flex">
-              <Clock size={13} /> MAJ aujourd’hui {lastRefreshedAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+            <span className="hidden text-[11.5px] lg:inline" style={{ color: "rgba(11,26,42,.50)", fontFamily: "var(--font-etat-body), sans-serif" }}>
+              MAJ aujourd’hui {lastRefreshedAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
             </span>
           )}
-          <Button variant="ghost" size="sm" className="hidden gap-1.5 text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground sm:inline-flex" onClick={start}>
+          <Button variant="ghost" size="sm" className="hidden gap-1.5 text-[var(--etat-navy)] hover:bg-black/5 sm:inline-flex" onClick={start} style={{ fontFamily: "var(--font-etat-body), sans-serif", fontSize: 12.5 }}>
             <PlayCircle size={15} /> Présentation guidée
           </Button>
-          {/* XXL-R2 (§8, couleurs sémantiques — même correctif que
-              SiteHeader.tsx en R1) : pastille alignée sur --mb-success au
-              lieu du vert Tailwind par défaut, hors palette. */}
-          <Badge variant="outline" className="hidden gap-1.5 border-white/15 text-sidebar-foreground/70 xl:inline-flex">
+          {/* XXL-R2 (§8, couleurs sémantiques) : pastille alignée sur
+              --mb-success au lieu du vert Tailwind par défaut. */}
+          <span className="hidden items-center gap-2 rounded-full border px-3 py-[5px] text-[11px] xl:inline-flex" style={{ borderColor: "rgba(11,26,42,.16)", color: "rgba(11,26,42,.60)", fontFamily: "var(--font-etat-body), sans-serif" }}>
             <span className="size-1.5 rounded-full" style={{ background: "var(--mb-success)" }} />
-            {persistence === "postgresql" ? "Base de production" : "Mode démonstration · données non opérationnelles"}
-          </Badge>
+            {persistence === "postgresql" ? "Base de production" : "Mode démonstration"}
+          </span>
+          <div className="hidden h-6 w-px xl:block" style={{ background: "rgba(11,26,42,.12)" }} />
           {/* Cloche : compte réel de notifications non lues pour le rôle
-              institution (state.notifications, même mécanisme que
-              ProductShell.tsx/SiteHeader.tsx pour le shell Coordinateur/
-              Opérateur) — jamais le "3" illustratif de la maquette. */}
-          <Button variant="ghost" size="icon" className="relative text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground" aria-label={`${unread} notification(s) non lue(s)`}>
-            <Bell />
-            {unread > 0 && <span className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full border-2 border-sidebar bg-destructive text-[9px] font-bold text-white">{unread}</span>}
+              institution (state.notifications), jamais un chiffre
+              illustratif. */}
+          <Button variant="ghost" size="icon" className="relative text-[var(--etat-navy)] hover:bg-black/5" aria-label={`${unread} notification(s) non lue(s)`}>
+            <Bell size={17} />
+            {unread > 0 && <span className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full border-2 bg-destructive text-[9px] font-bold text-white" style={{ borderColor: "var(--etat-warm-white)" }}>{unread}</span>}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-auto gap-2 px-2 py-1.5 text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground">
-                <Avatar className="size-7">
-                  <AvatarFallback className="text-[11px]">{initials(actorName)}</AvatarFallback>
-                </Avatar>
-                {/* "Accès État" (Lot 1, mandat §2) : décrit l'espace
-                    consulté, pas le rôle système exact de la personne —
-                    cette coquille n'est jamais rendue en dehors de
-                    /app/etat (garde de layout.tsx), l'étiquette reste
-                    donc honnête pour institution comme pour
-                    administrateur. */}
+              <Button variant="ghost" className="h-auto gap-2.5 px-2 py-1.5 text-[var(--etat-navy)] hover:bg-black/5">
+                <span className="grid size-[30px] shrink-0 place-items-center rounded-full text-[11px] font-semibold" style={{ background: "var(--etat-navy)", color: "var(--etat-cream)" }}>{initials(actorName)}</span>
+                {/* "Accès État" décrit l'espace consulté, pas le rôle
+                    système exact — jamais rendu en dehors de /app/etat
+                    (garde de layout.tsx), reste honnête pour institution
+                    comme pour administrateur. */}
                 <span className="hidden flex-col items-start leading-tight sm:flex">
-                  <span className="text-sm font-medium">{actorName}</span>
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-sidebar-foreground/50">Accès État</span>
+                  <span className="text-[12.5px] font-semibold" style={{ fontFamily: "var(--font-etat-body), sans-serif" }}>{actorName}</span>
+                  <span className="text-[9.5px] font-semibold uppercase tracking-[.13em]" style={{ color: "rgba(11,26,42,.45)" }}>Accès État</span>
                 </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>{actorName ?? "Mon compte"}</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {/* orgName reste dynamique (organization?.name) — jamais un
+                  Ministère précis recopié d'une maquette (mandat §11). */}
+              {orgName && <div className="px-2 pb-1.5 text-xs text-muted-foreground">{orgName}</div>}
               <DropdownMenuItem onClick={onLogout} variant="destructive">
                 <LogOut /> Quitter l’espace
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-      </header>
-      {error && (
-        <div role="alert" className="border-b border-destructive/20 bg-destructive/10 px-5 py-3 text-sm font-semibold text-destructive">
-          {error}
-        </div>
-      )}
-      {/* Ligne sidebar + contenu (Décision 1) : la sidebar reste visible
-          même pendant le chargement plutôt que d'apparaître seulement une
-          fois les données prêtes — chrome stable, pas un flash de mise en
-          page. Masquée sous lg (EtatSidebar gère son propre `hidden
-          lg:flex`) : pas de rail permanent sur mobile, cohérent avec le
-          reste du produit qui n'a jamais de sidebar en dessous de ce
-          point de rupture. */}
-      <div className="flex flex-1">
-        <EtatSidebar onLogout={onLogout} />
+        </header>
+        {error && (
+          <div role="alert" className="border-b border-destructive/20 bg-destructive/10 px-5 py-3 text-sm font-semibold text-destructive">
+            {error}
+          </div>
+        )}
         {showLoading ? (
-          <div className="grid min-h-[70vh] flex-1 place-items-center text-sm text-muted-foreground">Initialisation de votre espace…</div>
+          <div className="grid min-h-[70vh] flex-1 place-items-center text-sm" style={{ color: "var(--etat-stone-600)" }}>Initialisation de votre espace…</div>
         ) : (
-          <main className="min-w-0 flex-1">{children}</main>
+          <main className="min-w-0 flex-1" style={{ background: "var(--etat-cream)" }}>{children}</main>
         )}
       </div>
     </div>

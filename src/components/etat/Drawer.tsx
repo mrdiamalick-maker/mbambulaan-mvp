@@ -24,14 +24,14 @@ export function Drawer({ open, onClose, title, eyebrow, size = "md", children }:
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[80]">
-      <button aria-label="Fermer" className="absolute inset-0 bg-[var(--etat-navy-950)]/55 backdrop-blur-[2px]" onClick={onClose} />
-      <aside className={`absolute right-0 top-0 flex h-full w-full ${size === "lg" ? "max-w-2xl" : "max-w-md"} flex-col bg-white shadow-[-30px_0_70px_rgba(7,22,39,.25)]`}>
+      <button aria-label="Fermer" className="absolute inset-0 bg-[var(--etat-navy)]/55 backdrop-blur-[2px]" onClick={onClose} />
+      <aside className={`absolute right-0 top-0 flex h-full w-full ${size === "lg" ? "max-w-2xl" : "max-w-md"} flex-col border-l border-[var(--etat-line)] bg-white`}>
         <div className="flex items-start justify-between border-b border-[var(--etat-line)] p-6">
           <div>
-            {eyebrow && <p className="etat-eyebrow">{eyebrow}</p>}
-            <h2 className="etat-display mt-2 text-xl not-italic text-[var(--etat-navy-950)]">{title}</h2>
+            {eyebrow && <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />{eyebrow}</p>}
+            <h2 className="etat-display etat-h2 mt-2 text-xl">{title}</h2>
           </div>
-          <button onClick={onClose} className="grid size-9 shrink-0 place-items-center rounded-lg text-[var(--etat-stone-600)] hover:bg-[var(--etat-offwhite)]" aria-label="Fermer le panneau"><X size={18} /></button>
+          <button onClick={onClose} className="grid size-9 shrink-0 place-items-center rounded-sm text-[var(--etat-stone-600)] hover:bg-[var(--etat-offwhite)]" aria-label="Fermer le panneau"><X size={18} /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-6">{children}</div>
       </aside>

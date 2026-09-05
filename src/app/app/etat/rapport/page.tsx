@@ -261,7 +261,7 @@ export default function EtatReportPage() {
   };
 
   return (
-    <div className="etat-scope">
+    <div className="pb-4">
       {/* Lot D — masqué à l'impression (print:hidden) : la barre d'actions
           n'a pas sa place sur le document imprimé, qui doit rester un
           document linéaire complet (rappel CEO), sans rien d'autre y
@@ -291,7 +291,7 @@ export default function EtatReportPage() {
           { href: "#programmes-financements", label: "Programmes & financements" },
           { href: "#methodologie", label: "Méthodologie & confiance" }
         ].map((item) => (
-          <a key={item.href} href={item.href} className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 font-semibold text-[var(--etat-navy-800)] transition hover:bg-white">{item.label}</a>
+          <a key={item.href} href={item.href} className="shrink-0 whitespace-nowrap rounded-[2px] px-3 py-1.5 font-semibold text-[var(--etat-navy-800)] transition hover:bg-white">{item.label}</a>
         ))}
       </nav>
 
@@ -304,15 +304,18 @@ export default function EtatReportPage() {
           — chacune accompagne un vrai chiffre, pas de la décoration —
           restent inchangées). overflow-hidden ajouté (absent jusqu'ici,
           jamais nécessaire tant que le fond n'était qu'un dégradé CSS
-          contenu par le rounded-[28px] lui-même) : indispensable
-          maintenant pour que la photo en fill respecte le même rayon
-          d'angle que le bandeau. Contenu existant enveloppé dans
-          "relative z-10" (absent avant, inutile tant qu'il n'y avait
-          aucun élément position:absolute à ce niveau) : sans ça, un
-          enfant absolument positionné (la photo) se peint après les
-          enfants en flux normal dans l'ordre d'empilement CSS, donc
-          au-dessus du texte plutôt qu'en dessous. */}
-      <section id="synthese" className="etat-canvas-dark relative mx-5 mt-5 scroll-mt-6 overflow-hidden rounded-[28px] p-8 lg:mx-8 lg:p-10">
+          contenu par le rounded lui-même) : indispensable maintenant pour
+          que la photo en fill respecte le même rayon d'angle que le
+          bandeau. Contenu existant enveloppé dans "relative z-10" (absent
+          avant, inutile tant qu'il n'y avait aucun élément
+          position:absolute à ce niveau) : sans ça, un enfant absolument
+          positionné (la photo) se peint après les enfants en flux normal
+          dans l'ordre d'empilement CSS, donc au-dessus du texte plutôt
+          qu'en dessous.
+          P2.DESIGN-1A.2 (North Star) : rounded-[28px] → rounded-[4px] —
+          géométrie nette du prototype (jamais de grand rayon "carte
+          arrondie"), même bandeau, même photo, même voile. */}
+      <section id="synthese" className="etat-canvas-dark relative mx-5 mt-5 scroll-mt-6 overflow-hidden rounded-[4px] p-8 lg:mx-8 lg:p-10">
         <Image
           src="/images/etat-rapport-hero-background.webp"
           alt=""
@@ -393,8 +396,8 @@ export default function EtatReportPage() {
             <p className="text-sm font-semibold text-[var(--etat-navy-950)]">{filteredReports.length} rapport(s) sur {state.reports.length}.</p>
             <div className="flex flex-wrap items-end gap-3">
               <label className="block">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Territoire</p>
-                <select value={rapportTerritoryFilter} onChange={(event) => setRapportTerritoryFilter(event.target.value)} className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]">
+                <p className="etat-filter-label">Territoire</p>
+                <select value={rapportTerritoryFilter} onChange={(event) => setRapportTerritoryFilter(event.target.value)} className="etat-filter-select">
                   <option value="all">Tous les territoires</option>
                   {[...state.territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => (
                     <option key={territory.id} value={territory.id}>{territory.name}</option>
@@ -402,16 +405,16 @@ export default function EtatReportPage() {
                 </select>
               </label>
               <label className="block">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Statut</p>
-                <select value={rapportStatusFilter} onChange={(event) => setRapportStatusFilter(event.target.value as "all" | "pret" | "a_actualiser")} className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]">
+                <p className="etat-filter-label">Statut</p>
+                <select value={rapportStatusFilter} onChange={(event) => setRapportStatusFilter(event.target.value as "all" | "pret" | "a_actualiser")} className="etat-filter-select">
                   <option value="all">Tous les statuts</option>
                   <option value="pret">Prêt</option>
                   <option value="a_actualiser">À actualiser</option>
                 </select>
               </label>
               <label className="block">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Confiance</p>
-                <select value={rapportTrustFilter} onChange={(event) => setRapportTrustFilter(event.target.value as "all" | TrustLevel)} className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]">
+                <p className="etat-filter-label">Confiance</p>
+                <select value={rapportTrustFilter} onChange={(event) => setRapportTrustFilter(event.target.value as "all" | TrustLevel)} className="etat-filter-select">
                   <option value="all">Tous les niveaux</option>
                   {(Object.keys(trustLabels) as TrustLevel[]).map((trust) => (
                     <option key={trust} value={trust}>{trustLabels[trust]}</option>
@@ -668,8 +671,8 @@ export default function EtatReportPage() {
                                 <span className="font-semibold text-[var(--etat-navy-800)]">{indicator.label}</span>
                                 <span className="text-[var(--etat-stone-600)]">{indicator.baseline}{indicator.unit} → {indicator.current}{indicator.unit} → {indicator.target}{indicator.unit}</span>
                               </div>
-                              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--etat-line)]">
-                                <div className="h-full rounded-full bg-[var(--etat-terracotta)]" style={{ width: `${indicatorProgress(indicator)}%` }} />
+                              <div className="mt-1.5 h-[3px] w-full overflow-hidden rounded-[1px] bg-[var(--etat-line)]">
+                                <div className="h-full rounded-[1px] bg-[var(--etat-terracotta)]" style={{ width: `${indicatorProgress(indicator)}%` }} />
                               </div>
                             </div>
                           ))}

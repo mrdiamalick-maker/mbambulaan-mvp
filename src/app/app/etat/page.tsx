@@ -9,7 +9,6 @@ import { Drawer } from "@/components/etat/Drawer";
 import { SituationIcon } from "@/components/etat/MotifIcons";
 import { TerritoryAtlasCanvas, atlasSeaBackground } from "@/components/territories/TerritoryAtlasCanvas";
 import { NumberTicker } from "@/components/magicui/number-ticker";
-import { PageIntro } from "@/components/foundations";
 import {
   Mission,
   MissionForm,
@@ -98,6 +97,18 @@ import { vigilanceCategoryLabels, type VigilanceCase, type VigilanceSeverity } f
 // severityToTag reste local : n'utilisé que par le calcul `dominant` de
 // cette page (aucun autre consommateur, pas déplacé vers shared.tsx).
 const severityToTag: Record<VigilanceSeverity, "stable" | "vigilance" | "critique"> = { faible: "stable", moyenne: "vigilance", haute: "vigilance", critique: "critique" };
+
+// P2.DESIGN-1A.2 (North Star) — couleur stable par canal (pas par rang de
+// tri, qui varie avec les effectifs réels) pour la barre proportionnelle
+// et la légende du bloc "Le pouls de la filière" — mêmes teintes que le
+// prototype Claude Design, aucune inventée.
+const channelStackColor: Record<Signal["channel"], string> = {
+  terrain: "#0B1A2A",
+  poste_quai: "#B6522F",
+  telephone: "#DE9C74",
+  whatsapp_structure: "#7FB08A",
+  espace_public: "rgba(11,26,42,.18)"
+};
 
 // Caméra Atlas SVG (cameraWindowFor/scaleViewBox/useAnimatedViewBox)
 // retirée ici — pas fusionnée avec Lot C, une vraie suppression (mandat
@@ -455,81 +466,69 @@ export default function EtatPage() {
     })
     .slice(0, 3);
 
+  const todayLabel = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+
   return (
-    <div className="etat-scope bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
-      {/* Correctif CEO (retour "la page ne ressemble toujours pas au
-          concept") : bandeau doctrine ET nav d'ancrage retirés ensemble
-          de ce premier écran — les deux constats du CEO tenaient à la
-          même cause (contenu ajouté avant le titre, absent de la
-          référence). Bandeau doctrine : son contenu reste disponible
-          ailleurs sur le produit (bandeau d'accueil Public, mentions
-          légales), rien n'est perdu en le retirant d'ici. Nav d'ancrage :
-          le CEO est explicite sur l'ERREUR précise du lot précédent —
-          "remplacer une sidebar verticale par une nav horizontale qui
-          montre toujours les 6 mêmes destinations ne respecte que la
-          lettre de la décision, pas son esprit". Retirée plutôt que
-          réduite : n'importe quelle rangée de liens en avant-plan
-          juste sous le header aurait reproduit le même problème visuel.
-          Les sections restent atteignables par défilement et par "Voir
-          tout" (teasers plus bas) ; /app/etat/rapport garde sa sidebar
-          complète, seule surface où une navigation permanente a été
-          explicitement validée. */}
-
-      {/* Titre + filtres (mandat "Brief national", §2 : "~104px de haut",
-          mesure directe du CEO sur la maquette, pas une estimation
-          visuelle). Remplace la toolbar filtres seule : "Brief national"
-          redevient le vrai H1 sémantique de la page — l'eyebrow "Atlas de
-          supervision" dans la carte (ci-dessous) redescend en simple
-          libellé (p), un seul H1 par page. Sous-titre : texte éditorial
-          nouveau (mandat, pas une donnée) — aucune correspondance
-          existante trouvée ailleurs dans le produit, écrit pour ce lot.
-          Filtres Périmètre/Période inchangés (même mécanisme, même
-          libellés) — repositionnés à droite de cette même bande plutôt
-          que dans leur propre toolbar séparée, comme demandé. */}
-      {/* XXL-R1 (§27, surface témoin A) — seul le bloc titre+phrase devient
-          la primitive PageIntro (§18.1) ; tout le reste de la page (carte,
-          chapitres, filtres) reste inchangé. Test de non-régression : même
-          H1 sémantique "Brief national", même etatGeneralSentence en dek,
-          aucune donnée ni mécanique touchée. */}
-      <div className="etat-panel mt-3 flex flex-wrap items-center justify-between gap-6 px-5 py-4">
-        <PageIntro title="Brief national" dek={etatGeneralSentence} className="flex-1" />
-        <div className="flex flex-wrap items-end gap-6">
-          <label className="block">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>
-            <select
-              value={selectedTerritoryId ?? ""}
-              onChange={(event) => { setSelectedTerritoryId(event.target.value || null); setCameraForcedNational(!event.target.value); }}
-              className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
-            >
-              <option value="">Sénégal entier</option>
-              {[...state.territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => (
-                <option key={territory.id} value={territory.id}>{territory.name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Période</p>
-            <select
-              value={periodFilter}
-              onChange={(event) => setPeriodFilter(event.target.value)}
-              title="S’applique aux débarquements et sorties en mer du panneau territorial."
-              className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
-            >
-              <option value="all">Toutes les dates disponibles</option>
-              {landingDates.map((date) => (
-                <option key={date} value={date}>{new Date(date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</option>
-              ))}
-            </select>
-          </label>
+    <div>
+      {/* P2.DESIGN-1A.2 (North Star Claude Design) — hero reconstruit pour
+          correspondre au prototype fourni (Espace Etat.dc.html, écran
+          "Brief national") : eyebrow daté ("Brief national · {date réelle
+          du jour}", jamais une date recopiée de la maquette), grand titre
+          éditorial "Voir le pays, puis décider." repris tel quel du
+          prototype (texte de doctrine, pas une donnée), puis
+          etatGeneralSentence (calcul réel existant, inchangé) comme phrase
+          d'état. Filtres Périmètre/Période : même mécanisme exact
+          qu'avant (aucun état, aucune option, aucune donnée changée),
+          seul l'habillage visuel passe de <select> encadré à
+          etat-filter-select (soulignement, pas de boîte). */}
+      <section className="border-b border-[var(--etat-line)] px-6 pb-[42px] pt-9 lg:px-[60px] lg:pb-[42px] lg:pt-[52px]" style={{ background: "var(--etat-warm-white)" }}>
+        <div className="flex flex-wrap items-end gap-10 lg:gap-16">
+          <div className="min-w-0 flex-1">
+            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Brief national · {todayLabel}</p>
+            <h1 className="etat-display etat-h1 etat-h1--hero mt-5">Voir le pays,<br />puis décider.</h1>
+            <p className="mt-[22px] max-w-[620px] text-[15.5px] leading-[1.65]" style={{ color: "rgba(11,26,42,.70)" }}>{etatGeneralSentence}</p>
+          </div>
+          {/* flex-wrap seul (flex-none retiré, correctif débordement 390px
+              confirmé par script : flex-none empêche cette rangée de
+              rétrécir même quand flex-wrap voudrait passer les 2 <select>
+              sur 2 lignes, donc elle poussait la page en largeur au lieu
+              de s'adapter) — min-w-0 laisse la rangée redevenir plus
+              étroite que le contenu de ses 2 enfants sur mobile, où ils
+              passent naturellement l'un sous l'autre. */}
+          <div className="flex min-w-0 flex-wrap gap-9 pb-1">
+            <label className="block">
+              <p className="etat-filter-label">Périmètre</p>
+              <select
+                value={selectedTerritoryId ?? ""}
+                onChange={(event) => { setSelectedTerritoryId(event.target.value || null); setCameraForcedNational(!event.target.value); }}
+                className="etat-filter-select"
+              >
+                <option value="">Sénégal entier</option>
+                {[...state.territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => (
+                  <option key={territory.id} value={territory.id}>{territory.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <p className="etat-filter-label">Période</p>
+              <select
+                value={periodFilter}
+                onChange={(event) => setPeriodFilter(event.target.value)}
+                title="S’applique aux débarquements et sorties en mer du panneau territorial."
+                className="etat-filter-select"
+              >
+                <option value="all">Toutes les dates disponibles</option>
+                {landingDates.map((date) => (
+                  <option key={date} value={date}>{new Date(date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Groupe des chapitres (correctif 2) : reprend exactement le
-          space-y-16 qui régissait auparavant tout le conteneur racine —
-          seul l'espacement AVANT ce groupe change (mt-4 au lieu des 64px
-          de space-y-16 hérités du bandeau/nav/toolbar), le rythme entre
-          #terrain et les chapitres suivants reste identique à avant. */}
-      <div className="mt-4 space-y-16">
+      <div className="px-6 lg:px-[60px]">
+      <div className="space-y-0">
       {/* Bloc "Le pouls de la filière" (mandat CEO "reconstruire l'Espace
           État autour de la capture de signal", Lot B, 2026-08-29) : avant
           la carte/le brief du jour, montrer d'où vient l'information —
@@ -540,62 +539,77 @@ export default function EtatPage() {
           drawer que le reste de la page (situationDrawer, déjà déclaré
           plus haut) — l'Institution ne quitte jamais /app/etat, même
           discipline que partout ailleurs sur cette page. */}
-      <section id="pouls" className="scroll-mt-6">
-        <div className="etat-panel p-6 lg:p-7">
-          <p className="etat-eyebrow">Le pouls de la filière</p>
-          <h2 className="etat-display mt-2 text-xl not-italic text-[var(--etat-navy-950)]">Capter tout signal, quel que soit le canal.</h2>
-          <p className="mt-2 max-w-2xl text-sm text-[var(--etat-stone-600)]"><span className="etat-display not-italic font-semibold"><NumberTicker value={totalSignalsCaptes} /></span> signaux captés à ce jour, tous canaux confondus — chaque situation suivie par le réseau en découle.</p>
-
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {signalsByChannel.map(({ channel, count }) => {
-              const Icon = channelMeta[channel].icon;
-              return (
-                <div key={channel} className="rounded-lg border border-[var(--etat-line)] bg-white p-3">
-                  <div className="flex items-center gap-1.5 text-[var(--etat-navy-600)]">
-                    <Icon size={13} className="shrink-0" />
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">{channelMeta[channel].label}</p>
-                  </div>
-                  <p className="etat-display mt-1 text-2xl not-italic text-[var(--etat-navy-950)]"><NumberTicker value={count} /></p>
-                </div>
-              );
-            })}
+      {/* P2.DESIGN-1A.2 (North Star) — section reconstruite selon le
+          prototype : plus de tuiles bordées, une barre proportionnelle
+          réelle (largeur = part réelle de chaque canal dans
+          totalSignalsCaptes, jamais une valeur illustrative) au-dessus
+          d'une grille de chiffres nus. channelStackColor associe une
+          couleur STABLE à chaque canal (pas à son rang de tri, qui varie
+          avec les effectifs réels) — mêmes teintes que le prototype,
+          aucune inventée. */}
+      <section id="pouls" className="scroll-mt-6 border-b border-[var(--etat-line)] py-11">
+        <div className="flex flex-col gap-10 lg:flex-row lg:gap-14">
+          <div className="lg:w-[290px] lg:flex-none">
+            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Le pouls de la filière</p>
+            <h2 className="etat-display etat-h2 mt-3.5 text-[27px]">Capter tout signal, quel que soit le canal.</h2>
+            <p className="mt-3 text-[13px] leading-[1.6]" style={{ color: "rgba(11,26,42,.62)" }}>{totalSignalsCaptes} signaux captés à ce jour, tous canaux confondus. Chaque situation suivie par le réseau en découle.</p>
           </div>
+          <div className="min-w-0 flex-1">
+            <div className="mb-5 flex items-end gap-2">
+              <span className="etat-display text-[52px] leading-[.9]" style={{ color: "var(--etat-navy)" }}><NumberTicker value={totalSignalsCaptes} /></span>
+              <span className="pb-2 text-[11.5px]" style={{ color: "rgba(11,26,42,.55)" }}>signaux captés</span>
+            </div>
+            <div className="flex h-2.5 overflow-hidden rounded-[2px]" style={{ background: "rgba(11,26,42,.08)" }} role="img" aria-label="Répartition des signaux captés par canal">
+              {signalsByChannel.filter((item) => item.count > 0).map(({ channel, count }) => (
+                <div key={channel} style={{ width: `${(count / Math.max(1, totalSignalsCaptes)) * 100}%`, background: channelStackColor[channel] }} title={`${channelMeta[channel].label} · ${count}`} />
+              ))}
+            </div>
+            <div className="mt-[22px] grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-5">
+              {signalsByChannel.map(({ channel, count }) => (
+                <div key={channel}>
+                  <div className="mb-[7px] flex items-center gap-[7px]">
+                    <span aria-hidden="true" className="size-[7px] shrink-0 rounded-[2px]" style={{ background: channelStackColor[channel] }} />
+                    <span className="text-[9.5px] font-semibold uppercase tracking-[.13em]" style={{ color: "rgba(11,26,42,.50)" }}>{channelMeta[channel].label}</span>
+                  </div>
+                  <div className="etat-display text-[26px] leading-none" style={{ color: "var(--etat-navy)" }}><NumberTicker value={count} /></div>
+                </div>
+              ))}
+            </div>
 
-          {/* Pont public ↔ privé (mandat) : preuve concrète, pas une
-              affirmation — CommunityPost.status==="transforme" +
-              convertedObjectId pointent déjà vers une vraie Situation,
-              jamais montré ailleurs dans le produit sous cette forme. */}
-          <div className="mt-6 border-t border-[var(--etat-line)] pt-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Le pont public ↔ privé</p>
-            <p className="mt-1.5 text-sm text-[var(--etat-navy-950)]">{state.communityPosts.length} publication(s) de l’espace public reçue(s), dont <span className="font-bold">{transformedPosts.length} transformée(s)</span> en situation(s) suivie(s).</p>
+            {/* Pont public ↔ privé : preuve concrète, pas une affirmation —
+                CommunityPost.status==="transforme" + convertedObjectId
+                pointent déjà vers une vraie Situation. */}
+            <div className="mt-7 flex flex-wrap items-baseline gap-3.5 border-t pt-5" style={{ borderColor: "var(--etat-line)" }}>
+              <span className="etat-filter-label mb-0">Le pont public ↔ privé</span>
+              <span className="text-[13px]" style={{ color: "rgba(11,26,42,.72)" }}>{state.communityPosts.length} publication(s) de l’espace public reçue(s), dont <strong className="font-semibold" style={{ color: "var(--etat-navy)" }}>{transformedPosts.length} transformée(s)</strong> en situation(s) suivie(s).</span>
+            </div>
             {transformedExamples.length > 0 && (
               <div className="mt-3 space-y-2">
                 {transformedExamples.map(({ post, situation }) => (
-                  <button key={post.id} onClick={() => setSituationDrawer(situation)} className="flex w-full items-center justify-between gap-3 rounded-lg border border-[var(--etat-line)] bg-white p-3 text-left transition hover:border-[var(--etat-navy-600)]">
+                  <button key={post.id} onClick={() => setSituationDrawer(situation)} className="etat-panel--warm flex w-full items-center justify-between gap-3 p-3 text-left transition hover:border-[var(--etat-terracotta)]">
                     <div className="min-w-0">
-                      <p className="truncate text-xs text-[var(--etat-stone-600)]">« {post.title} »</p>
-                      <p className="mt-0.5 truncate text-sm font-semibold text-[var(--etat-navy-950)]">devenu {situation.title}</p>
+                      <p className="truncate text-xs" style={{ color: "rgba(11,26,42,.58)" }}>« {post.title} »</p>
+                      <p className="mt-0.5 truncate text-sm font-semibold" style={{ color: "var(--etat-navy)" }}>devenu {situation.title}</p>
                     </div>
-                    <ArrowRight size={14} className="shrink-0 text-[var(--etat-stone-400)]" />
+                    <ArrowRight size={14} className="shrink-0" style={{ color: "var(--etat-stone-400)" }} />
                   </button>
                 ))}
               </div>
             )}
-          </div>
 
-          {/* File d'attente de capture brute (mandat, "si pertinent") :
-              n'apparaît que si non vide — 4 messages dans le jeu réel,
-              tous "nouveau", vérifié. */}
-          {newIncomingMessages.length > 0 && (
-            <div className="mt-5 border-t border-[var(--etat-line)] pt-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">File d’attente de capture brute · {newIncomingMessages.length}</p>
-              <div className="mt-2 space-y-1.5">
-                {newIncomingMessages.map((message) => (
-                  <p key={message.id} className="rounded-lg border border-[var(--etat-line)] bg-white p-2.5 text-xs leading-4 text-[var(--etat-stone-600)]"><span className="font-semibold text-[var(--etat-navy-950)]">{channelMeta[message.channel].label}</span> · {message.reportedBy} — {message.body}</p>
-                ))}
+            {/* File d'attente de capture brute : n'apparaît que si non
+                vide — 4 messages dans le jeu réel, tous "nouveau". */}
+            {newIncomingMessages.length > 0 && (
+              <div className="mt-5 border-t pt-4" style={{ borderColor: "var(--etat-line)" }}>
+                <p className="etat-filter-label mb-2">File d’attente de capture brute · {newIncomingMessages.length}</p>
+                <div className="space-y-1.5">
+                  {newIncomingMessages.map((message) => (
+                    <p key={message.id} className="etat-panel--warm p-2.5 text-xs leading-4" style={{ color: "rgba(11,26,42,.62)" }}><span className="font-semibold" style={{ color: "var(--etat-navy)" }}>{channelMeta[message.channel].label}</span> · {message.reportedBy} — {message.body}</p>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </section>
 
@@ -615,46 +629,43 @@ export default function EtatPage() {
           2026-08-30) ; ocre "attention" pour Situation (premier vrai
           rétrécissement) ; vert "positive" pour Résultat — les 3 tons déjà
           définis par .etat-metric, aucune teinte inventée ici. */}
-      <section id="pipeline" className="scroll-mt-6">
-        <div className="etat-panel p-6 lg:p-7">
-          <p className="etat-eyebrow">De la capture à la décision</p>
-          <h2 className="etat-display mt-2 text-xl not-italic text-[var(--etat-navy-950)]">Chaque signal suit le même chemin, jusqu’à la décision.</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--etat-stone-600)]">
-            Les {totalSignalsCaptes} signaux captés ont donné lieu à {situationsQualifiees} situations qualifiées à ce jour — un signal peut aussi rester en observation, se rattacher à un constat, ou être écarté sans jamais devenir une situation. {situationsEngagees} sont activement engagées dans la boucle de coordination ; {situationsDecidees} portent déjà au moins une décision documentée ({totalDecisions} décisions au total), et {situationsAvecResultat} affichent un résultat constaté sur le terrain.
-          </p>
+      <section id="pipeline" className="scroll-mt-6 border-b border-[var(--etat-line)] py-11">
+        <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />De la capture à la décision</p>
+        <h2 className="etat-display etat-h2 mt-3.5 text-[27px]">Chaque signal suit le même chemin, jusqu’à la décision.</h2>
+        <p className="mt-3 max-w-2xl text-[13.5px] leading-[1.6]" style={{ color: "rgba(11,26,42,.68)" }}>
+          Les {totalSignalsCaptes} signaux captés ont donné lieu à {situationsQualifiees} situations qualifiées à ce jour — un signal peut aussi rester en observation, se rattacher à un constat, ou être écarté sans jamais devenir une situation. {situationsEngagees} sont activement engagées dans la boucle de coordination ; {situationsDecidees} portent déjà au moins une décision documentée ({totalDecisions} décisions au total), et {situationsAvecResultat} affichent un résultat constaté sur le terrain.
+        </p>
 
-          {/* grid-cols-1 jusqu'à lg (correctif vérifié sur capture mobile) :
-              5 étapes ne se divisent proprement ni par 2 ni par 3 — un
-              grid-cols-2/3 intermédiaire laissait une cellule vide (fond
-              --etat-line nu, sans .etat-metric dedans) en bas de grille.
-              Empilement simple en dessous de lg, rangée unique de 5
-              seulement à partir de lg (seul diviseur propre). */}
-          <div className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-[var(--etat-line)] bg-[var(--etat-line)] lg:grid-cols-5" aria-label="De la capture à la décision, par étape">
-            <div className="etat-metric">
-              <p className="etat-metric-value"><NumberTicker value={totalSignalsCaptes} /></p>
-              <p className="etat-metric-label">Signal</p>
-              <p className="etat-metric-detail">Captés, tous canaux confondus</p>
-            </div>
-            <div className="etat-metric">
-              <p className="etat-metric-value"><NumberTicker value={situationsQualifiees} /></p>
-              <p className="etat-metric-label">Qualification</p>
-              <p className="etat-metric-detail">Devenus une situation suivie</p>
-            </div>
-            <div className="etat-metric etat-metric--attention">
-              <p className="etat-metric-value"><NumberTicker value={situationsEngagees} /></p>
-              <p className="etat-metric-label">Situation</p>
-              <p className="etat-metric-detail">Engagées dans la boucle de coordination</p>
-            </div>
-            <div className="etat-metric etat-metric--critical">
-              <p className="etat-metric-value"><NumberTicker value={situationsDecidees} /></p>
-              <p className="etat-metric-label">Décision</p>
-              <p className="etat-metric-detail">{totalDecisions} décisions documentées</p>
-            </div>
-            <div className="etat-metric etat-metric--positive">
-              <p className="etat-metric-value"><NumberTicker value={situationsAvecResultat} /></p>
-              <p className="etat-metric-label">Résultat</p>
-              <p className="etat-metric-detail">Constaté et consigné sur le terrain</p>
-            </div>
+        {/* grid-cols-1 jusqu'à lg (correctif vérifié sur capture mobile) :
+            5 étapes ne se divisent proprement ni par 2 ni par 3 — un
+            grid-cols-2/3 intermédiaire laissait une cellule vide en bas de
+            grille. Empilement simple en dessous de lg, rangée unique de 5
+            seulement à partir de lg (seul diviseur propre). */}
+        <div className="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-[3px] border border-[var(--etat-line)] bg-[var(--etat-line)] lg:grid-cols-5" aria-label="De la capture à la décision, par étape">
+          <div className="etat-metric">
+            <p className="etat-metric-value"><NumberTicker value={totalSignalsCaptes} /></p>
+            <p className="etat-metric-label">Signal</p>
+            <p className="etat-metric-detail">Captés, tous canaux confondus</p>
+          </div>
+          <div className="etat-metric">
+            <p className="etat-metric-value"><NumberTicker value={situationsQualifiees} /></p>
+            <p className="etat-metric-label">Qualification</p>
+            <p className="etat-metric-detail">Devenus une situation suivie</p>
+          </div>
+          <div className="etat-metric etat-metric--attention">
+            <p className="etat-metric-value"><NumberTicker value={situationsEngagees} /></p>
+            <p className="etat-metric-label">Situation</p>
+            <p className="etat-metric-detail">Engagées dans la boucle de coordination</p>
+          </div>
+          <div className="etat-metric etat-metric--critical">
+            <p className="etat-metric-value"><NumberTicker value={situationsDecidees} /></p>
+            <p className="etat-metric-label">Décision</p>
+            <p className="etat-metric-detail">{totalDecisions} décisions documentées</p>
+          </div>
+          <div className="etat-metric etat-metric--positive">
+            <p className="etat-metric-value"><NumberTicker value={situationsAvecResultat} /></p>
+            <p className="etat-metric-label">Résultat</p>
+            <p className="etat-metric-detail">Constaté et consigné sur le terrain</p>
           </div>
         </div>
       </section>
@@ -724,7 +735,7 @@ export default function EtatPage() {
                   bg-white/90 pour le contraste (correctif CEO 2026-08-22) :
                   posé directement sur le fond .etat-panel blanc de la
                   carte, plus sur une photo aux zones sombres imprévisibles. */}
-              <p className="etat-eyebrow">Atlas de supervision</p>
+              <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Atlas de supervision</p>
               {/* "Vue nationale" (conservé XXL-R5.5) : reste un vrai
                   désélecteur même sans caméra à recentrer — un territoire
                   mis en avant (sélection explicite ou dominant par défaut)
@@ -757,13 +768,13 @@ export default function EtatPage() {
                 supervision desktop, pas une régression fonctionnelle
                 acceptée sur mobile où l'espace de la carte est déjà
                 contraint. */}
-            <div className="etat-panel absolute left-4 top-16 z-10 hidden bg-white/95 p-3 text-xs shadow-sm lg:block">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Niveau d’attention</p>
+            <div className="etat-panel absolute left-4 top-16 z-10 hidden bg-white/95 p-3 text-xs lg:block">
+              <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>Niveau d’attention</p>
               <div className="mt-2 space-y-1.5">
                 {(["critique", "vigilance", "stable"] as const).map((status) => (
                   <div key={status} className="flex items-center gap-2">
-                    <span className="size-2.5 rounded-full" style={{ backgroundColor: glyphBorderColor[status] }} />
-                    <span className="text-[var(--etat-navy-800)]">{statusTagLabel[status]}</span>
+                    <span className="size-2 rounded-full" style={{ backgroundColor: glyphBorderColor[status] }} />
+                    <span className="text-[var(--etat-navy)]" style={{ fontFamily: "var(--etat-font-body)" }}>{statusTagLabel[status]}</span>
                   </div>
                 ))}
               </div>
@@ -814,11 +825,11 @@ export default function EtatPage() {
                 maquette, le tableau réel en compte 3.
               - Prochaine étape : dominantPrioritySituation.nextStep,
                 inchangé. */}
-          <aside className="etat-panel flex flex-col overflow-y-auto p-6" style={{ borderLeftWidth: 4, borderLeftColor: panelBorderColor }}>
+          <aside className="etat-panel flex flex-col overflow-y-auto p-6" style={{ borderLeftWidth: 3, borderLeftColor: panelBorderColor }}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5" style={{ color: panelBorderColor }}>
-                <TensionGlyph status={panelGlyphStatus} size={26} pulse={panelGlyphStatus !== "stable"} />
-                <p className="text-[11px] font-bold uppercase tracking-widest">{panelEyebrow}</p>
+                <TensionGlyph status={panelGlyphStatus} size={24} pulse={panelGlyphStatus !== "stable"} />
+                <p className="text-[10px] font-semibold uppercase tracking-[.14em]" style={{ fontFamily: "var(--etat-font-body)" }}>{panelEyebrow}</p>
               </div>
               {/* StatusBadge (mandat "nouvelle DA Vue d'ensemble") : réutilise
                   le composant déjà utilisé dans le carrousel "Où concentrer
@@ -826,7 +837,7 @@ export default function EtatPage() {
                   qualification réelle à côté de l'eyebrow, comme la maquette. */}
               <StatusBadge status={panelGlyphStatus} />
             </div>
-            <h2 className="etat-display mt-3 text-xl not-italic text-[var(--etat-navy-950)]">{panelHeading}</h2>
+            <h2 className="etat-h2 mt-3 text-xl">{panelHeading}</h2>
             {/* Zone (Territory.region, mandat "nouvelle DA Vue d'ensemble") :
                 champ réel confirmé au Lot 0, absent jusqu'ici de CE panneau
                 (déjà présent dans le tiroir Territoire). Affiché seulement
@@ -841,7 +852,7 @@ export default function EtatPage() {
               <div className="mt-4 flex items-start gap-2.5 border-t border-[var(--etat-line)] pt-4">
                 <Flag size={15} className="mt-0.5 shrink-0 text-[var(--etat-stone-400)]" />
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Nature de la situation</p>
+                  <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>Nature de la situation</p>
                   <p className="mt-1 text-sm font-semibold text-[var(--etat-navy-950)]">{dominantPrioritySituation.title}</p>
                 </div>
               </div>
@@ -850,7 +861,7 @@ export default function EtatPage() {
             <div className={`flex items-start gap-2.5 ${dominantPrioritySituation ? "mt-3" : "mt-4 border-t border-[var(--etat-line)] pt-4"}`}>
               <AlertTriangle size={15} className="mt-0.5 shrink-0 text-[var(--etat-stone-400)]" />
               <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Pourquoi cela mérite l’attention</p>
+                <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>Pourquoi cela mérite l’attention</p>
                 <p className="mt-1 text-sm leading-6 text-[var(--etat-stone-600)]">{panelDescription}</p>
               </div>
             </div>
@@ -863,7 +874,7 @@ export default function EtatPage() {
               <div className="mt-3 flex items-start gap-2.5">
                 <ListChecks size={15} className="mt-0.5 shrink-0 text-[var(--etat-stone-400)]" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">À considérer aujourd’hui</p>
+                  <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>À considérer aujourd’hui</p>
                   <ul className="mt-1.5 space-y-1">
                     {territoryKpis.map((kpi) => (
                       <li key={kpi.label} className="flex items-baseline gap-1.5 text-sm text-[var(--etat-navy-950)]">
@@ -880,7 +891,7 @@ export default function EtatPage() {
               <div className="mt-3 flex items-start gap-2.5 border-t border-[var(--etat-line)] pt-4">
                 <Clock size={15} className="mt-0.5 shrink-0 text-[var(--etat-stone-400)]" />
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Prochaine étape</p>
+                  <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>Prochaine étape</p>
                   <p className="mt-1 text-sm font-semibold text-[var(--etat-navy-950)]">{dominantPrioritySituation.nextStep}</p>
                 </div>
               </div>
@@ -920,32 +931,34 @@ export default function EtatPage() {
             destination preuve pleinement construite aujourd'hui", même
             raisonnement que "Résultats et effets" dans "Ce qui est
             documenté" plus bas. */}
-        <div className="etat-panel mt-4 flex flex-wrap items-center gap-x-8 gap-y-3 divide-x divide-[var(--etat-line)] p-3">
-          <div className="pl-0">
-            <p className="etat-display text-lg not-italic text-[var(--etat-navy-950)]"><NumberTicker value={situationsOuvertesTotal} /></p>
-            <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Situations ouvertes</p>
+        <div className="etat-headline-strip mt-5">
+          <div className="etat-headline-cell">
+            <p className="etat-headline-value"><NumberTicker value={situationsOuvertesTotal} /></p>
+            <p className="etat-headline-label">Situations ouvertes</p>
           </div>
-          <div className="pl-8">
-            <p className="etat-display text-lg not-italic text-[var(--etat-navy-950)]"><NumberTicker value={situationsCritiquesHautesTotal} /></p>
-            <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Critiques/hautes</p>
+          <div className="etat-headline-cell">
+            <p className="etat-headline-value"><NumberTicker value={situationsCritiquesHautesTotal} /></p>
+            <p className="etat-headline-label">Critiques/hautes</p>
           </div>
-          <div className="pl-8">
-            <p className="etat-display text-lg not-italic text-[var(--etat-navy-950)]"><NumberTicker value={territoiresActifs} /></p>
-            <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Territoires couverts</p>
+          <div className="etat-headline-cell">
+            <p className="etat-headline-value"><NumberTicker value={territoiresActifs} /></p>
+            <p className="etat-headline-label">Territoires couverts</p>
           </div>
-          <div className="pl-8">
-            <p className="etat-display text-lg not-italic text-[var(--etat-navy-950)]"><NumberTicker value={capacitesFragilesTotal} /></p>
-            <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Capacités fragiles</p>
+          <div className="etat-headline-cell">
+            <p className="etat-headline-value"><NumberTicker value={capacitesFragilesTotal} /></p>
+            <p className="etat-headline-label">Capacités fragiles</p>
           </div>
-          <div className="pl-8">
-            <p className="etat-display text-lg not-italic text-[var(--etat-navy-950)]">{formatFcfa(financementEngageTotal)}</p>
-            <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Financement engagé</p>
+          <div className="etat-headline-cell">
+            <p className="etat-headline-value">{formatFcfa(financementEngageTotal)}</p>
+            <p className="etat-headline-label">Financement engagé</p>
           </div>
-          <div className="pl-8">
-            <p className="etat-display text-lg not-italic text-[var(--etat-navy-950)]"><NumberTicker value={programmesActifsTotal} /></p>
-            <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[var(--etat-stone-600)]">Programmes actifs</p>
+          <div className="etat-headline-cell flex flex-col justify-between">
+            <p className="etat-headline-value"><NumberTicker value={programmesActifsTotal} /></p>
+            <div className="flex items-end justify-between gap-3">
+              <p className="etat-headline-label">Programmes actifs</p>
+              <Link href="/app/etat/rapport" className="mb-[1px] flex shrink-0 items-center gap-1 text-[10.5px] font-semibold text-[var(--etat-terracotta)] hover:text-[var(--etat-terracotta-hover)]" style={{ fontFamily: "var(--etat-font-body)" }}>Détail <ArrowRight size={11} /></Link>
+            </div>
           </div>
-          <Link href="/app/etat/rapport" className="ml-auto flex shrink-0 items-center gap-1.5 pl-8 text-xs font-bold text-[var(--etat-navy-800)] hover:text-[var(--etat-navy-600)]">Voir le détail de la performance <ArrowRight size={13} /></Link>
         </div>
       </section>
 
@@ -974,7 +987,7 @@ export default function EtatPage() {
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="etat-panel p-5">
           <div className="flex items-center justify-between gap-2">
-            <p className="etat-eyebrow">À arbitrer</p>
+            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />À arbitrer</p>
             <Link href="/app/etat/arbitrages" className="flex shrink-0 items-center gap-1 text-xs font-bold text-[var(--etat-navy-800)] hover:text-[var(--etat-navy-600)]">Voir tout <ArrowRight size={12} /></Link>
           </div>
           <div className="mt-3 space-y-2.5">
@@ -998,7 +1011,7 @@ export default function EtatPage() {
 
         <div className="etat-panel p-5">
           <div className="flex items-center justify-between gap-2">
-            <p className="etat-eyebrow">Programmes à suivre</p>
+            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Programmes à suivre</p>
             <Link href="/app/etat/programmes" className="flex shrink-0 items-center gap-1 text-xs font-bold text-[var(--etat-navy-800)] hover:text-[var(--etat-navy-600)]">Voir tout <ArrowRight size={12} /></Link>
           </div>
           <div className="mt-3 space-y-2.5">
@@ -1022,7 +1035,7 @@ export default function EtatPage() {
             haut ("seule destination preuve pleinement construite
             aujourd'hui"). */}
         <div className="etat-panel p-5">
-          <p className="etat-eyebrow">Ce qui est documenté</p>
+          <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Ce qui est documenté</p>
           <div className="mt-3">
             <Link href="/app/etat/redevabilite" className="flex items-center justify-between gap-2 border-t border-[var(--etat-line)] py-2.5 text-sm font-semibold text-[var(--etat-navy-950)] first:border-t-0 first:pt-0 hover:text-[var(--etat-navy-600)]">Décisions récentes <ArrowRight size={13} className="shrink-0 text-[var(--etat-stone-400)]" /></Link>
             <Link href="/app/etat/rapport" className="flex items-center justify-between gap-2 border-t border-[var(--etat-line)] py-2.5 text-sm font-semibold text-[var(--etat-navy-950)] hover:text-[var(--etat-navy-600)]">Résultats et effets <ArrowRight size={13} className="shrink-0 text-[var(--etat-stone-400)]" /></Link>
@@ -1030,6 +1043,22 @@ export default function EtatPage() {
           </div>
         </div>
       </div>
+      </div>
+      </div>
+
+      {/* Bande de clôture éditoriale (mandat "Brief national", prototype
+          Espace Etat.dc.html, écran Brief : bande sombre finale "Géej tasul
+          yaakaar" — "la mer ne manque jamais d'espoir", proverbe wolof cité
+          tel quel dans le prototype comme signature éditoriale de fin de
+          page, pas une donnée produit. N'existait pas dans le code réel
+          avant ce lot (confirmé par recherche) — ajoutée ici verbatim,
+          texte de doctrine fixe, pleine largeur (hors des deux wrappers
+          px-6/space-y-0 ci-dessus, comme le hero). etat-canvas-dark
+          (déjà défini, réutilisé tel quel — pas un nouveau dégradé). */}
+      <div className="etat-canvas-dark px-6 py-14 text-center lg:px-[60px]">
+        <p className="etat-eyebrow etat-eyebrow--on-dark justify-center"><span className="etat-eyebrow-dot" />Géej tasul yaakaar</p>
+        <p className="etat-h2 mx-auto mt-4 max-w-[560px] text-2xl" style={{ color: "var(--etat-cream)" }}>La mer ne manque jamais d’espoir.</p>
+        <p className="mx-auto mt-3 max-w-[480px] text-[13px] leading-[1.6]" style={{ color: "rgba(247,243,233,.62)", fontFamily: "var(--etat-font-body)" }}>Proverbe wolof — le même esprit qui porte chaque pêcheur, chaque territoire, chaque décision documentée sur cette page.</p>
       </div>
 
       <Drawer open={!!territoryDrawer} onClose={() => setTerritoryDrawer(null)} eyebrow="Territoire" title={territoryDrawer?.name ?? ""}>

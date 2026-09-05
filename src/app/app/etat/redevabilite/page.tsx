@@ -44,7 +44,7 @@ export default function RedevabilitePage() {
   const latestDecisionAt = decisions[0]?.decidedAt;
 
   return (
-    <div className="etat-scope min-h-screen bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
+    <div className="px-6 pb-16 pt-8 lg:px-[60px] lg:pt-10">
       <EtatRegistryHeader
         eyebrow="Décisions exécutées & résultats observés — registre complet"
         title="Rendre chaque décision traçable jusqu’au résultat."
@@ -57,11 +57,11 @@ export default function RedevabilitePage() {
         ]}
       >
         <label className="block">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>
+          <p className="etat-filter-label">Périmètre</p>
           <select
             value={selectedTerritoryId ?? ""}
             onChange={(event) => setSelectedTerritoryId(event.target.value || null)}
-            className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
+            className="etat-filter-select"
           >
             <option value="">Sénégal entier</option>
             {[...state.territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => (

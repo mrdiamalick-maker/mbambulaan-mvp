@@ -4,46 +4,119 @@
    typographie, du site Public — cohérence délibérée puisque c'est la
    même infrastructure vue par un public institutionnel. Palette nommée,
    navy dominant, accent terre-cuite rare réservé aux priorités et
-   actions. Sous @layer components, scopé par .etat-scope. */
+   actions. Sous @layer components, scopé par .etat-scope.
+
+   P2.DESIGN-1A.2 (North Star Claude Design, addendum CEO) — refonte
+   complète des valeurs et primitives pour faire correspondre l'Espace
+   État réel au prototype Claude Design fourni (Espace Etat.dc.html/.pdf) :
+   typographie Newsreader/IBM Plex (chargées via next/font/google dans
+   src/app/app/etat/layout.tsx, exposées ici comme --font-etat-*),
+   géométrie nette (coins 2-4px, jamais de pilule ni d'ombre portée
+   lourde — le prototype est presque entièrement plat), palette de marque
+   verrouillée (#0B1A2A / #B6522F / #F7F3E9) comme base, quelques teintes
+   sémantiques dérivées (critique/vigilance/vérifiée/observée) reprises
+   TELLES QUELLES du prototype plutôt qu'inventées. --etat-navy-950/-800/
+   -600 (échelle pré-existante) sont conservées à l'identique : des
+   composants non retouchés dans ce lot (TensionGlyph, CoastlineTerritoryMap
+   pour /app/pilotage) en dépendent encore. */
 
 @layer components {
   .etat-scope {
+    /* ---- Navy — #0B1A2A verrouillé (Espace État, prototype) ---- */
+    --etat-navy: #0b1a2a;
     --etat-navy-950: #071627;
     --etat-navy-800: #102944;
     --etat-navy-600: #1d4468;
+
+    /* ---- Fonds crème/blanc cassé (verrouillés / prototype) ---- */
+    --etat-cream: #f7f3e9;
+    --etat-warm-white: #fbf8f0;
     --etat-offwhite: #f7f8f7;
     --etat-offwhite-dim: #eef1ef;
+
+    /* ---- Terre cuite — #B6522F verrouillé, accent d'action ---- */
     --etat-terracotta: #b6522f;
+    --etat-terracotta-hover: #8e3e22;
     --etat-terracotta-dim: #f1ded3;
-    --etat-ocre: #c68a2c;
-    --etat-ocre-dim: #f3e6cb;
+    --etat-terracotta-clair: #e6a27a;
+
+    /* ---- États sémantiques — repris du prototype, dérivés sobres de la
+       marque, jamais une couleur choisie au hasard. Critique est
+       délibérément distinct de --etat-terracotta (l'accent d'action) :
+       un rouge de sévérité, pas la couleur "faire quelque chose". */
+    --etat-critique: #c8452b;
+    --etat-critique-dim: #f8ddd5;
+    --etat-ocre: #d89a4a;
+    --etat-ocre-dim: #f7e9d3;
+    --etat-vert: #4e7b5a;
+    --etat-vert-clair: #7fb08a;
+
     --etat-ink: #16222c;
     --etat-stone-600: #5c6a74;
     --etat-stone-400: #8c9aa2;
-    --etat-line: rgba(16, 41, 68, .13);
-    --etat-font-display: ui-serif, Iowan Old Style, Apple Garamond, Baskerville, "Palatino Linotype", "URW Palladio", P052, serif;
+    --etat-line: rgba(11, 26, 42, .13);
+    --etat-line-soft: rgba(11, 26, 42, .10);
 
+    /* ---- Typographie (next/font/google, src/app/app/etat/layout.tsx) ---- */
+    --etat-font-display: var(--font-etat-display), Newsreader, ui-serif, Georgia, serif;
+    --etat-font-body: var(--font-etat-body), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --etat-font-mono: var(--font-etat-mono), "IBM Plex Mono", ui-monospace, monospace;
+
+    background: var(--etat-cream);
     color: var(--etat-ink);
+    font-family: var(--etat-font-body);
     font-variant-numeric: tabular-nums;
   }
 
+  /* ---- Échelle display (prototype : serif léger, tracking négatif) ---- */
   .etat-display {
     font-family: var(--etat-font-display);
     font-style: normal;
     letter-spacing: -.01em;
   }
+  /* Titre d'écran (H1) — "Voir le pays, puis décider." : poids 300, très
+     grand, interligne serré. Deux gabarits réels utilisés par le
+     prototype : hero Brief national (56px) et en-tête de registre
+     (46px) — même classe, taille pilotée par un modificateur. */
+  .etat-h1 {
+    font-family: var(--etat-font-display);
+    font-weight: 300;
+    font-style: normal;
+    letter-spacing: -.014em;
+    line-height: 1.07;
+    color: var(--etat-navy);
+    text-wrap: balance;
+  }
+  .etat-h1--hero { font-size: clamp(2.1rem, 1.3rem + 3.4vw, 3.5rem); }
+  .etat-h1--registry { font-size: clamp(1.9rem, 1.3rem + 2.6vw, 2.9rem); }
+  .etat-h2 {
+    font-family: var(--etat-font-display);
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1.2;
+    color: var(--etat-navy);
+  }
+  .etat-h3 {
+    font-family: var(--etat-font-display);
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1.25;
+    color: var(--etat-navy);
+  }
 
   .etat-eyebrow {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .13em;
+    gap: 8px;
+    font-family: var(--etat-font-body);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .16em;
     text-transform: uppercase;
     color: var(--etat-terracotta);
   }
-  .etat-eyebrow--on-dark { color: var(--etat-ocre-dim); }
+  .etat-eyebrow--on-dark { color: var(--etat-terracotta-clair); }
+  .etat-eyebrow-dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; flex: none; }
 
   /* Toile de fond institutionnelle : navy profond avec une texture très
      discrète évoquant une carte marine, jamais un dégradé décoratif. */
@@ -52,19 +125,20 @@
     background:
       radial-gradient(120% 100% at 100% 0%, rgba(198, 138, 44, .10), transparent 55%),
       linear-gradient(165deg, var(--etat-navy-800), var(--etat-navy-950));
-    color: var(--etat-offwhite);
+    color: var(--etat-cream);
   }
 
+  /* ---- Panneaux — géométrie nette du prototype (jamais de pilule, pas
+     d'ombre lourde : un simple contour fin fait tout le travail). ---- */
   .etat-panel {
     background: #fff;
     border: 1px solid var(--etat-line);
-    border-radius: 14px;
-    box-shadow: 0 1px 2px rgba(7, 22, 39, .025), 0 14px 36px rgba(7, 22, 39, .035);
+    border-radius: 3px;
   }
   .etat-panel--warm {
-    background: #fbfcfb;
-    border: 1px solid rgba(16, 41, 68, .08);
-    border-radius: 12px;
+    background: var(--etat-warm-white);
+    border: 1px solid var(--etat-line-soft);
+    border-radius: 3px;
   }
 
   .etat-registry-header {
@@ -76,9 +150,10 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    font-family: var(--etat-font-body);
     color: var(--etat-stone-600);
-    font-size: 12px;
-    font-weight: 750;
+    font-size: 12.5px;
+    font-weight: 500;
     transition: color .15s ease;
   }
   .etat-back-link:hover { color: var(--etat-terracotta); }
@@ -92,26 +167,62 @@
   .etat-registry-title {
     margin-top: 8px;
     max-width: 920px;
-    color: var(--etat-navy-950);
-    font-size: clamp(1.8rem, 3vw, 2.65rem);
-    line-height: 1.06;
   }
 
   .etat-registry-description {
     max-width: 780px;
     margin-top: 10px;
     color: var(--etat-stone-600);
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.65;
   }
 
   .etat-registry-tools {
     display: flex;
     flex-wrap: wrap;
     align-items: end;
-    gap: 12px;
+    gap: 26px;
   }
 
+  /* ---- Bandeau de synthèse — le prototype ne case JAMAIS ses agrégats
+     dans des tuiles bordées/ombrées : une seule ligne, séparateurs verticaux
+     fins, gros chiffre serif + libellé mono discret. Remplace l'ancien
+     .etat-metric-strip en grille de tuiles carrées (dette visuelle
+     identifiée par l'audit visuel du lot). */
+  .etat-headline-strip {
+    display: flex;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--etat-line);
+    border-bottom: 1px solid var(--etat-line);
+  }
+  .etat-headline-cell {
+    flex: 1 1 160px;
+    min-width: 0;
+    padding: 22px 24px 20px 0;
+    border-right: 1px solid var(--etat-line-soft);
+  }
+  .etat-headline-cell:last-child { border-right: 0; }
+  .etat-headline-value {
+    font-family: var(--etat-font-display);
+    font-weight: 400;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--etat-navy);
+    margin-bottom: 9px;
+  }
+  .etat-headline-label {
+    font-family: var(--etat-font-body);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--etat-stone-600);
+  }
+
+  /* Tuile héritée (Programmes, Résultats — mêmes 4 tuiles inline sur fond
+     .etat-canvas-dark) : conservée pour ces contextes précis, où le
+     prototype montre bien des colonnes séparées par un filet plutôt qu'un
+     bandeau clair. */
   .etat-metric-strip {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -119,10 +230,8 @@
     margin-top: 24px;
     overflow: hidden;
     border: 1px solid var(--etat-line);
-    border-radius: 12px;
     background: var(--etat-line);
   }
-
   .etat-metric {
     min-width: 0;
     background: #fff;
@@ -130,15 +239,15 @@
     box-shadow: inset 0 3px 0 transparent;
   }
   .etat-metric--attention { box-shadow: inset 0 3px 0 var(--etat-ocre); }
-  .etat-metric--critical { box-shadow: inset 0 3px 0 var(--etat-terracotta); }
-  .etat-metric--positive { box-shadow: inset 0 3px 0 #2d7b57; }
+  .etat-metric--critical { box-shadow: inset 0 3px 0 var(--etat-critique); }
+  .etat-metric--positive { box-shadow: inset 0 3px 0 var(--etat-vert); }
 
   .etat-metric-value {
     overflow: hidden;
-    color: var(--etat-navy-950);
+    color: var(--etat-navy);
     font-family: var(--etat-font-display);
     font-size: 1.45rem;
-    font-weight: 700;
+    font-weight: 400;
     line-height: 1;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -147,8 +256,8 @@
     margin-top: 7px;
     color: var(--etat-stone-600);
     font-size: 9.5px;
-    font-weight: 800;
-    letter-spacing: .08em;
+    font-weight: 600;
+    letter-spacing: .1em;
     text-transform: uppercase;
   }
   .etat-metric-detail {
@@ -162,42 +271,63 @@
     .etat-metric-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   }
 
+  /* ---- Étiquettes — rectangulaires, fines, jamais en pilule (rupture
+     nette avec l'ancien .etat-tag arrondi à 999px : c'est le signal
+     géométrique le plus visible du prototype). ---- */
   .etat-tag {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    border-radius: 999px;
-    padding: 3px 10px;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .05em;
+    border-radius: 2px;
+    padding: 3px 8px;
+    font-family: var(--etat-font-body);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: .1em;
     text-transform: uppercase;
     white-space: nowrap;
   }
   .etat-tag--demo { background: var(--etat-ocre-dim); color: #8a5b17; }
-  .etat-tag--reel { background: #dfeee3; color: #1e6b3d; }
-  .etat-tag--stable { background: #e7edf1; color: var(--etat-navy-600); }
+  .etat-tag--reel { background: #dfeee3; color: var(--etat-vert); }
+  .etat-tag--stable { background: rgba(11, 26, 42, .06); color: var(--etat-navy); }
   .etat-tag--vigilance { background: var(--etat-ocre-dim); color: #8a5b17; }
-  .etat-tag--critique { background: var(--etat-terracotta-dim); color: var(--etat-terracotta); }
+  .etat-tag--critique { background: var(--etat-critique-dim); color: var(--etat-critique); }
+  /* Variante "contour" — utilisée par le registre Arbitrages du prototype
+     pour l'urgence (bordure de la couleur, fond transparent). */
+  .etat-tag-outline { border: 1px solid currentColor; border-radius: 0; background: transparent; }
 
+  /* ---- Signature de confiance — glyphes ○ (déclarée) / ◐ (observée) /
+     ● (vérifiée), langage visuel central du prototype. Un seul endroit où
+     ils sont définis ; réutilisés partout (registre, dossier, légende
+     sidebar) via <TrustGlyph>. */
+  .etat-trust-glyph { font-size: 13px; line-height: 1; flex: none; }
+  .etat-trust-glyph--declaree { color: var(--etat-navy); }
+  .etat-trust-glyph--observee { color: var(--etat-terracotta); }
+  .etat-trust-glyph--verifiee { color: var(--etat-vert); }
+  .etat-trust-glyph--on-dark.etat-trust-glyph--declaree { color: var(--etat-cream); }
+  .etat-trust-glyph--on-dark.etat-trust-glyph--observee { color: var(--etat-terracotta-clair); }
+  .etat-trust-glyph--on-dark.etat-trust-glyph--verifiee { color: var(--etat-vert-clair); }
+
+  /* ---- Boutons — coins nets (3px), pas d'ombre, remplissage plat. ---- */
   .etat-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     min-height: 42px;
-    border-radius: 12px;
-    padding: 9px 18px;
-    font-size: 13px;
-    font-weight: 700;
-    transition: filter .15s ease, background-color .15s ease;
+    border-radius: 3px;
+    padding: 10px 18px;
+    font-family: var(--etat-font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
   }
-  .etat-btn-primary { background: var(--etat-terracotta); color: #fff8f2; }
-  .etat-btn-primary:hover { filter: brightness(1.07); }
-  .etat-btn-outline { border: 1px solid var(--etat-line); color: var(--etat-navy-800); background: #fff; }
-  .etat-btn-outline:hover { background: var(--etat-offwhite); }
-  .etat-btn-on-dark { border: 1px solid rgba(246, 241, 231, .22); color: var(--etat-offwhite); background: rgba(246, 241, 231, .06); }
-  .etat-btn-on-dark:hover { background: rgba(246, 241, 231, .12); }
+  .etat-btn-primary { border: 1px solid var(--etat-terracotta); background: var(--etat-terracotta); color: #fff8f2; }
+  .etat-btn-primary:hover { background: var(--etat-terracotta-hover); border-color: var(--etat-terracotta-hover); }
+  .etat-btn-outline { border: 1px solid rgba(11, 26, 42, .22); color: var(--etat-navy); background: transparent; }
+  .etat-btn-outline:hover { background: rgba(11, 26, 42, .06); }
+  .etat-btn-on-dark { border: 1px solid rgba(247, 243, 233, .26); color: var(--etat-cream); background: transparent; }
+  .etat-btn-on-dark:hover { background: rgba(247, 243, 233, .08); }
 
   .etat-divider { height: 1px; background: var(--etat-line); border: 0; }
 
@@ -205,12 +335,70 @@
     display: flex;
     gap: 10px;
     align-items: flex-start;
-    border-radius: 14px;
-    background: var(--etat-offwhite);
-    border: 1px solid rgba(16, 41, 68, .08);
+    border-radius: 3px;
+    background: var(--etat-warm-white);
+    border: 1px solid var(--etat-line-soft);
     padding: 12px 14px;
+    font-family: var(--etat-font-body);
     font-size: 12.5px;
     line-height: 1.5;
     color: var(--etat-navy-800);
   }
+
+  /* ---- Filtres — le prototype ne montre jamais de <select> encadré :
+     un libellé mono discret au-dessus, une valeur soulignée en dessous.
+     Le vrai <select> reste natif et pleinement interactif ; seul son
+     habillage visuel change (pas de boîte bordée). */
+  .etat-filter-label {
+    font-family: var(--etat-font-body);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: rgba(11, 26, 42, .48);
+    margin-bottom: 8px;
+  }
+  .etat-filter-select {
+    appearance: none;
+    border: 0;
+    border-bottom: 1px solid rgba(11, 26, 42, .30);
+    border-radius: 0;
+    background: transparent;
+    padding: 0 18px 6px 0;
+    font-family: var(--etat-font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--etat-navy);
+    /* P2.DESIGN-1A.2 — largeur bornée (jamais "auto" sur le texte
+       d'option le plus long, ex. "Toutes les dates disponibles") :
+       sans ce plafond, un <select> natif s'élargit au contenu de son
+       option la plus longue et fait déborder son <label> flex-none sur
+       les petits viewports (débordement horizontal confirmé à 390px,
+       corrigé ici plutôt que sur chaque page consommatrice). */
+    max-width: 200px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%230B1A2A' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 2px center;
+  }
+  .etat-filter-select:focus { outline: none; border-color: var(--etat-terracotta); }
+  .etat-search-field {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border: 1px solid rgba(11, 26, 42, .14);
+    border-radius: 3px;
+    background: var(--etat-cream);
+    padding: 8px 11px;
+  }
+
+  /* ---- Onglets secondaires (Atlas "Vue carte/Vue liste…", Arbitrages
+     "Critique + élevé/À qualifier…") — soulignement terracotta, pas de
+     fond, pas de pilule. ---- */
+  .etat-subtabs { display: flex; flex-wrap: wrap; gap: 26px; border-bottom: 1px solid var(--etat-line); }
+  .etat-subtab { padding: 0 2px 12px; font-family: var(--etat-font-body); font-size: 13px; color: rgba(11, 26, 42, .52); }
+  .etat-subtab--active { font-weight: 600; color: var(--etat-navy); box-shadow: inset 0 -2px 0 var(--etat-terracotta); }
 }

@@ -10,12 +10,26 @@ export type EtatRegistryMetric = {
   tone?: "neutral" | "attention" | "critical" | "positive";
 };
 
+const toneDotColor: Record<NonNullable<EtatRegistryMetric["tone"]>, string> = {
+  neutral: "transparent",
+  attention: "var(--etat-ocre)",
+  critical: "var(--etat-critique)",
+  positive: "var(--etat-vert)"
+};
+
 // XXL-R2 (§25 du mandat) — grammaire commune (§6) : ce composant reste le
 // seul en-tête des 4 registres État (Territoires/Arbitrages/Programmes/
 // Rapport), donc l'endroit le plus efficace pour propager une seule fois
 // la signature territoriale plutôt que de la répéter par page. `signature`
 // reste un prop optionnel, jamais activé par défaut ("pas partout", §25) —
 // seules les pages effectivement ancrées territorialement l'activent.
+//
+// P2.DESIGN-1A.2 (North Star Claude Design) — bandeau de synthèse
+// reconstruit en ligne à filets (etat-headline-strip), plus en grille de
+// tuiles carrées : même prop `metrics` (aucun appelant à modifier), le
+// `tone` se lit désormais comme un point de couleur discret devant le
+// libellé plutôt qu'un liseré de tuile — cohérent avec la géométrie plate
+// du prototype (jamais de carte encadrée pour un simple agrégat).
 export function EtatRegistryHeader({
   eyebrow,
   title,
@@ -45,19 +59,24 @@ export function EtatRegistryHeader({
 
       <div className="etat-registry-heading">
         <div className="min-w-0">
-          <p className="etat-eyebrow">{eyebrow}</p>
-          <h1 className="etat-display etat-registry-title">{title}</h1>
+          <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />{eyebrow}</p>
+          <h1 className="etat-display etat-h1 etat-h1--registry etat-registry-title">{title}</h1>
           <div className="etat-registry-description">{description}</div>
         </div>
         {children && <div className="etat-registry-tools">{children}</div>}
       </div>
 
-      <div className="etat-metric-strip" aria-label="Synthèse du registre">
+      <div className="etat-headline-strip mt-7" aria-label="Synthèse du registre">
         {metrics.map((metric) => (
-          <div key={metric.label} className={`etat-metric etat-metric--${metric.tone ?? "neutral"}`}>
-            <p className="etat-metric-value">{metric.value}</p>
-            <p className="etat-metric-label">{metric.label}</p>
-            {metric.detail && <p className="etat-metric-detail">{metric.detail}</p>}
+          <div key={metric.label} className="etat-headline-cell">
+            <p className="etat-headline-value">{metric.value}</p>
+            <p className="etat-headline-label">
+              {metric.tone && metric.tone !== "neutral" && (
+                <span className="mr-1.5 inline-block size-1.5 rounded-full align-middle" style={{ backgroundColor: toneDotColor[metric.tone] }} aria-hidden="true" />
+              )}
+              {metric.label}
+            </p>
+            {metric.detail && <p className="mt-1 text-[11px] leading-4 text-[var(--etat-stone-400)]">{metric.detail}</p>}
           </div>
         ))}
       </div>

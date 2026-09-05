@@ -19,7 +19,7 @@ import {
 } from "@/components/etat/shared";
 import type { FieldVisit } from "@/domain/ministry/field-visit";
 import type { Situation } from "@/domain/types";
-import { TrustIndicator } from "@/components/foundations";
+import { TrustGlyphLabel, trustGlyphFromLevel } from "@/components/etat/TrustGlyph";
 
 // Registre complet "Situations à arbitrer" — extrait de /app/etat (mandat
 // "Brief national", navigation par page, 2026-08-26). Contenu et logique
@@ -70,7 +70,7 @@ export default function ArbitragesPage() {
   const plannedVisitCount = visits.filter((item) => item.status === "planifiee" && (!selectedTerritoryId || item.territoryId === selectedTerritoryId)).length;
 
   return (
-    <div className="etat-scope min-h-screen bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
+    <div className="px-6 pb-16 pt-8 lg:px-[60px] lg:pt-10">
       <EtatRegistryHeader
         eyebrow="Situations à arbitrer — registre complet"
         title="Décider sur les situations qui ne peuvent plus attendre."
@@ -83,11 +83,11 @@ export default function ArbitragesPage() {
         ]}
       >
           <label className="block">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>
+            <p className="etat-filter-label">Périmètre</p>
             <select
               value={selectedTerritoryId ?? ""}
               onChange={(event) => setSelectedTerritoryId(event.target.value || null)}
-              className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
+              className="etat-filter-select"
             >
               <option value="">Sénégal entier</option>
               {[...state.territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => (
@@ -96,32 +96,42 @@ export default function ArbitragesPage() {
             </select>
           </label>
           <label className="block">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Recherche</p>
-            <div className="relative mt-1">
-              <Search size={14} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--etat-stone-400)]" />
+            <p className="etat-filter-label">Recherche</p>
+            <div className="etat-search-field w-52">
+              <Search size={14} className="shrink-0 text-[var(--etat-stone-400)]" />
               <input
                 type="search"
                 value={arbitrageSearch}
                 onChange={(event) => setArbitrageSearch(event.target.value)}
                 placeholder="Titre, étape, territoire…"
-                className="w-44 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-7 pr-2 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
+                className="w-full bg-transparent text-sm font-medium text-[var(--etat-navy)] outline-none"
+                style={{ fontFamily: "var(--etat-font-body)" }}
               />
             </div>
           </label>
-          <label className="block">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Urgence</p>
-            <select
-              value={urgenceFilter}
-              onChange={(event) => setUrgenceFilter(event.target.value as "all" | "critique" | "haute")}
-              className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
-            >
-              <option value="all">Critique + élevé</option>
-              <option value="critique">Critique seulement</option>
-              <option value="haute">Élevé seulement</option>
-            </select>
-          </label>
           <button className="etat-btn etat-btn-outline" onClick={() => setSignalDrawerOpen(true)}><Radio size={15} /> Signaler une situation</button>
       </EtatRegistryHeader>
+
+      {/* Sous-onglets d'urgence (mandat P2.DESIGN-1A.2 §Arbitrages, "langage
+          de registre du prototype, éviter l'ancienne table générique") :
+          remplace l'ancien <select> Urgence — mêmes 3 options exactes,
+          même state urgenceFilter, juste l'habillage .etat-subtabs déjà
+          utilisé par le prototype pour ses propres filtres de registre. */}
+      <div className="etat-subtabs mt-8">
+        {([
+          { value: "all", label: "Critique + élevé" },
+          { value: "critique", label: "Critique seulement" },
+          { value: "haute", label: "Élevé seulement" }
+        ] as const).map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setUrgenceFilter(tab.value)}
+            className={`etat-subtab ${urgenceFilter === tab.value ? "etat-subtab--active" : ""}`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       <div className="etat-panel mt-5 p-6 lg:p-7">
       {situationsAArbitrer.length === 0 ? (
@@ -153,7 +163,7 @@ export default function ArbitragesPage() {
                       <td className="px-4 py-3"><p className="font-semibold text-[var(--etat-navy-950)]">{situation.title}</p><p className="mt-0.5 text-xs text-[var(--etat-stone-600)]">{situation.nextStep}</p></td>
                       <td className="px-4 py-3 text-[var(--etat-stone-600)]">{territory?.name ?? situation.territoryId}</td>
                       <td className="px-4 py-3"><span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : "etat-tag--vigilance"}`}>{priorityLabels[situation.priority]}</span></td>
-                      <td className="px-4 py-3"><TrustIndicator trust={situation.trust} /></td>
+                      <td className="px-4 py-3"><TrustGlyphLabel level={trustGlyphFromLevel(situation.trust)} className="text-xs text-[var(--etat-stone-600)]" /></td>
                       <td className="px-4 py-3 text-[var(--etat-stone-600)]">{stageLabel}</td>
                       <td className="px-4 py-3 text-[var(--etat-stone-600)]">{situation.dueAt ? new Date(situation.dueAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) : "—"}</td>
                       <td className="px-4 py-3 text-[var(--etat-stone-600)]">{responsable?.name ?? "—"}</td>
@@ -176,13 +186,13 @@ export default function ArbitragesPage() {
               const tag = priorityToTag[situation.priority];
               const stageLabel = pipelineStages.find((stage) => stage.status === situation.status)?.label ?? situation.status;
               return (
-                <article key={situation.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--etat-line)] p-4" style={{ borderLeftWidth: 4, borderLeftColor: glyphBorderColor[tag], backgroundColor: arbitrageFillColor[tag] }}>
+                <article key={situation.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[3px] border border-[var(--etat-line)] p-4" style={{ borderLeftWidth: 3, borderLeftColor: glyphBorderColor[tag], backgroundColor: arbitrageFillColor[tag] }}>
                   <div className="flex items-center gap-3">
                     <TensionGlyph status={tag} size={30} />
                     <div>
                       <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-semibold text-[var(--etat-navy-950)]">{territory?.name ?? situation.territoryId} · {situation.title}</p><span className={`etat-tag ${tag === "critique" ? "etat-tag--critique" : "etat-tag--vigilance"}`}>{priorityLabels[situation.priority]}</span></div>
                       <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{situation.nextStep}</p>
-                      <div className="mt-1.5"><TrustIndicator trust={situation.trust} /></div>
+                      <div className="mt-1.5"><TrustGlyphLabel level={trustGlyphFromLevel(situation.trust)} className="text-xs text-[var(--etat-stone-600)]" /></div>
                       <p className="mt-1 text-[11px] text-[var(--etat-stone-400)]">Étape {stageLabel.toLowerCase()}</p>
                     </div>
                   </div>

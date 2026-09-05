@@ -60,7 +60,7 @@ function ProgrammeCard({ programme, state }: { programme: Initiative; state: Pro
     <div className="etat-panel--warm p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-bold text-[var(--etat-navy-950)]">{programme.title}</p>
+          <p className="etat-h3 text-base">{programme.title}</p>
           <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{programme.objective}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">{territoryNames.map((name) => <span key={name} className="etat-tag etat-tag--stable">{name}</span>)}</div>
         </div>
@@ -98,7 +98,15 @@ function ProgrammeCard({ programme, state }: { programme: Initiative; state: Pro
                 <span className="font-semibold text-[var(--etat-navy-800)]">{indicator.label}</span>
                 <span className="text-[var(--etat-stone-600)]">{indicator.baseline}{indicator.unit} → {indicator.current}{indicator.unit} → {indicator.target}{indicator.unit}</span>
               </div>
-              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--etat-line)]"><div className="h-full rounded-full bg-[var(--etat-terracotta)]" style={{ width: `${indicatorProgress(indicator)}%` }} /></div>
+              {/* Barre sharp (mandat §"Programmes", géométrie du prototype :
+                  jamais de pilule) + repère de cible fixe à 100% — la
+                  progression réelle (indicatorProgress) reste la seule
+                  donnée qui bouge, le repère ne fait que marquer où se
+                  trouve la cible déjà affichée en toutes lettres au-dessus. */}
+              <div className="relative mt-1.5 h-[3px] w-full overflow-hidden rounded-[1px] bg-[var(--etat-line)]">
+                <div className="h-full rounded-[1px] bg-[var(--etat-terracotta)]" style={{ width: `${indicatorProgress(indicator)}%` }} />
+                <span className="absolute right-0 top-1/2 h-2 w-[1.5px] -translate-y-1/2 bg-[var(--etat-navy)]" aria-hidden="true" />
+              </div>
             </div>
           ))}
         </div>
@@ -140,7 +148,7 @@ export default function ProgrammesPage() {
   const trackedIndicatorsCount = filteredProgrammes.reduce((sum, item) => sum + item.indicators.length, 0);
 
   return (
-    <div className="etat-scope min-h-screen bg-[var(--etat-offwhite)] p-5 pb-16 lg:p-8">
+    <div className="px-6 pb-16 pt-8 lg:px-[60px] lg:pt-10">
       <EtatRegistryHeader
         eyebrow="Programmes en cours — portefeuille complet"
         title="Relier les priorités territoriales aux moyens mobilisables."
@@ -154,11 +162,11 @@ export default function ProgrammesPage() {
         signature={Boolean(selectedTerritoryId)}
       >
           <label className="block">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Périmètre</p>
+            <p className="etat-filter-label">Périmètre</p>
             <select
               value={selectedTerritoryId ?? ""}
               onChange={(event) => setSelectedTerritoryId(event.target.value || null)}
-              className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
+              className="etat-filter-select"
             >
               <option value="">Sénégal entier</option>
               {[...state.territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => (
@@ -167,11 +175,11 @@ export default function ProgrammesPage() {
             </select>
           </label>
           <label className="block">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--etat-stone-400)]">Statut</p>
+            <p className="etat-filter-label">Statut</p>
             <select
               value={programmeStatusFilter}
               onChange={(event) => setProgrammeStatusFilter(event.target.value as Initiative["status"] | "all")}
-              className="mt-1 rounded-md border border-[var(--etat-line)] bg-white py-1 pl-0 pr-6 text-sm font-semibold text-[var(--etat-navy-950)] outline-none focus:border-[var(--etat-navy-600)]"
+              className="etat-filter-select"
             >
               <option value="all">Tous les statuts</option>
               {(["cadrage", "financee", "execution", "terminee"] as const).map((status) => (
