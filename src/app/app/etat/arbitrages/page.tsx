@@ -18,6 +18,7 @@ import {
 } from "@/components/etat/shared";
 import type { Situation } from "@/domain/types";
 import { TrustGlyphLabel, trustGlyphFromLevel } from "@/components/etat/TrustGlyph";
+import { deriveDatasetReferenceAt } from "@/domain/signal-crossing";
 
 // P2.DESIGN-1B (mandat CEO "Claude Design V2 → Real Product
 // Implementation", §11, "Arbitrages") — remplace la table générique
@@ -35,10 +36,19 @@ import { TrustGlyphLabel, trustGlyphFromLevel } from "@/components/etat/TrustGly
 // situation, propre à sa fixture, qui ne correspond à aucune commande
 // générique du domaine). La phrase de provenance humaine (verbatim du
 // prototype, texte de doctrine) reste affichée telle quelle.
-function situationAge(situation: Situation): string | null {
+// P2.DESIGN-1B.2 (mandat §3, "crédibilité temporelle du Demo World") :
+// référencé contre l'horloge MÉTIER du jeu de données
+// (deriveDatasetReferenceAt, déjà utilisée par signal-crossing.ts pour la
+// fraîcheur des capacités), jamais contre Date.now() — le Demo World a ses
+// propres dates fixes (mandat "jamais figées arbitrairement", cf.
+// demo-state.ts) et l'horloge réelle s'en éloigne inévitablement avec le
+// temps. Comparer contre le dernier évènement réellement observé dans le
+// jeu lui-même donne un âge stable et honnête, qui ne dérive jamais vers
+// des "il y a 38 jours" au fil des sessions.
+function situationAge(situation: Situation, referenceAtMs: number): string | null {
   const first = situation.history[0]?.at;
   if (!first) return null;
-  const days = Math.floor((Date.now() - new Date(first).getTime()) / 86_400_000);
+  const days = Math.floor((referenceAtMs - new Date(first).getTime()) / 86_400_000);
   if (days <= 0) return "aujourd’hui";
   return `il y a ${days} jour${days > 1 ? "s" : ""}`;
 }
@@ -75,6 +85,12 @@ export default function ArbitragesPage() {
 
   if (!state) return null;
 
+  // Horloge métier du jeu de données (mandat §3) — repli sur Date.now()
+  // uniquement dans le cas dégénéré où le Demo World ne contiendrait
+  // aucune activité observée (jamais le cas en pratique).
+  const datasetReferenceAt = deriveDatasetReferenceAt(state);
+  const referenceAtMs = datasetReferenceAt ? new Date(datasetReferenceAt).getTime() : Date.now();
+
   const arbitrageSearchNormalized = arbitrageSearch.trim().toLowerCase();
   const situationsAArbitrer = state.situations
     .filter((item) =>
@@ -95,7 +111,7 @@ export default function ArbitragesPage() {
     const ages = situationsAArbitrer
       .map((item) => item.history[0]?.at)
       .filter((value): value is string => Boolean(value))
-      .map((at) => Math.floor((Date.now() - new Date(at).getTime()) / 86_400_000))
+      .map((at) => Math.floor((referenceAtMs - new Date(at).getTime()) / 86_400_000))
       .sort((a, b) => a - b);
     if (ages.length === 0) return null;
     return ages[Math.floor(ages.length / 2)];
@@ -176,7 +192,7 @@ export default function ArbitragesPage() {
                   <div className="flex items-center gap-2.5">
                     <span className="text-[9px] font-semibold uppercase tracking-[.12em]" style={{ color: glyphBorderColor[tag] }}>{priorityLabels[situation.priority]}</span>
                     <span className="text-[11px] text-[var(--etat-stone-400)]">{territory?.name ?? situation.territoryId}</span>
-                    <span className="ml-auto text-[11px] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-mono)" }}>{situationAge(situation)}</span>
+                    <span className="ml-auto text-[11px] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-mono)" }}>{situationAge(situation, referenceAtMs)}</span>
                   </div>
                   <p className="mt-2 text-[14px] font-semibold leading-[1.4] text-[var(--etat-navy)]">{situation.title}</p>
                   <div className="mt-2.5 flex items-center gap-3">
@@ -195,7 +211,7 @@ export default function ArbitragesPage() {
               <div className="flex items-center gap-3">
                 <span className="size-2 rounded-full" style={{ background: glyphBorderColor[selTag] }} />
                 <span className="text-[10px] font-semibold uppercase tracking-[.14em]" style={{ color: glyphBorderColor[selTag] }}>{priorityLabels[selected.priority]}</span>
-                <span className="text-[12px] text-[var(--etat-stone-600)]">{selTerritory?.name ?? selected.territoryId} · {situationAge(selected)}</span>
+                <span className="text-[12px] text-[var(--etat-stone-600)]">{selTerritory?.name ?? selected.territoryId} · {situationAge(selected, referenceAtMs)}</span>
               </div>
               <h2 className="etat-h2 mt-3 max-w-[660px] text-[30px]">{selected.title}</h2>
               {/* Certaines situations du jeu de démonstration n'ont jamais

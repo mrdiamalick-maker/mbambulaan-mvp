@@ -212,14 +212,22 @@ export default function ProgrammesPage() {
           </label>
       </EtatRegistryHeader>
 
-      {/* Bande "chaîne du programme" (mandat §10 et §12 — personnalité
-          DEVELOPMENT/ACTION propre à cette page, jamais un gabarit
-          générique de portefeuille de projets). Le financement N'EST PAS
-          l'attribut visuel dominant : il reste une carte parmi cinq, à
-          poids égal avec le besoin, les acteurs, la mise en œuvre et les
-          résultats. */}
-      <div className="etat-panel mt-5 flex flex-col gap-6 p-6 lg:flex-row lg:items-stretch lg:gap-8 lg:p-7">
-        <div className="min-w-0 flex-1">
+      {/* Bande "chaîne du programme" (mandat §10/§12, corrigée au mandat
+          P2.DESIGN-1B.2 §1) — personnalité DEVELOPMENT/ACTION propre à
+          cette page. Le financement N'EST PAS l'attribut visuel dominant :
+          il reste une carte parmi cinq, à poids égal avec le besoin, les
+          acteurs, la mise en œuvre et les résultats.
+          Correctif §1 : la maquette V2 (`<image-slot id="prog-hero"
+          fit="cover">`, colonne pleine hauteur, sans marge) place l'image
+          comme un second panneau à part entière, jamais une vignette posée
+          dans un espace blanc. Le padding vivait auparavant sur TOUT le
+          conteneur (texte + image), ce qui emprisonnait l'image dans une
+          marge — désormais le padding ne porte que sur la colonne de
+          texte, l'image occupe sa colonne à bord perdu (object-cover,
+          aucune marge, seule une bordure de couture la sépare du texte,
+          overflow-hidden sur le panneau pour respecter son rayon). */}
+      <div className="etat-panel mt-5 flex flex-col overflow-hidden lg:flex-row lg:items-stretch">
+        <div className="min-w-0 flex-1 p-6 lg:p-7">
           <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>Besoin territorial → intervention → résultat</p>
           <div className="mt-4 flex flex-wrap items-stretch gap-0">
             {chainSteps.map((step, i) => (
@@ -236,11 +244,15 @@ export default function ProgrammesPage() {
         </div>
         {/* Illustration fournie (mandat §10) : composition à but éditorial,
             jamais une source de données — les chiffres qui y apparaissent
-            sont ceux du prototype et ne remplacent en rien la chaîne
-            calculée ci-dessus. object-contain pour ne jamais rogner sa
-            propre composition (icônes de chaîne, tablette, indicateurs). */}
-        <div className="relative h-[180px] w-full shrink-0 overflow-hidden lg:h-auto lg:w-[300px]" style={{ background: "var(--etat-cream)", border: "1px solid var(--etat-line)" }}>
-          <Image src="/images/etat-programmes-hero.webp" alt="" fill sizes="300px" className="object-contain p-3" />
+            (18 territoires / 21 indicateurs / 9 programmes) sont ceux du
+            prototype, coïncidence vérifiée avec les compteurs réels de
+            cette page au moment de l'intégration ; ils ne les remplacent
+            ni ne les redéfinissent — la chaîne calculée à gauche reste la
+            seule source affichée. object-position recentré sur la scène de
+            quai (opérateurs + tablette), pas sur les pictogrammes/chiffres
+            du haut. */}
+        <div className="relative min-h-[240px] w-full shrink-0 overflow-hidden border-t border-[var(--etat-line)] lg:min-h-0 lg:w-[360px] lg:border-l lg:border-t-0">
+          <Image src="/images/etat-programmes-hero.webp" alt="" fill sizes="360px" className="object-cover" style={{ objectPosition: "58% 64%" }} />
         </div>
       </div>
 

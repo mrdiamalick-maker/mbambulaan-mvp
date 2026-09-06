@@ -206,9 +206,18 @@
     font-family: var(--etat-font-display);
     font-weight: 400;
     font-size: 2rem;
-    line-height: 1;
+    line-height: 1.05;
     color: var(--etat-navy);
     margin-bottom: 9px;
+    /* Correctif P2.DESIGN-1B.2 (mandat §4) : Intl.NumberFormat("fr-FR")
+       relie les groupes de chiffres par une espace INSÉCABLE (ex. "729
+       300 000") — un seul "mot" que le navigateur ne coupe jamais, qui
+       déborde alors sur la cellule voisine dès que la bande à 6 cellules
+       se resserre (min-width:0 laisse la cellule rétrécir sous la largeur
+       intrinsèque de ce nombre). overflow-wrap:anywhere n'agit qu'en
+       dernier recours — aucun changement visuel pour les valeurs courtes
+       (NumberTicker, dates), qui n'ont jamais besoin de couper. */
+    overflow-wrap: anywhere;
   }
   .etat-headline-label {
     font-family: var(--etat-font-body);

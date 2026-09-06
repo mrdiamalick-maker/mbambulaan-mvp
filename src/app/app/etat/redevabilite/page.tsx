@@ -7,8 +7,8 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { Drawer } from "@/components/etat/Drawer";
 import { EtatRegistryHeader } from "@/components/etat/EtatRegistryHeader";
 import { DecisionIcon } from "@/components/etat/MotifIcons";
-import { Mission, MissionForm, SituationDetail, priorityToTag } from "@/components/etat/shared";
-import { attributionLevelLabels, decisionTypeLabels, type Situation } from "@/domain/types";
+import { Mission, MissionForm, SituationDetail, glyphBorderColor, priorityToTag } from "@/components/etat/shared";
+import { attributionLevelLabels, decisionTypeLabels, type Decision, type Situation } from "@/domain/types";
 import { outcomesForResults, resultsForSituation } from "@/domain/situation-narrative";
 import { KnowledgeState } from "@/components/foundations";
 
@@ -43,6 +43,60 @@ export default function RedevabilitePage() {
   const coveredTerritoriesCount = new Set(decisions.map((decision) => state.situations.find((item) => item.id === decision.situationId)?.territoryId).filter(Boolean)).size;
   const latestDecisionAt = decisions[0]?.decidedAt;
 
+  // P2.DESIGN-1B.2 (mandat §2 — "compléter la personnalité analytique") :
+  // la maquette V2 place ici un graphique de tendance temporelle
+  // ("Évolution de deux indicateurs suivis", février → septembre). Vérifié
+  // au Lot 1B.1 puis reconfirmé ici : decidedAt/recordedAt valent
+  // quasi-tous `now` dans le Demo World actuel — aucune série temporelle
+  // réelle n'existe pour tracer une courbe honnête. Plutôt qu'une valeur
+  // fabriquée, ce panneau est remplacé par une structure analytique
+  // authentique et de poids visuel équivalent : la chaîne
+  // décision → apprentissage documenté.
+  //
+  // "Résultat" ici reprend EXACTEMENT la même définition que
+  // documentedResultCount ci-dessus (engagement de coordination clos avec
+  // un résultat renseigné) — pas l'entité Result canonique
+  // (state.results), qui ne compte qu'1 entrée dans ce Demo World, toute
+  // rattachée à un programme et non à une situation
+  // (resultsForSituation ne renverrait donc jamais rien ici). Utiliser
+  // deux définitions différentes de "résultat documenté" sur la même page
+  // contredirait le "13" déjà affiché plus haut — jamais acceptable.
+  const coordinationSpaces = state.coordinationSpaces;
+  function decisionHasDocumentedResult(decision: Decision): boolean {
+    const coordination = decision.coordinationId ? coordinationSpaces.find((item) => item.id === decision.coordinationId) : undefined;
+    return (coordination?.commitments ?? []).some((item) => item.status === "terminee" && item.result);
+  }
+  const learningRows = state.learnings
+    .map((learning) => {
+      const situation = learning.situationId ? state.situations.find((item) => item.id === learning.situationId) : undefined;
+      const territory = situation ? state.territories.find((item) => item.id === situation.territoryId) : undefined;
+      const linkedDecision = situation ? state.decisions.find((item) => item.situationId === situation.id) : undefined;
+      const hasDocumentedResult = linkedDecision ? decisionHasDocumentedResult(linkedDecision) : false;
+      return { learning, situation, territory, linkedDecision, hasDocumentedResult };
+    })
+    // Seuls les apprentissages qui remontent jusqu'à une décision réelle
+    // illustrent la chaîne demandée — les autres apprentissages restent
+    // réels mais isolés (aucune décision ne les référence encore).
+    .filter((row) => Boolean(row.linkedDecision))
+    .slice(0, 4);
+
+  // "Résultats documentés par territoire" (V2, colonne fixe 360px) :
+  // même définition que documentedResultCount, agrégée par territoire via
+  // Decision.situationId → Situation.territoryId.
+  const resultsByTerritory = new Map<string, number>();
+  for (const decision of state.decisions) {
+    if (!decisionHasDocumentedResult(decision)) continue;
+    const situation = state.situations.find((item) => item.id === decision.situationId);
+    if (!situation) continue;
+    resultsByTerritory.set(situation.territoryId, (resultsByTerritory.get(situation.territoryId) ?? 0) + 1);
+  }
+  const territoryResultRows = [...resultsByTerritory.entries()]
+    .map(([territoryId, count]) => ({ territory: state.territories.find((item) => item.id === territoryId), count }))
+    .filter((row): row is { territory: NonNullable<typeof row.territory>; count: number } => Boolean(row.territory))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+  const maxTerritoryResults = territoryResultRows[0]?.count ?? 0;
+
   return (
     <div className="px-6 pb-16 pt-8 lg:px-[60px] lg:pt-10">
       <EtatRegistryHeader
@@ -75,6 +129,54 @@ export default function RedevabilitePage() {
             lecture complète plutôt que de prétendre l'égaler. */}
         <Link href="/app/etat/rapport" className="etat-btn etat-btn-outline self-end">Voir le rapport complet</Link>
       </EtatRegistryHeader>
+
+      {/* P2.DESIGN-1B.2 (mandat §2) : rangée analytique à 2 colonnes, même
+          poids visuel que le graphique de tendance de la maquette V2 mais
+          construite uniquement à partir de données réelles et
+          défendables — jamais une série temporelle fabriquée (cf.
+          commentaire sur learningRows ci-dessus). */}
+      <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-stretch">
+        <div className="min-w-0 flex-1 border border-[var(--etat-line)] bg-white p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[.15em] text-[var(--etat-stone-600)]">Décision → apprentissage documenté</p>
+            <p className="text-[11px] text-[var(--etat-stone-400)]">{state.learnings.length} apprentissage(s) documenté(s) au total</p>
+          </div>
+          {learningRows.length === 0 ? (
+            <p className="mt-4 text-[12.5px] leading-[1.6] text-[var(--etat-stone-600)]">Aucun apprentissage ne peut être relié à une décision documentée pour le moment.</p>
+          ) : (
+            <div className="mt-4 divide-y divide-[var(--etat-line)]">
+              {learningRows.map(({ learning, situation, territory, hasDocumentedResult }) => (
+                <div key={learning.id} className="py-3.5 first:pt-0 last:pb-0">
+                  <div className="flex flex-wrap items-center gap-2 text-[10.5px] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-mono)" }}>
+                    {situation && <span>{situation.title}</span>}
+                    {territory && <span>· {territory.name}</span>}
+                    {hasDocumentedResult && <span className="etat-tag etat-tag--reel">Résultat documenté</span>}
+                  </div>
+                  <p className="mt-1 text-[13.5px] font-semibold leading-[1.4] text-[var(--etat-navy-950)]">{learning.title}</p>
+                  <p className="mt-1 text-[12px] leading-[1.55] text-[var(--etat-stone-600)]">{learning.summary}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="mt-4 border-t border-[var(--etat-line)] pt-3 text-[11px] leading-[1.6] text-[var(--etat-stone-600)]">Un apprentissage n’est retenu ici que s’il remonte jusqu’à une décision documentée — les autres apprentissages réels restent consultables situation par situation. « Résultat documenté » repère les décisions dont l’engagement de coordination est clos avec un résultat renseigné.</p>
+        </div>
+        <div className="w-full shrink-0 border border-[var(--etat-line)] bg-white p-6 lg:w-[360px]">
+          <p className="text-[10px] font-semibold uppercase tracking-[.15em] text-[var(--etat-stone-600)]">Résultats documentés par territoire</p>
+          {territoryResultRows.length === 0 ? (
+            <p className="mt-4 text-[12.5px] leading-[1.6] text-[var(--etat-stone-600)]">Aucun résultat documenté pour le moment.</p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {territoryResultRows.map(({ territory, count }) => (
+                <div key={territory.id}>
+                  <div className="flex items-baseline justify-between text-[12px]"><span className="text-[var(--etat-navy)]">{territory.name}</span><span style={{ fontFamily: "var(--etat-font-mono)", color: "var(--etat-stone-400)" }}>{count}</span></div>
+                  <div className="mt-1.5 h-[7px] w-full bg-[var(--etat-line)]"><div className="h-[7px]" style={{ width: `${maxTerritoryResults > 0 ? (count / maxTerritoryResults) * 100 : 0}%`, background: glyphBorderColor[territory.activity] }} /></div>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="mt-4 border-t border-[var(--etat-line)] pt-3 text-[11px] leading-[1.6] text-[var(--etat-stone-600)]">Seuls les résultats accompagnés d’une preuve enregistrée sont comptés ; un résultat couvrant plusieurs territoires compte une fois pour chacun.</p>
+        </div>
+      </div>
 
       {/* P2.DESIGN-1B (mandat §13, "Distinguer résultat, changement et
           impact") : bandeau agrégé, 3 vraies collections du domaine
@@ -112,6 +214,15 @@ export default function RedevabilitePage() {
           cadrage illisible. Conformément à la hiérarchie d'autorité (§15,
           données réelles > images fournies), l'image n'est pas intégrée
           ici plutôt que forcée. */}
+      {/* P2.DESIGN-1B.2 (mandat §2) : légende de désambiguïsation, ajoutée
+          après avoir rapproché "Résultat documenté" (bande sombre, 1 —
+          entité Result canonique, avec preuve typée et réutilisable) de
+          "13 résultats documentés" (en-tête et panneau ci-dessus —
+          décisions dont l'engagement de coordination est clos avec un
+          résultat renseigné, une preuve moins structurée mais réelle).
+          Les deux existaient déjà séparément avant ce lot ; les rapprocher
+          sans le dire aurait pu se lire comme une contradiction. */}
+      <p className="mt-2 text-[11px] leading-[1.6] text-[var(--etat-stone-400)]">Deux comptages distincts, jamais interchangeables : le « 1 » ci-dessus compte les preuves formelles du registre Résultat ; le « 13 » cité plus haut compte les décisions dont l’engagement de coordination est clos avec un résultat renseigné.</p>
 
       <div className="etat-panel mt-5 p-6 lg:p-7">
       {decisions.length === 0 ? (

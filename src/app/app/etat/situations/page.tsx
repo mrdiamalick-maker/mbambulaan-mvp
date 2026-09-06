@@ -19,6 +19,7 @@ import type { Signal, Situation } from "@/domain/types";
 import { signalDispositionLabels } from "@/domain/types";
 import { channelMeta } from "@/lib/status-tokens";
 import { TrustGlyph, trustGlyphFromLevel } from "@/components/etat/TrustGlyph";
+import { deriveDatasetReferenceAt } from "@/domain/signal-crossing";
 
 // P2.DESIGN-1B (mandat CEO "Claude Design V2 → Real Product
 // Implementation", §5, "Situations & signaux") — nouvelle route réelle,
@@ -83,6 +84,13 @@ export default function SituationsPage() {
   const [missionDrawer, setMissionDrawer] = useState<Mission | null>(null);
 
   if (!state) return null;
+
+  // Horloge métier du jeu de données (mandat P2.DESIGN-1B.2 §3) — jamais
+  // Date.now(), cf. commentaire détaillé dans arbitrages/page.tsx
+  // (situationAge). Même fonction réelle (signal-crossing.ts), déjà
+  // utilisée ailleurs pour la fraîcheur des capacités.
+  const datasetReferenceAt = deriveDatasetReferenceAt(state);
+  const referenceAtMs = datasetReferenceAt ? new Date(datasetReferenceAt).getTime() : Date.now();
 
   // Pipeline réel — mêmes seuils exacts que /app/etat ("De la capture à la
   // décision"), jamais un second calcul divergent.
@@ -158,7 +166,7 @@ export default function SituationsPage() {
             const territory = state.territories.find((item) => item.id === signal.territoryId);
             const linkedSituation = signalToSituation.get(signal.id);
             const tag = linkedSituation ? priorityToTag[linkedSituation.priority] : "stable";
-            const age = Math.max(0, Math.floor((Date.now() - new Date(signal.createdAt).getTime()) / 86_400_000));
+            const age = Math.max(0, Math.floor((referenceAtMs - new Date(signal.createdAt).getTime()) / 86_400_000));
             const photo = linkedSituation ? situationImages[linkedSituation.id] : undefined;
             return (
               <button
