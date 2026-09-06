@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { ArrowRight, Search } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Drawer } from "@/components/etat/Drawer";
@@ -234,6 +235,14 @@ export default function TerritoiresPage() {
             même mécanisme que le reste de l'Espace État — pas de nouvelle
             route pour ce lot). */}
         <div className="flex flex-col lg:w-[376px] lg:shrink-0 lg:overflow-y-auto" style={{ background: "var(--etat-warm-white)" }}>
+          {/* Photo de contexte (mandat P2.DESIGN-1B.1 §6) : la carte réelle
+              reste l'élément cartographique dominant (aucune régression sur
+              AtlasMap) — cette photo générique de territoire restaure
+              seulement la richesse visuelle du rail, elle ne remplace ni ne
+              qualifie aucune donnée de territoire. */}
+          <div className="relative h-[104px] shrink-0 overflow-hidden border-b border-[var(--etat-line)]">
+            <Image src="/images/etat-atlas-territory-context.webp" alt="" fill sizes="376px" className="object-cover" />
+          </div>
           {selectedTerritory ? (
             <>
               <div className="border-b border-[var(--etat-line)] p-6">

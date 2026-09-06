@@ -11,6 +11,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, ArrowUpRight, Compass, HelpCircle, Send, UsersRound } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { decisionTypeLabels, evidenceTypeLabels, signalDispositionLabels, type Situation, type Territory } from "@/domain/types";
@@ -127,6 +128,15 @@ export function TerritoryDetail({ territory, cases, onOpenSituation }: { territo
   return (
     <div className="space-y-6">
       <StatusBadge status={territory.activity} />
+      {/* Photo de contexte (mandat P2.DESIGN-1B.1 §7) : image de quai
+          fournie par le commanditaire, générique à la filière — jamais
+          présentée comme une preuve que cet évènement précis a eu lieu
+          sur CE territoire. Légende honnête plutôt qu'une attribution
+          fabriquée. */}
+      <div className="relative h-[132px] overflow-hidden rounded-lg border border-[var(--etat-line)]">
+        <Image src="/images/etat-territoire-dossier-context.webp" alt="" fill sizes="400px" className="object-cover" />
+      </div>
+      <p className="-mt-4 text-[10.5px] italic text-[var(--etat-stone-400)]">Image de contexte, filière pêche — non présentée comme preuve opérationnelle sur ce territoire.</p>
       <div><p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Localisation</p><p className="mt-1 text-sm text-[var(--etat-navy-950)]">{territory.region}</p></div>
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--etat-stone-600)]">Acteurs actifs · {acteurs.length}</p>

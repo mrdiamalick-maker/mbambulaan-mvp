@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { EtatRegistryHeader } from "@/components/etat/EtatRegistryHeader";
 import {
@@ -147,6 +148,28 @@ export default function ProgrammesPage() {
   const coveredTerritoriesCount = new Set(filteredProgrammes.flatMap((item) => item.territoryIds)).size;
   const trackedIndicatorsCount = filteredProgrammes.reduce((sum, item) => sum + item.indicators.length, 0);
 
+  // Chaîne "Besoin territorial → Intervention → Acteurs/Capacités → Mise
+  // en œuvre → Résultats documentés" (mandat P2.DESIGN-1B.1 §10, dette
+  // héritée de P2.DESIGN-1B : cette page n'avait jusqu'ici aucune lecture
+  // en chaîne, seulement des cartes isolées). Cinq comptages réels, jamais
+  // une numérotation décorative : chaque étape lit un champ du domaine déjà
+  // utilisé ailleurs dans le produit (Initiative.situationIds,
+  // Initiative.status, Initiative.ownerId/funding, Result.sourceRef).
+  const chainSituations = new Set(filteredProgrammes.flatMap((item) => item.situationIds)).size;
+  const chainActors = new Set([
+    ...filteredProgrammes.map((item) => item.ownerId).filter(Boolean),
+    ...filteredProgrammes.flatMap((item) => item.funding.map((fund) => fund.partnerId))
+  ]).size;
+  const chainInOeuvre = filteredProgrammes.filter((item) => item.status === "execution").length;
+  const chainResults = state.results.filter((item) => item.sourceRef.objectType === "initiative" && filteredProgrammes.some((programme) => programme.id === item.sourceRef.objectId)).length;
+  const chainSteps = [
+    { label: "Besoin territorial", value: chainSituations, detail: "situation(s) à l’origine d’un programme" },
+    { label: "Intervention", value: filteredProgrammes.length, detail: "programme(s) engagé(s)" },
+    { label: "Acteurs / capacités", value: chainActors, detail: "responsable(s) et partenaire(s) de financement" },
+    { label: "Mise en œuvre", value: chainInOeuvre, detail: "en exécution" },
+    { label: "Résultats documentés", value: chainResults, detail: chainResults > 0 ? "résultat(s) rattaché(s)" : "aucun résultat rattaché pour le moment" }
+  ];
+
   return (
     <div className="px-6 pb-16 pt-8 lg:px-[60px] lg:pt-10">
       <EtatRegistryHeader
@@ -188,6 +211,38 @@ export default function ProgrammesPage() {
             </select>
           </label>
       </EtatRegistryHeader>
+
+      {/* Bande "chaîne du programme" (mandat §10 et §12 — personnalité
+          DEVELOPMENT/ACTION propre à cette page, jamais un gabarit
+          générique de portefeuille de projets). Le financement N'EST PAS
+          l'attribut visuel dominant : il reste une carte parmi cinq, à
+          poids égal avec le besoin, les acteurs, la mise en œuvre et les
+          résultats. */}
+      <div className="etat-panel mt-5 flex flex-col gap-6 p-6 lg:flex-row lg:items-stretch lg:gap-8 lg:p-7">
+        <div className="min-w-0 flex-1">
+          <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>Besoin territorial → intervention → résultat</p>
+          <div className="mt-4 flex flex-wrap items-stretch gap-0">
+            {chainSteps.map((step, i) => (
+              <div key={step.label} className="flex items-stretch">
+                <div className="min-w-[132px] px-4 first:pl-0">
+                  <p className="etat-display text-[26px] leading-none" style={{ color: "var(--etat-navy)" }}>{step.value}</p>
+                  <p className="mt-1.5 text-[11.5px] font-semibold text-[var(--etat-navy)]">{step.label}</p>
+                  <p className="mt-0.5 text-[10.5px] leading-[1.4] text-[var(--etat-stone-400)]">{step.detail}</p>
+                </div>
+                {i < chainSteps.length - 1 && <div className="mx-1 hidden w-px shrink-0 self-stretch bg-[var(--etat-line)] sm:block" aria-hidden="true" />}
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Illustration fournie (mandat §10) : composition à but éditorial,
+            jamais une source de données — les chiffres qui y apparaissent
+            sont ceux du prototype et ne remplacent en rien la chaîne
+            calculée ci-dessus. object-contain pour ne jamais rogner sa
+            propre composition (icônes de chaîne, tablette, indicateurs). */}
+        <div className="relative h-[180px] w-full shrink-0 overflow-hidden lg:h-auto lg:w-[300px]" style={{ background: "var(--etat-cream)", border: "1px solid var(--etat-line)" }}>
+          <Image src="/images/etat-programmes-hero.webp" alt="" fill sizes="300px" className="object-contain p-3" />
+        </div>
+      </div>
 
       <div className="etat-panel mt-5 p-6 lg:p-7">
         {filteredProgrammes.length === 0 ? (

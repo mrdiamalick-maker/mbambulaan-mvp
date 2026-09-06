@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowRight, Clock, Compass, Factory, Flag, ListChecks, Sailboat } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
@@ -469,59 +470,93 @@ export default function EtatPage() {
 
   return (
     <div>
-      {/* P2.DESIGN-1A.2 (North Star Claude Design) — hero reconstruit pour
-          correspondre au prototype fourni (Espace Etat.dc.html, écran
-          "Brief national") : eyebrow daté ("Brief national · {date réelle
-          du jour}", jamais une date recopiée de la maquette), grand titre
-          éditorial "Voir le pays, puis décider." repris tel quel du
-          prototype (texte de doctrine, pas une donnée), puis
-          etatGeneralSentence (calcul réel existant, inchangé) comme phrase
-          d'état. Filtres Périmètre/Période : même mécanisme exact
-          qu'avant (aucun état, aucune option, aucune donnée changée),
-          seul l'habillage visuel passe de <select> encadré à
-          etat-filter-select (soulignement, pas de boîte). */}
-      <section className="border-b border-[var(--etat-line)] px-6 pb-[42px] pt-9 lg:px-[60px] lg:pb-[42px] lg:pt-[52px]" style={{ background: "var(--etat-warm-white)" }}>
-        <div className="flex flex-wrap items-end gap-10 lg:gap-16">
-          <div className="min-w-0 flex-1">
-            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Brief national · {todayLabel}</p>
-            <h1 className="etat-display etat-h1 etat-h1--hero mt-5">Voir le pays,<br />puis décider.</h1>
-            <p className="mt-[22px] max-w-[620px] text-[15.5px] leading-[1.65]" style={{ color: "rgba(11,26,42,.70)" }}>{etatGeneralSentence}</p>
-          </div>
-          {/* flex-wrap seul (flex-none retiré, correctif débordement 390px
-              confirmé par script : flex-none empêche cette rangée de
-              rétrécir même quand flex-wrap voudrait passer les 2 <select>
-              sur 2 lignes, donc elle poussait la page en largeur au lieu
-              de s'adapter) — min-w-0 laisse la rangée redevenir plus
-              étroite que le contenu de ses 2 enfants sur mobile, où ils
-              passent naturellement l'un sous l'autre. */}
-          <div className="flex min-w-0 flex-wrap gap-9 pb-1">
-            <label className="block">
-              <p className="etat-filter-label">Périmètre</p>
-              <select
-                value={selectedTerritoryId ?? ""}
-                onChange={(event) => { setSelectedTerritoryId(event.target.value || null); setCameraForcedNational(!event.target.value); }}
-                className="etat-filter-select"
-              >
-                <option value="">Sénégal entier</option>
-                {[...state.territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => (
-                  <option key={territory.id} value={territory.id}>{territory.name}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <p className="etat-filter-label">Période</p>
-              <select
-                value={periodFilter}
-                onChange={(event) => setPeriodFilter(event.target.value)}
-                title="S’applique aux débarquements et sorties en mer du panneau territorial."
-                className="etat-filter-select"
-              >
-                <option value="all">Toutes les dates disponibles</option>
-                {landingDates.map((date) => (
-                  <option key={date} value={date}>{new Date(date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</option>
-                ))}
-              </select>
-            </label>
+      {/* P2.DESIGN-1B.1 (mandat CEO "Final Visual Fidelity & Media
+          Integration Pass", §4, priorité la plus haute) — hero
+          RECONSTRUIT : le hero clair (etat-warm-white) du lot précédent
+          lisait "administration dashboard", pas "executive maritime
+          briefing" — écart de fidélité le plus visible signalé par le
+          CEO. Reproduit ici la composition réelle du prototype V2 : cadre
+          photographique plein (392px), voile marine dégradé pour la
+          lisibilité, contenu ancré en bas (justify-end), filtres
+          Périmètre/Période en clair-sur-sombre à droite — même mécanisme
+          exact qu'avant (aucun état, aucune option, aucune donnée
+          changée), seul l'habillage change. Photo fournie par le CEO
+          (asset contextuel réel, jamais générée ni récupérée à distance —
+          cf. public/images/etat-brief-hero.webp), jamais présentée comme
+          preuve opérationnelle : aucune légende ne l'affirme, elle
+          n'alimente aucune donnée affichée. */}
+      {/* Hauteur du bandeau : PAS une valeur fixe (mandat P2.DESIGN-1B.1
+          §14) — un pixel figé qui suffit au texte desktop (2 lignes de H1 +
+          1 accroche + 2 filtres côte à côte) tronquait la 1ère ligne du H1
+          à 390px, où l'accroche passe à 3 lignes et les 2 filtres
+          s'empilent. Le contenu reste en flux normal (padding-top
+          responsive qui laisse voir la photo au-dessus, jamais un
+          "inset-0 flex justify-end" qui pousserait la 1ère ligne hors
+          d'un conteneur à hauteur fixe) : la section grandit avec son
+          contenu, la photo (position absolute, en dessous) couvre
+          toujours exactement cette hauteur, quelle qu'elle soit. */}
+      <section className="relative overflow-hidden" style={{ minHeight: 340, background: "#0B1A2A" }}>
+        <Image
+          src="/images/etat-brief-hero.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
+        {/* Voile : dégradé marine du bas (texte) vers un centre plus clair
+            (la photo respire), jamais un aplat uniforme qui l'écraserait —
+            même doctrine que les autres fonds photo du Produit (rapport,
+            passerelle). */}
+        <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(0deg, rgba(11,26,42,.88) 0%, rgba(11,26,42,.55) 45%, rgba(11,26,42,.22) 100%)" }} />
+        <div className="relative flex flex-col px-6 pb-8 pt-[130px] sm:pt-[170px] lg:px-[60px] lg:pb-10 lg:pt-[270px]">
+          <p className="etat-eyebrow etat-eyebrow--on-dark"><span className="etat-eyebrow-dot" />Brief national · {todayLabel}</p>
+          {/* xl (1280px), pas lg (1024px) : à 1024 (mandat §14, largeur
+              vérifiée), min-w-0 + flex-1 laissait la colonne du H1 se faire
+              écraser par les filtres sur la même ligne plutôt que de
+              passer à la ligne — "Voir le pays, puis décider." se
+              retrouvait coupé sur 4 lignes étroites au lieu de 2. */}
+          <div className="mt-4 flex flex-col gap-6 xl:flex-row xl:flex-wrap xl:items-end xl:gap-16">
+            <div className="min-w-0 flex-1">
+              <h1 className="etat-display etat-h1 etat-h1--hero" style={{ color: "#FFFDF7" }}>Voir le pays,<br />puis décider.</h1>
+              <p className="mt-[18px] max-w-[620px] text-[15.5px] leading-[1.65]" style={{ color: "rgba(255,253,247,.88)" }}>{etatGeneralSentence}</p>
+            </div>
+            {/* flex-wrap seul (flex-none retiré, correctif débordement 390px
+                confirmé par script : flex-none empêche cette rangée de
+                rétrécir même quand flex-wrap voudrait passer les 2 <select>
+                sur 2 lignes, donc elle poussait la page en largeur au lieu
+                de s'adapter) — min-w-0 laisse la rangée redevenir plus
+                étroite que le contenu de ses 2 enfants sur mobile, où ils
+                passent naturellement l'un sous l'autre. */}
+            <div className="flex min-w-0 flex-wrap gap-9 pb-1">
+              <label className="block">
+                <p className="text-[9.5px] font-semibold uppercase tracking-[.15em]" style={{ color: "rgba(255,253,247,.62)", fontFamily: "var(--etat-font-body)" }}>Périmètre</p>
+                <select
+                  value={selectedTerritoryId ?? ""}
+                  onChange={(event) => { setSelectedTerritoryId(event.target.value || null); setCameraForcedNational(!event.target.value); }}
+                  className="etat-filter-select etat-filter-select--on-dark"
+                >
+                  <option value="">Sénégal entier</option>
+                  {[...state.territories].sort((a, b) => a.name.localeCompare(b.name)).map((territory) => (
+                    <option key={territory.id} value={territory.id}>{territory.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <p className="text-[9.5px] font-semibold uppercase tracking-[.15em]" style={{ color: "rgba(255,253,247,.62)", fontFamily: "var(--etat-font-body)" }}>Période</p>
+                <select
+                  value={periodFilter}
+                  onChange={(event) => setPeriodFilter(event.target.value)}
+                  title="S’applique aux débarquements et sorties en mer du panneau territorial."
+                  className="etat-filter-select etat-filter-select--on-dark"
+                >
+                  <option value="all">Toutes les dates disponibles</option>
+                  {landingDates.map((date) => (
+                    <option key={date} value={date}>{new Date(date).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
         </div>
       </section>
@@ -802,6 +837,16 @@ export default function EtatPage() {
             {selectedTerritoryId && (
               <button onClick={() => { setSelectedTerritoryId(null); setCameraForcedNational(false); }} className="mt-2 self-start text-[11px] font-semibold text-[var(--etat-stone-400)] underline decoration-dotted underline-offset-2 hover:text-[var(--etat-stone-600)]">Revenir à la lecture par défaut</button>
             )}
+
+            {/* Photo de contexte (mandat P2.DESIGN-1B.1 §5) : image du quai de
+                Joal fournie par le commanditaire, placée exactement où la
+                maquette V2 la positionne (entre le titre et "Nature de la
+                situation"). Contexte territorial uniquement — jamais une
+                preuve opérationnelle, l'information de décision reste celle
+                calculée plus bas (dominantPrioritySituation, etc.). */}
+            <div className="relative mt-4 shrink-0 overflow-hidden" style={{ height: 132, border: "1px solid var(--etat-line)" }}>
+              <Image src="/images/etat-brief-decision-quai.webp" alt="" fill sizes="360px" className="object-cover" />
+            </div>
 
             {dominantPrioritySituation && (
               <div className="mt-4 flex items-start gap-2.5 border-t border-[var(--etat-line)] pt-4">

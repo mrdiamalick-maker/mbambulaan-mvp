@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
@@ -38,6 +39,26 @@ import { TrustGlyph, trustGlyphFromLevel } from "@/components/etat/TrustGlyph";
 //   horodatée fiable n'est disponible pour calculer un délai médian honnête
 //   à l'échelle de CE registre — plutôt que d'improviser un calcul fragile,
 //   la colonne "Étape" (pipelineStages, réel) porte seule cette information.
+// Photos de situations (mandat P2.DESIGN-1B.1 §8) : 6 images fournies,
+// chacune porte une signalétique de quai photographiée qui correspond
+// littéralement à un intitulé du mandat. Rapprochement fait par contenu
+// (pas par nom de fichier) contre les situations RÉELLES de demo-state.ts —
+// seules 4 des 6 intitulés du mandat ont une situation réelle correspondante
+// (même territoire, même sujet) : Joal (glace), Mbour (froid saturé),
+// Saint-Louis (retour de pirogue) et Djiffer (balance/pesée). "Transformation
+// en hausse, conservation à la traîne" et "Érosion du front de quai
+// observée" n'ont aucune situation réelle équivalente dans le Demo World
+// actuel (aucun territoire ne porte ce sujet) — conformément au mandat
+// ("never invent a situation because an image exists"), ces 2 images ne
+// sont volontairement PAS rattachées ici plutôt que forcées sur une
+// situation qui ne les décrit pas.
+const situationImages: Partial<Record<string, string>> = {
+  "sit-glace": "/images/etat-situation-glace-hors-service.webp",
+  "sit-mbour": "/images/etat-situation-capacite-saturee.webp",
+  "sit-saint-louis": "/images/etat-situation-retour-pirogue.webp",
+  "sit-djiffer": "/images/etat-situation-pesee-mareyeurs.webp"
+};
+
 const channelStackColor: Record<Signal["channel"], string> = {
   terrain: "#0B1A2A",
   poste_quai: "#B6522F",
@@ -138,40 +159,52 @@ export default function SituationsPage() {
             const linkedSituation = signalToSituation.get(signal.id);
             const tag = linkedSituation ? priorityToTag[linkedSituation.priority] : "stable";
             const age = Math.max(0, Math.floor((Date.now() - new Date(signal.createdAt).getTime()) / 86_400_000));
+            const photo = linkedSituation ? situationImages[linkedSituation.id] : undefined;
             return (
               <button
                 key={signal.id}
                 onClick={() => linkedSituation && setSituationDrawer(linkedSituation)}
                 disabled={!linkedSituation}
-                className={`block w-full border-t border-[var(--etat-line)] py-6 text-left first:border-t-0 first:pt-0 ${linkedSituation ? "cursor-pointer" : "cursor-default"}`}
+                className={`flex w-full items-start gap-5 border-t border-[var(--etat-line)] py-6 text-left first:border-t-0 first:pt-0 ${linkedSituation ? "cursor-pointer" : "cursor-default"}`}
               >
-                <div className="flex flex-wrap items-center gap-3">
-                  {linkedSituation ? (
-                    <span className="etat-tag-outline px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[.12em]" style={{ color: glyphBorderColor[tag] }}>{priorityLabels[linkedSituation.priority]}</span>
-                  ) : (
-                    <span className="etat-tag-outline px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[.12em] text-[var(--etat-stone-400)]">{signalDispositionLabels[signal.disposition]}</span>
-                  )}
-                  <span className="text-[11.5px] text-[var(--etat-stone-600)]">{territory?.name ?? "Territoire non renseigné"}{territory ? ` · ${territory.region}` : ""}</span>
-                  <span className="ml-auto text-[11.5px] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-mono)" }}>{age <= 0 ? "aujourd’hui" : `il y a ${age} j`}</span>
-                </div>
-                <p className="mt-2 text-[16px] font-semibold leading-[1.4] text-[var(--etat-navy)]">{signal.title}</p>
-                {/* Certains signaux dérivés d'une Situation du jeu de
-                    démonstration héritent description === title (même
-                    cause que dans Arbitrages : la factory `situation()` de
-                    demo-state.ts, cf. son commentaire) — l'afficher quand
-                    même dupliquerait le titre juste au-dessus. */}
-                {signal.description !== signal.title && (
-                  <p className="mt-1.5 max-w-[560px] text-[13px] leading-[1.6] text-[var(--etat-stone-600)]">{signal.description}</p>
+                {/* Photo de situation (mandat P2.DESIGN-1B.1 §8) : contexte
+                    de terrain, jamais une preuve — le statut d'évidence
+                    affiché reste exclusivement TrustGlyph/signal.trust,
+                    jamais dérivé de la présence d'une photo. */}
+                {photo && (
+                  <div className="relative hidden h-[76px] w-[110px] shrink-0 overflow-hidden sm:block" style={{ border: "1px solid var(--etat-line)" }}>
+                    <Image src={photo} alt="" fill sizes="110px" className="object-cover" />
+                  </div>
                 )}
-                <div className="mt-3 flex flex-wrap items-center gap-4">
-                  <span className="flex items-center gap-1.5 text-[11.5px] text-[var(--etat-stone-600)]"><TrustGlyph level={trustGlyphFromLevel(signal.trust)} />{signal.source}</span>
-                  <span className="text-[11.5px] text-[var(--etat-stone-600)]">Canal : {channelMeta[signal.channel].label}</span>
-                  {linkedSituation && (
-                    <>
-                      <span className="flex gap-1">{stageProgressDots(linkedSituation.status).map((done, i) => <span key={i} className="h-[3px] w-[22px]" style={{ background: done ? "var(--etat-terracotta)" : "var(--etat-line)" }} />)}</span>
-                      <span className="text-[11px] text-[var(--etat-stone-600)]">{pipelineStages.find((s) => s.status === linkedSituation.status)?.label}</span>
-                    </>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-3">
+                    {linkedSituation ? (
+                      <span className="etat-tag-outline px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[.12em]" style={{ color: glyphBorderColor[tag] }}>{priorityLabels[linkedSituation.priority]}</span>
+                    ) : (
+                      <span className="etat-tag-outline px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[.12em] text-[var(--etat-stone-400)]">{signalDispositionLabels[signal.disposition]}</span>
+                    )}
+                    <span className="text-[11.5px] text-[var(--etat-stone-600)]">{territory?.name ?? "Territoire non renseigné"}{territory ? ` · ${territory.region}` : ""}</span>
+                    <span className="ml-auto text-[11.5px] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-mono)" }}>{age <= 0 ? "aujourd’hui" : `il y a ${age} j`}</span>
+                  </div>
+                  <p className="mt-2 text-[16px] font-semibold leading-[1.4] text-[var(--etat-navy)]">{signal.title}</p>
+                  {/* Certains signaux dérivés d'une Situation du jeu de
+                      démonstration héritent description === title (même
+                      cause que dans Arbitrages : la factory `situation()` de
+                      demo-state.ts, cf. son commentaire) — l'afficher quand
+                      même dupliquerait le titre juste au-dessus. */}
+                  {signal.description !== signal.title && (
+                    <p className="mt-1.5 max-w-[560px] text-[13px] leading-[1.6] text-[var(--etat-stone-600)]">{signal.description}</p>
                   )}
+                  <div className="mt-3 flex flex-wrap items-center gap-4">
+                    <span className="flex items-center gap-1.5 text-[11.5px] text-[var(--etat-stone-600)]"><TrustGlyph level={trustGlyphFromLevel(signal.trust)} />{signal.source}</span>
+                    <span className="text-[11.5px] text-[var(--etat-stone-600)]">Canal : {channelMeta[signal.channel].label}</span>
+                    {linkedSituation && (
+                      <>
+                        <span className="flex gap-1">{stageProgressDots(linkedSituation.status).map((done, i) => <span key={i} className="h-[3px] w-[22px]" style={{ background: done ? "var(--etat-terracotta)" : "var(--etat-line)" }} />)}</span>
+                        <span className="text-[11px] text-[var(--etat-stone-600)]">{pipelineStages.find((s) => s.status === linkedSituation.status)?.label}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </button>
             );

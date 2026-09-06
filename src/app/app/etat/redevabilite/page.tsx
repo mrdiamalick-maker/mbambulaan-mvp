@@ -100,6 +100,18 @@ export default function RedevabilitePage() {
           <p className="mt-2 text-[11.5px] leading-[1.55]" style={{ color: "rgba(255,253,247,.78)" }}>{state.impactEvidences.length > 0 ? "Constaté avec attribution documentée." : "Non démontré à ce stade. Aucun impact n’est revendiqué."}</p>
         </div>
       </div>
+      {/* P2.DESIGN-1B.1 (mandat §11, §15) — l'image "contexte Résultats"
+          fournie a été volontairement écartée de cette bande après
+          vérification : sa composition met en scène une "Fiche territoire"
+          reprenant le même logo Mbàmbulaan avec des chiffres fabriqués
+          ("Signalements 24 / Actions en cours 6 / Résultats documentés 13")
+          qui se lisent comme des données produit alors qu'ils n'en sont
+          pas. Aucun recadrage testé n'a permis de l'utiliser sans soit
+          exposer ces chiffres à côté du vrai compteur ci-dessus (risque de
+          confusion explicitement interdit par le mandat), soit produire un
+          cadrage illisible. Conformément à la hiérarchie d'autorité (§15,
+          données réelles > images fournies), l'image n'est pas intégrée
+          ici plutôt que forcée. */}
 
       <div className="etat-panel mt-5 p-6 lg:p-7">
       {decisions.length === 0 ? (
