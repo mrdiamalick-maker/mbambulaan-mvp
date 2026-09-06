@@ -401,4 +401,12 @@
   .etat-subtabs { display: flex; flex-wrap: wrap; gap: 26px; border-bottom: 1px solid var(--etat-line); }
   .etat-subtab { padding: 0 2px 12px; font-family: var(--etat-font-body); font-size: 13px; color: rgba(11, 26, 42, .52); }
   .etat-subtab--active { font-weight: 600; color: var(--etat-navy); box-shadow: inset 0 -2px 0 var(--etat-terracotta); }
+
+  /* ---- Marqueur "critique" de l'Atlas (AtlasMap.tsx, P2.DESIGN-1B §8) —
+     même pulsation que le prototype Claude Design V2 (@keyframes
+     mb-pulse), définie une seule fois ici plutôt qu'en <style> inline par
+     instance de carte (le Brief national ET l'Atlas territorial montent
+     chacun leur propre <svg>). ---- */
+  @keyframes etat-map-pulse { 0% { transform: scale(1); opacity: .5; } 75% { transform: scale(3.2); opacity: 0; } 100% { transform: scale(3.2); opacity: 0; } }
+  .etat-map-pulse { animation: etat-map-pulse 2.8s ease-out infinite; transform-origin: center; }
 }

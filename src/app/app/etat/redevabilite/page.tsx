@@ -76,6 +76,31 @@ export default function RedevabilitePage() {
         <Link href="/app/etat/rapport" className="etat-btn etat-btn-outline self-end">Voir le rapport complet</Link>
       </EtatRegistryHeader>
 
+      {/* P2.DESIGN-1B (mandat §13, "Distinguer résultat, changement et
+          impact") : bandeau agrégé, 3 vraies collections du domaine
+          (state.results/outcomes/impactEvidences — jamais un Result
+          reclassé en Outcome ou un Outcome présenté comme un Impact).
+          Aucun impact n'est affirmé du seul fait qu'un résultat existe :
+          si impactEvidences est vide, le "—" reste honnête, exactement
+          comme le prototype fourni. */}
+      <div className="etat-canvas-dark mt-5 flex flex-col overflow-hidden sm:flex-row">
+        <div className="flex-1 border-b border-[rgba(247,243,233,.14)] p-6 sm:border-b-0 sm:border-r">
+          <p className="flex items-center gap-2 text-[9.5px] font-semibold uppercase tracking-[.14em]" style={{ color: "rgba(255,253,247,.72)", fontFamily: "var(--etat-font-body)" }}><span style={{ color: "#8FCB9B" }}>●</span>Résultat documenté</p>
+          <p className="etat-display mt-2.5 text-[30px] not-italic" style={{ color: "var(--etat-cream)" }}>{state.results.length}</p>
+          <p className="mt-2 text-[11.5px] leading-[1.55]" style={{ color: "rgba(255,253,247,.78)" }}>Preuve enregistrée et validée par un coordinateur.</p>
+        </div>
+        <div className="flex-1 border-b border-[rgba(247,243,233,.14)] p-6 sm:border-b-0 sm:border-r">
+          <p className="flex items-center gap-2 text-[9.5px] font-semibold uppercase tracking-[.14em]" style={{ color: "rgba(255,253,247,.72)", fontFamily: "var(--etat-font-body)" }}><span style={{ color: "#E6A27A" }}>◐</span>Changement observé</p>
+          <p className="etat-display mt-2.5 text-[30px] not-italic" style={{ color: "var(--etat-cream)" }}>{state.outcomes.length}</p>
+          <p className="mt-2 text-[11.5px] leading-[1.55]" style={{ color: "rgba(255,253,247,.78)" }}>Mesuré sur le terrain, sans attribution établie.</p>
+        </div>
+        <div className="flex-1 p-6">
+          <p className="flex items-center gap-2 text-[9.5px] font-semibold uppercase tracking-[.14em]" style={{ color: "rgba(255,253,247,.72)", fontFamily: "var(--etat-font-body)" }}><span style={{ color: "var(--etat-cream)" }}>○</span>Impact</p>
+          <p className="etat-display mt-2.5 text-[30px] not-italic" style={{ color: "var(--etat-cream)" }}>{state.impactEvidences.length > 0 ? state.impactEvidences.length : "—"}</p>
+          <p className="mt-2 text-[11.5px] leading-[1.55]" style={{ color: "rgba(255,253,247,.78)" }}>{state.impactEvidences.length > 0 ? "Constaté avec attribution documentée." : "Non démontré à ce stade. Aucun impact n’est revendiqué."}</p>
+        </div>
+      </div>
+
       <div className="etat-panel mt-5 p-6 lg:p-7">
       {decisions.length === 0 ? (
         <p className="text-sm text-[var(--etat-stone-600)]">Aucune décision enregistrée pour le moment.</p>

@@ -7,7 +7,7 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
 import { SituationIcon } from "@/components/etat/MotifIcons";
-import { TerritoryAtlasCanvas, atlasSeaBackground } from "@/components/territories/TerritoryAtlasCanvas";
+import { AtlasMap, atlasMapBackground } from "@/components/etat/AtlasMap";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import {
   Mission,
@@ -20,8 +20,7 @@ import {
   initiativeStatusLabel,
   priorityLabels,
   priorityToTag,
-  situationPriorityRank,
-  statusTagLabel
+  situationPriorityRank
 } from "@/components/etat/shared";
 import { type CommunityPost, type Signal, type Situation, type Territory } from "@/domain/types";
 import { channelMeta } from "@/lib/status-tokens";
@@ -553,6 +552,10 @@ export default function EtatPage() {
             <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Le pouls de la filière</p>
             <h2 className="etat-display etat-h2 mt-3.5 text-[27px]">Capter tout signal, quel que soit le canal.</h2>
             <p className="mt-3 text-[13px] leading-[1.6]" style={{ color: "rgba(11,26,42,.62)" }}>{totalSignalsCaptes} signaux captés à ce jour, tous canaux confondus. Chaque situation suivie par le réseau en découle.</p>
+            {/* P2.DESIGN-1B §5 — passerelle vers la nouvelle route dédiée
+                au pipeline signal (funnel complet, registre des signaux),
+                jusqu'ici sans destination propre depuis le Brief national. */}
+            <Link href="/app/etat/situations" className="etat-btn etat-btn-outline mt-5 text-xs">Voir les signaux en détail <ArrowRight size={13} /></Link>
           </div>
           <div className="min-w-0 flex-1">
             <div className="mb-5 flex items-end gap-2">
@@ -672,14 +675,28 @@ export default function EtatPage() {
 
       {/* Chapitre 1 — Atlas + brief territorial (mandat §5, Lot B ;
           recomposé Lot 1 correctif CEO 2026-08-22 ; recomposé une 2e fois
-          "Brief national" 2026-08-23). Historique : le H1 pleine largeur
-          d'origine avait été aplati en simple eyebrow dans la carte (Lot 1,
-          la référence de l'époque ne montrait pas de gros titre) — la
-          nouvelle référence en redemande un explicitement, "Brief national"
-          plus haut (bande titre+filtres) en est désormais le vrai H1
-          sémantique ; l'eyebrow "Atlas de supervision" dans la carte
-          redescend en simple <p>, un seul H1 par page. */}
-      <section id="terrain" className="scroll-mt-6">
+          "Brief national" 2026-08-23 ; recomposé une 3e fois P2.DESIGN-1B,
+          "Claude Design V2 → Real Product Implementation", §7 — titre de
+          chapitre déplacé HORS de la carte, verbatim canvas "Le littoral,
+          du nord au sud." (texte de doctrine, pas une donnée), avec le
+          CTA "Ouvrir l'Atlas territorial" à côté plutôt qu'enterré dans le
+          panneau — la carte elle-même redevient un cadre marine plein,
+          sans eyebrow ni bouton internes, cf. AtlasMap.tsx pour ce que la
+          carte affiche désormais elle-même (légende/échelle/attribution en
+          SVG, plus en overlay HTML). */}
+      <section id="terrain" className="scroll-mt-6 border-b border-[var(--etat-line)] py-11">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Lecture territoriale</p>
+            <h2 className="etat-display etat-h2 mt-3.5 text-[27px]">Le littoral, du nord au sud.</h2>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {cameraTargetId && (
+              <button onClick={() => { setSelectedTerritoryId(null); setCameraForcedNational(true); }} className="etat-btn etat-btn-outline shrink-0 text-xs"><Compass size={13} /> Vue nationale</button>
+            )}
+            <Link href="/app/etat/territoires" className="etat-btn etat-btn-outline shrink-0 text-xs">Ouvrir l’Atlas territorial <ArrowRight size={13} /></Link>
+          </div>
+        </div>
         {/* grid-cols-1 explicite (Lot 1, correctif débordement mobile) :
             sans lui, la piste implicite d'une grille display:grid en
             dessous de lg n'a pas de minmax(0, 1fr) — le texte tronqué
@@ -710,87 +727,25 @@ export default function EtatPage() {
             à considérer/prochaine étape/2 CTA), vérifié aux 5 largeurs de
             test du mandat (1440/1280/1024/768/390) sans passer par le
             filet overflow-y-auto en pratique. */}
-        <div className="mt-6 grid grid-cols-1 gap-5 lg:h-[480px] lg:grid-cols-[70fr_30fr]">
-          {/* Carte — signature cartographique unique (XXL-R5.5, cf.
-              historique en tête de fichier) : CoastlineTerritoryMap avec
-              ses couleurs par défaut (calibrées pour .etat-scope, déjà le
-              cas avant le détour AtlasImageMap du 2026-08-27) — fond
-              .etat-panel blanc, terre --etat-offwhite-dim, structure
-              --etat-navy-600, aucune teinte inventée pour ce lot. Composé
-              en entier (preserveAspectRatio="xMidYMid meet") : le
-              national se voit toujours en un seul cadre, jamais recadré
-              comme une photo qu'on pan/zoome. territories={"{state.territories}"}
-              volontairement non filtré (mandat §6, "présence territoriale
-              ≠ niveau d'attention") : les 18 territoires documentés sont
-              tous dessinés — seuls les non-"stable" portent un libellé
-              (comportement natif du composant, cf. CoastlineTerritoryMap.tsx),
-              la liste latérale "À arbitrer"/"Programmes" plus bas reste,
-              elle, scopée à ce qui mérite réellement l'attention. */}
-          <div className="etat-panel relative overflow-hidden">
-            <div className="relative flex items-center justify-between gap-3 px-4 pt-4">
-              {/* Libellé "Atlas de supervision" (mandat "nouvelle DA Vue
-                  d'ensemble") : reprend le titre de la maquette — même
-                  élément, même rôle sémantique (H1 de ce chapitre), texte
-                  aligné sur la référence. Plus besoin d'une plaque
-                  bg-white/90 pour le contraste (correctif CEO 2026-08-22) :
-                  posé directement sur le fond .etat-panel blanc de la
-                  carte, plus sur une photo aux zones sombres imprévisibles. */}
-              <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Atlas de supervision</p>
-              {/* "Vue nationale" (conservé XXL-R5.5) : reste un vrai
-                  désélecteur même sans caméra à recentrer — un territoire
-                  mis en avant (sélection explicite ou dominant par défaut)
-                  reste visuellement souligné (selectedId ci-dessous) tant
-                  qu'on ne revient pas explicitement au national. */}
-              {cameraTargetId && (
-                <button onClick={() => { setSelectedTerritoryId(null); setCameraForcedNational(true); }} className="etat-btn etat-btn-outline shrink-0 text-xs"><Compass size={13} /> Vue nationale</button>
-              )}
-            </div>
-
-            {/* Légende "Niveau d'attention" (mandat "nouvelle DA Vue
-                d'ensemble", Décision 2 : 3 catégories réelles, pas les 5
-                de la maquette). Territory.activity n'a que "stable" |
-                "vigilance" | "critique" (confirmé domain/types.ts) —
-                "Élevé", "Normal" et "Non évalué" de la maquette n'ont
-                aucune valeur correspondante dans le modèle et ne sont pas
-                reproduits. Mêmes couleurs que glyphBorderColor/
-                statusTagLabel, déjà utilisées ailleurs sur cette page
-                (marqueurs de carte, carrousel) — pas une nouvelle
-                palette pour cette légende.
-                hidden lg:block (trouvé en vérifiant le rendu mobile réel,
-                pas supposé sain par défaut) : sur le viewport compact
-                (carte réduite à aspect-[4/5]), cette légende chevauchait
-                géométriquement le marqueur "Rufisque-Bargny" et le
-                rendait réellement inaccessible au clic (confirmé par
-                locator.click() en échec, pas seulement visuellement) —
-                pas un simple souci esthétique. Masquée sous lg, même
-                discipline que la sidebar (EtatSidebar) qui suit le même
-                point de rupture pour la même raison : un raffinement de
-                supervision desktop, pas une régression fonctionnelle
-                acceptée sur mobile où l'espace de la carte est déjà
-                contraint. */}
-            <div className="etat-panel absolute left-4 top-16 z-10 hidden bg-white/95 p-3 text-xs lg:block">
-              <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>Niveau d’attention</p>
-              <div className="mt-2 space-y-1.5">
-                {(["critique", "vigilance", "stable"] as const).map((status) => (
-                  <div key={status} className="flex items-center gap-2">
-                    <span className="size-2 rounded-full" style={{ backgroundColor: glyphBorderColor[status] }} />
-                    <span className="text-[var(--etat-navy)]" style={{ fontFamily: "var(--etat-font-body)" }}>{statusTagLabel[status]}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* P2.DESIGN-1A (addendum CEO "Cartography is non-negotiable") —
-                TerritoryAtlasCanvas remplace CoastlineTerritoryMap ici :
-                même donnée géométrique réelle et calibrée
-                (territory-map-positions.ts, aucune position inventée),
-                rendu entièrement neuf (mer pleine cadre, texture, ombre
-                portée, étiquettes en pastille) scopé à cette page et à
-                /app/etat/territoires — CoastlineTerritoryMap reste
-                inchangé pour Public/Pro/Pilotage, hors périmètre de ce
-                lot. */}
-            <div className="relative aspect-[4/5] sm:aspect-[3/4] lg:aspect-auto lg:h-full" style={{ background: atlasSeaBackground }}>
-              <TerritoryAtlasCanvas
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:h-[520px] lg:grid-cols-[70fr_30fr]">
+          {/* Carte — P2.DESIGN-1B §8 (Cartographie), AtlasMap remplace
+              TerritoryAtlasCanvas (silhouette diagrammatique calibrée à la
+              main, P2.DESIGN-1A) par la géométrie RÉELLE du Sénégal
+              (Natural Earth 1:50M, bakée hors-ligne — cf.
+              src/components/etat/AtlasMap.tsx). Cadre marine plein sans
+              chrome HTML par-dessus : légende/échelle/attribution sont
+              désormais rendues EN SVG par AtlasMap lui-même (même
+              composition que le prototype Claude Design V2), plus un
+              habillage ajouté par cette page. territories={"{state.territories}"}
+              volontairement non filtré (mandat hérité §6, "présence
+              territoriale ≠ niveau d'attention") : les 18 territoires
+              documentés sont tous dessinés — seuls les non-"stable"
+              portent un libellé permanent, la liste latérale "À
+              arbitrer"/"Programmes" plus bas reste, elle, scopée à ce qui
+              mérite réellement l'attention. */}
+          <div className="relative overflow-hidden border border-[var(--etat-line)]" style={{ background: atlasMapBackground }}>
+            <div className="relative aspect-[4/5] sm:aspect-[3/4] lg:aspect-auto lg:h-full">
+              <AtlasMap
                 territories={state.territories}
                 selectedId={cameraTargetId ?? undefined}
                 onSelect={(id) => { setSelectedTerritoryId(id); setCameraForcedNational(false); }}

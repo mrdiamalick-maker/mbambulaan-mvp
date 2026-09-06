@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileCheck2, Home, LayoutGrid, LogOut, MapPin, Menu, Scale } from "lucide-react";
+import { Activity, FileCheck2, Home, LayoutGrid, LogOut, MapPin, Menu, Scale } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { TrustGlyph } from "@/components/etat/TrustGlyph";
 
@@ -17,14 +17,22 @@ import { TrustGlyph } from "@/components/etat/TrustGlyph";
 // entièrement reconstruit pour correspondre au prototype fourni
 // (Espace Etat.dc.html) : wordmark serif + vaguelettes, nav à puce ronde
 // (pleine si active, creuse sinon) sur fond marine plein, légende de
-// confiance en pied de sidebar. Les 5 destinations réelles ne changent
-// pas ; "Dossiers"/"Paramètres" du prototype ne sont PAS ajoutés comme
-// routes qui n'existent pas dans le référentiel (mandat explicite,
-// "repository routes remain authoritative") — seul "Réglages" (déjà
-// existant, déjà désactivé faute de page dédiée) est conservé.
+// confiance en pied de sidebar. "Dossiers"/"Paramètres" du prototype ne
+// sont PAS ajoutés comme routes qui n'existent pas dans le référentiel
+// (mandat explicite, "repository routes remain authoritative") — seul
+// "Réglages" (déjà existant, déjà désactivé faute de page dédiée) est
+// conservé.
+//
+// P2.DESIGN-1B (Claude Design V2 → Real Product Implementation, §5) —
+// "Situations & signaux" ajoutée comme 6e destination réelle, entre
+// l'Atlas territorial et Arbitrages (même ordre que le prototype V2) :
+// nouvelle route /app/etat/situations, pas une capacité fabriquée — elle
+// lit le même pipeline Signal/Situation déjà réel, jusqu'ici sans surface
+// dédiée sur l'Espace État.
 export const navItems = [
   { href: "/app/etat", label: "Brief national", icon: Home },
   { href: "/app/etat/territoires", label: "Atlas territorial", icon: MapPin },
+  { href: "/app/etat/situations", label: "Situations & signaux", icon: Activity },
   { href: "/app/etat/arbitrages", label: "Arbitrages", icon: Scale },
   { href: "/app/etat/programmes", label: "Programmes", icon: LayoutGrid },
   { href: "/app/etat/rapport", label: "Résultats", icon: FileCheck2 }
