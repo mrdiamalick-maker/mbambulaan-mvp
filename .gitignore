@@ -5,6 +5,7 @@ node_modules/
 
 # next.js
 .next/
+.open-next/
 out/
 
 # production
@@ -30,7 +31,9 @@ pnpm-debug.log*
 
 # vercel
 .vercel/
+.wrangler/
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.vercel

@@ -1,0 +1,123 @@
+:root {
+  /* P2.DESIGN-0 (§1) — convergées vers la palette de marque verrouillée
+     (Marine #0B1A2A / Terre cuite #B6522F / Crème #F7F3E9). Ces trois
+     variables pilotent, via des règles !important plus bas dans ce
+     fichier, l'apparence RÉELLE de .btn-primary/.surface/.pro-page-header
+     etc. sur les 40 fichiers qui consomment encore ces classes — cette
+     seule correction de valeur suffit donc à aligner tout ce périmètre
+     legacy sur la marque, sans toucher une seule classe ni un composant.
+     --mb-navy-soft/--mb-lagoon/--mb-sand (accents décoratifs hors palette
+     de marque, jamais consommés que par des règles mortes) ont été
+     retirées avec les règles §4 ci-dessous — plus aucun consommateur. */
+  --mb-navy: #0b1a2a;
+  --mb-ivory: #f7f3e9;
+  --mb-terracotta: #b6522f;
+  --mb-ink: #122b33;
+  --mb-muted: #66767a;
+  --mb-line: rgba(7, 29, 38, .14);
+  --mb-radius: 22px;
+  --mb-shadow: 0 22px 60px rgba(7, 29, 38, .11);
+  --mb-shadow-soft: 0 10px 30px rgba(7, 29, 38, .07);
+  --mb-font-display: Georgia, "Times New Roman", serif;
+  --mb-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(circle at 88% 2%, rgba(47, 157, 145, .10), transparent 30rem),
+    linear-gradient(180deg, #fbf8f1 0%, var(--mb-ivory) 100%);
+  color: var(--mb-ink);
+  font-family: var(--mb-font-body);
+}
+
+h1, h2, h3, .brand-wordmark {
+  font-family: var(--mb-font-display);
+  letter-spacing: -.035em;
+}
+
+/* P2.DESIGN-0 (§4) — .surface-quiet / .public-atlas-experience / .btn-accent /
+   .public-kicker retirées des listes de sélecteurs ci-dessous : cartographie
+   exacte confirmant 0 consommateur (grep exhaustif sur tout src/, tous
+   les .tsx) pour chacune — neutralisation sans risque, aucune des classes encore utilisées
+   (.surface, .metric-premium, .pro-page-header, .btn-primary, .label) n'est
+   affectée. */
+.surface,
+.metric-premium,
+.pro-page-header {
+  border-color: var(--mb-line) !important;
+  border-radius: var(--mb-radius) !important;
+  box-shadow: var(--mb-shadow-soft) !important;
+}
+
+.surface {
+  background: rgba(255, 253, 248, .92) !important;
+}
+
+.btn-primary {
+  border: 0 !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  background: var(--mb-terracotta) !important;
+  color: #fffaf2 !important;
+}
+
+.btn-primary:hover {
+  filter: brightness(.95);
+}
+
+.btn-secondary,
+.btn-on-dark {
+  border: 1px solid var(--mb-line) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+}
+
+.label {
+  color: #8b6f3f !important;
+  letter-spacing: .16em !important;
+}
+
+.pro-page-header {
+  background:
+    linear-gradient(100deg, rgba(47, 157, 145, .10), transparent 42%),
+    rgba(255, 253, 248, .96) !important;
+  box-shadow: inset 5px 0 0 var(--mb-terracotta) !important;
+}
+
+.metric-premium {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 253, 248, .88) !important;
+  color: var(--mb-ink) !important;
+}
+
+/* P2.DESIGN-0 (§1) — rgba(189, 95, 67, …) était l'ancien terracotta
+   #bd5f43 recopié en dur (pas via var(--mb-terracotta)) : convergé en
+   rgba(182, 82, 47, …) = #B6522F, la valeur de marque verrouillée.
+   rgba(47, 157, 145, …) (accent lagon décoratif, hors palette de marque,
+   hors §1) laissé tel quel — retrait complet différé (dette assumée,
+   cf. retour de lot). */
+.metric-premium::after {
+  position: absolute;
+  right: -18px;
+  bottom: -22px;
+  width: 86px;
+  height: 86px;
+  border: 1px solid rgba(47, 157, 145, .28);
+  border-radius: 50%;
+  box-shadow:
+    -18px -12px 0 -17px rgba(47, 157, 145, .45),
+    -34px -24px 0 -33px rgba(182, 82, 47, .45);
+  content: "";
+}
+
+/* P2.DESIGN-0 (§4) — .mb-signature / .mb-tension-line / .mb-tension-node(--hot)
+   / .mb-tension-pulse retirées : 0 consommateur confirmé (grep exhaustif),
+   neutralisation sans risque. Le préfixe "mb-" qu'elles portaient entrait
+   en collision de vocabulaire avec mb-foundations.css (§2) — un motif
+   décoratif jamais adopté, pas la fondation transversale réelle. */
+
+@media (max-width: 768px) {
+  :root { --mb-radius: 18px; }
+  .surface, .metric-premium { box-shadow: 0 8px 24px rgba(7, 29, 38, .07) !important; }
+}

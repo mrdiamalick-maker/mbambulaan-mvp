@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200" fill="none">
+  <title>Mbàmbulaan Terrain background texture</title>
+  <desc>Subtle repeatable marine bathymetric texture for the Terrain mobile-first experience.</desc>
+  <g stroke="#0b1a2a" stroke-linecap="round" stroke-linejoin="round" opacity="0.055">
+    <path d="M-120 190C80 42 242 50 390 150C538 250 646 250 790 148C934 46 1096 30 1268 126C1440 222 1530 220 1720 90"/>
+    <path d="M-145 245C58 95 230 100 380 198C530 296 650 302 800 202C950 102 1110 84 1280 178C1450 272 1552 270 1735 144"/>
+    <path d="M-165 302C44 152 218 152 372 248C526 344 654 354 810 256C966 158 1122 142 1292 232C1462 322 1565 324 1750 202"/>
+    <path d="M-190 360C25 214 205 207 365 300C525 393 658 406 820 312C982 218 1136 202 1306 288C1476 374 1580 382 1770 260"/>
+  </g>
+  <g stroke="#0b1a2a" stroke-linecap="round" opacity="0.045">
+    <path d="M-80 930C120 790 292 802 432 902C572 1002 700 1008 848 916C996 824 1150 806 1318 890C1486 974 1585 974 1710 902"/>
+    <path d="M-110 988C98 846 280 850 424 950C568 1050 704 1062 858 970C1012 878 1164 860 1332 944C1500 1028 1598 1034 1730 958"/>
+    <path d="M-145 1048C70 904 265 900 416 1000C567 1100 708 1112 868 1020C1028 928 1178 912 1346 996C1514 1080 1614 1090 1750 1014"/>
+  </g>
+  <g stroke="#0b1a2a" stroke-width="1" opacity="0.04" stroke-dasharray="5 12">
+    <path d="M90 610C300 500 470 520 650 650C830 780 1010 768 1210 620C1340 524 1450 514 1600 570"/>
+    <path d="M310 420C470 500 565 560 710 558C855 556 930 480 1080 430C1230 380 1370 420 1515 500"/>
+  </g>
+  <g fill="#0b1a2a" opacity="0.06">
+    <circle cx="310" cy="520" r="3"/><circle cx="650" cy="650" r="3"/><circle cx="1010" cy="768" r="3"/><circle cx="1210" cy="620" r="3"/><circle cx="565" cy="560" r="2.5"/><circle cx="1080" cy="430" r="2.5"/><circle cx="1370" cy="420" r="2.5"/>
+  </g>
+  <g stroke="#0b1a2a" stroke-width="1" opacity="0.035">
+    <circle cx="310" cy="520" r="44"/><circle cx="310" cy="520" r="72"/>
+    <circle cx="1210" cy="620" r="38"/><circle cx="1210" cy="620" r="66"/>
+  </g>
+</svg>
