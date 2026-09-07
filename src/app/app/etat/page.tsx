@@ -9,6 +9,7 @@ import { TensionGlyph } from "@/components/etat/TensionGlyph";
 import { Drawer } from "@/components/etat/Drawer";
 import { SituationIcon } from "@/components/etat/MotifIcons";
 import { AtlasMap, atlasMapBackground } from "@/components/etat/AtlasMap";
+import { SignalTrendChart } from "@/components/etat/EtatDataVisualizations";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import {
   Mission,
@@ -16,7 +17,6 @@ import {
   SituationDetail,
   StatusBadge,
   TerritoryDetail,
-  formatFcfa,
   glyphBorderColor,
   initiativeStatusLabel,
   priorityLabels,
@@ -308,7 +308,6 @@ export default function EtatPage() {
   // second calcul indépendant.
   const situationsCritiquesHautesTotal = state.situations.filter((item) => item.status !== "reglee" && (item.priority === "critique" || item.priority === "haute")).length;
   const capacitesFragilesTotal = state.infrastructures.filter((item) => item.status !== "operationnelle").length;
-  const financementEngageTotal = state.initiatives.reduce((sum, item) => sum + item.funding.filter((fund) => fund.status === "confirme" || fund.status === "en_instruction").reduce((fundSum, fund) => fundSum + fund.amountFcfa, 0), 0);
   const programmesActifsTotal = state.initiatives.filter((item) => item.status !== "terminee").length;
 
   // Chapitre 1 — décision prioritaire unique : bulles réellement dérivables
@@ -561,6 +560,38 @@ export default function EtatPage() {
         </div>
       </section>
 
+      {/* Registre exécutif immédiatement après le hero, au même niveau
+          de lecture que la source Claude Design. Ces cinq valeurs sont
+          calculées depuis ProductState ; le financement reste traité dans
+          Programmes, où son statut peut être explicité sans ambiguïté. */}
+      <div className="px-6 lg:px-[60px]">
+        <div className="etat-headline-strip">
+          <div className="etat-headline-cell">
+            <p className="etat-headline-value"><NumberTicker value={situationsOuvertesTotal} /></p>
+            <p className="etat-headline-label">Situations ouvertes</p>
+          </div>
+          <div className="etat-headline-cell">
+            <p className="etat-headline-value"><NumberTicker value={situationsCritiquesHautesTotal} /></p>
+            <p className="etat-headline-label">Critiques ou hautes</p>
+          </div>
+          <div className="etat-headline-cell">
+            <p className="etat-headline-value"><NumberTicker value={territoiresActifs} /></p>
+            <p className="etat-headline-label">Territoires couverts</p>
+          </div>
+          <div className="etat-headline-cell">
+            <p className="etat-headline-value"><NumberTicker value={capacitesFragilesTotal} /></p>
+            <p className="etat-headline-label">Capacités fragiles</p>
+          </div>
+          <div className="etat-headline-cell flex flex-col justify-between">
+            <p className="etat-headline-value"><NumberTicker value={programmesActifsTotal} /></p>
+            <div className="flex items-end justify-between gap-3">
+              <p className="etat-headline-label">Programmes actifs</p>
+              <Link href="/app/etat/programmes" className="mb-[1px] flex shrink-0 items-center gap-1 text-[10.5px] font-semibold text-[var(--etat-terracotta)] hover:text-[var(--etat-terracotta-hover)]" style={{ fontFamily: "var(--etat-font-body)" }}>Détail <ArrowRight size={11} /></Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="px-6 lg:px-[60px]">
       <div className="space-y-0">
       {/* Bloc "Le pouls de la filière" (mandat CEO "reconstruire l'Espace
@@ -593,16 +624,8 @@ export default function EtatPage() {
             <Link href="/app/etat/situations" className="etat-btn etat-btn-outline mt-5 text-xs">Voir les signaux en détail <ArrowRight size={13} /></Link>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="mb-5 flex items-end gap-2">
-              <span className="etat-display text-[52px] leading-[.9]" style={{ color: "var(--etat-navy)" }}><NumberTicker value={totalSignalsCaptes} /></span>
-              <span className="pb-2 text-[11.5px]" style={{ color: "rgba(11,26,42,.55)" }}>signaux captés</span>
-            </div>
-            <div className="flex h-2.5 overflow-hidden rounded-[2px]" style={{ background: "rgba(11,26,42,.08)" }} role="img" aria-label="Répartition des signaux captés par canal">
-              {signalsByChannel.filter((item) => item.count > 0).map(({ channel, count }) => (
-                <div key={channel} style={{ width: `${(count / Math.max(1, totalSignalsCaptes)) * 100}%`, background: channelStackColor[channel] }} title={`${channelMeta[channel].label} · ${count}`} />
-              ))}
-            </div>
-            <div className="mt-[22px] grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-5">
+            <SignalTrendChart />
+            <div className="mt-7 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-[var(--etat-line)] pt-5 sm:grid-cols-5" aria-label={`Répartition actuelle des ${totalSignalsCaptes} signaux par canal`}>
               {signalsByChannel.map(({ channel, count }) => (
                 <div key={channel}>
                   <div className="mb-[7px] flex items-center gap-[7px]">
@@ -920,46 +943,6 @@ export default function EtatPage() {
           </aside>
         </div>
 
-        {/* Bande resserrée (mandat "Brief national", §4 : "~73-80px de
-            haut, nettement plus fine que les ~105px annoncés" — mesure
-            directe du CEO, contredit le chiffre de la maquette elle-même).
-            py-5→py-3, text-xl→text-lg : mêmes 5 agrégats réels qu'avant
-            (aucun retiré, aucun ajouté), juste un gabarit plus compact.
-            Lien de fin repointé vers /app/etat/rapport (arbitrage CEO
-            "Brief national") : #performance n'existe plus sur cette page
-            (Chapitre 3 retiré) — /app/etat/rapport reste "la seule
-            destination preuve pleinement construite aujourd'hui", même
-            raisonnement que "Résultats et effets" dans "Ce qui est
-            documenté" plus bas. */}
-        <div className="etat-headline-strip mt-5">
-          <div className="etat-headline-cell">
-            <p className="etat-headline-value"><NumberTicker value={situationsOuvertesTotal} /></p>
-            <p className="etat-headline-label">Situations ouvertes</p>
-          </div>
-          <div className="etat-headline-cell">
-            <p className="etat-headline-value"><NumberTicker value={situationsCritiquesHautesTotal} /></p>
-            <p className="etat-headline-label">Critiques/hautes</p>
-          </div>
-          <div className="etat-headline-cell">
-            <p className="etat-headline-value"><NumberTicker value={territoiresActifs} /></p>
-            <p className="etat-headline-label">Territoires couverts</p>
-          </div>
-          <div className="etat-headline-cell">
-            <p className="etat-headline-value"><NumberTicker value={capacitesFragilesTotal} /></p>
-            <p className="etat-headline-label">Capacités fragiles</p>
-          </div>
-          <div className="etat-headline-cell">
-            <p className="etat-headline-value">{formatFcfa(financementEngageTotal)}</p>
-            <p className="etat-headline-label">Financement engagé</p>
-          </div>
-          <div className="etat-headline-cell flex flex-col justify-between">
-            <p className="etat-headline-value"><NumberTicker value={programmesActifsTotal} /></p>
-            <div className="flex items-end justify-between gap-3">
-              <p className="etat-headline-label">Programmes actifs</p>
-              <Link href="/app/etat/rapport" className="mb-[1px] flex shrink-0 items-center gap-1 text-[10.5px] font-semibold text-[var(--etat-terracotta)] hover:text-[var(--etat-terracotta-hover)]" style={{ fontFamily: "var(--etat-font-body)" }}>Détail <ArrowRight size={11} /></Link>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* 3 sections sous le fold (mandat "Brief national", §6, mapping
@@ -1094,4 +1077,3 @@ export default function EtatPage() {
 function severityRank(severity: VigilanceSeverity) {
   return { faible: 0, moyenne: 1, haute: 2, critique: 3 }[severity];
 }
-

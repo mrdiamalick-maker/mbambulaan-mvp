@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, ArrowRight, Radio, Search } from "lucide-react";
+import { ArrowRight, Radio, Search } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Drawer } from "@/components/etat/Drawer";
 import {
@@ -129,8 +128,7 @@ export default function ArbitragesPage() {
       <div className="border-b border-[var(--etat-line)] px-6 pt-9 pb-7 lg:px-[60px]" style={{ background: "var(--etat-warm-white)" }}>
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <div><Link href="/app/etat" className="etat-back-link"><ArrowLeft size={15} /> Retour au Brief national</Link></div>
-            <p className="etat-eyebrow mt-4"><span className="etat-eyebrow-dot" />Arbitrages · moment de décision</p>
+            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Arbitrages · moment de décision</p>
             <h1 className="etat-display etat-h1 etat-h1--registry mt-3.5">Qu’est-ce qui demande<br />une décision maintenant ?</h1>
             <p className="mt-3.5 max-w-[600px] text-[14.5px] leading-[1.62]" style={{ color: "rgba(11,26,42,.72)" }}>{situationsAArbitrer.length} situation{situationsAArbitrer.length > 1 ? "s" : ""} de risque élevé ou critique attend{situationsAArbitrer.length > 1 ? "ent" : ""} une orientation. Chaque arbitrage indique ce que l’on sait, ce qui reste incertain, et qui est concerné.</p>
           </div>
@@ -157,7 +155,7 @@ export default function ArbitragesPage() {
               <input type="search" value={arbitrageSearch} onChange={(event) => setArbitrageSearch(event.target.value)} placeholder="Titre, étape, territoire…" className="w-full bg-transparent text-sm font-medium text-[var(--etat-navy)] outline-none" style={{ fontFamily: "var(--etat-font-body)" }} />
             </div>
           </label>
-          <div className="etat-subtabs !border-b-0 flex-1">
+          <div className="etat-subtabs order-first w-full flex-none !border-b-0">
             {([
               { value: "all", label: "Critique + élevé" },
               { value: "critique", label: "Critique seulement" },

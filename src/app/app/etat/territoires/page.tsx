@@ -5,7 +5,6 @@ import Image from "next/image";
 import { ArrowRight, Search } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Drawer } from "@/components/etat/Drawer";
-import { EtatRegistryHeader } from "@/components/etat/EtatRegistryHeader";
 import { AtlasMap, atlasMapBackground } from "@/components/etat/AtlasMap";
 import {
   Mission,
@@ -84,8 +83,6 @@ export default function TerritoiresPage() {
     .sort((a, b) => a.name.localeCompare(b.name));
   const filteredTerritoryIds = new Set(filteredTerritories.map((item) => item.id));
   const openSituationsCount = state.situations.filter((item) => filteredTerritoryIds.has(item.territoryId) && item.status !== "reglee").length;
-  const fragileInfrastructureCount = state.infrastructures.filter((item) => filteredTerritoryIds.has(item.territoryId) && item.status !== "operationnelle").length;
-  const vigilanceCount = filteredTerritories.filter((item) => item.activity === "vigilance").length;
   const criticalCount = filteredTerritories.filter((item) => item.activity === "critique").length;
 
   // Sélection : explicite si choisie et toujours présente dans le filtre
@@ -125,19 +122,27 @@ export default function TerritoiresPage() {
 
   return (
     <div className="pb-16">
-      <div className="px-6 pt-8 lg:px-[60px] lg:pt-10">
-        <EtatRegistryHeader
-          eyebrow="Atlas territorial"
-          title="Comprendre où agir, territoire par territoire."
-          description={<>{filteredTerritories.length} territoire(s){regionFilter !== "all" ? ` · ${regionFilter}` : ""}{activityFilter !== "all" ? ` · ${statusTagLabel[activityFilter]}` : ""} sur {state.territories.length} au total. La lecture associe niveau d’attention, situations ouvertes et capacités fragiles sans créer de score artificiel.</>}
-          metrics={[
-            { label: "Territoires affichés", value: filteredTerritories.length, detail: `${state.territories.length} suivis au total` },
-            { label: "Situations ouvertes", value: openSituationsCount, tone: openSituationsCount > 0 ? "attention" : "positive" },
-            { label: "En vigilance", value: vigilanceCount, detail: `${criticalCount} critique(s)`, tone: criticalCount > 0 ? "critical" : vigilanceCount > 0 ? "attention" : "positive" },
-            { label: "Capacités fragiles", value: fragileInfrastructureCount, detail: "Fragiles ou indisponibles", tone: fragileInfrastructureCount > 0 ? "attention" : "positive" }
-          ]}
-          signature
-        >
+      <header className="border-b border-[var(--etat-line)] bg-[var(--etat-warm-white)] px-6 pt-8 lg:px-[60px] lg:pt-10">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Atlas territorial</p>
+            <h1 className="etat-display etat-h1 etat-h1--registry mt-3.5">Comprendre où agir,<br />territoire par territoire.</h1>
+            <p className="mt-3 max-w-[660px] text-[13.5px] leading-6 text-[var(--etat-stone-600)]">Registre national des territoires suivis, de leurs situations ouvertes et de leurs capacités connues — sans score composite artificiel.</p>
+          </div>
+          <dl className="flex gap-8 border-t border-[var(--etat-line)] pt-4 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+            <div><dt className="etat-filter-label">Territoires</dt><dd className="etat-display text-[28px] text-[var(--etat-navy)]">{filteredTerritories.length}</dd></div>
+            <div><dt className="etat-filter-label">Situations ouvertes</dt><dd className="etat-display text-[28px] text-[var(--etat-navy)]">{openSituationsCount}</dd></div>
+            <div><dt className="etat-filter-label">Critiques</dt><dd className="etat-display text-[28px] text-[var(--etat-critique)]">{criticalCount}</dd></div>
+          </dl>
+        </div>
+        <div className="mt-7 flex flex-wrap items-end justify-between gap-5 border-t border-[var(--etat-line)] pt-4">
+          <nav className="etat-subtabs !border-b-0" aria-label="Vues de l’Atlas">
+            <span className="etat-subtab etat-subtab--active">Vue carte</span>
+            <span className="etat-subtab">Registre</span>
+            <span className="etat-subtab">Indicateurs clés</span>
+            <span className="etat-subtab">Comparaison</span>
+          </nav>
+          <div className="flex flex-wrap items-end gap-4 pb-3">
             <label className="block">
               <p className="etat-filter-label">Région</p>
               <select
@@ -164,8 +169,9 @@ export default function TerritoiresPage() {
                 <option value="critique">Critique</option>
               </select>
             </label>
-        </EtatRegistryHeader>
-      </div>
+          </div>
+        </div>
+      </header>
 
       {/* Composition 3 colonnes (mandat P2.DESIGN-1B §9) : registre |
           carte | dossier. Hauteur fixe partagée par les 3 colonnes
@@ -173,7 +179,7 @@ export default function TerritoiresPage() {
           rail droit défile en interne si son contenu dépasse plutôt que
           d'étirer la ligne. Sous lg, les 3 colonnes s'empilent
           verticalement (registre → carte → dossier), aucune ne disparaît. */}
-      <div className="mt-6 border-y border-[var(--etat-line)] lg:flex lg:h-[640px] lg:items-stretch">
+      <div className="border-b border-[var(--etat-line)] lg:flex lg:h-[640px] lg:items-stretch">
         <div className="flex flex-col border-b border-[var(--etat-line)] lg:w-[300px] lg:shrink-0 lg:border-b-0 lg:border-r lg:overflow-y-auto" style={{ background: "var(--etat-warm-white)" }}>
           <div className="sticky top-0 z-10 p-4" style={{ background: "var(--etat-warm-white)" }}>
             <div className="etat-search-field">
@@ -240,7 +246,7 @@ export default function TerritoiresPage() {
               AtlasMap) — cette photo générique de territoire restaure
               seulement la richesse visuelle du rail, elle ne remplace ni ne
               qualifie aucune donnée de territoire. */}
-          <div className="relative h-[104px] shrink-0 overflow-hidden border-b border-[var(--etat-line)]">
+          <div className="relative h-[186px] shrink-0 overflow-hidden border-b border-[var(--etat-line)]">
             <Image src="/images/etat-atlas-territory-context.webp" alt="" fill sizes="376px" className="object-cover" />
           </div>
           {selectedTerritory ? (

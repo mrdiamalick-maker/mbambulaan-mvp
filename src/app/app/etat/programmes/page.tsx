@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useProduct } from "@/components/providers/ProductProvider";
-import { EtatRegistryHeader } from "@/components/etat/EtatRegistryHeader";
 import {
   formatFcfa,
   fundingStatusLabel,
@@ -58,40 +57,48 @@ function ProgrammeCard({ programme, state }: { programme: Initiative; state: Pro
     ? Math.round(programme.indicators.reduce((sum, indicator) => sum + indicatorProgress(indicator), 0) / programme.indicators.length)
     : null;
   return (
-    <div className="etat-panel--warm p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="etat-h3 text-base">{programme.title}</p>
-          <p className="mt-1 text-xs text-[var(--etat-stone-600)]">{programme.objective}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">{territoryNames.map((name) => <span key={name} className="etat-tag etat-tag--stable">{name}</span>)}</div>
+    <article className="grid gap-6 border-t border-[var(--etat-line)] py-7 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)] lg:gap-12">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="etat-h3 text-[18px]">{programme.title}</p>
+            <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[var(--etat-stone-600)]">{programme.objective}</p>
+          </div>
+          <span className="etat-tag etat-tag--stable shrink-0">{initiativeStatusLabel[programme.status]}</span>
         </div>
-        <span className="etat-tag etat-tag--stable shrink-0">{initiativeStatusLabel[programme.status]}</span>
+        <div className="mt-4 flex flex-wrap gap-1.5">{territoryNames.map((name) => <span key={name} className="etat-tag etat-tag--stable">{name}</span>)}</div>
+        <dl className="mt-5 grid gap-x-7 gap-y-4 sm:grid-cols-3">
+          <div>
+            <dt className="text-[9.5px] font-bold uppercase tracking-[.13em] text-[var(--etat-stone-400)]">Responsable</dt>
+            <dd className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{owner?.name ?? "Non désigné"}</dd>
+          </div>
+          <div>
+            <dt className="text-[9.5px] font-bold uppercase tracking-[.13em] text-[var(--etat-stone-400)]">Financement</dt>
+            <dd className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{programme.budgetFcfa !== undefined ? formatFcfa(programme.budgetFcfa) : "Budget à estimer"}</dd>
+            <dd className="mt-0.5 text-[10.5px] text-[var(--etat-stone-600)]">{budgetStatusCaption[programme.budgetStatus]} · {formatFcfa(confirmed)} confirmés{totalFunding > 0 ? ` / ${formatFcfa(totalFunding)} identifiés` : ""}</dd>
+          </div>
+          <div>
+            <dt className="text-[9.5px] font-bold uppercase tracking-[.13em] text-[var(--etat-stone-400)]">Prochaine échéance</dt>
+            <dd className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{nextDeadline ? new Date(nextDeadline).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) : "Aucune échéance documentée"}</dd>
+          </div>
+        </dl>
+        {programme.funding.length > 0 && (
+          <div className="mt-5 flex flex-wrap gap-1.5">
+            {programme.funding.map((fund) => {
+              const partner = state.actors.find((item) => item.id === fund.partnerId);
+              return <span key={fund.id} className={`etat-tag ${fundingTagClass[fund.status]}`}>{partner?.name ?? fund.partnerId} · {fundingStatusLabel[fund.status]}</span>;
+            })}
+          </div>
+        )}
       </div>
 
-      <div className="mt-4 grid gap-3 border-t border-[var(--etat-line)] pt-4 sm:grid-cols-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Responsable</p>
-          <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{owner?.name ?? "Non désigné"}</p>
+      <div className="min-w-0 lg:border-l lg:border-[var(--etat-line)] lg:pl-8">
+        <div className="flex items-baseline justify-between gap-4">
+          <p className="text-[9.5px] font-bold uppercase tracking-[.13em] text-[var(--etat-stone-400)]">Indicateurs de mise en œuvre</p>
+          <p className="text-xs font-semibold text-[var(--etat-navy)]">{indicatorsAvgProgress !== null ? `${indicatorsAvgProgress}% en moyenne` : "Non documenté"}</p>
         </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Budget / financement</p>
-          <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{programme.budgetFcfa !== undefined ? formatFcfa(programme.budgetFcfa) : "Budget à estimer"}</p>
-          <p className="mt-0.5 text-[11px] text-[var(--etat-stone-600)]">{budgetStatusCaption[programme.budgetStatus]}</p>
-          <p className="mt-0.5 text-[11px] text-[var(--etat-stone-600)]">{formatFcfa(confirmed)} confirmés{totalFunding > 0 ? ` sur ${formatFcfa(totalFunding)} identifiés` : ""}</p>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Prochaine échéance</p>
-          <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{nextDeadline ? new Date(nextDeadline).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) : "Aucune échéance documentée"}</p>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Progression</p>
-          <p className="mt-1 text-xs font-semibold text-[var(--etat-navy-950)]">{indicatorsAvgProgress !== null ? `${indicatorsAvgProgress}% en moyenne` : "Aucun indicateur suivi"}</p>
-          {indicatorsAvgProgress !== null && <p className="mt-0.5 text-[11px] text-[var(--etat-stone-600)]">{programme.indicators.length} indicateur{programme.indicators.length > 1 ? "s" : ""}</p>}
-        </div>
-      </div>
-
-      {programme.indicators.length > 0 && (
-        <div className="mt-4 space-y-3 border-t border-[var(--etat-line)] pt-4">
+        {programme.indicators.length > 0 ? (
+        <div className="mt-4 space-y-4">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--etat-stone-400)]">Progression baseline → actuel → cible</p>
           {programme.indicators.map((indicator) => (
             <div key={indicator.label}>
@@ -111,17 +118,9 @@ function ProgrammeCard({ programme, state }: { programme: Initiative; state: Pro
             </div>
           ))}
         </div>
-      )}
-
-      {programme.funding.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-1.5 border-t border-[var(--etat-line)] pt-4">
-          {programme.funding.map((fund) => {
-            const partner = state.actors.find((item) => item.id === fund.partnerId);
-            return <span key={fund.id} className={`etat-tag ${fundingTagClass[fund.status]}`}>{partner?.name ?? fund.partnerId} · {fundingStatusLabel[fund.status]}</span>;
-          })}
-        </div>
-      )}
-    </div>
+        ) : <p className="mt-4 text-xs leading-5 text-[var(--etat-stone-600)]">Aucun indicateur de progression n’est encore documenté pour ce programme.</p>}
+      </div>
+    </article>
   );
 }
 
@@ -137,53 +136,49 @@ export default function ProgrammesPage() {
 
   if (!state) return null;
 
-  const focusTerritory = selectedTerritoryId ? state.territories.find((item) => item.id === selectedTerritoryId) : undefined;
   const filteredProgrammes = state.initiatives.filter((item) =>
     (!selectedTerritoryId || item.territoryIds.includes(selectedTerritoryId)) &&
     (programmeStatusFilter === "all" || item.status === programmeStatusFilter)
   );
   const activeProgrammesCount = filteredProgrammes.filter((item) => item.status !== "terminee").length;
   const confirmedFunding = filteredProgrammes.reduce((sum, item) => sum + item.funding.filter((fund) => fund.status === "confirme").reduce((fundingSum, fund) => fundingSum + fund.amountFcfa, 0), 0);
-  const confirmedFundingCompact = `${new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 1 }).format(confirmedFunding)} FCFA`;
   const coveredTerritoriesCount = new Set(filteredProgrammes.flatMap((item) => item.territoryIds)).size;
   const trackedIndicatorsCount = filteredProgrammes.reduce((sum, item) => sum + item.indicators.length, 0);
-
-  // Chaîne "Besoin territorial → Intervention → Acteurs/Capacités → Mise
-  // en œuvre → Résultats documentés" (mandat P2.DESIGN-1B.1 §10, dette
-  // héritée de P2.DESIGN-1B : cette page n'avait jusqu'ici aucune lecture
-  // en chaîne, seulement des cartes isolées). Cinq comptages réels, jamais
-  // une numérotation décorative : chaque étape lit un champ du domaine déjà
-  // utilisé ailleurs dans le produit (Initiative.situationIds,
-  // Initiative.status, Initiative.ownerId/funding, Result.sourceRef).
-  const chainSituations = new Set(filteredProgrammes.flatMap((item) => item.situationIds)).size;
-  const chainActors = new Set([
-    ...filteredProgrammes.map((item) => item.ownerId).filter(Boolean),
-    ...filteredProgrammes.flatMap((item) => item.funding.map((fund) => fund.partnerId))
-  ]).size;
-  const chainInOeuvre = filteredProgrammes.filter((item) => item.status === "execution").length;
-  const chainResults = state.results.filter((item) => item.sourceRef.objectType === "initiative" && filteredProgrammes.some((programme) => programme.id === item.sourceRef.objectId)).length;
   const chainSteps = [
-    { label: "Besoin territorial", value: chainSituations, detail: "situation(s) à l’origine d’un programme" },
-    { label: "Intervention", value: filteredProgrammes.length, detail: "programme(s) engagé(s)" },
-    { label: "Acteurs / capacités", value: chainActors, detail: "responsable(s) et partenaire(s) de financement" },
-    { label: "Mise en œuvre", value: chainInOeuvre, detail: "en exécution" },
-    { label: "Résultats documentés", value: chainResults, detail: chainResults > 0 ? "résultat(s) rattaché(s)" : "aucun résultat rattaché pour le moment" }
+    { label: "Besoin", detail: "Un problème territorial documenté" },
+    { label: "Intervention", detail: "Une réponse cadrée et située" },
+    { label: "Acteurs", detail: "Organisations et capacités mobilisées" },
+    { label: "Mise en œuvre", detail: "Jalons et suivi territorial" },
+    { label: "Résultats", detail: "Ce qui est documenté, pas revendiqué" }
   ];
 
   return (
     <div className="px-6 pb-16 pt-8 lg:px-[60px] lg:pt-10">
-      <EtatRegistryHeader
-        eyebrow="Programmes en cours — portefeuille complet"
-        title="Relier les priorités territoriales aux moyens mobilisables."
-        description={<>{filteredProgrammes.length} programme(s){selectedTerritoryId ? ` · ${focusTerritory?.name ?? selectedTerritoryId}` : ""}{programmeStatusFilter !== "all" ? ` · ${initiativeStatusLabel[programmeStatusFilter]}` : ""} sur {state.initiatives.length} au total. Les montants distinguent explicitement financements identifiés et financements confirmés.</>}
-        metrics={[
-          { label: "Programmes actifs", value: activeProgrammesCount, detail: `${filteredProgrammes.length} affiché(s)` },
-          { label: "Financements confirmés", value: confirmedFundingCompact, detail: formatFcfa(confirmedFunding), tone: confirmedFunding > 0 ? "positive" : "neutral" },
-          { label: "Territoires couverts", value: coveredTerritoriesCount },
-          { label: "Indicateurs suivis", value: trackedIndicatorsCount, detail: "Baseline, actuel et cible" }
-        ]}
-        signature={Boolean(selectedTerritoryId)}
-      >
+      <section className="overflow-hidden border border-[var(--etat-line)] bg-[var(--etat-warm-white)]">
+        <div className="grid lg:grid-cols-[minmax(0,1.4fr)_minmax(310px,.6fr)]">
+          <div className="min-w-0 px-6 py-8 lg:px-9 lg:py-10">
+            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Programmes · portefeuille</p>
+            <h1 className="etat-display etat-h1 etat-h1--registry mt-4 max-w-[740px]">Du besoin territorial à l’action documentée.</h1>
+            <p className="mt-4 max-w-[760px] text-[14px] leading-6 text-[var(--etat-stone-600)]">
+              {activeProgrammesCount} programme(s) actif(s) sur {filteredProgrammes.length} affiché(s), dans {coveredTerritoriesCount} territoire(s). {trackedIndicatorsCount} indicateur(s) décrivent la mise en œuvre ; les financements confirmés représentent {formatFcfa(confirmedFunding)}. Chaque montant conserve son statut de confiance.
+            </p>
+            <div className="mt-8 grid gap-px border-y border-[var(--etat-line)] bg-[var(--etat-line)] sm:grid-cols-5" aria-label="Cycle d’un programme Mbàmbulaan">
+              {chainSteps.map((step, index) => (
+                <div key={step.label} className="relative bg-[var(--etat-warm-white)] px-3 py-4">
+                  <p className="text-[9px] font-bold uppercase tracking-[.14em] text-[var(--etat-terracotta)]">0{index + 1}</p>
+                  <p className="mt-2 text-[12px] font-semibold text-[var(--etat-navy)]">{step.label}</p>
+                  <p className="mt-1 text-[10.5px] leading-4 text-[var(--etat-stone-600)]">{step.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="relative min-h-[260px] border-t border-[var(--etat-line)] lg:min-h-0 lg:border-l lg:border-t-0">
+            <Image src="/images/etat-programmes-hero.webp" alt="" fill priority sizes="(min-width: 1024px) 34vw, 100vw" className="object-cover" style={{ objectPosition: "58% 64%" }} />
+            <div className="absolute inset-0 bg-gradient-to-t from-[rgba(11,26,42,.34)] to-transparent" />
+            <p className="absolute bottom-4 left-4 right-4 text-[10.5px] leading-4 text-white/80">Image de contexte éditorial — elle ne constitue pas une preuve opérationnelle.</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-end gap-5 border-t border-[var(--etat-line)] bg-white px-6 py-4 lg:px-9">
           <label className="block">
             <p className="etat-filter-label">Périmètre</p>
             <select
@@ -210,71 +205,28 @@ export default function ProgrammesPage() {
               ))}
             </select>
           </label>
-      </EtatRegistryHeader>
-
-      {/* Bande "chaîne du programme" (mandat §10/§12, corrigée au mandat
-          P2.DESIGN-1B.2 §1) — personnalité DEVELOPMENT/ACTION propre à
-          cette page. Le financement N'EST PAS l'attribut visuel dominant :
-          il reste une carte parmi cinq, à poids égal avec le besoin, les
-          acteurs, la mise en œuvre et les résultats.
-          Correctif §1 : la maquette V2 (`<image-slot id="prog-hero"
-          fit="cover">`, colonne pleine hauteur, sans marge) place l'image
-          comme un second panneau à part entière, jamais une vignette posée
-          dans un espace blanc. Le padding vivait auparavant sur TOUT le
-          conteneur (texte + image), ce qui emprisonnait l'image dans une
-          marge — désormais le padding ne porte que sur la colonne de
-          texte, l'image occupe sa colonne à bord perdu (object-cover,
-          aucune marge, seule une bordure de couture la sépare du texte,
-          overflow-hidden sur le panneau pour respecter son rayon). */}
-      <div className="etat-panel mt-5 flex flex-col overflow-hidden lg:flex-row lg:items-stretch">
-        <div className="min-w-0 flex-1 p-6 lg:p-7">
-          <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>Besoin territorial → intervention → résultat</p>
-          <div className="mt-4 flex flex-wrap items-stretch gap-0">
-            {chainSteps.map((step, i) => (
-              <div key={step.label} className="flex items-stretch">
-                <div className="min-w-[132px] px-4 first:pl-0">
-                  <p className="etat-display text-[26px] leading-none" style={{ color: "var(--etat-navy)" }}>{step.value}</p>
-                  <p className="mt-1.5 text-[11.5px] font-semibold text-[var(--etat-navy)]">{step.label}</p>
-                  <p className="mt-0.5 text-[10.5px] leading-[1.4] text-[var(--etat-stone-400)]">{step.detail}</p>
-                </div>
-                {i < chainSteps.length - 1 && <div className="mx-1 hidden w-px shrink-0 self-stretch bg-[var(--etat-line)] sm:block" aria-hidden="true" />}
-              </div>
-            ))}
-          </div>
         </div>
-        {/* Illustration fournie (mandat §10) : composition à but éditorial,
-            jamais une source de données — les chiffres qui y apparaissent
-            (18 territoires / 21 indicateurs / 9 programmes) sont ceux du
-            prototype, coïncidence vérifiée avec les compteurs réels de
-            cette page au moment de l'intégration ; ils ne les remplacent
-            ni ne les redéfinissent — la chaîne calculée à gauche reste la
-            seule source affichée. object-position recentré sur la scène de
-            quai (opérateurs + tablette), pas sur les pictogrammes/chiffres
-            du haut. */}
-        <div className="relative min-h-[240px] w-full shrink-0 overflow-hidden border-t border-[var(--etat-line)] lg:min-h-0 lg:w-[360px] lg:border-l lg:border-t-0">
-          <Image src="/images/etat-programmes-hero.webp" alt="" fill sizes="360px" className="object-cover" style={{ objectPosition: "58% 64%" }} />
-        </div>
-      </div>
+      </section>
 
-      <div className="etat-panel mt-5 p-6 lg:p-7">
+      <div className="mt-8">
         {filteredProgrammes.length === 0 ? (
           <p className="text-sm text-[var(--etat-stone-600)]">Aucun programme ne correspond à ce filtre pour le moment.</p>
         ) : programmeStatusFilter !== "all" ? (
-          <div className="space-y-5">
+          <div>
             {filteredProgrammes.map((programme) => <ProgrammeCard key={programme.id} programme={programme} state={state} />)}
           </div>
         ) : (
           // §15 — regroupé par tier réel seulement quand aucun statut
           // précis n'est déjà choisi (sinon la section redirait ce que le
           // filtre affirme déjà).
-          <div className="space-y-8">
+          <div className="space-y-10">
             {programmeGroups.map((group) => {
               const programmes = filteredProgrammes.filter((item) => group.statuses.includes(item.status));
               if (programmes.length === 0) return null;
               return (
                 <div key={group.key}>
                   <EditorialSection eyebrow={`${programmes.length} programme${programmes.length > 1 ? "s" : ""}`} title={group.title} />
-                  <div className="mt-3 space-y-5">
+                  <div className="mt-3">
                     {programmes.map((programme) => <ProgrammeCard key={programme.id} programme={programme} state={state} />)}
                   </div>
                 </div>
