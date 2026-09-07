@@ -57,7 +57,7 @@ function ProgrammeCard({ programme, state }: { programme: Initiative; state: Pro
     ? Math.round(programme.indicators.reduce((sum, indicator) => sum + indicatorProgress(indicator), 0) / programme.indicators.length)
     : null;
   return (
-    <article className="grid gap-6 border-t border-[var(--etat-line)] py-7 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)] lg:gap-12">
+    <article className="grid gap-6 border-t border-[var(--etat-line)] py-7 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,.85fr)] xl:gap-12">
       <div className="min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -92,7 +92,7 @@ function ProgrammeCard({ programme, state }: { programme: Initiative; state: Pro
         )}
       </div>
 
-      <div className="min-w-0 lg:border-l lg:border-[var(--etat-line)] lg:pl-8">
+      <div className="min-w-0 xl:border-l xl:border-[var(--etat-line)] xl:pl-8">
         <div className="flex items-baseline justify-between gap-4">
           <p className="text-[9.5px] font-bold uppercase tracking-[.13em] text-[var(--etat-stone-400)]">Indicateurs de mise en œuvre</p>
           <p className="text-xs font-semibold text-[var(--etat-navy)]">{indicatorsAvgProgress !== null ? `${indicatorsAvgProgress}% en moyenne` : "Non documenté"}</p>
@@ -155,7 +155,7 @@ export default function ProgrammesPage() {
   return (
     <div className="px-6 pb-16 pt-8 lg:px-[60px] lg:pt-10">
       <section className="overflow-hidden border border-[var(--etat-line)] bg-[var(--etat-warm-white)]">
-        <div className="grid lg:grid-cols-[minmax(0,1.4fr)_minmax(310px,.6fr)]">
+        <div className="grid xl:grid-cols-[minmax(0,1.4fr)_minmax(310px,.6fr)]">
           <div className="min-w-0 px-6 py-8 lg:px-9 lg:py-10">
             <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Programmes · portefeuille</p>
             <h1 className="etat-display etat-h1 etat-h1--registry mt-4 max-w-[740px]">Du besoin territorial à l’action documentée.</h1>
@@ -172,7 +172,7 @@ export default function ProgrammesPage() {
               ))}
             </div>
           </div>
-          <div className="relative min-h-[260px] border-t border-[var(--etat-line)] lg:min-h-0 lg:border-l lg:border-t-0">
+          <div className="relative min-h-[260px] border-t border-[var(--etat-line)] xl:min-h-0 xl:border-l xl:border-t-0">
             <Image src="/images/etat-programmes-hero.webp" alt="" fill priority sizes="(min-width: 1024px) 34vw, 100vw" className="object-cover" style={{ objectPosition: "58% 64%" }} />
             <div className="absolute inset-0 bg-gradient-to-t from-[rgba(11,26,42,.34)] to-transparent" />
             <p className="absolute bottom-4 left-4 right-4 text-[10.5px] leading-4 text-white/80">Image de contexte éditorial — elle ne constitue pas une preuve opérationnelle.</p>

@@ -123,13 +123,13 @@ export default function TerritoiresPage() {
   return (
     <div className="pb-16">
       <header className="border-b border-[var(--etat-line)] bg-[var(--etat-warm-white)] px-6 pt-8 lg:px-[60px] lg:pt-10">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Atlas territorial</p>
             <h1 className="etat-display etat-h1 etat-h1--registry mt-3.5">Comprendre où agir,<br />territoire par territoire.</h1>
             <p className="mt-3 max-w-[660px] text-[13.5px] leading-6 text-[var(--etat-stone-600)]">Registre national des territoires suivis, de leurs situations ouvertes et de leurs capacités connues — sans score composite artificiel.</p>
           </div>
-          <dl className="flex gap-8 border-t border-[var(--etat-line)] pt-4 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+          <dl className="flex gap-8 border-t border-[var(--etat-line)] pt-4 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0">
             <div><dt className="etat-filter-label">Territoires</dt><dd className="etat-display text-[28px] text-[var(--etat-navy)]">{filteredTerritories.length}</dd></div>
             <div><dt className="etat-filter-label">Situations ouvertes</dt><dd className="etat-display text-[28px] text-[var(--etat-navy)]">{openSituationsCount}</dd></div>
             <div><dt className="etat-filter-label">Critiques</dt><dd className="etat-display text-[28px] text-[var(--etat-critique)]">{criticalCount}</dd></div>
@@ -177,10 +177,10 @@ export default function TerritoiresPage() {
           carte | dossier. Hauteur fixe partagée par les 3 colonnes
           (lg:h-[640px]) — la carte reste le "moment visuel dominant", le
           rail droit défile en interne si son contenu dépasse plutôt que
-          d'étirer la ligne. Sous lg, les 3 colonnes s'empilent
+          d'étirer la ligne. Sous xl, les 3 colonnes s'empilent
           verticalement (registre → carte → dossier), aucune ne disparaît. */}
-      <div className="border-b border-[var(--etat-line)] lg:flex lg:h-[640px] lg:items-stretch">
-        <div className="flex flex-col border-b border-[var(--etat-line)] lg:w-[300px] lg:shrink-0 lg:border-b-0 lg:border-r lg:overflow-y-auto" style={{ background: "var(--etat-warm-white)" }}>
+      <div className="border-b border-[var(--etat-line)] xl:flex xl:h-[640px] xl:items-stretch">
+        <div className="flex flex-col border-b border-[var(--etat-line)] xl:w-[300px] xl:shrink-0 xl:border-b-0 xl:border-r xl:overflow-y-auto" style={{ background: "var(--etat-warm-white)" }}>
           <div className="sticky top-0 z-10 p-4" style={{ background: "var(--etat-warm-white)" }}>
             <div className="etat-search-field">
               <Search size={14} className="shrink-0 text-[var(--etat-stone-400)]" />
@@ -195,7 +195,7 @@ export default function TerritoiresPage() {
             </div>
             <p className="mt-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>{filteredTerritories.length} territoire(s) affiché(s)</p>
           </div>
-          <div className="max-h-[260px] divide-y divide-[var(--etat-line)] overflow-y-auto lg:max-h-none lg:flex-1">
+          <div className="max-h-[260px] divide-y divide-[var(--etat-line)] overflow-y-auto xl:max-h-none xl:flex-1">
             {filteredTerritories.length === 0 ? (
               <p className="px-4 pb-4 text-sm text-[var(--etat-stone-600)]">Aucun territoire ne correspond à ce filtre.</p>
             ) : filteredTerritories.map((territory) => {
@@ -225,7 +225,7 @@ export default function TerritoiresPage() {
             "une signature cartographique par périmètre"), plein cadre,
             sélection synchronisée avec la colonne de gauche et le rail
             de droite. */}
-        <div className="relative min-h-[360px] flex-1 border-b border-[var(--etat-line)] lg:min-h-0 lg:border-b-0 lg:border-r" style={{ background: atlasMapBackground }}>
+        <div className="relative min-h-[360px] flex-1 border-b border-[var(--etat-line)] xl:min-h-0 xl:border-b-0 xl:border-r" style={{ background: atlasMapBackground }}>
           <AtlasMap
             territories={filteredTerritories}
             selectedId={selectedTerritory?.id}
@@ -240,14 +240,14 @@ export default function TerritoiresPage() {
             compacte ici, dossier complet via le CTA plus bas (Drawer,
             même mécanisme que le reste de l'Espace État — pas de nouvelle
             route pour ce lot). */}
-        <div className="flex flex-col lg:w-[376px] lg:shrink-0 lg:overflow-y-auto" style={{ background: "var(--etat-warm-white)" }}>
+        <div className="flex flex-col xl:w-[376px] xl:shrink-0 xl:overflow-y-auto" style={{ background: "var(--etat-warm-white)" }}>
           {/* Photo de contexte (mandat P2.DESIGN-1B.1 §6) : la carte réelle
               reste l'élément cartographique dominant (aucune régression sur
               AtlasMap) — cette photo générique de territoire restaure
               seulement la richesse visuelle du rail, elle ne remplace ni ne
               qualifie aucune donnée de territoire. */}
           <div className="relative h-[186px] shrink-0 overflow-hidden border-b border-[var(--etat-line)]">
-            <Image src="/images/etat-atlas-territory-context.webp" alt="" fill sizes="376px" className="object-cover" />
+            <Image src="/images/etat-atlas-territory-context.webp" alt="" fill priority sizes="(min-width: 1280px) 376px, 100vw" className="object-cover" />
           </div>
           {selectedTerritory ? (
             <>

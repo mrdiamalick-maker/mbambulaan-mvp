@@ -171,9 +171,9 @@ export default function ArbitragesPage() {
       {situationsAArbitrer.length === 0 ? (
         <p className="px-6 py-10 text-sm text-[var(--etat-stone-600)] lg:px-[60px]">{arbitrageSearchNormalized ? `Aucune situation ne correspond à « ${arbitrageSearch} » avec ces filtres.` : "Aucune situation de risque élevé ou critique en attente d’arbitrage pour le moment."}</p>
       ) : (
-        <div className="lg:flex lg:min-h-[720px] lg:items-stretch">
+        <div className="xl:flex xl:min-h-[720px] xl:items-stretch">
           {/* File d'arbitrage — priorité décroissante (mandat §11) */}
-          <div className="border-b border-[var(--etat-line)] lg:w-[400px] lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r" style={{ background: "var(--etat-warm-white)" }}>
+          <div className="border-b border-[var(--etat-line)] xl:w-[400px] xl:shrink-0 xl:overflow-y-auto xl:border-b-0 xl:border-r" style={{ background: "var(--etat-warm-white)" }}>
             <p className="border-b border-[var(--etat-line)] px-6 py-3.5 text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>File d’arbitrage · priorité décroissante</p>
             {situationsAArbitrer.map((situation) => {
               const tag = priorityToTag[situation.priority];

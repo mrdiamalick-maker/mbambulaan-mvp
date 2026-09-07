@@ -58,7 +58,7 @@ export function EtatResultsOverview({ state, onPrint }: { state: ProductState; o
         </div>
       </div>
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="border border-[var(--etat-line)] bg-white p-5 lg:p-6">
           <ResultTrendChart />
         </div>
@@ -135,7 +135,7 @@ export function EtatResultsOverview({ state, onPrint }: { state: ProductState; o
         </div>
       </div>
 
-      <div className="mt-8 grid gap-5 border-b border-[var(--etat-line)] pb-9 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="mt-8 grid gap-5 border-b border-[var(--etat-line)] pb-9 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="bg-[var(--etat-warm-white)] p-6">
           <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Ce que nous apprenons</p>
           <div className="mt-4 divide-y divide-[var(--etat-line)]">
