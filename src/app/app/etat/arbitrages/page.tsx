@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, ArrowRight, Radio, Search } from "lucide-react";
+import { ArrowRight, Radio, Search } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Drawer } from "@/components/etat/Drawer";
 import {
@@ -129,8 +128,7 @@ export default function ArbitragesPage() {
       <div className="border-b border-[var(--etat-line)] px-6 pt-9 pb-7 lg:px-[60px]" style={{ background: "var(--etat-warm-white)" }}>
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <div><Link href="/app/etat" className="etat-back-link"><ArrowLeft size={15} /> Retour au Brief national</Link></div>
-            <p className="etat-eyebrow mt-4"><span className="etat-eyebrow-dot" />Arbitrages · moment de décision</p>
+            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Arbitrages · moment de décision</p>
             <h1 className="etat-display etat-h1 etat-h1--registry mt-3.5">Qu’est-ce qui demande<br />une décision maintenant ?</h1>
             <p className="mt-3.5 max-w-[600px] text-[14.5px] leading-[1.62]" style={{ color: "rgba(11,26,42,.72)" }}>{situationsAArbitrer.length} situation{situationsAArbitrer.length > 1 ? "s" : ""} de risque élevé ou critique attend{situationsAArbitrer.length > 1 ? "ent" : ""} une orientation. Chaque arbitrage indique ce que l’on sait, ce qui reste incertain, et qui est concerné.</p>
           </div>
@@ -157,7 +155,7 @@ export default function ArbitragesPage() {
               <input type="search" value={arbitrageSearch} onChange={(event) => setArbitrageSearch(event.target.value)} placeholder="Titre, étape, territoire…" className="w-full bg-transparent text-sm font-medium text-[var(--etat-navy)] outline-none" style={{ fontFamily: "var(--etat-font-body)" }} />
             </div>
           </label>
-          <div className="etat-subtabs !border-b-0 flex-1">
+          <div className="etat-subtabs order-first w-full flex-none !border-b-0">
             {([
               { value: "all", label: "Critique + élevé" },
               { value: "critique", label: "Critique seulement" },
@@ -173,9 +171,9 @@ export default function ArbitragesPage() {
       {situationsAArbitrer.length === 0 ? (
         <p className="px-6 py-10 text-sm text-[var(--etat-stone-600)] lg:px-[60px]">{arbitrageSearchNormalized ? `Aucune situation ne correspond à « ${arbitrageSearch} » avec ces filtres.` : "Aucune situation de risque élevé ou critique en attente d’arbitrage pour le moment."}</p>
       ) : (
-        <div className="lg:flex lg:min-h-[720px] lg:items-stretch">
+        <div className="xl:flex xl:min-h-[720px] xl:items-stretch">
           {/* File d'arbitrage — priorité décroissante (mandat §11) */}
-          <div className="border-b border-[var(--etat-line)] lg:w-[400px] lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-r" style={{ background: "var(--etat-warm-white)" }}>
+          <div className="border-b border-[var(--etat-line)] xl:w-[400px] xl:shrink-0 xl:overflow-y-auto xl:border-b-0 xl:border-r" style={{ background: "var(--etat-warm-white)" }}>
             <p className="border-b border-[var(--etat-line)] px-6 py-3.5 text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>File d’arbitrage · priorité décroissante</p>
             {situationsAArbitrer.map((situation) => {
               const tag = priorityToTag[situation.priority];

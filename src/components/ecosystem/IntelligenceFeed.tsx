@@ -29,6 +29,7 @@ import { canRole } from "@/server/permissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TrustBadge } from "@/components/shared/StatusBadges";
+import { FindingConvergenceView } from "@/components/ecosystem/FindingConvergenceView";
 import { computeIntelligenceFeed, type IntelligenceFeedItem } from "@/domain/intelligence-feed";
 import { computeIntelligenceObservability } from "@/domain/intelligence-feed";
 import { INTELLIGENCE_RULE_REGISTRY } from "@/domain/signal-crossing";
@@ -258,6 +259,12 @@ export function IntelligenceFeed({ state, role }: { state: ProductState; role: R
 
   return (
     <div className="space-y-6">
+      <FindingConvergenceView state={state} />
+
+      <div className="border-t pt-5">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Détections individuelles</p>
+      </div>
+
       <p className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
         <Info size={14} className="mt-0.5 shrink-0" />
         Mbàmbulaan détecte des combinaisons de faits qui méritent votre attention à partir de règles explicites — jamais une intelligence artificielle, jamais une décision prise à votre place. Chaque détection reste à examiner ; c’est vous qui décidez d’en faire un constat, ou de l’écarter.

@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Compass, Download, Handshake, ListChecks, Printer, ShieldAlert, Users } from "lucide-react";
+import { Compass, Download, Handshake, ListChecks, Printer, ShieldAlert, Users } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { EngagementIcon, PreuveIcon, ResultatIcon, SituationIcon } from "@/components/etat/MotifIcons";
+import { EtatResultsOverview } from "@/components/etat/EtatResultsOverview";
 import { decisionTypeLabels, evidenceTypeLabels, type Funding, type Initiative, type Report, type Territory, type TrustLevel } from "@/domain/types";
 
 // Audit DA Premium XXL v2 (mandat CEO 2026-08-19, arbitrage gap analysis
@@ -262,17 +263,17 @@ export default function EtatReportPage() {
 
   return (
     <div className="pb-4">
+      <EtatResultsOverview state={state} onPrint={() => window.print()} />
+
       {/* Lot D — masqué à l'impression (print:hidden) : la barre d'actions
           n'a pas sa place sur le document imprimé, qui doit rester un
           document linéaire complet (rappel CEO), sans rien d'autre y
           être caché ou conditionné à un état d'interface. */}
-      <div className="mx-5 mt-5 flex flex-wrap items-center justify-between gap-3 print:hidden lg:mx-8 lg:mt-6">
-        {/* XXL-R2 (§6, grammaire commune) — même libellé exact que les 3
-            autres registres (etat-back-link/EtatRegistryHeader) : "Retour
-            à l'Espace État" pointait déjà vers /app/etat mais avec un mot
-            différent pour la même destination — un des petits écarts qui
-            faisaient sembler Résultats moins de la même famille. */}
-        <Link href="/app/etat" className="inline-flex items-center gap-2 text-sm font-bold text-[var(--etat-navy-800)]"><ArrowLeft size={15} /> Retour au Brief national</Link>
+      <div className="mx-5 mt-10 flex flex-wrap items-end justify-between gap-3 border-t border-[var(--etat-line)] pt-8 print:hidden lg:mx-8 lg:mt-12">
+        <div>
+          <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Rapports &amp; registres</p>
+          <h2 className="etat-display etat-h2 mt-3">Préparer une lecture partageable.</h2>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/app/etat/redevabilite" className="etat-btn etat-btn-outline">Registre des décisions</Link>
           <button onClick={() => window.print()} className="etat-btn etat-btn-outline"><Printer size={15} /> Version imprimable</button>
