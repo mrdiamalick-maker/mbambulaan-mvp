@@ -18,6 +18,13 @@ import { ProgrammePortfolioScatter } from "@/components/programmes/ProgrammePort
 import { ProgrammeCockpit } from "@/components/programmes/ProgrammeCockpit";
 import { portfolioRows, portfolioStats, programmeHealth, programmeHealthLabel, type ProgrammeHealthState } from "@/domain/programme-intelligence";
 
+// Notation compacte (même formateur que le Pro, ProgrammesExplorer.tsx) —
+// une tuile de stat étroite ne doit jamais faire déborder son propre
+// cadre (trouvé en QA visuelle à 390px avec formatFcfa, qui écrit le
+// montant en toutes lettres) : la valeur détaillée reste disponible
+// ailleurs sur cette même page (financement par programme, etc.).
+const compactMoney = new Intl.NumberFormat("fr-FR", { notation: "compact", style: "currency", currency: "XOF", maximumFractionDigits: 0 });
+
 // XXL-R2 (§15 du mandat) — "quels programmes sont en cadrage/exécution ?"
 // lu depuis le vrai statut du modèle, jamais une "priorité" inventée sans
 // champ qui la porte (§35, pas de nouvelle donnée fictive) : la tierce
@@ -240,7 +247,7 @@ export default function ProgrammesPage() {
           <div className="bg-background p-4"><p className="font-mono text-2xl leading-none">{stats.active}</p><p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">programme(s) actif(s)</p></div>
           <div className="bg-background p-4"><p className="font-mono text-2xl leading-none" style={{ color: "var(--etat-ocre, #d89a4a)" }}>{stats.attentionOrCritical}</p><p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">nécessitent une attention</p></div>
           <div className="bg-background p-4"><p className="font-mono text-2xl leading-none">{stats.territoriesCovered}</p><p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">territoire(s) couvert(s)</p></div>
-          <div className="bg-background p-4"><p className="font-mono text-2xl leading-none">{formatFcfa(stats.totalBudgetFcfa)}</p><p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">budget chiffré{stats.toEstimateCount > 0 ? ` (hors ${stats.toEstimateCount} à estimer)` : ""}</p></div>
+          <div className="bg-background p-4"><p className="font-mono text-2xl leading-none">{compactMoney.format(stats.totalBudgetFcfa)}</p><p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">budget chiffré{stats.toEstimateCount > 0 ? ` (hors ${stats.toEstimateCount} à estimer)` : ""}</p></div>
         </div>
         <div className="mt-5">
           <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Portefeuille — progression × financement confirmé</p>
