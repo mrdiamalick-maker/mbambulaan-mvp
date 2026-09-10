@@ -99,44 +99,55 @@ export function SituationsExplorer({ state, role, actorId, selectedId }: { state
 
   return (
     <div className="shadcn-scope space-y-6 bg-background p-5 pb-16 lg:p-8">
-      <header className="flex flex-wrap items-end justify-between gap-6">
-        <div className="max-w-2xl">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Situations et signaux</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-[32px]">{stats.open} situation{stats.open > 1 ? "s" : ""} ouverte{stats.open > 1 ? "s" : ""}, {stats.toQualify} attend{stats.toQualify > 1 ? "ent" : ""} encore une source secondaire</h1>
-        </div>
-        <div className="flex flex-none gap-6">
-          <Stat value={stats.open} label="ouvertes" />
-          <Stat value={stats.critical} label="critiques" tone="var(--etat-critique, #c8452b)" />
-          <Stat value={stats.toQualify} label="à qualifier" tone="var(--etat-terracotta, #b6522f)" />
-          <Stat value={stats.closedWithEvidence} label="closes avec preuve" tone="var(--mb-success, #4e7b5a)" />
-        </div>
-      </header>
+      {/* Vue d'ensemble (stats/funnel/ancienneté/filtres) — masquée sous lg
+          quand une situation est ouverte (mandat §13 : sous mobile, le
+          panneau de détail doit vraiment prendre tout l'écran, pas
+          seulement le registre en dessous d'elle — trouvé en QA visuelle
+          réelle à 390px, la vue d'ensemble restait affichée au-dessus du
+          détail ouvert). Toujours visible sur desktop (lg+), où
+          l'ensemble tient déjà côte à côte. */}
+      <div className={selectedId ? "hidden lg:block" : undefined}>
+        <div className="space-y-6">
+          <header className="flex flex-wrap items-end justify-between gap-6">
+            <div className="max-w-2xl">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Situations et signaux</p>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-[32px]">{stats.open} situation{stats.open > 1 ? "s" : ""} ouverte{stats.open > 1 ? "s" : ""}, {stats.toQualify} attend{stats.toQualify > 1 ? "ent" : ""} encore une source secondaire</h1>
+            </div>
+            <div className="flex flex-none gap-6">
+              <Stat value={stats.open} label="ouvertes" />
+              <Stat value={stats.critical} label="critiques" tone="var(--etat-critique, #c8452b)" />
+              <Stat value={stats.toQualify} label="à qualifier" tone="var(--etat-terracotta, #b6522f)" />
+              <Stat value={stats.closedWithEvidence} label="closes avec preuve" tone="var(--mb-success, #4e7b5a)" />
+            </div>
+          </header>
 
-      <div className="grid gap-px overflow-hidden rounded-lg border bg-border lg:grid-cols-2">
-        <div className="bg-background p-4">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">De l’information reçue à la preuve</p>
-          <BarMetricChart valueLabel="au total" data={funnel.map((step) => ({ key: step.key, label: step.label, value: step.value }))} />
-        </div>
-        <div className="bg-background p-4">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ancienneté des situations ouvertes</p>
-          <BarMetricChart valueLabel="situation(s)" data={aging.map((bucket) => ({ key: bucket.key, label: bucket.label, value: bucket.count }))} />
-        </div>
-      </div>
+          <div className="grid gap-px overflow-hidden rounded-lg border bg-border lg:grid-cols-2">
+            <div className="bg-background p-4">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">De l’information reçue à la preuve</p>
+              <BarMetricChart valueLabel="au total" data={funnel.map((step) => ({ key: step.key, label: step.label, value: step.value }))} />
+            </div>
+            <div className="bg-background p-4">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ancienneté des situations ouvertes</p>
+              <BarMetricChart valueLabel="situation(s)" data={aging.map((bucket) => ({ key: bucket.key, label: bucket.label, value: bucket.count }))} />
+            </div>
+          </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-y py-4">
-        <span className="mr-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Filtrer</span>
-        <FilterChip active={!severity && !trust && !toQualifyOnly} onClick={() => { setSeverity(null); setTrust(null); setToQualifyOnly(false); }}>Toutes · {scoped.length}</FilterChip>
-        {(["critique", "haute", "moyenne", "faible"] as const).map((level) => (
-          <FilterChip key={level} active={severity === level} dot={glyphBorderColor[priorityToTag[level]]} onClick={() => setSeverity(severity === level ? null : level)}>{priorityLabels[level]}</FilterChip>
-        ))}
-        <FilterChip active={trust === "declaree"} onClick={() => setTrust(trust === "declaree" ? null : "declaree")}>Déclarées seulement</FilterChip>
-        <FilterChip active={trust === "verifiee"} onClick={() => setTrust(trust === "verifiee" ? null : "verifiee")}>Recoupées ou mieux</FilterChip>
-        <FilterChip active={toQualifyOnly} onClick={() => setToQualifyOnly(!toQualifyOnly)}>À qualifier</FilterChip>
-        <label className="relative ml-auto">
-          <span className="sr-only">Rechercher</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Référence, quai ou objet…" className="w-56 rounded-md border bg-background px-3 py-1.5 text-xs outline-none focus:border-primary/50" />
-        </label>
-        <span className="text-xs text-muted-foreground">{filtered.length} situation{filtered.length > 1 ? "s" : ""} affichée{filtered.length > 1 ? "s" : ""} sur {scoped.length}</span>
+          <div className="flex flex-wrap items-center gap-2 border-y py-4">
+            <span className="mr-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Filtrer</span>
+            <FilterChip active={!severity && !trust && !toQualifyOnly} onClick={() => { setSeverity(null); setTrust(null); setToQualifyOnly(false); }}>Toutes · {scoped.length}</FilterChip>
+            {(["critique", "haute", "moyenne", "faible"] as const).map((level) => (
+              <FilterChip key={level} active={severity === level} dot={glyphBorderColor[priorityToTag[level]]} onClick={() => setSeverity(severity === level ? null : level)}>{priorityLabels[level]}</FilterChip>
+            ))}
+            <FilterChip active={trust === "declaree"} onClick={() => setTrust(trust === "declaree" ? null : "declaree")}>Déclarées seulement</FilterChip>
+            <FilterChip active={trust === "verifiee"} onClick={() => setTrust(trust === "verifiee" ? null : "verifiee")}>Recoupées ou mieux</FilterChip>
+            <FilterChip active={toQualifyOnly} onClick={() => setToQualifyOnly(!toQualifyOnly)}>À qualifier</FilterChip>
+            <label className="relative ml-auto">
+              <span className="sr-only">Rechercher</span>
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Référence, quai ou objet…" className="w-56 rounded-md border bg-background px-3 py-1.5 text-xs outline-none focus:border-primary/50" />
+            </label>
+            <span className="text-xs text-muted-foreground">{filtered.length} situation{filtered.length > 1 ? "s" : ""} affichée{filtered.length > 1 ? "s" : ""} sur {scoped.length}</span>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-0 overflow-hidden rounded-lg border lg:grid-cols-[392px_1fr]">

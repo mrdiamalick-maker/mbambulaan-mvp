@@ -66,7 +66,7 @@ export function SituationDetailPanel({ state, situation, role }: { state: Produc
           <TabsTrigger value="act">Action</TabsTrigger>
         </TabsList>
         <TabsContent value="know"><SituationSynthesisTab state={state} situation={situation} /></TabsContent>
-        <TabsContent value="time"><SituationChronologyTab situation={situation} /></TabsContent>
+        <TabsContent value="time"><SituationChronologyTab state={state} situation={situation} /></TabsContent>
         <TabsContent value="src"><SituationSourcesTab state={state} situation={situation} commitments={commitments} /></TabsContent>
         <TabsContent value="act"><SituationActionsTab state={state} situation={situation} role={role} /></TabsContent>
       </Tabs>
