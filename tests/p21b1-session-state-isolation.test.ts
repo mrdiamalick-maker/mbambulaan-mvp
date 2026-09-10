@@ -183,15 +183,21 @@ test("TEST J — ponts PublicRequest/PublicContribution non régressés", () => 
 });
 
 // Non-régression du câblage logout centralisé (mandat §6, défense en
-// profondeur B) : les 3 shells appellent désormais useProduct().logout()
+// profondeur B) : les shells appellent désormais useProduct().logout()
 // plutôt que de dupliquer chacun leur propre fetch + redirection —
 // vérifié par lecture de source (composants "use client" avec hooks,
 // non montables hors navigateur réel, même contrainte que
 // CoordinationWorkspace.tsx).
-test("Les 3 shells (Produit, État, Terrain) utilisent le logout centralisé de ProductProvider", () => {
+//
+// LOT V3.1 (Scope A) — 3 connecteurs devenus 2 : ProductShell.tsx
+// (Coordination ET Espace État désormais, cf. son prop `space`) et
+// TerrainProductShell.tsx (Terrain mobile, hors du lot, inchangé).
+// InstitutionProductShell.tsx a été retiré (superseded par ProductShell) —
+// l'invariant vérifié (logout centralisé, pas de fetch dupliqué) reste
+// exactement le même, juste sur un fichier de moins.
+test("Les shells privés (Produit+État, Terrain) utilisent le logout centralisé de ProductProvider", () => {
   for (const path of [
     "../src/components/shell/ProductShell.tsx",
-    "../src/components/institution/InstitutionProductShell.tsx",
     "../src/components/terrain/TerrainProductShell.tsx"
   ]) {
     const source = readFileSync(fileURLToPath(new URL(path, import.meta.url)), "utf8");

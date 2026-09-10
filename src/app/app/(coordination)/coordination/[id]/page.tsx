@@ -6,7 +6,7 @@ import { ArrowLeft, Calendar, CircleAlert, UserRound } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { roleLabel } from "@/components/shell/AppSidebar";
+import { roleLabel } from "@/domain/platform/private-nav";
 import { commitmentStatusLabel, commitmentStatusVariant } from "@/lib/status-tokens";
 
 export default function CoordinationDetailPage() {

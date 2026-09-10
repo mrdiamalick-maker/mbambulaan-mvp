@@ -2,12 +2,16 @@ import { redirect } from "next/navigation";
 import { currentSession } from "@/server/session";
 import { ProductShell } from "@/components/shell/ProductShell";
 
-// Coquille partagée (AppShell/AppSidebar) — légitime pour Coordinateur et
-// Opérateur, outils de travail où une navigation latérale persistante a
-// du sens (D9, PRODUCT_DECISION_LOG.md). Regroupement Next.js par route
-// group : ne change aucune URL, seulement l'arborescence de layouts —
-// l'Espace État (src/app/app/etat) et le Terrain mobile
-// (src/app/app/terrain, D9, Lot 6), eux, restent hors de ce groupe.
+// LOT V3.1 (Scope A/G) — coquille partagée (ProductShell space=
+// "coordination", ex-AppShell/AppSidebar) désormais commune avec
+// l'Espace État (src/app/app/etat/layout.tsx), qui montait jusqu'ici une
+// coquille séparée (D9, arbitrage rouvert par le mandat V3.1 : Claude
+// Design V3 devient l'autorité visuelle pour tout l'environnement privé
+// unifié). Regroupement Next.js par route group : ne change aucune URL,
+// seulement l'arborescence de layouts — le Terrain mobile
+// (src/app/app/terrain, D9, Lot 6) reste hors de ce groupe et hors de ce
+// lot (mobile-first, jamais concerné par l'unification "outils de
+// travail" Coordination + État).
 //
 // Garde de rôle côté serveur — corrigée le 2026-08-12 : ce layout enveloppe
 // TOUTES les routes du groupe (coordination), /app/travail compris, et n'en
@@ -30,5 +34,5 @@ export default async function CoordinationLayout({ children }: { children: React
   if (!session) redirect("/connexion");
   if (session.role === "institution") redirect("/app/etat");
   if (session.role === "capitaine") redirect("/app/terrain");
-  return <ProductShell>{children}</ProductShell>;
+  return <ProductShell space="coordination">{children}</ProductShell>;
 }

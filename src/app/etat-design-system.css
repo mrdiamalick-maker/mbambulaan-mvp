@@ -309,13 +309,23 @@
      ● (vérifiée), langage visuel central du prototype. Un seul endroit où
      ils sont définis ; réutilisés partout (registre, dossier, légende
      sidebar) via <TrustGlyph>. */
+  /* Repli littéral ajouté (LOT V3.1, Scope A) : TrustGlyph s'affiche
+     désormais aussi dans PrivateSidebar (src/components/shell/
+     PrivateSidebar.tsx), commune à la Coordination ET à l'Espace État —
+     donc parfois montée hors de tout ancêtre .etat-scope, où les
+     variables --etat-* ci-dessus (définies uniquement à l'intérieur de
+     .etat-scope) n'existent pas. Les valeurs de repli reprennent au
+     caractère près les constantes "verrouillées" déclarées plus haut —
+     jamais une nouvelle couleur, seulement une garantie de rendu
+     identique en dehors de .etat-scope.
+  */
   .etat-trust-glyph { font-size: 13px; line-height: 1; flex: none; }
-  .etat-trust-glyph--declaree { color: var(--etat-navy); }
-  .etat-trust-glyph--observee { color: var(--etat-terracotta); }
-  .etat-trust-glyph--verifiee { color: var(--etat-vert); }
-  .etat-trust-glyph--on-dark.etat-trust-glyph--declaree { color: var(--etat-cream); }
-  .etat-trust-glyph--on-dark.etat-trust-glyph--observee { color: var(--etat-terracotta-clair); }
-  .etat-trust-glyph--on-dark.etat-trust-glyph--verifiee { color: var(--etat-vert-clair); }
+  .etat-trust-glyph--declaree { color: var(--etat-navy, #0b1a2a); }
+  .etat-trust-glyph--observee { color: var(--etat-terracotta, #b6522f); }
+  .etat-trust-glyph--verifiee { color: var(--etat-vert, #4e7b5a); }
+  .etat-trust-glyph--on-dark.etat-trust-glyph--declaree { color: var(--etat-cream, #f7f3e9); }
+  .etat-trust-glyph--on-dark.etat-trust-glyph--observee { color: var(--etat-terracotta-clair, #e6a27a); }
+  .etat-trust-glyph--on-dark.etat-trust-glyph--verifiee { color: var(--etat-vert-clair, #7fb08a); }
 
   /* ---- Boutons — coins nets (3px), pas d'ombre, remplissage plat. ---- */
   .etat-btn {

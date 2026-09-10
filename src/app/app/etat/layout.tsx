@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Newsreader, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { currentSession } from "@/server/session";
-import { InstitutionProductShell } from "@/components/institution/InstitutionProductShell";
+import { ProductShell } from "@/components/shell/ProductShell";
 
 // P2.DESIGN-1A.2 (North Star Claude Design) — typographie propre à
 // l'Espace État : Newsreader (display éditorial) + IBM Plex Sans (corps/UI)
@@ -20,16 +20,22 @@ const ibmPlexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], 
 // Espace État : point d'entrée professionnel réservé au mandat ministère
 // (rôle "institution") et à l'administrateur Mbàmbulaan pour supervision.
 // Jamais accessible depuis le site public — garde posée côté serveur.
-// Coquille : InstitutionProductShell (D9), pas ProductShell/AppShell —
-// cette route est volontairement hors du groupe de routes
-// src/app/app/(coordination) qui porte le shell partagé.
+//
+// LOT V3.1 (mandat "Private Operating Environment Foundation", Scope A/G) —
+// coquille : ProductShell (space="etat"), commune désormais avec
+// src/app/app/(coordination)/layout.tsx. Remplace InstitutionProductShell/
+// InstitutionShell/EtatSidebar (D9, désormais superseded — Claude Design V3
+// devient l'autorité visuelle pour tout l'environnement privé unifié,
+// arbitrage du mandat V3.1 qui rouvre explicitement ce point de D9). Cette
+// route reste néanmoins hors du groupe (coordination) : la garde de rôle
+// ci-dessous lui est spécifique, la coquille partagée ne l'est pas.
 export default async function EtatLayout({ children }: { children: React.ReactNode }) {
   const session = await currentSession();
   if (!session) redirect("/connexion?next=/app/etat");
   if (session.role !== "institution" && session.role !== "administrateur") redirect("/app/travail");
   return (
     <div className={`${newsreader.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} contents`}>
-      <InstitutionProductShell>{children}</InstitutionProductShell>
+      <ProductShell space="etat">{children}</ProductShell>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { DecisionForm } from "@/components/coordination/DecisionForm";
-import { roleLabel } from "@/components/shell/AppSidebar";
+import { roleLabel } from "@/domain/platform/private-nav";
 import { commitmentStatusLabel, commitmentStatusVariant } from "@/lib/status-tokens";
 
 export function CoordinationProposal({

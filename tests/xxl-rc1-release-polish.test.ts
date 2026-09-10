@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createDemoState } from "../src/data/demo-state";
+import { resolveActiveHref, resolvePrivateNavGroups } from "../src/domain/platform/private-nav";
 import { buildWorkdayView } from "../src/domain/workday";
 import { WorkdayHub } from "../src/components/work/WorkdayHub";
 import { SituationHero } from "../src/components/situations/SituationHero";
@@ -24,29 +25,52 @@ function readSource(relativePath: string): string {
 (globalThis as Record<string, unknown>).React = React;
 
 // TEST A — navigation État accessible sous desktop sans modifier desktop
-// (mandat §7.A) : EtatSidebar (desktop, hidden lg:flex) garde son repli
-// hidden/lg:flex ; EtatMobileNav (nouveau, XXL-RC1 §2) existe, est gardée
-// lg:hidden, et consomme la MÊME liste navItems que la sidebar desktop —
-// une seule source des 5 destinations, jamais deux listes à maintenir en
-// parallèle.
-// P2.DESIGN-1A.2 (North Star Claude Design) — la classe exacte pinée ici
-// (w-56, bg-white, p-3) appartenait à l'habillage clair d'avant ce lot :
-// le mandat autorise explicitement la reconstruction complète de la
-// présentation (sidebar marine 252px du prototype fourni), tant que le
-// VRAI garde-fou de ce test — le repli responsive hidden/lg:flex qui
-// empêche desktop et mobile de s'afficher en même temps — reste intact.
-// Assertion mise à jour sur ce garde-fou réel plutôt que sur des classes
-// de couleur/largeur devenues volontairement obsolètes.
-test("TEST A — la sidebar État desktop reste inchangée, le nouveau menu mobile partage les mêmes routes", () => {
-  const source = readSource("../src/components/institution/EtatSidebar.tsx");
-  assert.ok(source.includes('hidden h-screen w-[252px] shrink-0 flex-col lg:flex'), "la sidebar desktop doit garder son repli responsive (hidden … lg:flex)");
-  assert.ok(source.includes("export function EtatMobileNav"), "EtatMobileNav doit être exporté (nouveau, XXL-RC1)");
-  assert.ok(source.includes("lg:hidden"), "le déclencheur mobile doit être gardé lg:hidden — jamais visible en même temps que la sidebar desktop");
-  assert.ok(source.includes("export const navItems"), "navItems doit être exporté et rester la source unique des 5 destinations État");
-  // EtatNavLinks (fonction interne partagée) doit être utilisée par les
-  // deux : recherché plutôt qu'une seconde définition de <nav> dupliquée.
-  const navLinksOccurrences = source.match(/<EtatNavLinks/g) ?? [];
-  assert.equal(navLinksOccurrences.length, 2, "EtatNavLinks doit être consommé exactement 2 fois — une fois par EtatSidebar (desktop), une fois par EtatMobileNav (tiroir)");
+// (mandat §7.A, réécrit LOT V3.1 Scope A/B) : EtatSidebar/EtatMobileNav
+// (repli responsive fait main à 1024px, 2 rendus manuels de la même liste)
+// sont superseded par PrivateSidebar, monté par le rail partagé
+// src/components/ui/sidebar.tsx (shadcn) — le repli desktop/mobile devient
+// une propriété structurelle de ce composant (branche `if (isMobile)` :
+// alterne entre le Sheet mobile et l'<aside> desktop, jamais les deux à la
+// fois — mécanisme déjà utilisé et éprouvé côté Coordination avant ce
+// lot), plus a une seule fonction (resolvePrivateNavGroups) comme source
+// des destinations, jamais deux listes séparées à maintenir en parallèle.
+// Assertion sur le VRAI garde-fou (une seule source de vérité + mutuelle
+// exclusivité desktop/mobile structurelle), pas sur des classes de
+// présentation.
+test("TEST A — la navigation État a une source unique et le rail alterne desktop/mobile sans jamais montrer les deux", () => {
+  const etatGroups = resolvePrivateNavGroups("etat", "institution", []);
+  assert.equal(etatGroups.length, 1, "l'Espace État reste un seul groupe de navigation");
+  assert.deepEqual(
+    etatGroups[0].items.map((item) => item.href),
+    ["/app/etat", "/app/etat/territoires", "/app/etat/situations", "/app/etat/arbitrages", "/app/etat/programmes", "/app/etat/rapport"],
+    "les 6 destinations réelles de l'Espace État doivent rester exactement les mêmes routes, dans le même ordre"
+  );
+  // administrateur voit exactement la même navigation État qu'institution
+  // (les 2 seuls rôles qui atteignent /app/etat, garde côté serveur) —
+  // aucune divergence introduite par le passage à une source commune.
+  assert.deepEqual(resolvePrivateNavGroups("etat", "administrateur", []).map((g) => g.items.length), [6]);
+  const sidebarPrimitiveSource = readSource("../src/components/ui/sidebar.tsx");
+  assert.ok(sidebarPrimitiveSource.includes("if (isMobile)"), "le rail partagé doit continuer à distinguer desktop/mobile de façon structurelle (jamais les deux montés ensemble)");
+  const privateSidebarSource = readSource("../src/components/shell/PrivateSidebar.tsx");
+  assert.ok(privateSidebarSource.includes("resolvePrivateNavGroups"), "PrivateSidebar doit rester la seule consommatrice de la navigation résolue par private-nav.ts");
+});
+
+// TEST A2 (LOT V3.1, trouvé en QA visuelle réelle à /app/etat/territoires :
+// "Brief national" et "Atlas territorial" s'allumaient ensemble) — /app/etat
+// est à la fois une destination réelle ET un préfixe littéral de toutes les
+// autres routes État ; resolveActiveHref doit toujours élire le href le
+// plus long/spécifique, jamais laisser deux destinations actives à la fois.
+test("TEST A2 — un seul item de navigation actif à la fois, même quand une route est le préfixe d'une autre", () => {
+  const etatGroups = resolvePrivateNavGroups("etat", "institution", []);
+  assert.equal(resolveActiveHref("/app/etat", etatGroups), "/app/etat");
+  assert.equal(resolveActiveHref("/app/etat/territoires", etatGroups), "/app/etat/territoires", "/app/etat/territoires ne doit plus activer Brief national");
+  assert.equal(resolveActiveHref("/app/etat/situations", etatGroups), "/app/etat/situations");
+  assert.equal(resolveActiveHref("/app/inconnu", etatGroups), null);
+  // Coordination : une route de détail imbriquée doit activer sa section
+  // parente réelle (ex. /app/situations/sit-glace → "Situations"), jamais
+  // "Aujourd'hui" ni aucune autre section.
+  const coordGroups = resolvePrivateNavGroups("coordination", "coordinateur", ["operations"]);
+  assert.equal(resolveActiveHref("/app/situations/sit-glace", coordGroups), "/app/situations");
 });
 
 // TEST B — Situation → Atlas deep-link correct (mandat §7.B/§5.A) : le

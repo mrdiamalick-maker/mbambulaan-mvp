@@ -187,6 +187,24 @@ Chaque entrée : la question, les options considérées, la recommandation initi
 
 **Arbitrage CEO** : Option B retenue et implémentée (2026-08-12) — voir `src/components/shell/AppSidebar.tsx`. **Option C non rejetée** : reconnue comme la cible probable à moyen terme (réduction réelle du nombre de destinations plutôt qu'un simple regroupement visuel), mais explicitement différée à un lot dédié avec sa propre recette, pas une décision prise en marge d'une revue éditoriale. À reprendre lors d'un futur arbitrage de structure de navigation.
 
+*Note (LOT V3.1, voir D12 ci-dessous)* : `AppSidebar.tsx` référencé ci-dessus a depuis été retiré, superseded par `src/components/shell/PrivateSidebar.tsx`, qui reprend exactement les 3 groupes (Travail/Espaces métier/Outils) et le regroupement décrit ici — cette décision (D11) reste donc en vigueur, seulement portée par un fichier différent.
+
+---
+
+### D12 — LOT V3.1 : coquille privée unifiée Coordination + Espace État (reprend D9)
+
+**Constat** : D9 (ci-dessus) avait délibérément choisi une entrée technique séparée pour l'Espace État (`InstitutionShell`/`EtatSidebar`) plutôt que le shell partagé Coordinateur/Opérateur (`AppShell`/`AppSidebar`), au nom d'une différenciation "décision-first" (A14). Le mandat Claude Design V3, accepté et devenu autorité visuelle pour tout l'environnement privé (gate d'implémentation V3, arbitrages clos), rouvre explicitement ce point : les deux espaces sont désormais des surfaces "outils de travail" d'un même produit et doivent partager une seule fondation de coquille — pas un aplatissement de leur identité respective, mais un seul système d'ossature (rail, en-tête, primitives d'interaction, surface de détail).
+
+**Constat technique notable** : les deux anciens shells rendaient déjà, sans le savoir, la même palette de fond (`--sidebar`/`--sidebar-primary` dans `src/app/shadcn-theme.css` = marine `#0b1a2a`/terre cuite `#b6522f`, exactement les valeurs verrouillées de l'Espace État) — `AppSidebar.tsx` appliquait seulement une surcharge `.private-sidebar` (fond blanc, décidée avant l'arbitrage V3) qui masquait cette convergence déjà présente au niveau des jetons.
+
+**Décision** : coquille unique `PrivateShell`/`PrivateSidebar`/`PrivateHeader` (`src/components/shell/`), montée par les deux layouts serveur (`src/app/app/etat/layout.tsx`, `src/app/app/(coordination)/layout.tsx`) via `ProductShell` (prop `space: "etat" | "coordination"`, fournie par le layout serveur — jamais un choix client). Retrait de la surcharge `.private-sidebar` (le rail retombe sur les jetons marine déjà verrouillés). Navigation résolue par une source unique et permission-driven (`src/domain/platform/private-nav.ts`, `resolvePrivateNavGroups`), reprenant à l'identique les routes/rôles/modules des deux anciennes listes. Identité préservée (Scope G) : wordmark commun, mais légende de confiance et libellé d'espace ("Espace État" / nom d'organisation) restent différenciés — rien n'est aplati au niveau du contenu, seulement l'ossature. Le Terrain mobile (`TerrainShell`) reste hors de cet arbitrage : entrée technique volontairement distincte (mobile-first), jamais concernée par l'unification "outils de travail".
+
+**Fichiers retirés (superseded, aucun code mort laissé)** : `AppShell.tsx`, `AppSidebar.tsx`, `SiteHeader.tsx` (`src/components/shell/`) ; `InstitutionShell.tsx`, `InstitutionProductShell.tsx`, `EtatSidebar.tsx` (`src/components/institution/`).
+
+**Décision technique associée (Scope E, visualisation de données)** : `recharts` était déjà une dépendance déclarée et `src/components/ui/chart.tsx` (habillage shadcn/ui) déjà écrit mais jamais consommé. Retenu comme fondation pour tout NOUVEAU graphique interactif (survol/info-bulle/focus) plutôt que de continuer à faire à la main des SVG/`<div>` statiques pour chaque nouveau besoin — aucune nouvelle dépendance introduite. Les graphiques existants (`EtatDataVisualizations.tsx`, Espace État) restent inchangés ce lot (mandat explicite : ne pas reconstruire Résultats) ; validé via `src/components/private/TrendChart.tsx`.
+
+**Décision technique associée (Scope F, surface de détail)** : `src/components/etat/Drawer.tsx` (panneau latéral fait main : pas de focus-trap, pas de blocage de scroll, pas de sémantique ARIA dialog) superseded pour tout NOUVEL usage par `src/components/private/DetailSurface.tsx`, bâtie sur `Sheet`/Radix Dialog déjà présent dans le dépôt. Validé sur un seul point d'usage réel (dossier territorial, `/app/etat/territoires`) — mandat explicite : valider la primitive, jamais migrer chaque écran de détail en une fois. Les 5 autres usages de `Drawer` (situations/redevabilite/arbitrages/page.tsx et les 2 autres de territoires/page.tsx) restent inchangés.
+
 ---
 
 ## 3. Décisions explicitement hors de ce document

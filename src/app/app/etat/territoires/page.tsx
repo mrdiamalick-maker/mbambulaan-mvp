@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ArrowRight, Search } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Drawer } from "@/components/etat/Drawer";
+import { DetailSurface } from "@/components/private/DetailSurface";
 import { AtlasMap, atlasMapBackground } from "@/components/etat/AtlasMap";
 import {
   Mission,
@@ -337,9 +338,17 @@ export default function TerritoiresPage() {
         )}
       </div>
 
-      <Drawer open={territoryDossierOpen} onClose={() => setTerritoryDossierOpen(false)} eyebrow="Dossier territorial" title={selectedTerritory?.name ?? ""}>
+      {/* LOT V3.1 (Scope F) — dossier territorial migré vers DetailSurface
+          (Radix Dialog réel : focus-trap, blocage de scroll, sémantique
+          ARIA — contrairement à Drawer.tsx, fait main) : c'est le point de
+          validation choisi pour la nouvelle primitive de surface de détail,
+          exactement un seul écran comme demandé par le mandat ("valider la
+          primitive, pas migrer chaque écran de détail") — les deux autres
+          Drawer de cette même page (Situation, Planifier la mission)
+          restent volontairement inchangés. */}
+      <DetailSurface open={territoryDossierOpen} onOpenChange={setTerritoryDossierOpen} eyebrow="Dossier territorial" title={selectedTerritory?.name ?? ""} scope="etat">
         {selectedTerritory && <TerritoryDetail territory={selectedTerritory} cases={cases.filter((item) => item.territoryId === selectedTerritory.id)} onOpenSituation={(situation) => { setTerritoryDossierOpen(false); setSituationDrawer(situation); }} />}
-      </Drawer>
+      </DetailSurface>
       <Drawer open={!!situationDrawer} onClose={() => setSituationDrawer(null)} eyebrow="Situation" title={situationDrawer?.title ?? ""} size="lg">
         {situationDrawer && <SituationDetail situation={situationDrawer} state={state} onPlanVisit={() => { const territory = state.territories.find((item) => item.id === situationDrawer.territoryId); setSituationDrawer(null); setMissionDrawer({ key: `situation-${situationDrawer.id}`, territoryId: situationDrawer.territoryId, territoryLabel: territory?.name ?? situationDrawer.territoryId, raison: situationDrawer.title, action: situationDrawer.nextStep, glyphStatus: priorityToTag[situationDrawer.priority], suggestedObjective: "verification_vigilance" }); }} />}
       </Drawer>
