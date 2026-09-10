@@ -50,17 +50,20 @@ function joalFixtureIntelligence() {
   const state = createDemoState();
   const intelligence = buildTerritoryIntelligence(state, "joal");
   assert.ok(intelligence, "le Demo World doit fournir le territoire joal (dossier riche) pour ces tests");
-  return intelligence!;
+  // `state` renvoyé aux côtés de `intelligence` depuis LOT V3.4 :
+  // TerritoryDossierSections a désormais besoin des deux (profondeur de
+  // site réelle, tendance des débarquements — domain/atlas-overview.ts).
+  return { intelligence: intelligence!, state };
 }
 
 // TEST C — historique conservé : le dossier affiche toujours la dernière
 // évolution d'une situation (lastHistory), même après la réorganisation
 // des sections R4.
 test("TEST C — TerritoryDossierSections affiche la dernière évolution d'une situation (historique conservé)", () => {
-  const intelligence = joalFixtureIntelligence();
+  const { intelligence, state } = joalFixtureIntelligence();
   const situationWithHistory = intelligence.situations.find((item) => item.history.length > 0);
   assert.ok(situationWithHistory, "ce test suppose au moins une situation avec historique sur joal");
-  const html = renderToStaticMarkup(React.createElement(TerritoryDossierSections, { intelligence, tone: "atlas" }));
+  const html = renderToStaticMarkup(React.createElement(TerritoryDossierSections, { intelligence, tone: "atlas", state }));
   assert.ok(html.includes("Dernière évolution"), "la mention « Dernière évolution » doit rester visible");
   const lastEntry = situationWithHistory!.history[situationWithHistory!.history.length - 1];
   const labelFragment = lastEntry.label.split("'")[0].trim();
@@ -71,8 +74,8 @@ test("TEST C — TerritoryDossierSections affiche la dernière évolution d'une 
 // qui se passe" pointe vers son vrai dossier /app/situations/<id>,
 // inchangé par la réorganisation des sections.
 test("TEST D — les liens de situation du dossier territorial pointent vers le bon /app/situations/<id>", () => {
-  const intelligence = joalFixtureIntelligence();
-  const html = renderToStaticMarkup(React.createElement(TerritoryDossierSections, { intelligence, tone: "atlas" }));
+  const { intelligence, state } = joalFixtureIntelligence();
+  const html = renderToStaticMarkup(React.createElement(TerritoryDossierSections, { intelligence, tone: "atlas", state }));
   for (const situation of intelligence.situations.slice(0, 4)) {
     assert.ok(html.includes(`/app/situations/${situation.id}`), `lien manquant vers /app/situations/${situation.id}`);
   }
@@ -83,10 +86,10 @@ test("TEST D — les liens de situation du dossier territorial pointent vers le 
 // un seul "Projets", mandat §12 LOT 5, revérifié après réordonnancement
 // R4) et pointe vers /app/initiatives.
 test("TEST E — Développement (programmes) reste une catégorie distincte avec son propre lien /app/initiatives", () => {
-  const intelligence = joalFixtureIntelligence();
+  const { intelligence, state } = joalFixtureIntelligence();
   const hasDevelopment = intelligence.programOpportunities.length > 0 || intelligence.initiatives.some((item) => item.status !== "terminee");
   assert.ok(hasDevelopment, "ce test suppose au moins un programme/opportunité en cours sur joal");
-  const html = renderToStaticMarkup(React.createElement(TerritoryDossierSections, { intelligence, tone: "atlas" }));
+  const html = renderToStaticMarkup(React.createElement(TerritoryDossierSections, { intelligence, tone: "atlas", state }));
   assert.ok(html.includes("Développement"), "la catégorie « Développement » doit rester visible et distincte");
   assert.ok(html.includes("/app/initiatives"), "le lien vers les programmes (/app/initiatives) doit être présent");
 });
@@ -97,9 +100,9 @@ test("TEST E — Développement (programmes) reste une catégorie distincte avec
 // indisponible) tel qu'enregistré, jamais une garantie instantanée
 // (mandat §23/§36, LOT 7 déjà appliqué à ce champ ailleurs).
 test("TEST F — Écosystème n'affiche jamais une fausse disponibilité temps réel pour les infrastructures", () => {
-  const intelligence = joalFixtureIntelligence();
+  const { intelligence, state } = joalFixtureIntelligence();
   assert.ok(intelligence.identity.infrastructures.length > 0, "ce test suppose au moins une infrastructure sur joal");
-  const html = renderToStaticMarkup(React.createElement(TerritoryDossierSections, { intelligence, tone: "atlas" }));
+  const html = renderToStaticMarkup(React.createElement(TerritoryDossierSections, { intelligence, tone: "atlas", state }));
   assert.ok(html.includes("Écosystème"), "la section Écosystème doit être présente");
   for (const infra of intelligence.identity.infrastructures) {
     assert.ok(html.includes(infra.name), `${infra.name} doit apparaître dans Écosystème`);
@@ -118,7 +121,7 @@ test("TEST G — Ce que nous ne savons pas affiche les connaissances manquantes 
   });
   assert.ok(territoryWithGap, "ce test suppose au moins un territoire avec une connaissance manquante formalisée");
   const intelligence = buildTerritoryIntelligence(state, territoryWithGap!.id)!;
-  const html = renderToStaticMarkup(React.createElement(TerritoryDossierSections, { intelligence, tone: "atlas" }));
+  const html = renderToStaticMarkup(React.createElement(TerritoryDossierSections, { intelligence, tone: "atlas", state }));
   assert.ok(html.includes("Ce que nous ne savons pas"), "le titre de section doit rester présent");
   for (const gap of intelligence.knowledgeGaps) {
     assert.ok(html.includes(gap.title), `le titre du knowledge gap "${gap.title}" doit apparaître`);

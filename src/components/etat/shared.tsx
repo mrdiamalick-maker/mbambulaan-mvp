@@ -169,7 +169,7 @@ export function TerritoryDetail({ territory, cases, onOpenSituation }: { territo
           (buildTerritoryIntelligence), habillage etat-* propre à cette
           fiche. */}
       <div className="border-t border-[var(--etat-line)] pt-5">
-        <TerritoryDossierSections intelligence={intelligence} tone="etat" />
+        <TerritoryDossierSections intelligence={intelligence} tone="etat" state={state} />
       </div>
 
       {/* XXL-R4 (§27-28, §38) — "le lien vers le nouvel Atlas/dossier doit

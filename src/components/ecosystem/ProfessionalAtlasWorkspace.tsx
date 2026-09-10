@@ -36,6 +36,7 @@ import { buildTerritoryIntelligence, currentTerritoryView, hasSufficientKnowledg
 import { TerritoryDossierSections } from "@/components/territories/TerritoryDossierSections";
 import { TerritoryIdentity } from "@/components/foundations";
 import { CoastlineTerritoryMap } from "@/components/territories/CoastlineTerritoryMap";
+import { MARITIME_ZONE_LABEL, MARITIME_ZONE_ORDER, resolveMaritimeZone, type MaritimeZone } from "@/domain/atlas-overview";
 
 // Lot 5 (mandat "Atlas & Territoire") §21 — la lens "Situation" devient
 // "Aujourd'hui" : elle continue de lire les Situations mais intègre
@@ -270,6 +271,13 @@ export function ProfessionalAtlasWorkspace() {
   const [speciesId, setSpeciesId] = useState("all");
   const [search, setSearch] = useState("");
   const [assistantEnabled, setAssistantEnabled] = useState(false);
+  // LOT V3.4 (mandat §10, "filtres avec un sens réel") — façade maritime :
+  // filtre uniquement les marqueurs affichés sur la carte, jamais la
+  // sélection en cours ni le poste de travail (le territoire déjà
+  // sélectionné reste visible dans le dossier même s'il sort du filtre) —
+  // resolveMaritimeZone (domain/atlas-overview.ts) est une catégorisation
+  // de présentation, pas un nouveau champ métier.
+  const [zoneFilter, setZoneFilter] = useState<MaritimeZone | "all">("all");
   if (!state) return null;
 
   const territory = state.territories.find((item) => item.id === selectedId) ?? state.territories[0];
@@ -369,6 +377,21 @@ export function ProfessionalAtlasWorkspace() {
     return parts.join(" · ");
   }
 
+  const mapTerritories = state.territories.filter((item) => zoneFilter === "all" || resolveMaritimeZone(item.id) === zoneFilter);
+
+  // LOT V3.4 (mandat §8, "marker hover... contextual tooltip") — courte
+  // délibérément (2 lignes) : le détail complet reste dans le panneau
+  // contextuel ci-contre (mapSummary ci-dessus), jamais dupliqué en une
+  // info-bulle à 8 lignes empilée sur la carte.
+  function tooltipLines(item: { id: string; name: string; activity: ProductState["territories"][number]["activity"] }): string[] {
+    // `state as ProductState` : même idiome que mapSummary ci-dessus —
+    // fonction déclarée (hoisted), TypeScript ne conserve pas le
+    // rétrécissement de `if (!state) return null` à travers une
+    // déclaration de fonction.
+    const openCount = (state as ProductState).situations.filter((situation) => situation.territoryId === item.id && situation.status !== "reglee").length;
+    return [item.name, `${attentionLabel[item.activity]} · ${openCount} situation(s) ouverte(s)`];
+  }
+
   return (
     <div className="space-y-6">
       <section className="overflow-hidden rounded-2xl bg-[#0b1a2a] text-white">
@@ -421,6 +444,30 @@ export function ProfessionalAtlasWorkspace() {
                   </select><ChevronDown size={14} />
                 </label>
               </div>
+              {/* LOT V3.4 (mandat §10) — façade maritime : filtre à sens
+                  réel (positionnement géographique nord/sud du littoral),
+                  jamais une construction de requête universelle — une
+                  seule dimension, comme Région/Activité ailleurs dans le
+                  Produit. */}
+              <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Filtrer par façade maritime">
+                <button
+                  onClick={() => setZoneFilter("all")}
+                  aria-pressed={zoneFilter === "all"}
+                  className={`rounded-full border px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wide transition ${zoneFilter === "all" ? "border-white/40 bg-white/[0.12] text-white" : "border-white/10 bg-white/[0.04] text-white/58 hover:text-white/80"}`}
+                >
+                  Tout le littoral
+                </button>
+                {MARITIME_ZONE_ORDER.map((zone) => (
+                  <button
+                    key={zone}
+                    onClick={() => setZoneFilter(zone)}
+                    aria-pressed={zoneFilter === zone}
+                    className={`rounded-full border px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wide transition ${zoneFilter === zone ? "border-white/40 bg-white/[0.12] text-white" : "border-white/10 bg-white/[0.04] text-white/58 hover:text-white/80"}`}
+                  >
+                    {MARITIME_ZONE_LABEL[zone]}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* XXL-R4 (§4, §6, §9) — la matière principale de l'Atlas Pro :
@@ -434,12 +481,13 @@ export function ProfessionalAtlasWorkspace() {
                 par marqueur (§8) — le détail dérivé ("Aujourd'hui à
                 [territoire]") vit dans le panneau contextuel ci-contre,
                 pas empilé sur la carte. */}
-            <div className="ops-map-canvas absolute inset-0 pt-20">
+            <div className="ops-map-canvas absolute inset-0 pt-28">
               <CoastlineTerritoryMap
-                territories={state.territories.map((item) => ({ id: item.id, name: item.name, activity: item.activity }))}
+                territories={mapTerritories.map((item) => ({ id: item.id, name: item.name, activity: item.activity }))}
                 selectedId={territory.id}
                 onSelect={setSelectedId}
                 colors={coastlineTone}
+                tooltipLines={tooltipLines}
               />
               <div className="pointer-events-none absolute bottom-5 left-5 z-20 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em] text-white/30"><Waves size={13} /> Océan Atlantique</div>
               {/* Légende "Niveau d'attention" — mêmes 3 catégories et
@@ -457,7 +505,7 @@ export function ProfessionalAtlasWorkspace() {
                   haut — une légende à top-5 se retrouve cachée dessous
                   (z-20 < z-30), seule sa dernière ligne dépassant. Même
                   ancrage top-24 que "Quais uniquement" avant elle. */}
-              <div className="pointer-events-none absolute right-5 top-24 z-20 hidden max-w-[180px] rounded-lg border border-white/10 bg-[#0b1a2a]/82 px-3 py-2.5 backdrop-blur sm:block">
+              <div className="pointer-events-none absolute right-5 top-32 z-20 hidden max-w-[180px] rounded-lg border border-white/10 bg-[#0b1a2a]/82 px-3 py-2.5 backdrop-blur sm:block">
                 <p className="text-[9px] font-bold uppercase tracking-[.14em] text-white/40">Niveau d’attention</p>
                 <div className="mt-2 space-y-1.5">
                   {(["critique", "vigilance", "stable"] as const).map((status) => (
@@ -468,7 +516,7 @@ export function ProfessionalAtlasWorkspace() {
                   ))}
                 </div>
               </div>
-              <div className="pointer-events-none absolute right-5 top-[13.5rem] z-20 hidden max-w-[200px] rounded-lg border border-white/10 bg-[#0b1a2a]/78 px-3 py-2 text-right text-[10px] font-semibold text-white/46 backdrop-blur sm:block">Quais uniquement · les objets métier s’ouvrent dans le poste de travail</div>
+              <div className="pointer-events-none absolute right-5 top-[15.5rem] z-20 hidden max-w-[200px] rounded-lg border border-white/10 bg-[#0b1a2a]/78 px-3 py-2 text-right text-[10px] font-semibold text-white/46 backdrop-blur sm:block">Quais uniquement · les objets métier s’ouvrent dans le poste de travail</div>
             </div>
           </div>
 
@@ -588,7 +636,7 @@ export function ProfessionalAtlasWorkspace() {
         <div className="flex items-center gap-2 text-[#1d4468]"><Sparkles size={17} /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Le territoire dans son ensemble</p></div>
         <h2 className="mt-2 text-xl font-semibold tracking-tight">{territory.name} au-delà des chiffres</h2>
         <div className="mt-5">
-          <TerritoryDossierSections intelligence={intelligence} tone="atlas" />
+          <TerritoryDossierSections intelligence={intelligence} tone="atlas" state={state} />
         </div>
       </section>
 

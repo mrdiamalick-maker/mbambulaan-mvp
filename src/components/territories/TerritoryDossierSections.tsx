@@ -18,6 +18,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
+  Anchor,
   ArrowRight,
   Compass,
   Footprints,
@@ -29,8 +30,10 @@ import {
   Target,
   UsersRound
 } from "lucide-react";
-import type { PartnerService, TrustLevel } from "@/domain/types";
+import type { PartnerService, ProductState, TrustLevel } from "@/domain/types";
 import { attributionLevelLabels, collectiveNeedStatusLabels, fieldMissionStatusLabels, findingStatusLabels, programOpportunityStatusLabels } from "@/domain/types";
+import { LANDING_TREND_SIMULATED_NOTICE, siteTypeLabel, territoryLandingTrend, territorySiteSummaries } from "@/domain/atlas-overview";
+import { TrendChart } from "@/components/private/TrendChart";
 
 // LOT 7 — libellés locaux (PartnerService n'exporte pas encore de
 // Record centralisé, même situation que signalCategoryLabel dans
@@ -109,9 +112,19 @@ function Section({ tone, icon: Icon, title, hint, empty, children }: { tone: Ton
   );
 }
 
-export function TerritoryDossierSections({ intelligence, tone }: { intelligence: TerritoryIntelligence; tone: Tone }) {
+// LOT V3.4 — `state` additif (les deux appelants réels, TerritoryDetail et
+// ProfessionalAtlasWorkspace, l'ont déjà en portée via useProduct) :
+// nécessaire pour les 2 nouvelles sections ci-dessous (profondeur des sites
+// réels, tendance des débarquements) qui agrègent directement des
+// enregistrements Vessel/FishingTrip/Landing — jamais dupliqué dans
+// `intelligence`, qui ne porte que identity.sites (la liste, pas
+// l'activité par site).
+export function TerritoryDossierSections({ intelligence, tone, state }: { intelligence: TerritoryIntelligence; tone: Tone; state: ProductState }) {
   const p = palette[tone];
   const sufficient = hasSufficientKnowledge(intelligence);
+  const siteSummaries = territorySiteSummaries(state, intelligence.territory.id);
+  const landingTrend = territoryLandingTrend(state, intelligence.territory.id);
+  const hasSimulatedTrendPoint = landingTrend.some((point) => point.simulated);
 
   // "AUJOURD'HUI À [TERRITOIRE]" (mandat §9) — 3 à 5 éléments dérivés,
   // jamais un widget décoratif de plus : un simple constat de ce qui
@@ -193,6 +206,31 @@ export function TerritoryDossierSections({ intelligence, tone }: { intelligence:
     );
   }
 
+  // LOT V3.4 — "Sites & points de débarquement" (mandat §5/§6/§13) : un
+  // ReactNode[] explicite, même convention que `ecosystemCards` ci-dessus,
+  // pour que le mécanisme d'état vide de `Section` (isEmptyArray) reste
+  // correct même quand deux natures de carte (site, tendance) coexistent.
+  const siteCards: ReactNode[] = siteSummaries.map((summary) => (
+    <div key={summary.site.id} className={`rounded-lg ${p.cardBorder} ${p.cardBg} p-3`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className={p.heading}>{summary.site.name}</p>
+        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${p.faint}`}>{siteTypeLabel[summary.site.type]}</span>
+      </div>
+      <p className={`mt-1.5 ${p.muted}`}>{summary.vesselCount} embarcation(s) rattachée(s) · {summary.activeTripCount} sortie(s) active(s)</p>
+      <p className={`mt-1 ${p.faint}`}>{summary.recentLandingCount > 0 ? `${summary.recentLandingCount} débarquement(s) documenté(s) · ${summary.recentLandedKg.toLocaleString("fr-FR")} kg au total` : "Aucun débarquement documenté pour le moment"}</p>
+      <p className={`mt-1 ${p.faint}`}>{summary.infrastructureCount > 0 ? `${summary.infrastructureCount} infrastructure(s) reliée(s)${summary.fragileInfrastructureCount > 0 ? `, dont ${summary.fragileInfrastructureCount} fragile(s)` : ""}` : "Aucune infrastructure reliée à ce site"}</p>
+    </div>
+  ));
+  if (landingTrend.length > 0) {
+    siteCards.push(
+      <div key="landing-trend" className={`rounded-lg ${p.cardBorder} ${p.cardBg} p-3`}>
+        <p className={`${p.faint} uppercase tracking-wide`}>Débarquements documentés par jour (kg)</p>
+        <div className="mt-2"><TrendChart data={landingTrend.map((point) => ({ label: point.label, value: point.landedKg }))} valueLabel="kg" /></div>
+        {hasSimulatedTrendPoint && <p className={`mt-2 flex items-start gap-1.5 ${p.faint}`}><HelpCircle size={12} className="mt-0.5 shrink-0" /> {LANDING_TREND_SIMULATED_NOTICE}</p>}
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className={`rounded-xl ${p.cardBorder} ${p.cardBg} p-4`}>
@@ -242,6 +280,18 @@ export function TerritoryDossierSections({ intelligence, tone }: { intelligence:
             jusqu'ici jamais montrés dans ce dossier partagé. */}
         <Section tone={tone} icon={UsersRound} title="Écosystème" hint="Acteurs et capacités du territoire, puis ce que le réseau rend mobilisable ailleurs — jamais une recommandation automatique, la décision de mobiliser reste humaine." empty="Écosystème documenté insuffisant sur ce territoire pour le moment — l'absence d'acteur ou de capacité enregistré ne signifie pas qu'aucun n'existe réellement.">
           {ecosystemCards}
+        </Section>
+
+        {/* LOT V3.4 (mandat §5/§6, "territory → landing site/quay →
+            operational picture") — les 3 sites RÉELS du territoire
+            (Site.type quai/marché/zone_peche), chacun avec son activité
+            propre agrégée directement sur Vessel/FishingTrip/Landing/
+            Infrastructure. Additif : ne remplace pas la profondeur déjà
+            calculée côté quai par ProfessionalAtlasWorkspace (poste de
+            travail complet, lenses/période), c'est ici un aperçu des 3
+            sites côte à côte plutôt qu'un seul approfondi. */}
+        <Section tone={tone} icon={Anchor} title="Sites & points de débarquement" hint="Les sites réels du territoire (quai, marché, zone de pêche) et leur activité documentée — jamais un score composite, seulement des décomptes directs." empty="Aucun site recensé sur ce territoire pour le moment.">
+          {siteCards}
         </Section>
 
         <Section tone={tone} icon={HelpCircle} title="Ce que nous ne savons pas" hint="Connaissances manquantes identifiées explicitement — signature du produit : ce qui manque compte autant que ce qui est su." empty="Aucune connaissance manquante formalisée sur ce territoire pour le moment.">

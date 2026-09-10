@@ -22,6 +22,7 @@ import {
 import type { Situation, Territory } from "@/domain/types";
 import type { VigilanceCase } from "@/domain/ministry/vigilance";
 import { AttentionItem, EditorialSection } from "@/components/foundations";
+import { MARITIME_ZONE_LABEL, MARITIME_ZONE_ORDER, resolveMaritimeZone, type MaritimeZone } from "@/domain/atlas-overview";
 
 // P2.DESIGN-1B (mandat CEO "Claude Design V2 → Real Product
 // Implementation", §9, "Atlas territorial") — reconstruction complète de
@@ -55,6 +56,10 @@ export default function TerritoiresPage() {
   const [cases, setCases] = useState<VigilanceCase[]>([]);
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [activityFilter, setActivityFilter] = useState<"all" | "stable" | "vigilance" | "critique">("all");
+  // LOT V3.4 (mandat §10) — façade maritime : filtre à sens réel
+  // (positionnement géographique nord/sud du littoral), catégorisation de
+  // présentation (domain/atlas-overview.ts), pas un nouveau champ métier.
+  const [zoneFilter, setZoneFilter] = useState<MaritimeZone | "all">("all");
   const [searchText, setSearchText] = useState("");
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);
   const [territoryDossierOpen, setTerritoryDossierOpen] = useState(false);
@@ -79,6 +84,7 @@ export default function TerritoiresPage() {
     .filter((item) =>
       (regionFilter === "all" || item.region === regionFilter) &&
       (activityFilter === "all" || item.activity === activityFilter) &&
+      (zoneFilter === "all" || resolveMaritimeZone(item.id) === zoneFilter) &&
       (searchNormalized === "" || item.name.toLowerCase().includes(searchNormalized) || item.region.toLowerCase().includes(searchNormalized))
     )
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -170,6 +176,19 @@ export default function TerritoiresPage() {
                 <option value="critique">Critique</option>
               </select>
             </label>
+            <label className="block">
+              <p className="etat-filter-label">Façade</p>
+              <select
+                value={zoneFilter}
+                onChange={(event) => setZoneFilter(event.target.value as MaritimeZone | "all")}
+                className="etat-filter-select"
+              >
+                <option value="all">Tout le littoral</option>
+                {MARITIME_ZONE_ORDER.map((zone) => (
+                  <option key={zone} value={zone}>{MARITIME_ZONE_LABEL[zone]}</option>
+                ))}
+              </select>
+            </label>
           </div>
         </div>
       </header>
@@ -231,6 +250,10 @@ export default function TerritoiresPage() {
             territories={filteredTerritories}
             selectedId={selectedTerritory?.id}
             onSelect={(id) => setSelectedTerritoryId(id)}
+            tooltipLines={(t) => {
+              const openCount = state.situations.filter((item) => item.territoryId === t.id && item.status !== "reglee").length;
+              return [t.name, `${statusTagLabel[t.activity]} · ${openCount} situation(s) ouverte(s)`];
+            }}
           />
         </div>
 

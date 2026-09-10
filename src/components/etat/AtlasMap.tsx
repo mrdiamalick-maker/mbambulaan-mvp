@@ -23,7 +23,7 @@
 // géométrie bakée, sans jamais dépendre de d3 pour ça.
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import {
   ATLAS_VIEWBOX,
   senegalPath,
@@ -68,6 +68,8 @@ const haloByActivity: Record<MapActivity, string> = {
 // (preserveAspectRatio="meet") continuent le même océan plutôt qu'un vide.
 export const atlasMapBackground = "linear-gradient(165deg, #14304A 0%, #061019 100%)";
 
+const activityLabel: Record<MapActivity, string> = { stable: "Stable", vigilance: "Vigilance", critique: "Critique" };
+
 /** Habillage cartographique commun à /app/etat (Brief national) et
  *  /app/etat/territoires (Atlas territorial) — mandat §1, "une signature
  *  cartographique par périmètre" (P2.DESIGN-1A) reste vraie : Public/Pro/
@@ -80,7 +82,8 @@ export function AtlasMap({
   showLegend = true,
   showScale = true,
   showAttribution = true,
-  zoomTo
+  zoomTo,
+  tooltipLines
 }: {
   territories: AtlasMapTerritory[];
   selectedId?: string;
@@ -98,8 +101,16 @@ export function AtlasMap({
    *  §10 "zoom" du prototype) — la géométrie bakée ne change pas, seul le
    *  viewBox affiché change. */
   zoomTo?: { latitude: number; longitude: number; radius?: number };
+  /** LOT V3.4 (mandat §8, "marker hover... contextual tooltip") — le
+   *  composant reste volontairement "bête" : le contenu de l'info-bulle
+   *  vient de l'appelant (texte déjà réel, jamais recalculé ici), AtlasMap
+   *  ne fait que le positionner près du marqueur survolé/focus. Par
+   *  défaut (aucun prop fourni) : nom + niveau d'activité, déjà réels. */
+  tooltipLines?: (territory: AtlasMapTerritory) => string[];
 }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const resolveTooltipLines = tooltipLines ?? ((t: AtlasMapTerritory) => [t.name, activityLabel[t.activity]]);
   const critiqueCount = territories.filter((t) => t.activity === "critique").length;
   const vigilanceCount = territories.filter((t) => t.activity === "vigilance").length;
   const stableCount = territories.filter((t) => t.activity === "stable").length;
@@ -149,23 +160,46 @@ export function AtlasMap({
       {territories.map((t) => {
         const [x, y] = projectLonLat(t.longitude, t.latitude);
         const isSelected = t.id === selectedId;
+        const isHovered = t.id === hoveredId;
         const showLabel = zoomTo ? true : t.activity !== "stable" || isSelected;
         const scale = zoomTo ? 0.36 : 1;
+        const lines = isHovered ? resolveTooltipLines(t) : [];
         return (
           <g
             key={t.id}
             transform={`translate(${x.toFixed(1)},${y.toFixed(1)})`}
             onClick={onSelect ? () => onSelect(t.id) : undefined}
-            style={{ cursor: onSelect ? "pointer" : undefined }}
+            onMouseEnter={() => setHoveredId(t.id)}
+            onMouseLeave={() => setHoveredId((current) => (current === t.id ? null : current))}
+            onFocus={() => setHoveredId(t.id)}
+            onBlur={() => setHoveredId((current) => (current === t.id ? null : current))}
+            onKeyDown={onSelect ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(t.id); } } : undefined}
+            style={{ cursor: onSelect ? "pointer" : undefined, outline: "none" }}
             role={onSelect ? "button" : undefined}
+            tabIndex={onSelect ? 0 : undefined}
             aria-label={onSelect ? `Ouvrir ${t.name}` : undefined}
           >
             {isSelected && !zoomTo && <circle r={13} fill="none" stroke={colorByActivity[t.activity]} strokeWidth="1.2" />}
+            {isHovered && !isSelected && <circle r={11} fill="none" stroke={colorByActivity[t.activity]} strokeWidth="1" strokeOpacity="0.6" />}
             <circle r={8 * scale} fill={haloByActivity[t.activity]} className={t.activity === "critique" ? "etat-map-pulse" : undefined} />
             <circle r={4.8 * scale} fill={dotByActivity[t.activity]} stroke="#08131F" strokeWidth={1.2 * scale} />
             {showLabel && (
               <text x={10 * scale} y={3.8 * scale} fontFamily="IBM Plex Sans" fontSize={12 * scale} fontWeight={600} fill="#FFFDF7" stroke="#08131F" strokeWidth={3.6 * scale} paintOrder="stroke">{t.name}</text>
             )}
+            {lines.length > 0 && (() => {
+              const boxWidth = Math.max(...lines.map((line) => line.length)) * 5.6 + 20;
+              const boxHeight = lines.length * 14 + 14;
+              const flip = x > 700;
+              const boxX = flip ? -boxWidth - 14 : 14;
+              return (
+                <g transform={`translate(${boxX},-${boxHeight + 6})`} className="pointer-events-none">
+                  <rect width={boxWidth} height={boxHeight} rx={4} fill="rgba(8,19,31,.92)" stroke="rgba(247,243,233,.28)" strokeWidth="0.7" />
+                  {lines.map((line, index) => (
+                    <text key={index} x={10} y={17 + index * 14} fontFamily="IBM Plex Sans" fontSize={index === 0 ? 11.5 : 10} fontWeight={index === 0 ? 700 : 500} fill={index === 0 ? "#FFFDF7" : "rgba(247,243,233,.78)"}>{line}</text>
+                  ))}
+                </g>
+              );
+            })()}
           </g>
         );
       })}

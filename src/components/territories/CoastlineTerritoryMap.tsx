@@ -22,6 +22,7 @@
 // /app/etat (Lots B/C/D), aucune régression visuelle.
 "use client";
 
+import { useState } from "react";
 import { coastlinePath, coastlineViewBox, territoryMapPositions } from "@/domain/territory-map-positions";
 
 export type MapActivity = "stable" | "vigilance" | "critique";
@@ -55,7 +56,8 @@ export function CoastlineTerritoryMap({
   colors,
   viewBox,
   landFillOpacity,
-  backgroundImageSrc
+  backgroundImageSrc,
+  tooltipLines
 }: {
   territories: MapTerritory[];
   selectedId?: string;
@@ -97,8 +99,14 @@ export function CoastlineTerritoryMap({
   // image précise — impact limité, l'asset est déjà un WebP pré-compressé
   // et purement décoratif (priority={false} côté appelant).
   backgroundImageSrc?: string;
+  // LOT V3.4 (mandat §8/§16) — même mécanisme d'info-bulle qu'AtlasMap
+  // (components/etat/AtlasMap.tsx) : contenu fourni par l'appelant, jamais
+  // recalculé ici ; prop additive, défaut undefined (aucune info-bulle),
+  // donc aucun changement pour Public/Pilotage qui ne le passent pas.
+  tooltipLines?: (territory: MapTerritory) => string[];
 }) {
   const tone: CoastlineTerritoryMapColors = { ...defaultColors, ...colors };
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const resolvedLandFillOpacity = landFillOpacity ?? 1;
   const effectiveViewBox = viewBox ?? coastlineViewBox;
   // Compensation de zoom (correctif CEO 2026-08-22, caméra Atlas) : les
@@ -135,9 +143,11 @@ export function CoastlineTerritoryMap({
         if (!position) return null;
         const [x, y] = position;
         const active = territory.id === selectedId;
+        const hovered = territory.id === hoveredId;
         const color = tone[territory.activity];
         const clickable = Boolean(onSelect);
         const activate = () => onSelect?.(territory.id);
+        const lines = hovered && tooltipLines ? tooltipLines(territory) : [];
         return (
           <g
             key={territory.id}
@@ -149,6 +159,10 @@ export function CoastlineTerritoryMap({
             aria-pressed={clickable ? active : undefined}
             onClick={clickable ? activate : undefined}
             onKeyDown={clickable ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); activate(); } } : undefined}
+            onMouseEnter={() => setHoveredId(territory.id)}
+            onMouseLeave={() => setHoveredId((current) => (current === territory.id ? null : current))}
+            onFocus={() => setHoveredId(territory.id)}
+            onBlur={() => setHoveredId((current) => (current === territory.id ? null : current))}
           >
             {/* Zone de clic généreuse et invisible — même raison que
                 PublicAtlasWorkspace : le marqueur visuel est trop petit
@@ -161,10 +175,25 @@ export function CoastlineTerritoryMap({
               </circle>
             )}
             {active && <circle r={scale(16)} fill="none" stroke={color} strokeOpacity="0.35" strokeWidth={scale(3)} className="pointer-events-none" />}
+            {hovered && !active && <circle r={scale(13)} fill="none" stroke={color} strokeOpacity="0.5" strokeWidth={scale(2)} className="pointer-events-none" />}
             <circle r={scale(active ? 10 : territory.activity === "stable" ? 6 : 8)} fill={color} stroke="#fff" strokeWidth={scale(active ? 3 : 2)} className={clickable ? "pointer-events-none transition group-hover:opacity-90" : "pointer-events-none"} />
             {territory.activity !== "stable" && (
               <text x={scale(14)} y={scale(5)} fontSize={scale(active ? 20 : 17)} fontWeight={active ? 700 : 600} fill={color} style={{ pointerEvents: "none" }}>{territory.name}</text>
             )}
+            {lines.length > 0 && (() => {
+              const boxWidth = Math.max(...lines.map((line) => line.length)) * scale(6) + scale(20);
+              const boxHeight = lines.length * scale(15) + scale(14);
+              const flip = x > nationalWidth * 0.72;
+              const boxX = flip ? -boxWidth - scale(16) : scale(16);
+              return (
+                <g transform={`translate(${boxX},-${boxHeight + scale(8)})`} className="pointer-events-none">
+                  <rect width={boxWidth} height={boxHeight} rx={scale(4)} fill="rgba(8,19,31,.92)" stroke="rgba(247,243,233,.28)" strokeWidth={scale(0.8)} />
+                  {lines.map((line, index) => (
+                    <text key={index} x={scale(10)} y={scale(18 + index * 15)} fontSize={scale(index === 0 ? 12.5 : 11)} fontWeight={index === 0 ? 700 : 500} fill={index === 0 ? "#FFFDF7" : "rgba(247,243,233,.78)"}>{line}</text>
+                  ))}
+                </g>
+              );
+            })()}
           </g>
         );
       })}
