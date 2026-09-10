@@ -11,6 +11,7 @@ import {
   Globe2,
   Handshake,
   Home,
+  Inbox,
   Leaf,
   LayoutGrid,
   MapPin,
@@ -86,6 +87,13 @@ const coordinationGroups: PrivateNavGroup[] = [
     label: "Espaces métier",
     items: [
       { href: "/app/situations", module: "operations", label: "Situations", icon: ClipboardList, roles: ["operateur", "administrateur", "coordinateur"] },
+      // Flux entrant (LOT V3.3) — même garde de rôle que l'ancien onglet
+      // "Messages entrants" de CoordinationWorkspace.tsx (canQualifyIntake
+      // = canRole(role, "convert_message_to_signal")), jamais un module
+      // d'entitlement commercial : administrateur/coordinateur/operateur
+      // sont les 3 seuls rôles qui portent convert_message_to_signal ET
+      // dismiss_incoming_message (server/permissions.ts).
+      { href: "/app/flux", label: "Flux entrant", icon: Inbox, roles: ["administrateur", "operateur", "coordinateur"] },
       { href: "/app/atlas", module: "territory_intelligence", label: "Territoires", icon: Globe2, roles: [] },
       { href: "/app/initiatives", label: "Programmes", icon: Banknote, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "partenaire"] },
       { href: "/app/organisation", label: "Réseau", icon: Building2, roles: ["administrateur", "gestionnaire_organisation", "coordinateur", "partenaire"] }

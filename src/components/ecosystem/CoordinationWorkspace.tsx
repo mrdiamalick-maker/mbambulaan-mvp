@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { canRole, RELAY_ROLES } from "@/server/permissions";
+import { resolveTerritoryFromHint } from "@/domain/incoming-message";
 import { IntelligenceFeed } from "@/components/ecosystem/IntelligenceFeed";
 import { computeIntelligenceFeed } from "@/domain/intelligence-feed";
 import { CommandButton } from "@/components/ui/CommandButton";
@@ -884,12 +885,10 @@ function IncomingMessageThread({
   // coordinateur choisit l'un ou l'autre, jamais les deux à la fois sur
   // la même remontée.
   const [mode, setMode] = useState<"closed" | "qualify" | "dismiss">("closed");
-  const [territoryId, setTerritoryId] = useState(() => {
-    const needle = (message.territoryHint ?? "").toLowerCase().trim();
-    if (!needle) return "";
-    const matches = state.territories.filter((item) => item.name.toLowerCase().includes(needle) || needle.includes(item.name.toLowerCase()));
-    return matches.length === 1 ? matches[0].id : "";
-  });
+  // resolveTerritoryFromHint (LOT V3.3, domain/incoming-message.ts) —
+  // même heuristique extraite ici pour être partagée avec le nouveau
+  // module Flux (src/components/flux/) plutôt que dupliquée une 2e fois.
+  const [territoryId, setTerritoryId] = useState(() => resolveTerritoryFromHint(state, message.territoryHint)?.id ?? "");
   const [category, setCategory] = useState<Signal["category"]>("production");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState(message.body);

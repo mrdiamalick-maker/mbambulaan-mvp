@@ -29,9 +29,12 @@ test("TEST 1 — resolvePrivateNavGroups reprend exactement les routes/rôles/mo
     assert.equal(groups.length, 1);
     assert.equal(groups[0].items.length, 6);
   }
-  // Coordination : un opérateur sans aucun module d'entitlement ne voit que "Aujourd'hui" (roles:[] et sans `module`) — jamais Coordination/Opérations (module-gated).
+  // Coordination : un opérateur sans aucun module d'entitlement ne voit que
+  // "Aujourd'hui" et "Flux entrant" (LOT V3.3 — role-gated, jamais un
+  // module d'entitlement commercial, même discipline que "Aujourd'hui") —
+  // jamais Coordination/Opérations (module-gated).
   const operateurSansModule = resolvePrivateNavGroups("coordination", "operateur", []);
-  assert.deepEqual(operateurSansModule.flatMap((g) => g.items.map((i) => i.href)), ["/app/travail"]);
+  assert.deepEqual(operateurSansModule.flatMap((g) => g.items.map((i) => i.href)), ["/app/travail", "/app/flux"]);
   // Un partenaire garde bien accès à "Réseau" (rôle explicitement listé), jamais à "Opérations" (rôle absent de la liste de cet item).
   const partenaire = resolvePrivateNavGroups("coordination", "partenaire", []);
   const hrefs = partenaire.flatMap((g) => g.items.map((i) => i.href));
