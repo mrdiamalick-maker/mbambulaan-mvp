@@ -57,31 +57,35 @@ export function FluxExplorer({ state, role }: { state: ProductState; role: Role 
     { key: "ecarte", label: "Écarté", value: stats.ecarte, def: "Écarté avec motif — consultable, jamais supprimé.", color: "rgba(11,26,42,.4)" }
   ];
 
+  // Vue d'ensemble (en-tête + bascule File d'entrée/Convergence +
+  // paliers/canal) — masquée sous lg quand un élément est ouvert : même
+  // correctif que SituationsExplorer (LOT V3.2, trouvé en QA visuelle
+  // réelle à 390px : l'aperçu complet restait affiché au-dessus du
+  // panneau de détail ouvert) appliqué ici à TOUTE la vue d'ensemble
+  // (l'en-tête doctrinal et la bascule d'aire compris — la première
+  // tentative de ce correctif dans ce fichier n'en masquait que la moitié,
+  // corrigé en QA visuelle réelle avant même de le pousser).
   return (
     <div className="shadcn-scope space-y-6 bg-background p-5 pb-16 lg:p-8">
-      <header className="max-w-3xl">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Flux entrant</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-[32px]">L’information reçue n’est pas encore de la connaissance</h1>
-        <p className="mt-2.5 text-sm leading-6 text-muted-foreground">Tout ce qui arrive dans Mbàmbulaan passe ici avant d’exister ailleurs. Rien n’apparaît dans un tableau de bord, une situation ou un résultat sans avoir été qualifié — ou explicitement écarté, avec un motif.</p>
-      </header>
+      <div className={selectedId ? "hidden lg:block" : undefined}>
+        <div className="space-y-6">
+          <header className="max-w-3xl">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Flux entrant</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight md:text-[32px]">L’information reçue n’est pas encore de la connaissance</h1>
+            <p className="mt-2.5 text-sm leading-6 text-muted-foreground">Tout ce qui arrive dans Mbàmbulaan passe ici avant d’exister ailleurs. Rien n’apparaît dans un tableau de bord, une situation ou un résultat sans avoir été qualifié — ou explicitement écarté, avec un motif.</p>
+          </header>
 
-      <SegmentedControl
-        aria-label="Zone du module"
-        value={area}
-        onChange={setArea}
-        options={[
-          { value: "file", label: "File d’entrée" },
-          { value: "convergence", label: "Convergence" }
-        ]}
-      />
+          <SegmentedControl
+            aria-label="Zone du module"
+            value={area}
+            onChange={setArea}
+            options={[
+              { value: "file", label: "File d’entrée" },
+              { value: "convergence", label: "Convergence" }
+            ]}
+          />
 
-      {area === "file" ? (
-        <>
-          {/* Vue d'ensemble (paliers/canal) — masquée sous lg quand un
-              élément est ouvert : même correctif que SituationsExplorer
-              (LOT V3.2, trouvé en QA visuelle réelle à 390px) appliqué
-              directement ici, sans attendre de le redécouvrir. */}
-          <div className={selectedId ? "hidden lg:block" : undefined}>
+          {area === "file" && (
             <div className="space-y-6">
               <div className="grid gap-0 overflow-hidden rounded-lg border sm:grid-cols-4">
                 {stageTiles.map((tile) => (
@@ -109,10 +113,13 @@ export function FluxExplorer({ state, role }: { state: ProductState; role: Role 
                 />
               </div>
             </div>
-          </div>
+          )}
+        </div>
+      </div>
 
-          <div className="grid gap-0 overflow-hidden rounded-lg border lg:grid-cols-[400px_1fr]">
-            <div className={`min-w-0 divide-y border-b lg:border-b-0 lg:border-r ${selectedId ? "hidden lg:block" : ""}`}>
+      {area === "file" ? (
+        <div className="grid gap-0 overflow-hidden rounded-lg border lg:grid-cols-[400px_1fr]">
+          <div className={`min-w-0 divide-y border-b lg:border-b-0 lg:border-r ${selectedId ? "hidden lg:block" : ""}`}>
               <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-2.5">
                 <span className="flex-1 text-[11.5px] text-muted-foreground">{filtered.length} élément{filtered.length > 1 ? "s" : ""} {stage === "toutes" ? "au total" : "dans ce palier"}</span>
                 <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70">Plus ancien en premier</span>
@@ -133,6 +140,13 @@ export function FluxExplorer({ state, role }: { state: ProductState; role: Role 
                       <div className="flex items-center gap-2 text-[10.5px]">
                         <span className="font-semibold uppercase tracking-wide text-primary">{meta.label}</span>
                         <span className="flex-1" />
+                        {/* Statut réel (mandat §2, "qu'a-t-on fait de cet
+                            élément ?") — un élément converti/écarté reste
+                            visible dans la liste (comportement déjà établi,
+                            IncomingMessageThread) mais doit le signaler au
+                            premier coup d'œil, pas seulement une fois ouvert. */}
+                        {item.status === "converti" && <span className="font-medium" style={{ color: "#4E7B5A" }}>✓ Converti</span>}
+                        {item.status === "ecarte" && <span className="font-medium text-muted-foreground">Écarté</span>}
                         <span className="font-mono text-muted-foreground">{messageAgeLabel(item, referenceAtMs)}</span>
                       </div>
                       <p className="mt-1.5 line-clamp-2 text-sm font-medium leading-5">{item.body}</p>
@@ -154,7 +168,6 @@ export function FluxExplorer({ state, role }: { state: ProductState; role: Role 
               {active ? <FluxDetailPanel state={state} message={active} /> : <p className="text-sm text-muted-foreground">Sélectionnez un élément pour en voir le détail.</p>}
             </div>
           </div>
-        </>
       ) : (
         <FindingConvergenceView state={state} />
       )}
