@@ -37,6 +37,50 @@ export const glyphFillColor: Record<GlyphTag, string> = { stable: "rgba(29,68,10
 // dupliqué ici pour ne pas rouvrir ce fichier déjà validé).
 export const glyphFillColorStrong: Record<GlyphTag, string> = { stable: "rgba(29,68,104,.08)", vigilance: "rgba(198,138,44,.14)", critique: "rgba(182,82,47,.15)" };
 
+// situationStatusLabels/situationStatusVariant (LOT V3.2) — consolidés ici
+// depuis 2 copies identiques (src/components/situations/SituationRow.tsx
+// et SituationRoom.tsx, avant leur remplacement par le nouveau module
+// d'ensemble) : un seul vocabulaire, comme le reste de ce fichier.
+export const situationStatusLabels: Record<Situation["status"], string> = {
+  recue: "Signal reçu",
+  qualification: "En qualification",
+  priorisee: "Priorisée",
+  coordination: "Coordination engagée",
+  intervention: "Intervention en cours",
+  attente: "En attente",
+  resultat: "Résultat enregistré",
+  reglee: "Réglée"
+};
+
+export const situationStatusVariant: Record<Situation["status"], "marine" | "amber" | "terracotta" | "success"> = {
+  recue: "marine",
+  qualification: "marine",
+  priorisee: "amber",
+  coordination: "amber",
+  intervention: "amber",
+  attente: "terracotta",
+  resultat: "success",
+  reglee: "success"
+};
+
+// situationStageLabel (LOT V3.2) — simplification à 4 paliers du cycle
+// réel à 8 statuts (Situation["status"]), même esprit que
+// src/app/app/etat/arbitrages/page.tsx::stageProgressDots ("chaque point
+// représente 2 étapes réelles, jamais une progression inventée
+// indépendamment de Situation.status") : reprend le même regroupement de
+// référence (Claude Design V3 STAGE_LAB) sans en changer la source
+// réelle.
+export const situationStageLabel: Record<Situation["status"], string> = {
+  recue: "Signal reçu",
+  qualification: "En instruction",
+  priorisee: "En instruction",
+  coordination: "Qualifiée",
+  intervention: "Qualifiée",
+  attente: "Qualifiée",
+  resultat: "Qualifiée",
+  reglee: "Close avec preuve"
+};
+
 export const trustLabels: Record<TrustLevel, string> = {
   declaree: "Déclarée",
   observee: "Observée",
