@@ -336,8 +336,12 @@ test("TEST N — Demo World cohérent : surfaces existantes présentes, origines
   assert.equal(trace.programOpportunity, undefined);
   assert.equal(trace.serviceRequests.length, 0);
 
-  const pageSource = readFileSync(fileURLToPath(new URL("../src/app/app/(coordination)/initiatives/page.tsx", import.meta.url)), "utf8");
-  assert.ok(pageSource.includes("Pourquoi ce programme existe"));
-  assert.ok(pageSource.includes("update_initiative_status"));
-  assert.ok(pageSource.includes("traceInitiativeOrigin"));
+  // LOT V3.5 ("Programme Portfolio & Cockpit") — ce contenu vit désormais
+  // dans ProgrammeCockpit.tsx (composant partagé État/Coordination),
+  // extrait de l'ancienne page /app/initiatives (mandat §21, "ne pas
+  // reconstruire" — même contenu réel, réorganisé en onglets).
+  const cockpitSource = readFileSync(fileURLToPath(new URL("../src/components/programmes/ProgrammeCockpit.tsx", import.meta.url)), "utf8");
+  assert.ok(cockpitSource.includes("Pourquoi ce programme existe"));
+  assert.ok(cockpitSource.includes("update_initiative_status"));
+  assert.ok(cockpitSource.includes("traceInitiativeOrigin"));
 });

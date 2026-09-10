@@ -16,7 +16,11 @@ import { findingsReferencedBy, resolveFindings, resolveSourceRefDisplay } from "
 // esprit que le test de migration SQL de data-integrity.test.ts (lecture
 // directe du fichier source).
 test("TEST A — l'ancien algorithme « ≥ 2 demandes similaires → Programme » n'existe plus dans le code de la page Programmes", () => {
-  const pageSource = readFileSync(new URL("../src/app/app/(coordination)/initiatives/page.tsx", import.meta.url), "utf8");
+  // LOT V3.5 — le contenu réel de l'ancienne page.tsx vit désormais dans
+  // InitiativesWorkspace.tsx (components/programmes/), extrait pour être
+  // partagé avec /app/initiatives/[id] (mandat §21, "ne pas
+  // reconstruire") ; page.tsx n'est plus qu'un habillage Suspense.
+  const pageSource = readFileSync(new URL("../src/components/programmes/InitiativesWorkspace.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(pageSource, /GROUP_THRESHOLD/, "le seuil de regroupement legacy ne doit plus exister");
   assert.doesNotMatch(pageSource, /byIntent/i, "aucun regroupement de ServiceRequest par intention ne doit être reconstruit côté page");
   assert.match(pageSource, /state\.collectiveNeeds/, "la page doit lire directement state.collectiveNeeds (le Core reste seul responsable)");

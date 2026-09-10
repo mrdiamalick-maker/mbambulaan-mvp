@@ -70,10 +70,13 @@ test("TEST C — CollectiveNeed, ProgramOpportunity et Initiative restent des ob
 // appliquée, revérifiée après R5).
 test("TEST D — le dossier Programme distingue Résultat, Changement et Impact", () => {
   // Vérification structurelle directement sur le fichier source plutôt
-  // qu'un rendu complet (InitiativeCard exige un contexte ProductProvider
-  // que ce test n'a pas besoin de reconstruire) : les trois libellés
-  // doivent tous être présents, jamais fusionnés en une seule section.
-  const sourcePath = fileURLToPath(new URL("../src/app/app/(coordination)/initiatives/page.tsx", import.meta.url));
+  // qu'un rendu complet (ProgrammeCockpit exige un contexte
+  // ProductProvider que ce test n'a pas besoin de reconstruire) : les
+  // trois libellés doivent tous être présents, jamais fusionnés en une
+  // seule section. LOT V3.5 — contenu déplacé de l'ancienne InitiativeCard
+  // (page.tsx) vers ProgrammeCockpit.tsx (composant partagé État/
+  // Coordination), même contenu réel.
+  const sourcePath = fileURLToPath(new URL("../src/components/programmes/ProgrammeCockpit.tsx", import.meta.url));
   const source = readFileSync(sourcePath, "utf-8");
   assert.ok(source.includes("Ce qui a été réalisé"));
   assert.ok(source.includes("Ce qui a changé"));
@@ -137,7 +140,10 @@ test("TEST I — les dossiers Programmes construisent leurs liens Atlas à parti
   const sources = [
     "../src/components/coordination/CollectiveNeedDossier.tsx",
     "../src/components/coordination/ProgramOpportunityDossier.tsx",
-    "../src/app/app/(coordination)/initiatives/page.tsx"
+    // LOT V3.5 — ce lien vit désormais dans InitiativesWorkspace.tsx
+    // (TerritoryTags) et ProgrammeCockpit.tsx (hero), extraits de
+    // l'ancienne page.tsx.
+    "../src/components/programmes/InitiativesWorkspace.tsx"
   ].map(readSource);
   for (const source of sources) {
     assert.ok(source.includes("/app/atlas?territoire=${territory.id}"), "le lien Atlas doit être construit depuis territory.id, pas un texte figé");

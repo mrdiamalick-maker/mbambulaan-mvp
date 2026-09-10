@@ -106,23 +106,19 @@ test("TEST B — SituationHero rend le territoire cliquable vers /app/atlas?terr
   assert.ok(htmlNoTerritory.includes("Non défini"), "l'absence de territoire doit rester honnêtement affichée");
 });
 
-// TEST C — progressive disclosure Programmes ne supprime aucun objet
-// (mandat §7.C/§4) : la disclosure ne fait que retarder l'affichage —
-// aucun état dérivé (filteredInitiatives) n'est recalculé ou tronqué en
-// amont, seul le rendu par défaut est capé ; le fallback d'impression
-// continue de rendre l'intégralité de state.initiatives, non filtré.
-test("TEST C — la disclosure progressive de Programmes cape uniquement l'affichage, jamais les données", () => {
-  const source = readSource("../src/app/app/(coordination)/initiatives/page.tsx");
-  assert.ok(source.includes("const PROGRAMS_VISIBLE_COUNT = 3"), "le seuil d'affichage par défaut doit rester 3 (même teneur que le reste du produit)");
-  // Le slice conditionnel doit porter sur filteredInitiatives (l'état déjà
-  // filtré, jamais un second calcul) — programsExpanded ? la liste
-  // complète : les 3 premiers.
-  assert.ok(source.includes("programsExpanded ? filteredInitiatives : filteredInitiatives.slice(0, PROGRAMS_VISIBLE_COUNT)"), "le repli doit s'appuyer sur filteredInitiatives, jamais une liste recalculée ou pré-tronquée");
-  // Le fallback d'impression (print:block) doit rester intact : tout
-  // state.initiatives, sans filtre ni cap — la disclosure est une
-  // affaire d'écran, jamais du document imprimé.
-  assert.ok(source.includes('<div className="hidden space-y-10 print:block">'), "le bloc d'impression doit rester présent et inchangé");
-  assert.ok(/print:block">\s*\{state\.initiatives\.map/.test(source), "le bloc d'impression doit continuer à rendre TOUT state.initiatives, sans filtre ni cap");
+// TEST C — LOT V3.5 ("Programme Portfolio & Cockpit") a remplacé la pile
+// d'InitiativeCard entièrement dépliées (nécessitant un seuil "3 + Voir
+// tout" pour rester lisible) par un registre maître-détail compact
+// (ProgrammesExplorer, une ligne par programme) — plus assez volumineux
+// par ligne pour justifier une disclosure progressive séparée (mandat
+// §16, "the programme list still matters... do not let the scatter/chart
+// make normal navigation difficult"). Ce test vérifie que le nouveau
+// registre reste bien non tronqué (aucun `.slice` artificiel sur la liste
+// filtrée) plutôt que de revérifier un mécanisme volontairement retiré.
+test("TEST C — le registre de programmes (ProgrammesExplorer) n'est jamais tronqué artificiellement", () => {
+  const source = readSource("../src/components/programmes/ProgrammesExplorer.tsx");
+  assert.ok(!/filteredRows\.slice\(/.test(source), "le registre doit afficher l'intégralité de filteredRows, jamais une liste pré-tronquée");
+  assert.ok(source.includes("filteredRows.map((row)"), "chaque programme filtré doit être rendu comme une ligne du registre");
 });
 
 // TEST D — Top 3 Workday inchangé (mandat §7.D) : buildWorkdayView reste
