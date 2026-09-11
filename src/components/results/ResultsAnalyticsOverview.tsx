@@ -47,9 +47,14 @@ const periodOptions: { value: Period; label: string; months: number }[] = [
 ];
 
 function Tile({ icon, dot, label, value, caption }: { icon: React.ReactNode; dot: string; label: string; value: number | string; caption: string }) {
+  // min-w-0 + libellé en flux de texte normal, pas un enfant flex figé
+  // (trouvé en QA visuelle à 768px, grille à 4 colonnes : "APPRENTISSAGE"
+  // en tracking-widest forçait sa tuile plus large que sa colonne, la
+  // grille ne pouvant alors plus rétrécir sous ce contenu — même correctif
+  // que les deux lignes `grid gap-6 lg:grid-cols-2` plus bas).
   return (
-    <div className="rounded-lg border bg-background p-4">
-      <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground"><span style={{ color: dot }}>●</span>{label}</p>
+    <div className="min-w-0 rounded-lg border bg-background p-4">
+      <p className="break-words text-[10px] font-bold uppercase tracking-widest text-muted-foreground"><span style={{ color: dot }}>●</span> {label}</p>
       <p className="mt-2 flex items-center gap-2 text-2xl font-bold">{icon}{value}</p>
       <p className="mt-1.5 text-[11px] leading-4 text-muted-foreground">{caption}</p>
     </div>
@@ -110,7 +115,7 @@ export function ResultsAnalyticsOverview({ state }: { state: ProductState }) {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div>
+        <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Résultats documentés par territoire</p>
           {territorialDistribution.length > 0 ? (
             <BarMetricChart
@@ -125,7 +130,7 @@ export function ResultsAnalyticsOverview({ state }: { state: ProductState }) {
           <p className="mt-2 text-[11px] leading-4 text-muted-foreground">Cliquer une barre filtre la chaîne de preuve ci-dessus sur ce territoire.</p>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Évolution de deux indicateurs suivis</p>
             <div className="flex gap-1 rounded-md border bg-muted p-0.5">
@@ -147,8 +152,8 @@ export function ResultsAnalyticsOverview({ state }: { state: ProductState }) {
           <div className="mt-3 divide-y rounded-lg border">
             {programmeDistribution.map((row) => (
               <div key={row.initiativeId}>
-                <button onClick={() => setExpandedInitiativeId((current) => (current === row.initiativeId ? null : row.initiativeId))} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/50">
-                  <span className="min-w-0 truncate text-sm font-semibold">{row.title}</span>
+                <button onClick={() => setExpandedInitiativeId((current) => (current === row.initiativeId ? null : row.initiativeId))} className="flex w-full flex-col items-start gap-1 px-4 py-3 text-left hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <span className="min-w-0 max-w-full truncate text-sm font-semibold">{row.title}</span>
                   <span className="flex shrink-0 gap-3 text-xs text-muted-foreground">
                     <span>{row.results} résultat(s)</span><span>{row.outcomes} changement(s)</span><span>{row.impacts} impact(s)</span>
                   </span>
@@ -173,7 +178,7 @@ export function ResultsAnalyticsOverview({ state }: { state: ProductState }) {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div>
+        <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Maturité de la preuve</p>
           {evidenceMaturity.length === 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">Aucune preuve canonique à classer pour le moment.</p>
@@ -186,7 +191,7 @@ export function ResultsAnalyticsOverview({ state }: { state: ProductState }) {
           )}
         </div>
 
-        <div>
+        <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ce qui reste non prouvé</p>
           <ul className="mt-3 space-y-1.5 text-xs leading-5 text-muted-foreground">
             <li>· {knowledgeGaps.situationsWithoutCanonicalResult} situation(s) réglée(s) sans résultat canonique enregistré.</li>

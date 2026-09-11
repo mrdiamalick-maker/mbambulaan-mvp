@@ -132,8 +132,14 @@ export function PilotageWorkspace() {
         <div className="mt-3 flex flex-col gap-4 border-b pb-4 md:flex-row md:items-end md:justify-between">
           <div><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Périmètre d’analyse</p><p className="mt-1 text-sm text-muted-foreground">La carte, les indicateurs et les décisions utilisent les mêmes filtres.</p></div>
           <div className="grid gap-2 sm:grid-cols-2">
-            <label className="text-xs font-semibold">Territoire<select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 block min-w-52 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"><option value="all">Vue nationale</option>{state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className="text-xs font-semibold">Période<select value={period} onChange={(event) => setPeriod(event.target.value)} className="mt-1.5 block min-w-44 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"><option value="today">Aujourd’hui</option><option value="7d">7 derniers jours</option><option value="30d">30 derniers jours</option></select></label>
+            {/* min-w-52/min-w-44 → w-full (QA visuelle V3.6, non lié au
+                contenu de ce lot mais trouvé sur cette même page à
+                768px) : chaque select est déjà dans sa propre colonne de
+                grille (sm:grid-cols-2) ; un min-width fixe pouvait forcer
+                les deux colonnes à dépasser la largeur disponible plutôt
+                que de remplir leur colonne. */}
+            <label className="text-xs font-semibold">Territoire<select value={territoryId} onChange={(event) => setTerritoryId(event.target.value)} className="mt-1.5 block w-full rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"><option value="all">Vue nationale</option>{state.territories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label className="text-xs font-semibold">Période<select value={period} onChange={(event) => setPeriod(event.target.value)} className="mt-1.5 block w-full rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"><option value="today">Aujourd’hui</option><option value="7d">7 derniers jours</option><option value="30d">30 derniers jours</option></select></label>
           </div>
         </div>
 
