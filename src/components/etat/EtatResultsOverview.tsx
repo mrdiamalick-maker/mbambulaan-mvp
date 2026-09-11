@@ -48,8 +48,20 @@ export function EtatResultsOverview({ state, onPrint }: { state: ProductState; o
     <section className="px-5 pb-2 pt-8 print:px-0 lg:px-8 lg:pt-10">
       <div className="flex flex-col gap-6 border-b border-[var(--etat-line)] pb-8 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
-          <p className="etat-eyebrow">Résultats · redevabilité</p>
-          <h1 className="etat-display etat-h1 etat-h1--registry mt-4 max-w-[820px]">Qu’avons-nous décidé, fait, obtenu, appris&nbsp;?</h1>
+          <p className="etat-eyebrow">Résultats et redevabilité</p>
+          {/* 32px Newsreader littéral (valeur exacte de l'écran `isRes` de
+              la maquette) plutôt que l'échelle "registry" (clamp) — LOT
+              V3.20 ("Résultats — copie conforme"). Le reste de la page
+              (registre, méthode, chaîne décision → résultat) reste
+              inchangé : ResultsAnalyticsOverview.tsx est un composant
+              PARTAGÉ avec la Coordination (Chapitre 4 de
+              PilotageWorkspace, mandat §22/§23 du LOT V3.6) — le
+              reconstruire en entier ferait courir un risque de
+              régression sur une 2e surface non revue dans ce lot, pour
+              un contenu déjà substantiellement fidèle à l'esprit de la
+              maquette (entonnoir de preuve, comparaison territoriale,
+              tendance, "ce que ce graphique ne dit pas"). */}
+          <h1 className="mt-3 max-w-[34ch] font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 32, lineHeight: 1.15, color: "var(--etat-navy)" }}>Qu’avons-nous décidé, fait, obtenu, appris&nbsp;?</h1>
           <p className="mt-4 max-w-[760px] text-[14px] leading-6 text-[var(--etat-stone-600)]">{state.decisions.length} décisions enregistrées, {documentedDecisions.length} résultats d’engagement renseignés, {coveredTerritories} territoires concernés — sans confondre décision prise, changement observé et impact non démontré.</p>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
