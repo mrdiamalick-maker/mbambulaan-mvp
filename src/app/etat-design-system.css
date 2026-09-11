@@ -111,7 +111,11 @@
     font-family: var(--etat-font-body);
     font-size: 10px;
     font-weight: 600;
-    letter-spacing: .16em;
+    /* .18em (valeur exacte de la maquette Claude Design, LOT V3.9 "copie
+       conforme") — .16em avant ce lot, écart mineur sur une classe
+       partagée par 12 fichiers, corrigé une fois ici plutôt que
+       laissé diverger page par page. */
+    letter-spacing: .18em;
     text-transform: uppercase;
     color: var(--etat-terracotta);
   }

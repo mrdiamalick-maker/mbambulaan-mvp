@@ -81,5 +81,5 @@ test("TEST 4 — ArbitragesPage n'expose toujours que des actions réelles, jama
   // réels (priorité/étape/ancienneté), jamais d'une conséquence narrative
   // inventée.
   assert.ok(source.includes("Si rien n’est décidé"));
-  assert.ok(source.includes("lg:grid-cols-3"));
+  assert.ok(source.includes("sm:grid-cols-3"));
 });
