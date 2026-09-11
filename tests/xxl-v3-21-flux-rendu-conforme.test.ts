@@ -29,17 +29,27 @@ test("TEST 1 — l'en-tête de Flux entrant reprend le texte littéral exact de 
   assert.ok(source.includes("Rien n’apparaît dans un tableau de bord, une situation ou un résultat sans avoir été qualifié"));
 });
 
-// TEST 2 — les 4 paliers (tuiles) reprennent les libellés et définitions
-// littéraux de la maquette, jamais reformulés.
-test("TEST 2 — les 4 tuiles de palier reprennent les libellés et définitions littéraux de la maquette", () => {
+// TEST 2 (corrigé au LOT V3.22, "copie conforme littérale") — la
+// maquette montre 4 tuiles ("Reçu"/"À qualifier"/"Qualifié"/"Écarté"),
+// mais "Reçu" et "À qualifier" recouvrent la MÊME valeur réelle
+// "nouveau" du domaine (IncomingMessage ne porte pas cette
+// sous-distinction, cf. tests/xxl-v3-3-flux.test.ts TEST 1) : jamais
+// dupliquer une seule valeur réelle sous 2 tuiles pour atteindre 4 —
+// 3 tuiles, littérales sur tout le reste (libellé "Qualifié" repris mot
+// pour mot au lieu de "Converti en signal", même définition). La tuile
+// "Toutes" (4e tuile du LOT V3.3) n'existe pas dans la maquette et a été
+// retirée.
+test("TEST 2 — les 3 tuiles de palier réelles reprennent les libellés et définitions littéraux de la maquette", () => {
   for (const def of [
-    "Tout le flux entrant, tous statuts confondus.",
     "Arrivé dans le système, en attente d’une décision de qualification.",
-    "Devenu un Signal réel, structuré et rattaché à un territoire.",
+    "Devenu situation, capacité, acteur ou intelligence programme.",
     "Écarté avec motif — consultable, jamais supprimé."
   ]) {
     assert.ok(source.includes(def), `définition de palier manquante ou reformulée: "${def}"`);
   }
+  assert.ok(source.includes('label: "Qualifié"'), "le libellé littéral \"Qualifié\" doit remplacer \"Converti en signal\"");
+  assert.ok(!source.includes('label: "Toutes"'), "la tuile \"Toutes\" n'existe pas dans la maquette — jamais réintroduite");
+  assert.ok(source.includes("mb-rise"), "l'animation d'entrée littérale de la maquette doit être appliquée");
 });
 
 // TEST 3 — la composition 400px/1fr (liste + détail) de la maquette reste

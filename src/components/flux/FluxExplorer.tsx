@@ -12,7 +12,7 @@ import { FindingConvergenceView } from "@/components/ecosystem/FindingConvergenc
 import { FluxDetailPanel } from "@/components/flux/FluxDetailPanel";
 
 const CAN_QUALIFY_ROLES: Role[] = ["administrateur", "coordinateur", "operateur"];
-type StageFilter = "toutes" | "nouveau" | "converti" | "ecarte";
+type StageFilter = "nouveau" | "converti" | "ecarte";
 
 // LOT V3.3 (mandat "Flux / Dossiers & Convergence") — module dédié,
 // composant partagé par /app/flux (aucun deep-link externe existant vers
@@ -25,7 +25,11 @@ type StageFilter = "toutes" | "nouveau" | "converti" | "ecarte";
 // détail restent une vue, jamais une nouvelle donnée.
 export function FluxExplorer({ state, role }: { state: ProductState; role: Role }) {
   const router = useRouter();
-  const [stage, setStage] = useState<StageFilter>("toutes");
+  // La maquette (écran `isFlux`) n'a pas de 4e tuile "Toutes" — 3 paliers
+  // seulement, mutuellement exclusifs, "À qualifier" actif par défaut
+  // (LOT V3.22, "copie conforme littérale" : la tuile "Toutes" du LOT V3.3
+  // était une addition, jamais présente dans le HTML source).
+  const [stage, setStage] = useState<StageFilter>("nouveau");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [area, setArea] = useState<"file" | "convergence">("file");
 
@@ -47,13 +51,23 @@ export function FluxExplorer({ state, role }: { state: ProductState; role: Role 
   // vieillit sans qualification est le risque réel, pas une simple
   // liste chronologique inversée).
   const sorted = [...state.incomingMessages].sort((a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime());
-  const filtered = stage === "toutes" ? sorted : sorted.filter((item) => item.status === stage);
+  const filtered = sorted.filter((item) => item.status === stage);
   const active = (selectedId ? filtered.find((item) => item.id === selectedId) : undefined) ?? filtered[0];
 
+  // 3 tuiles littérales (LOT V3.22) — la maquette en montre 4 ("Reçu" /
+  // "À qualifier" / "Qualifié" / "Écarté"), mais "Reçu" et "À qualifier"
+  // recouvrent la MÊME valeur réelle "nouveau" du domaine (IncomingMessage
+  // ne porte pas cette sous-distinction — cf. TEST 1,
+  // tests/xxl-v3-3-flux.test.ts). Reproduire les 4 aurait dupliqué un
+  // seul vrai compte sous deux étiquettes — la tuile est donc fusionnée
+  // sur le libellé le plus proche de son sens ("À qualifier"), jamais
+  // dédoublée. Libellé "Qualifié" repris littéralement (au lieu de
+  // "Converti en signal") : c'est le même évènement du domaine
+  // (IncomingMessage.status === "converti"), et "Qualifié" est le mot du
+  // prototype pour l'exact même concept.
   const stageTiles: Array<{ key: StageFilter; label: string; value: number; def: string; color: string }> = [
-    { key: "toutes", label: "Toutes", value: stats.total, def: "Tout le flux entrant, tous statuts confondus.", color: "rgba(11,26,42,.55)" },
     { key: "nouveau", label: "À qualifier", value: stats.nouveau, def: "Arrivé dans le système, en attente d’une décision de qualification.", color: "#B6522F" },
-    { key: "converti", label: "Converti en signal", value: stats.converti, def: "Devenu un Signal réel, structuré et rattaché à un territoire.", color: "#4E7B5A" },
+    { key: "converti", label: "Qualifié", value: stats.converti, def: "Devenu situation, capacité, acteur ou intelligence programme.", color: "#4E7B5A" },
     { key: "ecarte", label: "Écarté", value: stats.ecarte, def: "Écarté avec motif — consultable, jamais supprimé.", color: "rgba(11,26,42,.4)" }
   ];
 
@@ -66,7 +80,7 @@ export function FluxExplorer({ state, role }: { state: ProductState; role: Role 
   // tentative de ce correctif dans ce fichier n'en masquait que la moitié,
   // corrigé en QA visuelle réelle avant même de le pousser).
   return (
-    <div className="shadcn-scope space-y-6 bg-background p-5 pb-16 lg:p-8">
+    <div className="mb-rise shadcn-scope space-y-6 bg-background p-5 pb-16 lg:p-8">
       <div className={selectedId ? "hidden lg:block" : undefined}>
         <div className="space-y-6">
           <header className="max-w-3xl">
@@ -87,13 +101,16 @@ export function FluxExplorer({ state, role }: { state: ProductState; role: Role 
 
           {area === "file" && (
             <div className="space-y-6">
-              <div className="grid gap-0 overflow-hidden rounded-lg border sm:grid-cols-4">
+              {/* flex, pas grid-cols — la maquette utilise 3 tuiles
+                  flex-1 1 0% (jamais une grille), un seul filtre actif à
+                  la fois, jamais désélectionnable (LOT V3.22). */}
+              <div className="flex flex-col overflow-hidden rounded-lg border sm:flex-row">
                 {stageTiles.map((tile) => (
                   <button
                     key={tile.key}
                     type="button"
                     onClick={() => setStage(tile.key)}
-                    className={`border-b p-4 text-left transition sm:border-b-0 sm:border-r last:border-r-0 ${stage === tile.key ? "bg-primary/[.06]" : "hover:bg-muted/50"}`}
+                    className={`flex-1 border-b p-4 text-left transition sm:border-b-0 sm:border-r last:border-r-0 ${stage === tile.key ? "bg-primary/[.06]" : "hover:bg-muted/50"}`}
                   >
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono text-2xl leading-none" style={{ color: tile.color }}>{tile.value}</span>
@@ -121,7 +138,7 @@ export function FluxExplorer({ state, role }: { state: ProductState; role: Role 
         <div className="grid gap-0 overflow-hidden rounded-lg border lg:grid-cols-[400px_1fr]">
           <div className={`min-w-0 divide-y border-b lg:border-b-0 lg:border-r ${selectedId ? "hidden lg:block" : ""}`}>
               <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-2.5">
-                <span className="flex-1 text-[11.5px] text-muted-foreground">{filtered.length} élément{filtered.length > 1 ? "s" : ""} {stage === "toutes" ? "au total" : "dans ce palier"}</span>
+                <span className="flex-1 text-[11.5px] text-muted-foreground">{filtered.length} élément{filtered.length > 1 ? "s" : ""} dans ce palier</span>
                 <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70">Plus ancien en premier</span>
               </div>
               {filtered.length === 0 ? (
