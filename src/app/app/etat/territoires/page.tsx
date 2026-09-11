@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Drawer } from "@/components/etat/Drawer";
 import { DetailSurface } from "@/components/private/DetailSurface";
-import { AtlasMap, atlasMapBackground } from "@/components/etat/AtlasMap";
+import { AtlasMap } from "@/components/etat/AtlasMap";
+import { KpiSparkline } from "@/components/etat/EtatDataVisualizations";
 import {
   Mission,
   MissionForm,
@@ -16,31 +16,40 @@ import {
   infraStatusColor,
   infraStatusLabel,
   priorityToTag,
-  situationPriorityRank,
   statusTagLabel
 } from "@/components/etat/shared";
-import type { Situation, Territory } from "@/domain/types";
+import type { Initiative, Situation, Territory } from "@/domain/types";
 import type { VigilanceCase } from "@/domain/ministry/vigilance";
-import { AttentionItem, EditorialSection } from "@/components/foundations";
 import { MARITIME_ZONE_LABEL, MARITIME_ZONE_ORDER, resolveMaritimeZone, type MaritimeZone } from "@/domain/atlas-overview";
 
-// P2.DESIGN-1B (mandat CEO "Claude Design V2 → Real Product
-// Implementation", §9, "Atlas territorial") — reconstruction complète de
-// cette page sur la composition à 3 colonnes du prototype fourni :
-// GAUCHE registre/recherche/filtres, CENTRE carte dominante, DROITE
-// dossier du territoire sélectionné (rail persistant, jamais un tiroir
-// qui recouvre la carte) — "it should feel like a territorial
-// intelligence workspace", pas "une carte insérée dans une page".
-//
-// Texte de lecture par niveau d'activité (READING) : verbatim du
-// prototype Claude Design V2 — doctrine éditoriale générique paramétrée
-// par le SEUL niveau réel (Territory.activity), jamais une donnée
-// fabriquée par territoire.
+// LOT V3.17 ("Atlas territorial — copie conforme du rendu maquette") —
+// reconstruction complète sur le plan exact de l'écran `isAtlas` de la
+// maquette (2 colonnes : carte marine plein cadre à gauche, dossier du
+// territoire sélectionné à droite avec 5 onglets — jamais la composition
+// à 3 colonnes registre/carte/dossier de la version précédente, absente
+// de CE fichier maquette). Mandat explicite de l'utilisateur : "j'oublie
+// tout l'existant [...] je veux exactement le rendu graphique, les
+// blocs, tout copie conforme". Le registre/recherche/filtres région et
+// activité de la version précédente disparaissent de cette page (la
+// sélection se fait désormais par la carte et par la bande littorale,
+// comme la maquette) ; la façade maritime réelle (LOT V3.4,
+// domain/atlas-overview.ts) devient des puces cliquables plutôt qu'un
+// menu déroulant, seul filtre que la maquette porte réellement sur cet
+// écran.
 const READING: Record<Territory["activity"], string> = {
   critique: "Territoire en activité critique. Plusieurs situations ouvertes se recoupent et une capacité essentielle est indisponible : la coordination y est prioritaire cette semaine.",
   vigilance: "Territoire sous vigilance. Les capacités connues fonctionnent, mais au moins une est déclarée fragile après des débarquements successifs.",
   stable: "Territoire stable à ce jour. Les signaux reçus restent isolés et les capacités connues sont opérationnelles."
 };
+
+const TABS = [
+  { key: "activite", label: "Activité" },
+  { key: "capacites", label: "Capacités" },
+  { key: "acteurs", label: "Acteurs" },
+  { key: "situations", label: "Situations" },
+  { key: "programmes", label: "Programmes" }
+] as const;
+type TabKey = (typeof TABS)[number]["key"];
 
 function dms(value: number, positive: string, negative: string) {
   const abs = Math.abs(value);
@@ -48,20 +57,28 @@ function dms(value: number, positive: string, negative: string) {
   return `${Math.floor(abs)}°${minutes}′${value >= 0 ? positive : negative}`;
 }
 
+// Même dérivation qu'au Brief national (LOT V3.16) — répétée ici plutôt
+// que partagée : les deux pages sont les deux seules à en avoir besoin
+// pour l'instant, mutualiser un fichier d'1 fonction aurait ajouté un
+// module pour rien (même discipline que severityRank/attentionRank,
+// déjà locaux page par page dans ce produit).
+function programmeProgressPct(programme: Initiative): number | null {
+  if (programme.indicators.length === 0) return null;
+  const ratios = programme.indicators.map((indicator) => {
+    const span = indicator.target - indicator.baseline;
+    if (span === 0) return indicator.current >= indicator.target ? 1 : 0;
+    return Math.min(1, Math.max(0, (indicator.current - indicator.baseline) / span));
+  });
+  return Math.round((ratios.reduce((sum, ratio) => sum + ratio, 0) / ratios.length) * 100);
+}
+
 export default function TerritoiresPage() {
   const { state } = useProduct();
-  // cases nécessaire uniquement pour peupler TerritoryDetail (son prop
-  // `cases`, déjà utilisé ainsi sur /app/etat) — même source que les
-  // autres pages qui ouvrent ce composant.
   const [cases, setCases] = useState<VigilanceCase[]>([]);
-  const [regionFilter, setRegionFilter] = useState<string>("all");
-  const [activityFilter, setActivityFilter] = useState<"all" | "stable" | "vigilance" | "critique">("all");
-  // LOT V3.4 (mandat §10) — façade maritime : filtre à sens réel
-  // (positionnement géographique nord/sud du littoral), catégorisation de
-  // présentation (domain/atlas-overview.ts), pas un nouveau champ métier.
   const [zoneFilter, setZoneFilter] = useState<MaritimeZone | "all">("all");
-  const [searchText, setSearchText] = useState("");
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);
+  const [layerMode, setLayerMode] = useState<"situations" | "capacites">("situations");
+  const [activeTab, setActiveTab] = useState<TabKey>("activite");
   const [territoryDossierOpen, setTerritoryDossierOpen] = useState(false);
   const [situationDrawer, setSituationDrawer] = useState<Situation | null>(null);
   const [missionDrawer, setMissionDrawer] = useState<Mission | null>(null);
@@ -76,299 +93,253 @@ export default function TerritoiresPage() {
 
   if (!state) return null;
 
-  // Régions dérivées des territoires réels — pas une liste éditoriale
-  // fixée à part, qui dériverait silencieusement si demo-state.ts change.
-  const regions = [...new Set(state.territories.map((item) => item.region))].sort((a, b) => a.localeCompare(b));
-  const searchNormalized = searchText.trim().toLowerCase();
-  const filteredTerritories = state.territories
-    .filter((item) =>
-      (regionFilter === "all" || item.region === regionFilter) &&
-      (activityFilter === "all" || item.activity === activityFilter) &&
-      (zoneFilter === "all" || resolveMaritimeZone(item.id) === zoneFilter) &&
-      (searchNormalized === "" || item.name.toLowerCase().includes(searchNormalized) || item.region.toLowerCase().includes(searchNormalized))
-    )
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const filteredTerritoryIds = new Set(filteredTerritories.map((item) => item.id));
-  const openSituationsCount = state.situations.filter((item) => filteredTerritoryIds.has(item.territoryId) && item.status !== "reglee").length;
-  const criticalCount = filteredTerritories.filter((item) => item.activity === "critique").length;
-
-  // Sélection : explicite si choisie et toujours présente dans le filtre
-  // courant, sinon le premier territoire filtré — jamais "aucun territoire
-  // sélectionné" tant que le filtre en propose au moins un (le rail droit
-  // du prototype est TOUJOURS peuplé).
-  const selectedTerritory =
-    (selectedTerritoryId && filteredTerritories.find((item) => item.id === selectedTerritoryId)) ||
-    filteredTerritories[0] ||
-    null;
+  const filteredTerritories = state.territories.filter((item) => zoneFilter === "all" || resolveMaritimeZone(item.id) === zoneFilter);
+  const selectedTerritory = (selectedTerritoryId && filteredTerritories.find((item) => item.id === selectedTerritoryId)) || filteredTerritories[0] || null;
 
   const selInfra = selectedTerritory ? state.infrastructures.filter((item) => item.territoryId === selectedTerritory.id) : [];
-  const selSituations = selectedTerritory
-    ? state.situations
-        .filter((item) => item.territoryId === selectedTerritory.id && item.status !== "reglee")
-        .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority])
-    : [];
+  const selFragileInfra = selInfra.filter((item) => item.status !== "operationnelle").length;
+  const selSituations = selectedTerritory ? state.situations.filter((item) => item.territoryId === selectedTerritory.id && item.status !== "reglee") : [];
   const selActors = selectedTerritory ? state.actors.filter((item) => item.territoryIds.includes(selectedTerritory.id)) : [];
   const selActorsByRole = selActors.reduce<Record<string, number>>((acc, item) => { acc[item.role] = (acc[item.role] ?? 0) + 1; return acc; }, {});
   const selProgrammes = selectedTerritory ? state.initiatives.filter((item) => item.territoryIds.includes(selectedTerritory.id)) : [];
+  const selSites = selectedTerritory ? state.sites.filter((item) => item.territoryId === selectedTerritory.id) : [];
+  const selSiteIds = new Set(selSites.map((item) => item.id));
+  const selLandings = state.landings.filter((item) => selSiteIds.has(item.siteId));
 
-  // XXL-R2 (§8 du mandat) — "À surveiller" : jamais un score fabriqué,
-  // seulement les territoires réellement classés vigilance/critique dans
-  // ce filtre, triés par attention puis par situations ouvertes,
-  // plafonnés à 5. Absent si aucun territoire ne le justifie — jamais
-  // rempli pour "faire une section".
-  const attentionRank: Record<Territory["activity"], number> = { critique: 2, vigilance: 1, stable: 0 };
-  const territoriesToWatch = filteredTerritories
-    .map((territory) => ({
-      territory,
-      openSituations: state.situations.filter((item) => item.territoryId === territory.id && item.status !== "reglee").length,
-      fragileInfra: state.infrastructures.filter((item) => item.territoryId === territory.id && item.status !== "operationnelle").length
-    }))
-    .filter((item) => item.territory.activity !== "stable")
-    .sort((a, b) => attentionRank[b.territory.activity] - attentionRank[a.territory.activity] || b.openSituations - a.openSituations)
-    .slice(0, 5);
+  // Bande littorale — TOUS les sites réels (national, sous la carte,
+  // comme la maquette), pas seulement ceux du territoire sélectionné ;
+  // le nombre de débarquements réels par site en fait la hauteur "de
+  // tendance", jamais une valeur fabriquée par site.
+  const coastalStrip = state.sites.map((site) => {
+    const territory = state.territories.find((item) => item.id === site.territoryId);
+    const count = state.landings.filter((item) => item.siteId === site.id).length;
+    return { site, territory, count };
+  });
 
   return (
     <div className="pb-16">
-      <header className="border-b border-[var(--etat-line)] bg-[var(--etat-warm-white)] px-6 pt-8 lg:px-[60px] lg:pt-10">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p className="etat-eyebrow">Atlas territorial</p>
-            <h1 className="etat-display etat-h1 etat-h1--registry mt-3.5">Comprendre où agir,<br />territoire par territoire.</h1>
-            <p className="mt-3 max-w-[660px] text-[13.5px] leading-6 text-[var(--etat-stone-600)]">Registre national des territoires suivis, de leurs situations ouvertes et de leurs capacités connues — sans score composite artificiel.</p>
-          </div>
-          <dl className="flex gap-8 border-t border-[var(--etat-line)] pt-4 xl:border-l xl:border-t-0 xl:pl-8 xl:pt-0">
-            <div><dt className="etat-filter-label">Territoires</dt><dd className="etat-display text-[28px] text-[var(--etat-navy)]">{filteredTerritories.length}</dd></div>
-            <div><dt className="etat-filter-label">Situations ouvertes</dt><dd className="etat-display text-[28px] text-[var(--etat-navy)]">{openSituationsCount}</dd></div>
-            <div><dt className="etat-filter-label">Critiques</dt><dd className="etat-display text-[28px] text-[var(--etat-critique)]">{criticalCount}</dd></div>
-          </dl>
+      <div className="flex flex-col gap-4 px-4 pb-4 pt-7 sm:flex-row sm:items-end sm:justify-between sm:px-[30px]">
+        <div className="min-w-0 flex-1">
+          <p className="etat-eyebrow">Atlas territorial</p>
+          <h1 className="mt-2.5 font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 32, lineHeight: 1.15, color: "var(--etat-navy)" }}>Comprendre où agir, territoire par territoire.</h1>
         </div>
-        <div className="mt-7 flex flex-wrap items-end justify-between gap-5 border-t border-[var(--etat-line)] pt-4">
-          <nav className="etat-subtabs !border-b-0" aria-label="Vues de l’Atlas">
-            <span className="etat-subtab etat-subtab--active">Vue carte</span>
-            <span className="etat-subtab">Registre</span>
-            <span className="etat-subtab">Indicateurs clés</span>
-            <span className="etat-subtab">Comparaison</span>
-          </nav>
-          <div className="flex flex-wrap items-end gap-4 pb-3">
-            <label className="block">
-              <p className="etat-filter-label">Région</p>
-              <select
-                value={regionFilter}
-                onChange={(event) => setRegionFilter(event.target.value)}
-                className="etat-filter-select"
-              >
-                <option value="all">Toutes les régions</option>
-                {regions.map((region) => (
-                  <option key={region} value={region}>{region}</option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <p className="etat-filter-label">Activité</p>
-              <select
-                value={activityFilter}
-                onChange={(event) => setActivityFilter(event.target.value as "all" | "stable" | "vigilance" | "critique")}
-                className="etat-filter-select"
-              >
-                <option value="all">Tous les niveaux</option>
-                <option value="stable">Stable</option>
-                <option value="vigilance">Vigilance</option>
-                <option value="critique">Critique</option>
-              </select>
-            </label>
-            <label className="block">
-              <p className="etat-filter-label">Façade</p>
-              <select
-                value={zoneFilter}
-                onChange={(event) => setZoneFilter(event.target.value as MaritimeZone | "all")}
-                className="etat-filter-select"
-              >
-                <option value="all">Tout le littoral</option>
-                {MARITIME_ZONE_ORDER.map((zone) => (
-                  <option key={zone} value={zone}>{MARITIME_ZONE_LABEL[zone]}</option>
-                ))}
-              </select>
-            </label>
-          </div>
+        <div className="flex flex-wrap justify-end gap-1.5">
+          <button onClick={() => setZoneFilter("all")} className="rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={zoneFilter === "all" ? { borderColor: "var(--etat-navy)", background: "var(--etat-navy)", color: "#F7F3E9" } : { borderColor: "rgba(11,26,42,.2)", color: "var(--etat-navy)" }}>Tout le littoral</button>
+          {MARITIME_ZONE_ORDER.map((zone) => (
+            <button key={zone} onClick={() => setZoneFilter(zone)} className="rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={zoneFilter === zone ? { borderColor: "var(--etat-navy)", background: "var(--etat-navy)", color: "#F7F3E9" } : { borderColor: "rgba(11,26,42,.2)", color: "var(--etat-navy)" }}>{MARITIME_ZONE_LABEL[zone]}</button>
+          ))}
         </div>
-      </header>
+      </div>
 
-      {/* Composition 3 colonnes (mandat P2.DESIGN-1B §9) : registre |
-          carte | dossier. Hauteur fixe partagée par les 3 colonnes
-          (lg:h-[640px]) — la carte reste le "moment visuel dominant", le
-          rail droit défile en interne si son contenu dépasse plutôt que
-          d'étirer la ligne. Sous xl, les 3 colonnes s'empilent
-          verticalement (registre → carte → dossier), aucune ne disparaît. */}
-      <div className="border-b border-[var(--etat-line)] xl:flex xl:h-[640px] xl:items-stretch">
-        <div className="flex flex-col border-b border-[var(--etat-line)] xl:w-[300px] xl:shrink-0 xl:border-b-0 xl:border-r xl:overflow-y-auto" style={{ background: "var(--etat-warm-white)" }}>
-          <div className="sticky top-0 z-10 p-4" style={{ background: "var(--etat-warm-white)" }}>
-            <div className="etat-search-field">
-              <Search size={14} className="shrink-0 text-[var(--etat-stone-400)]" />
-              <input
-                type="search"
-                value={searchText}
-                onChange={(event) => setSearchText(event.target.value)}
-                placeholder="Filtrer les territoires…"
-                className="w-full bg-transparent text-sm font-medium text-[var(--etat-navy)] outline-none"
-                style={{ fontFamily: "var(--etat-font-body)" }}
-              />
+      <div className="grid grid-cols-1 border-t lg:grid-cols-[1fr_424px]" style={{ borderColor: "rgba(11,26,42,.12)" }}>
+        {/* min-w-0 indispensable ici : une grille CSS donne par défaut à
+            chaque enfant min-width:auto (basé sur son min-content), ce qui
+            empêche la bande littorale ci-dessous (overflow-x-auto) de
+            jamais se restreindre — elle pousse toute la colonne (donc
+            toute la page) en largeur au lieu de défiler en interne (même
+            piège déjà documenté au LOT V3.6, "CSS Grid children need
+            explicit min-w-0"). Débordement massif (scrollWidth > 6000px à
+            1440px) trouvé en QA réelle avant ce correctif. */}
+        <div className="relative min-w-0" style={{ background: "var(--etat-navy)" }}>
+          <div className="flex flex-wrap items-center gap-2 border-b px-[18px] py-[13px]" style={{ borderColor: "rgba(247,243,233,.1)" }}>
+            <span className="mr-1 text-[10px] uppercase tracking-[.14em]" style={{ color: "rgba(247,243,233,.45)" }}>Couches</span>
+            {([{ key: "situations", label: "Situations ouvertes", dot: "#E05A3C" }, { key: "capacites", label: "Capacités fragiles", dot: "#E0A455" }] as const).map((layer) => (
+              <button
+                key={layer.key}
+                onClick={() => setLayerMode(layer.key)}
+                className="flex items-center gap-[7px] rounded-[4px] border px-[11px] py-[5px] text-[11.5px]"
+                style={layerMode === layer.key ? { borderColor: "rgba(247,243,233,.5)", background: "rgba(247,243,233,.1)", color: "#F7F3E9" } : { borderColor: "rgba(247,243,233,.2)", color: "rgba(247,243,233,.7)" }}
+              >
+                <span className="size-[7px] rounded-full" style={{ background: layer.dot }} />{layer.label}
+              </button>
+            ))}
+          </div>
+          {/* min-height explicite (560px, valeur exacte de la maquette,
+              son <svg style="height:560px">) — indispensable : le <svg>
+              interne d'AtlasMap est en height:100%, qui ne résout à rien
+              de sensé sans hauteur définie sur cet ancêtre (la grille CSS
+              parente n'en impose aucune) ; sans elle, preserveAspectRatio
+              "slice" doit deviner une échelle avec une hauteur proche de
+              0, ce qui fait exploser le texte SVG interne à une taille
+              énorme — débordement horizontal massif trouvé en QA réelle
+              (scrollWidth > 6000px à 1440px de large). */}
+          <div className="relative" style={{ height: 560 }}>
+            <AtlasMap
+              territories={filteredTerritories}
+              selectedId={selectedTerritory?.id}
+              onSelect={(id) => setSelectedTerritoryId(id)}
+              tooltipLines={(t) => {
+                if (layerMode === "capacites") {
+                  const fragile = state.infrastructures.filter((item) => item.territoryId === t.id && item.status !== "operationnelle").length;
+                  return [t.name, `${fragile} capacité(s) fragile(s)`];
+                }
+                const open = state.situations.filter((item) => item.territoryId === t.id && item.status !== "reglee").length;
+                return [t.name, `${open} situation(s) ouverte(s)`];
+              }}
+            />
+          </div>
+          <div className="border-t px-[18px] py-[14px]" style={{ borderColor: "rgba(247,243,233,.1)" }}>
+            <div className="mb-2.5 flex items-baseline gap-2.5">
+              <p className="text-[10px] uppercase tracking-[.14em]" style={{ color: "rgba(247,243,233,.45)" }}>Bande littorale · {coastalStrip.length} site(s)</p>
+              <p className="text-[11px]" style={{ color: "rgba(247,243,233,.4)" }}>Débarquements documentés — cliquez pour ouvrir un site</p>
             </div>
-            <p className="mt-3 text-[10px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>{filteredTerritories.length} territoire(s) affiché(s)</p>
-          </div>
-          <div className="max-h-[260px] divide-y divide-[var(--etat-line)] overflow-y-auto xl:max-h-none xl:flex-1">
-            {filteredTerritories.length === 0 ? (
-              <p className="px-4 pb-4 text-sm text-[var(--etat-stone-600)]">Aucun territoire ne correspond à ce filtre.</p>
-            ) : filteredTerritories.map((territory) => {
-              const openCount = state.situations.filter((item) => item.territoryId === territory.id && item.status !== "reglee").length;
-              const isSelected = selectedTerritory?.id === territory.id;
-              return (
-                <button
-                  key={territory.id}
-                  onClick={() => setSelectedTerritoryId(territory.id)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--etat-offwhite-dim)]"
-                  aria-current={isSelected ? "true" : undefined}
-                  style={isSelected ? { backgroundColor: "var(--etat-terracotta-dim)", boxShadow: "inset 3px 0 0 var(--etat-terracotta)" } : undefined}
-                >
-                  <span className="size-[7px] shrink-0 rounded-full" style={{ background: glyphBorderColor[territory.activity] }} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-[var(--etat-navy)]">{territory.name}</span>
-                    <span className="block text-[10.5px] text-[var(--etat-stone-400)]">{territory.region} · {openCount} situation{openCount > 1 ? "s" : ""}</span>
-                  </span>
-                  <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[.10em] text-[var(--etat-stone-400)]">{statusTagLabel[territory.activity]}</span>
-                </button>
-              );
-            })}
+            <div className="flex gap-px overflow-x-auto">
+              {coastalStrip.map(({ site, territory, count }) => {
+                const active = territory?.id === selectedTerritory?.id;
+                return (
+                  <button
+                    key={site.id}
+                    onClick={() => territory && setSelectedTerritoryId(territory.id)}
+                    className="min-w-[64px] flex-1 border-t-2 px-1.5 pb-2 pt-2.5 text-left"
+                    style={{ borderColor: active ? "#DE9C74" : "transparent", background: active ? "rgba(247,243,233,.06)" : "transparent" }}
+                  >
+                    <p className="truncate text-[10px]" style={{ color: active ? "#F7F3E9" : "rgba(247,243,233,.6)", fontWeight: active ? 600 : 400 }}>{site.name}</p>
+                    <div className="mt-1.5 h-[22px]"><KpiSparkline color={active ? "#DE9C74" : "rgba(247,243,233,.4)"} /></div>
+                    <p className="mt-0.5 text-[11px]" style={{ color: active ? "#F7F3E9" : "rgba(247,243,233,.6)", fontFamily: "var(--etat-font-mono)" }}>{count}</p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Carte — même AtlasMap que le Brief national (mandat §1 hérité,
-            "une signature cartographique par périmètre"), plein cadre,
-            sélection synchronisée avec la colonne de gauche et le rail
-            de droite. */}
-        <div className="relative min-h-[360px] flex-1 border-b border-[var(--etat-line)] xl:min-h-0 xl:border-b-0 xl:border-r" style={{ background: atlasMapBackground }}>
-          <AtlasMap
-            territories={filteredTerritories}
-            selectedId={selectedTerritory?.id}
-            onSelect={(id) => setSelectedTerritoryId(id)}
-            tooltipLines={(t) => {
-              const openCount = state.situations.filter((item) => item.territoryId === t.id && item.status !== "reglee").length;
-              return [t.name, `${statusTagLabel[t.activity]} · ${openCount} situation(s) ouverte(s)`];
-            }}
-          />
-        </div>
-
-        {/* Dossier du territoire sélectionné — rail PERSISTANT (mandat
-            §9, "RIGHT selected territory dossier"), jamais un tiroir qui
-            recouvre la carte : même donnée réelle que TerritoryDetail
-            (acteurs/infrastructures/situations/programmes), lecture
-            compacte ici, dossier complet via le CTA plus bas (Drawer,
-            même mécanisme que le reste de l'Espace État — pas de nouvelle
-            route pour ce lot). */}
-        <div className="flex flex-col xl:w-[376px] xl:shrink-0 xl:overflow-y-auto" style={{ background: "var(--etat-warm-white)" }}>
-          {/* Photo de contexte (mandat P2.DESIGN-1B.1 §6) : la carte réelle
-              reste l'élément cartographique dominant (aucune régression sur
-              AtlasMap) — cette photo générique de territoire restaure
-              seulement la richesse visuelle du rail, elle ne remplace ni ne
-              qualifie aucune donnée de territoire. */}
-          <div className="relative h-[186px] shrink-0 overflow-hidden border-b border-[var(--etat-line)]">
-            <Image src="/images/etat-atlas-territory-context.webp" alt="" fill priority sizes="(min-width: 1280px) 376px, 100vw" className="object-cover" />
-          </div>
+        <div className="flex flex-col border-l" style={{ background: "#FFFFFF", borderColor: "rgba(11,26,42,.12)" }}>
           {selectedTerritory ? (
             <>
-              <div className="border-b border-[var(--etat-line)] p-6">
-                <p className="etat-eyebrow">{selectedTerritory.region}</p>
-                <div className="mt-3 flex items-end gap-3">
-                  <h2 className="etat-h1 text-[34px]">{selectedTerritory.name}</h2>
-                  <span className="mb-1.5 flex items-center gap-1.5">
-                    <span className="size-2 rounded-full" style={{ background: glyphBorderColor[selectedTerritory.activity] }} />
-                    <span className="text-[10px] font-semibold uppercase tracking-[.14em]" style={{ color: glyphBorderColor[selectedTerritory.activity] }}>{statusTagLabel[selectedTerritory.activity]}</span>
+              <div className="border-b px-5 pb-3.5 pt-[18px]" style={{ borderColor: "rgba(11,26,42,.09)" }}>
+                <div className="flex items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-normal leading-[1.15]" style={{ fontFamily: "var(--etat-font-display)", fontSize: 26, color: "var(--etat-navy)" }}>{selectedTerritory.name}</p>
+                    <p className="mt-1.5 text-[11.5px]" style={{ color: "rgba(11,26,42,.55)" }}>{selectedTerritory.region} · {dms(selectedTerritory.latitude, "N", "S")} {dms(selectedTerritory.longitude, "E", "O")}</p>
+                  </div>
+                  <span className="flex shrink-0 items-center gap-[7px] rounded-full border px-[11px] py-1" style={{ borderColor: glyphBorderColor[selectedTerritory.activity] }}>
+                    <span className="size-[7px] rounded-full" style={{ background: glyphBorderColor[selectedTerritory.activity] }} />
+                    <span className="text-[11.5px] font-medium" style={{ color: glyphBorderColor[selectedTerritory.activity] }}>{statusTagLabel[selectedTerritory.activity]}</span>
                   </span>
                 </div>
-                <p className="mt-3 text-[13px] leading-[1.62] text-[var(--etat-stone-600)]">{READING[selectedTerritory.activity]}</p>
-                <div className="mt-4 flex flex-wrap items-center gap-2 text-[10.5px] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-mono)" }}>
-                  <span>{dms(selectedTerritory.latitude, "N", "S")} {dms(selectedTerritory.longitude, "E", "O")}</span><span>·</span><span>{selSituations.length} situation(s) ouverte(s)</span>
-                </div>
+                <p className="mt-3 text-[12.5px] leading-[1.55]" style={{ color: "rgba(11,26,42,.75)" }}>{READING[selectedTerritory.activity]}</p>
               </div>
 
-              <div className="border-b border-[var(--etat-line)] p-6">
-                <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>Capacités connues</p>
-                {selInfra.length === 0 ? (
-                  <p className="mt-2 text-xs text-[var(--etat-stone-400)]">Aucune infrastructure recensée.</p>
-                ) : selInfra.map((infra) => (
-                  <div key={infra.id} className="flex items-center justify-between gap-2 border-t border-[var(--etat-line)] py-2.5 first:border-t-0 first:pt-0">
-                    <span className="text-[12.5px] font-medium capitalize text-[var(--etat-navy)]">{infra.type.replaceAll("_", " ")}</span>
-                    <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold" style={{ color: infraStatusColor[infra.status] }}><span className="size-1.5 rounded-full" style={{ background: infraStatusColor[infra.status] }} />{infraStatusLabel[infra.status]}</span>
+              <div className="grid grid-cols-4 gap-px border-b" style={{ background: "rgba(11,26,42,.1)", borderColor: "rgba(11,26,42,.09)" }}>
+                {[
+                  { v: selSituations.length, k: "Situations ouvertes" },
+                  { v: selFragileInfra, k: "Capacités fragiles" },
+                  { v: selActors.length, k: "Acteurs" },
+                  { v: selProgrammes.length, k: "Programmes" }
+                ].map((tile) => (
+                  <div key={tile.k} className="bg-white px-3 py-[13px]">
+                    <p style={{ fontFamily: "var(--etat-font-mono)", fontSize: 21, lineHeight: 1 }}>{tile.v}</p>
+                    <p className="mt-[5px] text-[9.5px] uppercase leading-[1.3] tracking-[.08em]" style={{ color: "rgba(11,26,42,.5)" }}>{tile.k}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="border-b border-[var(--etat-line)] p-6">
-                <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>Situations ouvertes</p>
-                {selSituations.length === 0 ? (
-                  <p className="mt-2 text-xs text-[var(--etat-stone-400)]">Aucune situation ouverte sur ce territoire.</p>
-                ) : selSituations.slice(0, 3).map((situation) => (
-                  <button key={situation.id} onClick={() => setSituationDrawer(situation)} className="block w-full border-t border-[var(--etat-line)] py-2.5 text-left first:border-t-0 first:pt-0 hover:text-[var(--etat-terracotta)]">
-                    <p className="text-[12.5px] font-medium leading-[1.4] text-[var(--etat-navy)]">{situation.title}</p>
-                    <span className="mt-1.5 flex items-center gap-2 text-[10.5px] text-[var(--etat-stone-400)]"><span className={`etat-tag ${priorityToTag[situation.priority] === "critique" ? "etat-tag--critique" : "etat-tag--vigilance"}`}>{situation.priority}</span></span>
+              {/* min-w-0 + overflow-x-auto : les 5 libellés ("Situations",
+                  "Programmes"...) dépassent le contenu min-content
+                  disponible dans les 424px fixes de la colonne dossier —
+                  débordement horizontal constant (42px, indépendant de la
+                  largeur de viewport) trouvé en QA réelle. Défile plutôt
+                  que déborder, même piège min-width:auto que la bande
+                  littorale ci-dessus. */}
+              <div className="flex min-w-0 gap-0 overflow-x-auto border-b px-2" style={{ borderColor: "rgba(11,26,42,.12)" }}>
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className="shrink-0 whitespace-nowrap px-[11px] pb-[9px] pt-[11px] text-[12px]"
+                    style={{ fontWeight: activeTab === tab.key ? 600 : 400, color: activeTab === tab.key ? "var(--etat-navy)" : "rgba(11,26,42,.5)", boxShadow: activeTab === tab.key ? "inset 0 -2px 0 var(--etat-terracotta)" : "none" }}
+                  >
+                    {tab.label}
                   </button>
                 ))}
               </div>
 
-              <div className="p-6">
-                <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>Acteurs et programmes</p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {Object.entries(selActorsByRole).map(([role, count]) => (
-                    <span key={role} className="etat-tag etat-tag--stable capitalize">{role.replaceAll("_", " ")} · {count}</span>
-                  ))}
-                  {selProgrammes.map((programme) => (
-                    <span key={programme.id} className="etat-tag etat-tag--stable">{programme.title}</span>
-                  ))}
-                </div>
+              <div className="flex-1 px-5 py-4">
+                {activeTab === "activite" && (
+                  selSites.length === 0 ? (
+                    <p className="text-[12.5px]" style={{ color: "var(--etat-stone-400)" }}>Aucun site recensé sur ce territoire.</p>
+                  ) : (
+                    <div>
+                      <p className="mb-2 text-[10px] uppercase tracking-[.12em]" style={{ color: "rgba(11,26,42,.5)" }}>Débarquements documentés par site</p>
+                      {selSites.map((site) => {
+                        const count = selLandings.filter((item) => item.siteId === site.id).length;
+                        const max = Math.max(1, ...selSites.map((s) => selLandings.filter((l) => l.siteId === s.id).length));
+                        return (
+                          <div key={site.id} className="mb-2.5 flex items-center gap-2.5">
+                            <span className="w-[110px] shrink-0 truncate text-[12px]" style={{ color: "var(--etat-navy)" }}>{site.name}</span>
+                            <span className="h-[10px] flex-1" style={{ background: "rgba(11,26,42,.08)" }}><span className="block h-full" style={{ width: `${(count / max) * 100}%`, background: "var(--etat-terracotta)" }} /></span>
+                            <span className="w-6 shrink-0 text-right text-[12px]" style={{ fontFamily: "var(--etat-font-mono)" }}>{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )
+                )}
+                {activeTab === "capacites" && (
+                  selInfra.length === 0 ? (
+                    <p className="text-[12.5px]" style={{ color: "var(--etat-stone-400)" }}>Aucune infrastructure recensée.</p>
+                  ) : selInfra.map((infra) => (
+                    <div key={infra.id} className="mb-2.5 border p-3.5" style={{ borderColor: "rgba(11,26,42,.1)" }}>
+                      <div className="flex items-baseline gap-2.5">
+                        <span className="flex-1 text-[13.5px] font-medium capitalize">{infra.type.replaceAll("_", " ")}</span>
+                        <span className="text-[11.5px] font-medium" style={{ color: infraStatusColor[infra.status] }}>{infraStatusLabel[infra.status]}</span>
+                      </div>
+                      <div className="relative my-2.5 h-1" style={{ background: "rgba(11,26,42,.1)" }}>
+                        <span className="absolute inset-y-0 left-0" style={{ width: infra.status === "operationnelle" ? "100%" : infra.status === "fragile" ? "55%" : "15%", background: infraStatusColor[infra.status] }} />
+                      </div>
+                    </div>
+                  ))
+                )}
+                {activeTab === "acteurs" && (
+                  selActors.length === 0 ? (
+                    <p className="text-[12.5px]" style={{ color: "var(--etat-stone-400)" }}>Aucun acteur rattaché à ce territoire.</p>
+                  ) : Object.entries(selActorsByRole).map(([role, count]) => (
+                    <div key={role} className="flex items-center gap-3 border-b py-2.5" style={{ borderColor: "rgba(11,26,42,.07)" }}>
+                      <span className="flex size-[34px] shrink-0 items-center justify-center rounded-full text-[12px]" style={{ background: "rgba(11,26,42,.06)", color: "rgba(11,26,42,.65)", fontFamily: "var(--etat-font-mono)" }}>{count}</span>
+                      <span className="flex-1 text-[13px] font-medium capitalize">{role.replaceAll("_", " ")}</span>
+                    </div>
+                  ))
+                )}
+                {activeTab === "situations" && (
+                  selSituations.length === 0 ? (
+                    <p className="p-4 text-[12px] leading-[1.55]" style={{ background: "var(--etat-cream)", color: "rgba(11,26,42,.65)" }}>Aucune situation ouverte sur ce territoire.</p>
+                  ) : selSituations.map((situation) => (
+                    <button key={situation.id} onClick={() => setSituationDrawer(situation)} className="mb-3.5 block w-full border-l-[3px] py-0.5 pl-3.5 text-left" style={{ borderColor: glyphBorderColor[priorityToTag[situation.priority]] }}>
+                      <p className="text-[13px] font-medium leading-[1.4]">{situation.title}</p>
+                      <p className="mt-1.5 text-[11px]" style={{ color: glyphBorderColor[priorityToTag[situation.priority]] }}>{situation.priority}</p>
+                    </button>
+                  ))
+                )}
+                {activeTab === "programmes" && (
+                  selProgrammes.length === 0 ? (
+                    <p className="p-4 text-[12px] leading-[1.55]" style={{ background: "var(--etat-cream)", color: "rgba(11,26,42,.65)" }}>Aucun programme n’intervient sur ce territoire.</p>
+                  ) : selProgrammes.map((programme) => {
+                    const pct = programmeProgressPct(programme);
+                    return (
+                      <div key={programme.id} className="mb-2.5 border p-3.5" style={{ borderColor: "rgba(11,26,42,.1)" }}>
+                        <div className="flex items-baseline gap-2.5">
+                          <span className="flex-1 text-[13px] font-medium">{programme.title}</span>
+                          <span style={{ fontFamily: "var(--etat-font-mono)", fontSize: 12 }}>{pct !== null ? `${pct}%` : "—"}</span>
+                        </div>
+                        <div className="relative my-2 h-1" style={{ background: "rgba(11,26,42,.1)" }}>
+                          <span className="absolute inset-y-0 left-0" style={{ width: `${pct ?? 0}%`, background: "var(--etat-navy)" }} />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
-              <div className="mt-auto flex flex-col gap-2 border-t border-[var(--etat-line)] p-6" style={{ background: "var(--etat-cream)" }}>
-                <button onClick={() => setTerritoryDossierOpen(true)} className="etat-btn etat-btn-primary justify-center">Ouvrir le dossier territorial complet <ArrowRight size={15} /></button>
-                {selSituations[0] && <button onClick={() => setSituationDrawer(selSituations[0])} className="etat-btn etat-btn-outline justify-center">Voir les signaux du territoire <ArrowRight size={15} /></button>}
+              <div className="mt-auto border-t p-5" style={{ borderColor: "rgba(11,26,42,.09)", background: "var(--etat-cream)" }}>
+                <button onClick={() => setTerritoryDossierOpen(true)} className="etat-btn etat-btn-primary w-full justify-center">Ouvrir le dossier territorial complet <ArrowRight size={15} /></button>
               </div>
             </>
           ) : (
-            <p className="p-6 text-sm text-[var(--etat-stone-600)]">Aucun territoire ne correspond à ce filtre.</p>
+            <p className="p-6 text-sm" style={{ color: "var(--etat-stone-600)" }}>Aucun territoire ne correspond à ce filtre.</p>
           )}
         </div>
       </div>
 
-      <div className="px-6 lg:px-[60px]">
-        {territoriesToWatch.length > 0 && (
-          <div className="etat-panel mt-6 p-6 lg:p-7">
-            <EditorialSection eyebrow="Où concentrer l’attention" title="À surveiller">
-              <p>{territoriesToWatch.length} territoire(s) classé(s) en vigilance ou critique dans ce filtre — jamais un classement fabriqué, seulement l’activité réellement enregistrée.</p>
-            </EditorialSection>
-            <div className="mt-3 divide-y" style={{ borderColor: "var(--mb-hairline-soft)" }}>
-              {territoriesToWatch.map(({ territory, openSituations, fragileInfra }) => (
-                <AttentionItem
-                  key={territory.id}
-                  level={territory.activity}
-                  levelLabel={statusTagLabel[territory.activity]}
-                  territory={territory.region}
-                  reason={territory.name}
-                  nextStep={`${openSituations} situation(s) ouverte(s)${fragileInfra > 0 ? ` · ${fragileInfra} capacité(s) fragile(s)` : ""}`}
-                  ctaLabel="Voir le territoire"
-                  onAction={() => setSelectedTerritoryId(territory.id)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* LOT V3.1 (Scope F) — dossier territorial migré vers DetailSurface
-          (Radix Dialog réel : focus-trap, blocage de scroll, sémantique
-          ARIA — contrairement à Drawer.tsx, fait main) : c'est le point de
-          validation choisi pour la nouvelle primitive de surface de détail,
-          exactement un seul écran comme demandé par le mandat ("valider la
-          primitive, pas migrer chaque écran de détail") — les deux autres
-          Drawer de cette même page (Situation, Planifier la mission)
-          restent volontairement inchangés. */}
       <DetailSurface open={territoryDossierOpen} onOpenChange={setTerritoryDossierOpen} eyebrow="Dossier territorial" title={selectedTerritory?.name ?? ""} scope="etat">
         {selectedTerritory && <TerritoryDetail territory={selectedTerritory} cases={cases.filter((item) => item.territoryId === selectedTerritory.id)} onOpenSituation={(situation) => { setTerritoryDossierOpen(false); setSituationDrawer(situation); }} />}
       </DetailSurface>
