@@ -1,5 +1,36 @@
 import { ETAT_DEMO_SERIES_NOTICE, resultTrendDemo, signalTrendDemo } from "@/domain/etat-presentation";
 
+// LOT V3.16 ("Brief national — copie conforme du rendu maquette") —
+// mini-graphique de tendance pour chaque tuile KPI du Brief national,
+// même géométrie SVG (viewBox 0 0 120 30, aire + ligne + point terminal)
+// que la maquette Claude Design. Aucune série réelle hebdomadaire
+// n'existe pour ces 5 indicateurs (comptages ponctuels, pas un historique
+// stocké) — réutilise la même série illustrative déjà divulguée
+// (signalTrendDemo/ETAT_DEMO_SERIES_NOTICE, utilisée plus haut sur cette
+// même page pour "Évolution des signaux reçus") plutôt que d'inventer 5
+// courbes différentes : une seule courbe illustrative honnêtement
+// signalée, jamais 5 tendances fabriquées à part.
+export function KpiSparkline({ color = "#0B1A2A" }: { color?: string }) {
+  const values = signalTrendDemo.map((item) => item.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const points = values.map((value, index) => {
+    const x = (index / (values.length - 1)) * 120;
+    const y = 28 - ((value - min) / Math.max(1, max - min)) * 22;
+    return { x, y };
+  });
+  const pointsStr = points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const areaStr = `0,30 ${pointsStr} 120,30`;
+  const last = points[points.length - 1];
+  return (
+    <svg viewBox="0 0 120 30" preserveAspectRatio="none" className="h-[26px] w-full overflow-visible" aria-hidden="true">
+      <polygon points={areaStr} fill={color} opacity="0.1" />
+      <polyline points={pointsStr} fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx={last.x} cy={last.y} r="2.6" fill={color} />
+    </svg>
+  );
+}
+
 export function SignalTrendChart() {
   const max = Math.max(...signalTrendDemo.map((item) => item.value));
   return (

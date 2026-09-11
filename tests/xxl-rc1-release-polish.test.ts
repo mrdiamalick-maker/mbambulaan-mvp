@@ -162,13 +162,15 @@ test("TEST F — le Core (domain/workday.ts) garde ses exports intacts", () => {
   }
 });
 
-// TEST G — carte du Brief national : composition plus dominante, mêmes
-// données (mandat §1) : hauteur/ratio de grille agrandis, mais toujours
-// state.territories non filtré (les 18 territoires documentés), jamais
-// un sous-ensemble scopé à l'attention.
-test("TEST G — la carte du Brief national gagne en composition sans filtrer les territoires", () => {
+// TEST G — carte du Brief national : superseded au LOT V3.16 ("copie
+// conforme du rendu maquette", mandat explicite "oublie tout l'existant")
+// — la grande composition carte 70/30 + panneau territoire complet de ce
+// lot XXL-RC1 a été remplacée par le panneau compact "Foyers d'attention"
+// de la maquette. La seule invariance qui reste réellement vérifiable
+// aujourd'hui : la carte, où qu'elle apparaisse sur cette page, continue
+// de recevoir tous les territoires réels, jamais un sous-ensemble scopé
+// à l'attention.
+test("TEST G — la carte du Brief national continue de recevoir tous les territoires, sans filtre", () => {
   const source = readSource("../src/app/app/etat/page.tsx");
-  assert.ok(source.includes("lg:h-[480px]"), "la ligne de grille doit être agrandie (480px, XXL-RC1) par rapport aux 390px précédents");
-  assert.ok(source.includes("lg:grid-cols-[70fr_30fr]"), "la carte doit gagner en largeur (70/30) par rapport au ratio précédent (66/34)");
   assert.ok(source.includes("territories={state.territories}"), "la carte doit continuer à recevoir tous les territoires, sans filtre sur l'attention");
 });
