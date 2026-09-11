@@ -45,6 +45,7 @@ import {
   verificationStatusLabels
 } from "@/domain/types";
 import { engagementsForInitiative, findProgrammeCapabilityCandidates } from "@/domain/programme-mobilization";
+import { programmeResultChain } from "@/domain/results-analytics";
 import {
   programmeEcosystem,
   programmeHealth,
@@ -145,12 +146,14 @@ export function ProgrammeCockpit({
   const milestones = programmeMilestones(state, initiative);
   const origin = traceInitiativeOrigin(state, initiative);
 
-  const initiativeResults = state.results.filter((item) => item.sourceRef.objectType === "initiative" && item.sourceRef.objectId === initiative.id);
-  const initiativeResultIds = initiativeResults.map((item) => item.id);
-  const initiativeOutcomes = state.outcomes.filter((item) => item.sourceResultIds.some((id) => initiativeResultIds.includes(id)));
-  const initiativeOutcomeIds = initiativeOutcomes.map((item) => item.id);
-  const initiativeImpacts = state.impactEvidences.filter((item) => initiativeOutcomeIds.includes(item.outcomeId));
-  const initiativeLearnings = state.learnings.filter((item) => item.initiativeId === initiative.id);
+  // LOT V3.6 — même chaîne Résultat→Changement→Impact→Apprentissage
+  // qu'avant (V3.5), désormais calculée une seule fois par
+  // programmeResultChain (domain/results-analytics.ts) plutôt que
+  // recalculée ici — mandat §22/§23, "share read models" : le module
+  // d'analytique national (ResultsAnalyticsOverview) l'utilise pour la
+  // distribution par programme, ce cockpit pour son propre onglet
+  // Résultats. Mêmes noms de variable qu'avant, aucun autre changement.
+  const { results: initiativeResults, outcomes: initiativeOutcomes, impacts: initiativeImpacts, learnings: initiativeLearnings } = programmeResultChain(state, initiative);
   const outcomesWithoutImpact = initiativeOutcomes.filter((outcome) => !initiativeImpacts.some((impact) => impact.outcomeId === outcome.id));
 
   const [resultFormOpen, setResultFormOpen] = useState(false);

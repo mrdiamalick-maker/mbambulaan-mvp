@@ -16,7 +16,23 @@ const chartConfig: ChartConfig = {
   value: { label: "Valeur", color: "var(--chart-1)" }
 };
 
-export function BarMetricChart({ data, height = 140, valueLabel }: { data: BarMetricPoint[]; height?: number; valueLabel: string }) {
+export function BarMetricChart({
+  data,
+  height = 140,
+  valueLabel,
+  onSelect,
+  selectedKey
+}: {
+  data: BarMetricPoint[];
+  height?: number;
+  valueLabel: string;
+  /** LOT V3.6 (mandat §17, "selection in one chart may filter/highlight
+   *  another") — prop additive, défaut undefined : aucun changement pour
+   *  les appelants existants (funnel/ancienneté, /app/situations) qui ne
+   *  la passent pas. */
+  onSelect?: (key: string) => void;
+  selectedKey?: string;
+}) {
   return (
     <ChartContainer config={chartConfig} style={{ height }} className="w-full">
       <BarChart data={data} margin={{ left: 0, right: 4, top: 8, bottom: 0 }}>
@@ -27,9 +43,14 @@ export function BarMetricChart({ data, height = 140, valueLabel }: { data: BarMe
           cursor={{ fill: "var(--muted)" }}
           content={<ChartTooltipContent labelKey="label" formatter={(value) => [`${value} ${valueLabel}`, undefined]} />}
         />
-        <Bar dataKey="value" radius={[3, 3, 0, 0]}>
+        <Bar
+          dataKey="value"
+          radius={[3, 3, 0, 0]}
+          onClick={onSelect ? (point: BarMetricPoint) => onSelect(point.key) : undefined}
+          style={{ cursor: onSelect ? "pointer" : undefined }}
+        >
           {data.map((point) => (
-            <Cell key={point.key} fill={point.tone ?? "var(--color-value)"} />
+            <Cell key={point.key} fill={point.tone ?? "var(--color-value)"} fillOpacity={!selectedKey || selectedKey === point.key ? 1 : 0.35} />
           ))}
         </Bar>
       </BarChart>

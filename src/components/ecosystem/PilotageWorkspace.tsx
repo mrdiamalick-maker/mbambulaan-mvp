@@ -20,6 +20,7 @@ import { TrustBadge } from "@/components/shared/StatusBadges";
 import { Button } from "@/components/ui/button";
 import { ExportActions } from "@/components/reporting/ExportActions";
 import { CoastlineTerritoryMap } from "@/components/territories/CoastlineTerritoryMap";
+import { ResultsAnalyticsOverview } from "@/components/results/ResultsAnalyticsOverview";
 
 // Ligne/aire d'évolution (Chapitre 2 — Tendances, Lot C, Audit DA
 // Premium XXL v2, mandat CEO 2026-08-18, arbitrage "Option 1"). Grain
@@ -317,6 +318,23 @@ export function PilotageWorkspace() {
           ))}
         </div>
         <div className="mt-6"><ExportActions filename={`mbambulaan-pilotage-${territoryId}-${period}`} rows={exportRows} compact /></div>
+
+        {/* LOT V3.6 ("Results / Analytics") — même capacité analytique
+            que l'Espace État (/app/etat/rapport), jamais un second
+            produit Résultats (mandat §22, "do not create separate
+            Results products") : Chapitre 4 gagne ici la lecture du
+            registre CANONIQUE (Result/Outcome/ImpactEvidence/Learning,
+            LOT 4), jusqu'ici jamais montrée sur cette page (qui ne lisait
+            que Report.metrics, un registre plus ancien et différent —
+            cf. domain/results-analytics.ts). Composant partagé à
+            l'identique, aucune profondeur supplémentaire réservée à la
+            Coordination dans ce lot (les deux espaces voient la même
+            lecture nationale ; la différence de profondeur par rôle
+            reste celle déjà portée par les permissions serveur sur les
+            gestes d'enregistrement eux-mêmes, inchangée). */}
+        <div className="mt-8">
+          <ResultsAnalyticsOverview state={state} />
+        </div>
       </section>
 
       {/* Lot A, gap analysis Pilotage (CEO 2026-08-17) : passé de section

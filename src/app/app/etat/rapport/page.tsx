@@ -8,6 +8,7 @@ import { useProduct } from "@/components/providers/ProductProvider";
 import { NumberTicker } from "@/components/magicui/number-ticker";
 import { EngagementIcon, PreuveIcon, ResultatIcon, SituationIcon } from "@/components/etat/MotifIcons";
 import { EtatResultsOverview } from "@/components/etat/EtatResultsOverview";
+import { ResultsAnalyticsOverview } from "@/components/results/ResultsAnalyticsOverview";
 import { decisionTypeLabels, evidenceTypeLabels, type Funding, type Initiative, type Report, type Territory, type TrustLevel } from "@/domain/types";
 
 // Audit DA Premium XXL v2 (mandat CEO 2026-08-19, arbitrage gap analysis
@@ -264,6 +265,21 @@ export default function EtatReportPage() {
   return (
     <div className="pb-4">
       <EtatResultsOverview state={state} onPrint={() => window.print()} />
+
+      {/* LOT V3.6 ("Results / Analytics") — le "premier écran" analytique
+          (mandat §2) : ce que le reste de cette page (registre, méthode,
+          chaîne décision → résultat, déjà réels, préservés tels quels,
+          mandat §13 "reorganize, don't delete") ne peut pas offrir seul —
+          une lecture explorable (entonnoir de preuve, distribution
+          territoriale/programmatique, évolution, comparaison de
+          période), pas seulement un document à lire. Composant partagé
+          avec la Coordination (PilotageWorkspace, Chapitre 4 — mandat
+          §22/§23, "one shared analytical capability"). print:hidden :
+          les graphiques interactifs n'ont pas leur place sur le document
+          imprimé (déjà couvert par le registre texte plus bas). */}
+      <div className="mx-5 mt-10 print:hidden lg:mx-8">
+        <ResultsAnalyticsOverview state={state} />
+      </div>
 
       {/* Lot D — masqué à l'impression (print:hidden) : la barre d'actions
           n'a pas sa place sur le document imprimé, qui doit rester un
