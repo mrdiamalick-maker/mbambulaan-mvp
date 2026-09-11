@@ -44,6 +44,7 @@ export function ProductShell({ children, space }: { children: React.ReactNode; s
       orgName={organization?.name}
       planName={plan?.name}
       actorName={actor?.name}
+      state={state ?? null}
       unread={unread}
       persistence={persistence}
       onReset={persistence === "memoire_locale_demo" ? () => void reset() : undefined}

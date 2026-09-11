@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCog, ShipWheel } from "lucide-react";
+import { ShieldCog } from "lucide-react";
 import type { Role } from "@/domain/types";
 import type { PlatformModule } from "@/domain/platform/modules";
 import { resolveActiveHref, resolvePrivateNavGroups, spaceIdentityLabel, type PrivateSpace } from "@/domain/platform/private-nav";
@@ -19,36 +19,19 @@ import {
   SidebarMenuItem
 } from "@/components/ui/sidebar";
 
-// LOT V3.1 (Scope A/B/G) — rail de navigation UNIQUE pour tout l'espace
-// privé (Coordination ET Espace État), remplaçant les deux implémentations
-// séparées qui existaient avant ce lot : src/components/shell/AppSidebar.tsx
-// (Coordinateur/Opérateur, primitives shadcn) et
-// src/components/institution/EtatSidebar.tsx (Espace État, Sheet/markup
-// entièrement dédiés, D9). Les deux rendaient déjà, sans le savoir, la même
-// palette de fond (--sidebar = #0b1a2a marine / --sidebar-primary = #b6522f
-// terracotta, cf. src/app/shadcn-theme.css) — sauf que
-// src/components/shell/AppSidebar.tsx appliquait `.private-sidebar`, une
-// surcharge CLAIRE (fond blanc) décidée avant l'arbitrage V3.1 ("le bleu
-// marine reste dans les contenus qui portent une vraie priorité, pas sur
-// toute la hauteur de travail"). Le mandat V3.1 rend Claude Design V3
-// (marine plein, jamais blanc) autorité visuelle pour tout l'environnement
-// privé unifié : cette classe n'est donc plus appliquée ici, ce qui fait
-// retomber le rail sur les jetons `:root` déjà navy — aucune nouvelle
-// couleur introduite, seulement le retrait d'une surcharge devenue
-// contradictoire avec l'autorité visuelle désormais en vigueur.
-//
-// Responsive : la version mobile (Sheet coulissant) est désormais celle,
-// déjà réelle et testée côté Coordination, de `Sidebar`/`SidebarProvider`
-// (src/components/ui/sidebar.tsx, rupture 768px, cf. src/hooks/use-mobile.ts)
-// — remplace le tiroir dédié EtatMobileNav (même composant Sheet
-// sous-jacent, mais dupliqué à la main avec une rupture propre à 1024px).
-// Ajustement documenté (Scope H) : sous 768-1023px, l'Espace État affiche
-// désormais le rail complet plutôt que le tiroir — vérifié en QA visuelle
-// à 768px (pas de débordement, densité correcte).
-//
-// `space` vient du layout serveur qui monte ce composant (jamais un choix
-// client) — cf. src/app/app/etat/layout.tsx et
-// src/app/app/(coordination)/layout.tsx.
+// LOT V3.8 ("Shell pixel-fidelity") — reprend littéralement le rail de la
+// maquette Claude Design (aside 246px, fond marine #0B1A2A, glyphe vague +
+// wordmark Newsreader, item actif = teinte terracotta + liseré encastré +
+// puce, légende de confiance en pied) au lieu du rail générique
+// shadcn/ui hérité de LOT V3.1 — même contenu réel (navigation
+// resolvePrivateNavGroups, légende TrustGlyph), habillage copié pixel pour
+// pixel sur les valeurs inline du fichier .dc.html source (vérifié par
+// lecture directe : padding 10px/12px, radius 5px, font 13px, puce 5px…).
+// Les primitives Sidebar/SidebarProvider (collapse desktop, tiroir mobile,
+// LOT V3.1) sont conservées telles quelles — seule leur habillage visuel
+// change ; la largeur exacte (246px) est fixée par PrivateShell via la
+// variable --sidebar-width plutôt que modifiée ici globalement (le même
+// composant Sidebar sert aussi à TerrainShell.tsx, hors mandat).
 export function PrivateSidebar({
   space,
   role,
@@ -68,22 +51,23 @@ export function PrivateSidebar({
   const activeHref = resolveActiveHref(pathname, groups);
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
+    <Sidebar collapsible="icon" style={{ background: "#0b1a2a", color: "#f7f3e9", borderRight: 0 }}>
+      <SidebarHeader style={{ padding: "24px 22px 18px" }} className="group-data-[collapsible=icon]:p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
+            <SidebarMenuButton size="lg" asChild className="gap-[11px] hover:bg-transparent active:bg-transparent">
               <Link href={homeHref}>
-                <span className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"><ShipWheel size={16} /></span>
+                <svg viewBox="0 0 28 28" style={{ width: 25, height: 25, flex: "none" }} aria-hidden="true">
+                  <path d="M2 11 Q7 5 14 11 T26 11" fill="none" stroke="#B6522F" strokeWidth="2.1" strokeLinecap="round" />
+                  <path d="M2 18 Q7 12 14 18 T26 18" fill="none" stroke="#F7F3E9" strokeWidth="2.1" strokeLinecap="round" opacity="0.85" />
+                </svg>
                 <div className="grid flex-1 text-left leading-tight">
-                  {/* Wordmark serif — identité commune aux deux espaces (Scope
-                      G) : repli littéral robuste (`var(--font-etat-display,
-                      Newsreader), Newsreader, ui-serif, Georgia, serif`) au
-                      lieu de dépendre du chargement next/font/google, scopé
-                      jusqu'ici à src/app/app/etat/layout.tsx uniquement — ce
-                      rail est désormais aussi monté côté Coordination. */}
-                  <span className="truncate text-sm font-semibold" style={{ fontFamily: "var(--font-etat-display, Newsreader), Newsreader, ui-serif, Georgia, serif" }}>Mbàmbulaan</span>
-                  <span className="truncate text-xs text-sidebar-foreground/60">{space === "etat" ? spaceIdentityLabel(space) : orgName ?? spaceIdentityLabel(space)}</span>
+                  <span className="truncate" style={{ fontFamily: "var(--font-etat-display, Newsreader), Newsreader, ui-serif, Georgia, serif", fontSize: 19.5, lineHeight: 1, color: "#F7F3E9" }}>
+                    Mbàmbulaan
+                  </span>
+                  <span className="truncate" style={{ fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", color: "rgba(247,243,233,.5)", marginTop: 4 }}>
+                    {space === "etat" ? spaceIdentityLabel(space) : orgName ?? spaceIdentityLabel(space)}
+                  </span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -91,22 +75,26 @@ export function PrivateSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {groups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarMenu>
+        {groups.map((group, groupIndex) => (
+          <SidebarGroup key={group.label} style={{ padding: groupIndex === 0 ? "4px 10px" : "0 10px" }}>
+            <SidebarGroupLabel style={{ fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", color: "rgba(247,243,233,.5)", opacity: 1, height: "auto", padding: "10px 2px 6px" }}>
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarMenu style={{ gap: 1 }}>
               {group.items.map((item) => {
                 const active = item.href === activeHref;
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.label}
+                      className="gap-2.5 rounded-[5px] px-3 py-2.5 text-[13px] hover:bg-[rgba(247,243,233,.07)] hover:text-[#F7F3E9] data-[active=true]:bg-[rgba(182,82,47,.22)] data-[active=true]:font-semibold data-[active=true]:text-[#F7F3E9] data-[active=true]:shadow-[inset_2px_0_0_#B6522F]"
+                      style={{ color: active ? "#F7F3E9" : "rgba(247,243,233,.7)", fontWeight: active ? 600 : 500 }}
+                    >
                       <Link href={item.href}>
-                        {/* Puce ronde (pleine si active, creuse sinon) — signature
-                            de navigation Claude Design V3, déjà validée sur
-                            l'ancien EtatSidebar, désormais commune aux deux
-                            espaces plutôt que réservée à l'un d'eux. */}
                         <span aria-hidden="true" className="flex size-4 shrink-0 items-center justify-center">
-                          <span className="size-[5px] rounded-full" style={{ background: active ? "var(--sidebar-primary)" : "currentColor", opacity: active ? 1 : 0.45 }} />
+                          <span className="size-[5px] rounded-full" style={{ background: active ? "#DE7A50" : "rgba(247,243,233,.26)" }} />
                         </span>
                         <item.icon />
                         <span>{item.label}</span>
@@ -120,26 +108,30 @@ export function PrivateSidebar({
         ))}
       </SidebarContent>
       <SidebarFooter>
-        {/* Légende de confiance — contenu réel propre à l'Espace État
-            (mandat P2.DESIGN-1A.2 §10, même lexique que TrustGlyph partagé
-            avec les registres/dossiers), conservé comme indicateur de
-            contexte légitime (Scope G) plutôt que supprimé ou étendu sans
-            raison à la Coordination, qui n'a jamais eu ce concept dans sa
-            propre UI. */}
+        {/* Légende de confiance — même contenu réel qu'avant ce lot
+            (P2.DESIGN-1A.2), habillage resserré sur les valeurs exactes de
+            la maquette (9.5px/.16em pour le libellé, 11.5px pour chaque
+            ligne). */}
         {space === "etat" && (
-          <div className="px-2 pb-2 pt-1 text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden">
-            <p className="mb-2 px-1 text-[9.5px] font-semibold uppercase tracking-[.16em] text-sidebar-foreground/45">Niveau de connaissance</p>
-            <div className="flex flex-col gap-1.5 px-1 text-[11.5px]">
-              <div className="flex items-center gap-2.5"><TrustGlyph level="declaree" onDark /> Déclarée</div>
-              <div className="flex items-center gap-2.5"><TrustGlyph level="observee" onDark /> Observée</div>
-              <div className="flex items-center gap-2.5"><TrustGlyph level="verifiee" onDark /> Vérifiée</div>
+          <div className="px-[22px] pb-[18px] pt-[10px] group-data-[collapsible=icon]:hidden" style={{ borderTop: "1px solid rgba(247,243,233,.12)" }}>
+            <p className="mb-[10px]" style={{ fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", color: "rgba(247,243,233,.5)" }}>Niveau de connaissance</p>
+            <div className="flex flex-col gap-[7px]" style={{ fontSize: 11.5, color: "rgba(247,243,233,.78)" }}>
+              <div className="flex items-center gap-[9px]"><TrustGlyph level="declaree" onDark /> Déclarée — non recoupée</div>
+              <div className="flex items-center gap-[9px]"><TrustGlyph level="observee" onDark /> Observée — relevée sur site</div>
+              <div className="flex items-center gap-[9px]"><TrustGlyph level="verifiee" onDark /> Vérifiée — confirmée</div>
             </div>
           </div>
         )}
         {isAdministrateur && (
-          <SidebarMenu>
+          <SidebarMenu className="px-2 pb-2">
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith("/app/administration")} tooltip="Administration">
+              <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith("/app/administration")}
+                tooltip="Administration"
+                className="gap-2.5 rounded-[5px] text-[13px] hover:bg-[rgba(247,243,233,.07)] hover:text-[#F7F3E9] data-[active=true]:bg-[rgba(182,82,47,.22)] data-[active=true]:text-[#F7F3E9]"
+                style={{ color: "rgba(247,243,233,.7)" }}
+              >
                 <Link href="/app/administration"><ShieldCog /><span>Administration</span></Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

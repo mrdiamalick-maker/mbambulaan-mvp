@@ -1,6 +1,6 @@
 "use client";
 
-import type { Role } from "@/domain/types";
+import type { ProductState, Role } from "@/domain/types";
 import type { PlatformModule } from "@/domain/platform/modules";
 import type { PrivateSpace } from "@/domain/platform/private-nav";
 import { roleLabel } from "@/domain/platform/private-nav";
@@ -20,6 +20,12 @@ import { PrivateHeader } from "@/components/shell/PrivateHeader";
 // entrée technique volontairement distincte (mobile-first, D9), non
 // concernée par l'arbitrage "shell unifié" du mandat V3.1 (qui porte sur
 // Coordination + Espace État, les deux surfaces V3 "outils de travail").
+//
+// LOT V3.8 ("Shell pixel-fidelity") — largeur du rail fixée à 246px (valeur
+// exacte de la maquette) via la variable CSS --sidebar-width posée ICI,
+// sur ce SidebarProvider précis, plutôt que dans la constante partagée
+// SIDEBAR_WIDTH de components/ui/sidebar.tsx : ce primitif sert aussi
+// TerrainShell.tsx (mobile, hors mandat), que ce lot ne doit pas affecter.
 export function PrivateShell({
   children,
   space,
@@ -28,6 +34,7 @@ export function PrivateShell({
   orgName,
   planName,
   actorName,
+  state,
   unread,
   persistence,
   onReset,
@@ -42,6 +49,10 @@ export function PrivateShell({
   orgName?: string;
   planName?: string;
   actorName?: string;
+  // Nécessaire pour la recherche globale réelle (GlobalSearch) et le
+  // décompte réel de sources connectées affichés dans l'en-tête ; null
+  // pendant le chargement initial (même contrat que useProduct().state).
+  state: ProductState | null;
   unread: number;
   persistence: string;
   onReset?: () => void;
@@ -51,11 +62,12 @@ export function PrivateShell({
 }) {
   const isAdministrateur = role === "administrateur";
   return (
-    <SidebarProvider className="shadcn-scope private-shell">
+    <SidebarProvider className="shadcn-scope private-shell" style={{ "--sidebar-width": "246px" } as React.CSSProperties}>
       <PrivateSidebar space={space} role={role} modules={modules} orgName={orgName} isAdministrateur={isAdministrateur} />
       <SidebarInset>
         <PrivateHeader
           space={space}
+          state={state}
           title={space === "coordination" ? roleLabel(role) : undefined}
           subtitle={
             space === "coordination"
