@@ -59,7 +59,7 @@ export function EtatRegistryHeader({
 
       <div className="etat-registry-heading">
         <div className="min-w-0">
-          <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />{eyebrow}</p>
+          <p className="etat-eyebrow">{eyebrow}</p>
           <h1 className="etat-display etat-h1 etat-h1--registry etat-registry-title">{title}</h1>
           <div className="etat-registry-description">{description}</div>
         </div>

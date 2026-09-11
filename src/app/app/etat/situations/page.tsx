@@ -117,7 +117,7 @@ export default function SituationsPage() {
       <div className="border-b border-[var(--etat-line)] px-6 pt-9 pb-8 lg:px-[60px]" style={{ background: "var(--etat-warm-white)" }}>
         <div className="flex flex-wrap gap-14">
           <div className="min-w-0 flex-1">
-            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Situations &amp; signaux · flux terrain</p>
+            <p className="etat-eyebrow">Situations &amp; signaux · flux terrain</p>
             <h1 className="etat-display etat-h1 etat-h1--registry mt-3.5">Ce qui remonte<br />des territoires.</h1>
             <p className="mt-4 max-w-[560px] text-[14.5px] leading-[1.62]" style={{ color: "rgba(11,26,42,.72)" }}>{totalSignalsCaptes} signaux captés, {signalsQualifies} qualifiés, {situationsSuivies} devenus situations suivies. Un signal n’est jamais une situation avant qualification par un humain.</p>
           </div>

@@ -28,7 +28,7 @@ export function Drawer({ open, onClose, title, eyebrow, size = "md", children }:
       <aside className={`absolute right-0 top-0 flex h-full w-full ${size === "lg" ? "max-w-2xl" : "max-w-md"} flex-col border-l border-[var(--etat-line)] bg-white`}>
         <div className="flex items-start justify-between border-b border-[var(--etat-line)] p-6">
           <div>
-            {eyebrow && <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />{eyebrow}</p>}
+            {eyebrow && <p className="etat-eyebrow">{eyebrow}</p>}
             <h2 className="etat-display etat-h2 mt-2 text-xl">{title}</h2>
           </div>
           <button onClick={onClose} className="grid size-9 shrink-0 place-items-center rounded-sm text-[var(--etat-stone-600)] hover:bg-[var(--etat-offwhite)]" aria-label="Fermer le panneau"><X size={18} /></button>

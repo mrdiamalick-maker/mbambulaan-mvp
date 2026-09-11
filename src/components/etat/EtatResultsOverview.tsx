@@ -48,7 +48,7 @@ export function EtatResultsOverview({ state, onPrint }: { state: ProductState; o
     <section className="px-5 pb-2 pt-8 print:px-0 lg:px-8 lg:pt-10">
       <div className="flex flex-col gap-6 border-b border-[var(--etat-line)] pb-8 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
-          <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Résultats · redevabilité</p>
+          <p className="etat-eyebrow">Résultats · redevabilité</p>
           <h1 className="etat-display etat-h1 etat-h1--registry mt-4 max-w-[820px]">Qu’avons-nous décidé, fait, obtenu, appris&nbsp;?</h1>
           <p className="mt-4 max-w-[760px] text-[14px] leading-6 text-[var(--etat-stone-600)]">{state.decisions.length} décisions enregistrées, {documentedDecisions.length} résultats d’engagement renseignés, {coveredTerritories} territoires concernés — sans confondre décision prise, changement observé et impact non démontré.</p>
         </div>
@@ -113,7 +113,7 @@ export function EtatResultsOverview({ state, onPrint }: { state: ProductState; o
       <div className="mt-8 border-t border-[var(--etat-line)] pt-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Chaîne de preuve</p>
+            <p className="etat-eyebrow">Chaîne de preuve</p>
             <h2 className="etat-display etat-h2 mt-3">De la décision au résultat, puis à l’apprentissage.</h2>
           </div>
           <Link href="/app/etat/redevabilite" className="etat-btn etat-btn-outline print:hidden">Ouvrir le registre complet <ArrowRight size={13} /></Link>
@@ -137,7 +137,7 @@ export function EtatResultsOverview({ state, onPrint }: { state: ProductState; o
 
       <div className="mt-8 grid gap-5 border-b border-[var(--etat-line)] pb-9 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="bg-[var(--etat-warm-white)] p-6">
-          <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Ce que nous apprenons</p>
+          <p className="etat-eyebrow">Ce que nous apprenons</p>
           <div className="mt-4 divide-y divide-[var(--etat-line)]">
             {learningRows.map((learning) => <div key={learning.id} className="py-3.5 first:pt-0 last:pb-0"><p className="text-[13px] font-semibold text-[var(--etat-navy)]">{learning.title}</p><p className="mt-1 text-[11.5px] leading-5 text-[var(--etat-stone-600)]">{learning.summary}</p></div>)}
           </div>

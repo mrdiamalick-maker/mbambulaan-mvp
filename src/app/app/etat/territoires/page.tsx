@@ -132,7 +132,7 @@ export default function TerritoiresPage() {
       <header className="border-b border-[var(--etat-line)] bg-[var(--etat-warm-white)] px-6 pt-8 lg:px-[60px] lg:pt-10">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Atlas territorial</p>
+            <p className="etat-eyebrow">Atlas territorial</p>
             <h1 className="etat-display etat-h1 etat-h1--registry mt-3.5">Comprendre où agir,<br />territoire par territoire.</h1>
             <p className="mt-3 max-w-[660px] text-[13.5px] leading-6 text-[var(--etat-stone-600)]">Registre national des territoires suivis, de leurs situations ouvertes et de leurs capacités connues — sans score composite artificiel.</p>
           </div>
@@ -276,7 +276,7 @@ export default function TerritoiresPage() {
           {selectedTerritory ? (
             <>
               <div className="border-b border-[var(--etat-line)] p-6">
-                <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />{selectedTerritory.region}</p>
+                <p className="etat-eyebrow">{selectedTerritory.region}</p>
                 <div className="mt-3 flex items-end gap-3">
                   <h2 className="etat-h1 text-[34px]">{selectedTerritory.name}</h2>
                   <span className="mb-1.5 flex items-center gap-1.5">

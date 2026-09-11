@@ -46,7 +46,6 @@ export function DetailSurface({
         <SheetHeader className="shrink-0 border-b p-6 text-left">
           {eyebrow && (
             <p className={scope === "etat" ? "etat-eyebrow" : "text-xs font-semibold uppercase tracking-wide text-muted-foreground"}>
-              {scope === "etat" && <span className="etat-eyebrow-dot" aria-hidden="true" />}
               {eyebrow}
             </p>
           )}

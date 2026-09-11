@@ -509,7 +509,7 @@ export default function EtatPage() {
             passerelle). */}
         <div className="pointer-events-none absolute inset-0" style={{ background: "linear-gradient(0deg, rgba(11,26,42,.88) 0%, rgba(11,26,42,.55) 45%, rgba(11,26,42,.22) 100%)" }} />
         <div className="relative flex flex-col px-6 pb-8 pt-[130px] sm:pt-[170px] lg:px-[60px] lg:pb-10 lg:pt-[270px]">
-          <p className="etat-eyebrow etat-eyebrow--on-dark"><span className="etat-eyebrow-dot" />Brief national · {todayLabel}</p>
+          <p className="etat-eyebrow etat-eyebrow--on-dark">Brief national · {todayLabel}</p>
           {/* xl (1280px), pas lg (1024px) : à 1024 (mandat §14, largeur
               vérifiée), min-w-0 + flex-1 laissait la colonne du H1 se faire
               écraser par les filtres sur la même ligne plutôt que de
@@ -615,7 +615,7 @@ export default function EtatPage() {
       <section id="pouls" className="scroll-mt-6 border-b border-[var(--etat-line)] py-11">
         <div className="flex flex-col gap-10 lg:flex-row lg:gap-14">
           <div className="lg:w-[290px] lg:flex-none">
-            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Le pouls de la filière</p>
+            <p className="etat-eyebrow">Le pouls de la filière</p>
             <h2 className="etat-display etat-h2 mt-3.5 text-[27px]">Capter tout signal, quel que soit le canal.</h2>
             <p className="mt-3 text-[13px] leading-[1.6]" style={{ color: "rgba(11,26,42,.62)" }}>{totalSignalsCaptes} signaux captés à ce jour, tous canaux confondus. Chaque situation suivie par le réseau en découle.</p>
             {/* P2.DESIGN-1B §5 — passerelle vers la nouvelle route dédiée
@@ -691,7 +691,7 @@ export default function EtatPage() {
           rétrécissement) ; vert "positive" pour Résultat — les 3 tons déjà
           définis par .etat-metric, aucune teinte inventée ici. */}
       <section id="pipeline" className="scroll-mt-6 border-b border-[var(--etat-line)] py-11">
-        <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />De la capture à la décision</p>
+        <p className="etat-eyebrow">De la capture à la décision</p>
         <h2 className="etat-display etat-h2 mt-3.5 text-[27px]">Chaque signal suit le même chemin, jusqu’à la décision.</h2>
         <p className="mt-3 max-w-2xl text-[13.5px] leading-[1.6]" style={{ color: "rgba(11,26,42,.68)" }}>
           Les {totalSignalsCaptes} signaux captés ont donné lieu à {situationsQualifiees} situations qualifiées à ce jour — un signal peut aussi rester en observation, se rattacher à un constat, ou être écarté sans jamais devenir une situation. {situationsEngagees} sont activement engagées dans la boucle de coordination ; {situationsDecidees} portent déjà au moins une décision documentée ({totalDecisions} décisions au total), et {situationsAvecResultat} affichent un résultat constaté sur le terrain.
@@ -745,7 +745,7 @@ export default function EtatPage() {
       <section id="terrain" className="scroll-mt-6 border-b border-[var(--etat-line)] py-11">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Lecture territoriale</p>
+            <p className="etat-eyebrow">Lecture territoriale</p>
             <h2 className="etat-display etat-h2 mt-3.5 text-[27px]">Le littoral, du nord au sud.</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -970,7 +970,7 @@ export default function EtatPage() {
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="etat-panel p-5">
           <div className="flex items-center justify-between gap-2">
-            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />À arbitrer</p>
+            <p className="etat-eyebrow">À arbitrer</p>
             <Link href="/app/etat/arbitrages" className="flex shrink-0 items-center gap-1 text-xs font-bold text-[var(--etat-navy-800)] hover:text-[var(--etat-navy-600)]">Voir tout <ArrowRight size={12} /></Link>
           </div>
           <div className="mt-3 space-y-2.5">
@@ -994,7 +994,7 @@ export default function EtatPage() {
 
         <div className="etat-panel p-5">
           <div className="flex items-center justify-between gap-2">
-            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Programmes à suivre</p>
+            <p className="etat-eyebrow">Programmes à suivre</p>
             <Link href="/app/etat/programmes" className="flex shrink-0 items-center gap-1 text-xs font-bold text-[var(--etat-navy-800)] hover:text-[var(--etat-navy-600)]">Voir tout <ArrowRight size={12} /></Link>
           </div>
           <div className="mt-3 space-y-2.5">
@@ -1018,7 +1018,7 @@ export default function EtatPage() {
             haut ("seule destination preuve pleinement construite
             aujourd'hui"). */}
         <div className="etat-panel p-5">
-          <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Ce qui est documenté</p>
+          <p className="etat-eyebrow">Ce qui est documenté</p>
           <div className="mt-3">
             <Link href="/app/etat/redevabilite" className="flex items-center justify-between gap-2 border-t border-[var(--etat-line)] py-2.5 text-sm font-semibold text-[var(--etat-navy-950)] first:border-t-0 first:pt-0 hover:text-[var(--etat-navy-600)]">Décisions récentes <ArrowRight size={13} className="shrink-0 text-[var(--etat-stone-400)]" /></Link>
             <Link href="/app/etat/rapport" className="flex items-center justify-between gap-2 border-t border-[var(--etat-line)] py-2.5 text-sm font-semibold text-[var(--etat-navy-950)] hover:text-[var(--etat-navy-600)]">Résultats et effets <ArrowRight size={13} className="shrink-0 text-[var(--etat-stone-400)]" /></Link>
@@ -1039,7 +1039,7 @@ export default function EtatPage() {
           px-6/space-y-0 ci-dessus, comme le hero). etat-canvas-dark
           (déjà défini, réutilisé tel quel — pas un nouveau dégradé). */}
       <div className="etat-canvas-dark px-6 py-14 text-center lg:px-[60px]">
-        <p className="etat-eyebrow etat-eyebrow--on-dark justify-center"><span className="etat-eyebrow-dot" />Géej tasul yaakaar</p>
+        <p className="etat-eyebrow etat-eyebrow--on-dark justify-center">Géej tasul yaakaar</p>
         <p className="etat-h2 mx-auto mt-4 max-w-[560px] text-2xl" style={{ color: "var(--etat-cream)" }}>La mer ne manque jamais d’espoir.</p>
         <p className="mx-auto mt-3 max-w-[480px] text-[13px] leading-[1.6]" style={{ color: "rgba(247,243,233,.62)", fontFamily: "var(--etat-font-body)" }}>Proverbe wolof — le même esprit qui porte chaque pêcheur, chaque territoire, chaque décision documentée sur cette page.</p>
       </div>

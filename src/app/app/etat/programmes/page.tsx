@@ -184,7 +184,7 @@ export default function ProgrammesPage() {
       <section className="overflow-hidden border border-[var(--etat-line)] bg-[var(--etat-warm-white)]">
         <div className="grid xl:grid-cols-[minmax(0,1.4fr)_minmax(310px,.6fr)]">
           <div className="min-w-0 px-6 py-8 lg:px-9 lg:py-10">
-            <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Programmes · portefeuille</p>
+            <p className="etat-eyebrow">Programmes · portefeuille</p>
             <h1 className="etat-display etat-h1 etat-h1--registry mt-4 max-w-[740px]">Du besoin territorial à l’action documentée.</h1>
             <p className="mt-4 max-w-[760px] text-[14px] leading-6 text-[var(--etat-stone-600)]">
               {activeProgrammesCount} programme(s) actif(s) sur {filteredProgrammes.length} affiché(s), dans {coveredTerritoriesCount} territoire(s). {trackedIndicatorsCount} indicateur(s) décrivent la mise en œuvre ; les financements confirmés représentent {formatFcfa(confirmedFunding)}. Chaque montant conserve son statut de confiance.

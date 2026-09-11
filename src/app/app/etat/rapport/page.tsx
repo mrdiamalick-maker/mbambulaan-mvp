@@ -287,7 +287,7 @@ export default function EtatReportPage() {
           être caché ou conditionné à un état d'interface. */}
       <div className="mx-5 mt-10 flex flex-wrap items-end justify-between gap-3 border-t border-[var(--etat-line)] pt-8 print:hidden lg:mx-8 lg:mt-12">
         <div>
-          <p className="etat-eyebrow"><span className="etat-eyebrow-dot" />Rapports &amp; registres</p>
+          <p className="etat-eyebrow">Rapports &amp; registres</p>
           <h2 className="etat-display etat-h2 mt-3">Préparer une lecture partageable.</h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">
