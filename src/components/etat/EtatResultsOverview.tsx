@@ -4,6 +4,15 @@ import { ArrowRight, Printer } from "lucide-react";
 import { ResultTrendChart } from "@/components/etat/EtatDataVisualizations";
 import { decisionTypeLabels, type Decision, type ProductState } from "@/domain/types";
 
+// Mise en mot française 1-10 (au-delà, chiffre) — même helper que
+// app/etat/arbitrages/page.tsx (frenchCount), dupliqué ici pour rester au
+// plus près de son point d'usage plutôt que de créer une dépendance
+// croisée entre une page État et un composant partagé Coordination.
+const FRENCH_COUNT_WORDS = ["Zéro", "Un", "Deux", "Trois", "Quatre", "Cinq", "Six", "Sept", "Huit", "Neuf", "Dix"];
+function frenchCountWord(n: number): string {
+  return n >= 0 && n <= 10 ? FRENCH_COUNT_WORDS[n] : String(n);
+}
+
 function completedResultForDecision(state: ProductState, decision: Decision) {
   const coordination = decision.coordinationId
     ? state.coordinationSpaces.find((item) => item.id === decision.coordinationId)
@@ -44,8 +53,23 @@ export function EtatResultsOverview({ state, onPrint }: { state: ProductState; o
     .filter((learning) => Boolean(learning.situationId || learning.initiativeId || learning.outcomeId || learning.fieldMissionId))
     .slice(0, 3);
 
+  // h1 (LOT V3.22, "copie conforme littérale") — la maquette affirme "Six
+  // indicateurs suivis, deux d'entre eux n'ont pas assez de données pour
+  // conclure" : un chiffre de fixture ("six indicateurs nationaux") sans
+  // équivalent dans ce Core (results-analytics.ts documente déjà, en
+  // en-tête, qu'aucun registre de ce type n'existe — 1 Result, 1 Outcome,
+  // 0 ImpactEvidence dans ce Demo World). Le recopier fabriquerait un
+  // référentiel inexistant. Reprend la MÊME forme rhétorique ("N suivis,
+  // M sans preuve suffisante") appliquée aux 3 vrais registres déjà
+  // affichés plus bas sur cette page (Résultat/Changement/Impact,
+  // panneau "Ce que nous pouvons affirmer") plutôt qu'un chiffre inventé.
+  const trackedRegistries = [state.results.length, state.outcomes.length, state.impactEvidences.length];
+  const registriesWithoutData = trackedRegistries.filter((count) => count === 0).length;
+  const registryCountWord = frenchCountWord(trackedRegistries.length);
+  const insufficientCountWord = frenchCountWord(registriesWithoutData).toLowerCase();
+
   return (
-    <section className="px-5 pb-2 pt-8 print:px-0 lg:px-8 lg:pt-10">
+    <section className="mb-rise px-5 pb-2 pt-8 print:px-0 lg:px-8 lg:pt-10">
       <div className="flex flex-col gap-6 border-b border-[var(--etat-line)] pb-8 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
           <p className="etat-eyebrow">Résultats et redevabilité</p>
@@ -61,7 +85,9 @@ export function EtatResultsOverview({ state, onPrint }: { state: ProductState; o
               un contenu déjà substantiellement fidèle à l'esprit de la
               maquette (entonnoir de preuve, comparaison territoriale,
               tendance, "ce que ce graphique ne dit pas"). */}
-          <h1 className="mt-3 max-w-[34ch] font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 32, lineHeight: 1.15, color: "var(--etat-navy)" }}>Qu’avons-nous décidé, fait, obtenu, appris&nbsp;?</h1>
+          <h1 className="mt-3 max-w-[34ch] font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 32, lineHeight: 1.15, color: "var(--etat-navy)" }}>
+            {registryCountWord} registres suivis, {registriesWithoutData === 0 ? "tous ont" : `${insufficientCountWord} d’entre eux n’${registriesWithoutData > 1 ? "ont" : "a"}`} {registriesWithoutData === 0 ? "assez de données pour conclure" : "pas assez de données pour conclure"}
+          </h1>
           <p className="mt-4 max-w-[760px] text-[14px] leading-6 text-[var(--etat-stone-600)]">{state.decisions.length} décisions enregistrées, {documentedDecisions.length} résultats d’engagement renseignés, {coveredTerritories} territoires concernés — sans confondre décision prise, changement observé et impact non démontré.</p>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
