@@ -214,7 +214,7 @@ export default function EtatPage() {
   const blindSpots = dataSourceRegistry(state).filter((item) => item.connectionState === "non_connectee" || item.connectionState === "absente");
 
   return (
-    <div className="pb-16">
+    <div className="mb-rise pb-16">
       <div className="px-4 pb-6 pt-7 sm:px-[30px]">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:gap-9">
           <div className="min-w-0 flex-1">

@@ -116,12 +116,24 @@ export default function TerritoiresPage() {
     return { site, territory, count };
   });
 
+  // h1 littéral de la maquette ("{N} sites de débarquement, un seul objet
+  // vivant par territoire") — "sites de débarquement" correspond au
+  // réel Site.type === "quai" (LOT V3.7, domain/data-sources.ts : "quai"
+  // est déjà le type retenu pour les sites de débarquement/relais de
+  // quai). "Un seul objet vivant par territoire" reste vrai de
+  // l'implémentation (AtlasMap rend une forme distincte par territoire,
+  // jamais plusieurs objets superposés) — affirmation structurelle, pas
+  // un chiffre, jamais fabriquée.
+  const landingSiteCount = state.sites.filter((site) => site.type === "quai").length;
+
   return (
-    <div className="pb-16">
+    <div className="mb-rise pb-16">
       <div className="flex flex-col gap-4 px-4 pb-4 pt-7 sm:flex-row sm:items-end sm:justify-between sm:px-[30px]">
         <div className="min-w-0 flex-1">
           <p className="etat-eyebrow">Atlas territorial</p>
-          <h1 className="mt-2.5 font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 32, lineHeight: 1.15, color: "var(--etat-navy)" }}>Comprendre où agir, territoire par territoire.</h1>
+          <h1 className="mt-2.5 font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 32, lineHeight: 1.15, color: "var(--etat-navy)" }}>
+            {landingSiteCount} site{landingSiteCount > 1 ? "s" : ""} de débarquement, un seul objet vivant par territoire
+          </h1>
         </div>
         <div className="flex flex-wrap justify-end gap-1.5">
           <button onClick={() => setZoneFilter("all")} className="rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={zoneFilter === "all" ? { borderColor: "var(--etat-navy)", background: "var(--etat-navy)", color: "#F7F3E9" } : { borderColor: "rgba(11,26,42,.2)", color: "var(--etat-navy)" }}>Tout le littoral</button>
