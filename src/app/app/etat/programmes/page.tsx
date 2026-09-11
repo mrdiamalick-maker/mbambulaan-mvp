@@ -10,6 +10,21 @@ import { portfolioRows, portfolioStats, programmeHealthLabel, type ProgrammePort
 import { MARITIME_ZONE_LABEL, MARITIME_ZONE_ORDER, resolveMaritimeZone } from "@/domain/atlas-overview";
 
 const compactMoney = new Intl.NumberFormat("fr-FR", { notation: "compact", style: "currency", currency: "XOF", maximumFractionDigits: 0 });
+// Formateur dédié au h1 (LOT V3.22, "copie conforme littérale") — le
+// style "currency" (compactMoney, ci-dessus, déjà utilisé par les tuiles
+// de stat) rend "889 M F CFA" (espace parasite entre F et CFA, artefact
+// de l'ICU fr-FR pour la devise XOF) ; la maquette écrit "889 M FCFA"
+// sans espace — un formateur "decimal" + suffixe littéral reproduit
+// exactement ce rendu.
+const compactNumber = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 0 });
+function compactFcfa(amountFcfa: number): string {
+  return `${compactNumber.format(amountFcfa)} FCFA`;
+}
+const FRENCH_PROGRAMME_COUNT = ["Zéro", "Un", "Deux", "Trois", "Quatre", "Cinq", "Six", "Sept", "Huit", "Neuf", "Dix"];
+function frenchProgrammeCount(n: number): string {
+  const word = n >= 0 && n <= 10 ? FRENCH_PROGRAMME_COUNT[n] : String(n);
+  return `${word} programme${n > 1 ? "s" : ""}`;
+}
 const healthColor: Record<string, string> = { aligne: "#4E7B5A", attention: "#D89A4A", critique: "#C8452B" };
 
 // LOT V3.19 ("Programmes — copie conforme du rendu maquette") —
@@ -56,6 +71,7 @@ export default function ProgrammesPage() {
     { key: "a_mobiliser", label: "À mobiliser", color: "rgba(11,26,42,.25)" }
   ] as const).map((bucket) => ({ ...bucket, total: allFunding.filter((f) => f.status === bucket.key).reduce((sum, f) => sum + f.amountFcfa, 0) }));
   const budgetTotal = Math.max(1, budgetBuckets.reduce((sum, b) => sum + b.total, 0));
+  const confirmedBudgetPct = Math.round(((budgetBuckets.find((b) => b.key === "confirme")?.total ?? 0) / budgetTotal) * 100);
 
   // Jalons — voir commentaire d'en-tête : échéances réelles (Situation.
   // dueAt, futures) parmi les situations rattachées à un programme.
@@ -82,7 +98,7 @@ export default function ProgrammesPage() {
   const dossierInitiative = dossierInitiativeId ? state.initiatives.find((item) => item.id === dossierInitiativeId) ?? null : null;
 
   return (
-    <div className="px-4 pb-16 pt-6 sm:px-[30px]">
+    <div className="mb-rise px-4 pb-16 pt-6 sm:px-[30px]">
       {/* lg:flex-row (pas sm:) : les 4 tuiles de stat (min-w-[104px]
           chacune, ~440px+bordures au total) débordaient à 768px quand
           elles partageaient la ligne avec le titre dès 640px — trouvé en
@@ -92,7 +108,13 @@ export default function ProgrammesPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-[26px]">
         <div className="min-w-0 flex-1">
           <p className="etat-eyebrow">Portefeuille de programmes</p>
-          <h1 className="mt-2.5 max-w-[32ch] font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 32, lineHeight: 1.15, color: "var(--etat-navy)" }}>Du besoin territorial à l’action documentée.</h1>
+          {/* h1 littéral de la maquette ("{N} programmes, {montant}
+              identifiés, {pct} % confirmés") — mêmes 3 chiffres réels que
+              les tuiles de stat et le waterfall ci-dessous, jamais un
+              4e calcul divergent. */}
+          <h1 className="mt-2.5 max-w-[32ch] font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 32, lineHeight: 1.15, color: "var(--etat-navy)" }}>
+            {frenchProgrammeCount(state.initiatives.length)}, {compactFcfa(stats.totalBudgetFcfa)} identifiés, {confirmedBudgetPct} % confirmés
+          </h1>
         </div>
         <div className="flex flex-wrap gap-px border lg:flex-none" style={{ background: "rgba(11,26,42,.12)", borderColor: "rgba(11,26,42,.12)" }}>
           {[
