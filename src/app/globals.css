@@ -435,6 +435,42 @@ button:disabled { cursor: not-allowed; }
 }
 .flow-line { animation: flowDash 4s linear infinite; }
 
+/* Mandat "copie conforme" — les 4 animations littérales de la maquette
+   Claude Design (extraites du bundle standalone.html, jamais portées
+   avant ce lot malgré des reconstructions successives des 8 écrans) :
+   mb-rise (entrée d'un bloc de contenu au montage), mb-slide (panneau de
+   détail qui glisse depuis la droite), mb-grow (dépliage d'un panneau
+   accordéon), mb-pulse (point indicateur "vivant", répété à l'infini —
+   déjà un concept réel dans ce produit via .map-pulse ci-dessus, mais
+   avec une timing function différente : mb-pulse est la version exacte
+   de la maquette, utilisée telle quelle sur les nouveaux écrans plutôt
+   que réinterprétée avec .map-pulse). Durées utilisées telles quelles
+   dans le HTML source : .18s/.25s/.28s/.3s/.4s pour mb-rise.
+   Respecte prefers-reduced-motion via la règle globale ci-dessus (elle
+   s'applique à toute déclaration animation-duration, y compris celles-ci). */
+@keyframes mb-rise {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes mb-slide {
+  from { opacity: 0; transform: translateX(22px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes mb-grow {
+  from { opacity: 0; transform: scaleY(.2); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+@keyframes mb-pulse {
+  0% { transform: scale(1); opacity: .5; }
+  75% { transform: scale(3.2); opacity: 0; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+.mb-rise { animation: mb-rise .4s ease-out; }
+.mb-rise-fast { animation: mb-rise .18s ease-out; }
+.mb-slide-in { animation: mb-slide .3s ease-out; }
+.mb-grow-in { animation: mb-grow .25s ease-out; transform-origin: top; }
+.mb-pulse-dot { animation: mb-pulse 2.8s ease-out infinite; }
+
 @media (max-width: 768px) {
   .mobile-safe { padding-bottom: 5.5rem; }
   .display-title { font-size: clamp(2.35rem, 12vw, 4rem); }

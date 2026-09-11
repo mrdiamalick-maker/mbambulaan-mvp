@@ -44,6 +44,19 @@ import { deriveDatasetReferenceAt } from "@/domain/signal-crossing";
 // temps. Comparer contre le dernier évènement réellement observé dans le
 // jeu lui-même donne un âge stable et honnête, qui ne dérive jamais vers
 // des "il y a 38 jours" au fil des sessions.
+// Le h1 de la maquette ("Trois décisions attendues, chacune avec ce qui
+// reste inconnu au moment de décider") code en dur le nombre "trois",
+// exact pour SA fixture (3 arbitrages de démonstration) mais faux pour ce
+// produit dès que le nombre réel de situations à arbitrer diffère (18
+// dans le Demo World actuel, cf. tests) — recopier le mot fabriquerait un
+// chiffre. Ce helper reprend la même mise en mot française du prototype
+// pour 1 à 10 (le cas le plus probable), et bascule sur le chiffre réel
+// au-delà plutôt que d'inventer un mot.
+const FRENCH_ORDINAL_COUNT = ["Zéro", "Une", "Deux", "Trois", "Quatre", "Cinq", "Six", "Sept", "Huit", "Neuf", "Dix"];
+function frenchCount(n: number): string {
+  return n >= 0 && n <= 10 ? FRENCH_ORDINAL_COUNT[n] : String(n);
+}
+
 function situationAge(situation: Situation, referenceAtMs: number): string | null {
   const first = situation.history[0]?.at;
   if (!first) return null;
@@ -124,14 +137,17 @@ export default function ArbitragesPage() {
   const selKnown = selected ? selected.history.slice(0, 3).map((entry) => entry.detail || entry.label) : [];
 
   return (
-    <div className="px-4 pb-16 pt-6 sm:px-[30px] sm:pt-6">
-      {/* En-tête — reprise littérale de la maquette (eyebrow 10px sans
-          puce, h1 32px Newsreader, bandeau de doctrine à droite bordé
-          terracotta) ; les filtres réels (périmètre/recherche/urgence/
-          signaler) n'ont pas d'équivalent dans la maquette — capacités
-          réelles conservées, resserrées sous le titre plutôt que
-          supprimées pour "coller" à l'écran source (même discipline que
-          le shell, LOT V3.8 : jamais retirer une capacité réelle pour
+    <div className="mb-rise px-4 pb-16 pt-6 sm:px-[30px] sm:pt-6">
+      {/* En-tête — h1 littéral de la maquette ("{N} décisions attendues,
+          chacune avec ce qui reste inconnu au moment de décider"), avec
+          le compte réel de situations en attente au lieu du "Trois" figé
+          de la fixture du prototype (cf. frenchCount ci-dessus) ; eyebrow
+          10px sans puce et bandeau de doctrine à droite bordé terracotta,
+          tous deux littéraux. Les filtres réels (périmètre/recherche/
+          urgence/signaler) n'ont pas d'équivalent dans la maquette —
+          capacités réelles conservées, resserrées sous le titre plutôt
+          que supprimées pour "coller" à l'écran source (même discipline
+          que le shell, LOT V3.8 : jamais retirer une capacité réelle pour
           gagner en fidélité visuelle). */}
       {/* flex-col/sm:flex-row plutôt que flex-wrap seul : un enfant
           flex-1/min-w-0 partage sa ligne avec le bandeau shrink-0 au lieu
@@ -142,12 +158,11 @@ export default function ArbitragesPage() {
         <div className="min-w-0 flex-1">
           <p className="etat-eyebrow">Arbitrages</p>
           <h1 className="mt-[9px] max-w-[32ch] font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 32, lineHeight: 1.15, color: "var(--etat-navy)" }}>
-            Qu’est-ce qui demande une décision maintenant ?
+            {frenchCount(situationsAArbitrer.length)} décision{situationsAArbitrer.length > 1 ? "s" : ""} attendue{situationsAArbitrer.length > 1 ? "s" : ""}, chacune avec ce qui reste inconnu au moment de décider
           </h1>
         </div>
         <p className="max-w-[290px] shrink-0 border-l-2 pl-3.5 text-[12.5px] leading-[1.55]" style={{ borderColor: "var(--etat-terracotta)", color: "rgba(11,26,42,.65)" }}>Une décision n’efface pas l’incertitude. Mbàmbulaan l’enregistre avec elle, pour que la relecture soit honnête.</p>
       </div>
-      <p className="mt-3.5 max-w-[600px] text-[14.5px] leading-[1.62]" style={{ color: "rgba(11,26,42,.72)" }}>{situationsAArbitrer.length} situation{situationsAArbitrer.length > 1 ? "s" : ""} de risque élevé ou critique attend{situationsAArbitrer.length > 1 ? "ent" : ""} une orientation.</p>
 
       <div className="mt-6 flex flex-wrap items-end gap-x-6 gap-y-4">
         <div className="flex flex-none flex-wrap gap-7">
