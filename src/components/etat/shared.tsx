@@ -38,7 +38,11 @@ import { EvidenceLine, KnowledgeState } from "@/components/foundations";
 import { SituationHero } from "@/components/situations/SituationHero";
 import { WhyMbambulaan, ValueTrailSection } from "@/components/situations/SituationNarrative";
 
-export const priorityLabels: Record<Situation["priority"], string> = { critique: "Critique", haute: "Élevé", moyenne: "Moyen", faible: "Faible" };
+// "Modéré" (LOT V3.22, "copie conforme littérale") au lieu de "Moyen" —
+// mot littéral de la maquette (écran `isSit`, chips de sévérité et
+// badges de liste) pour la même priorité "moyenne" du domaine ; label
+// partagé par tout le produit, jamais un doublon propre à cet écran.
+export const priorityLabels: Record<Situation["priority"], string> = { critique: "Critique", haute: "Élevé", moyenne: "Modéré", faible: "Faible" };
 export const priorityToTag: Record<Situation["priority"], "stable" | "vigilance" | "critique"> = { critique: "critique", haute: "vigilance", moyenne: "stable", faible: "stable" };
 export const glyphBorderColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "var(--etat-navy-600)", vigilance: "var(--etat-ocre)", critique: "var(--etat-terracotta)" };
 export const arbitrageFillColor: Record<"stable" | "vigilance" | "critique", string> = { stable: "rgba(29,68,104,.08)", vigilance: "rgba(198,138,44,.14)", critique: "rgba(182,82,47,.15)" };

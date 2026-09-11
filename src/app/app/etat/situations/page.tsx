@@ -64,7 +64,7 @@ type TabKey = (typeof TABS)[number]["key"];
 
 export default function SituationsPage() {
   const { state } = useProduct();
-  const [severityFilter, setSeverityFilter] = useState<"all" | "critique" | "haute">("all");
+  const [severityFilter, setSeverityFilter] = useState<"all" | "critique" | "haute" | "moyenne">("all");
   const [channelFilter, setChannelFilter] = useState<"all" | Signal["channel"]>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("connu");
@@ -92,6 +92,13 @@ export default function SituationsPage() {
   // d'âge (premier évènement d'historique → horloge métier du jeu de
   // données), jamais une distribution fabriquée.
   const openSituations = state.situations.filter((item) => item.status !== "reglee");
+  // h1 littéral de la maquette ("{N} situations ouvertes, {M} attendent
+  // encore une source secondaire") — "attendre une source secondaire"
+  // correspond, dans le Core réel, à Situation.trust encore à
+  // "declaree"/"observee" (pas encore recoupé par un second canal pour
+  // atteindre "verifiee" — TrustGlyph, même échelle que le reste du
+  // produit), jamais un champ ou un chiffre inventé pour cet écran.
+  const awaitingSecondSource = openSituations.filter((item) => item.trust === "declaree" || item.trust === "observee");
   const situationAgeDays = (situation: Situation): number | null => {
     const first = situation.history[0]?.at;
     if (!first) return null;
@@ -121,11 +128,13 @@ export default function SituationsPage() {
   const selStageIndex = selected ? pipelineStages.findIndex((stage) => stage.status === selected.status) : -1;
 
   return (
-    <div className="px-4 pb-16 pt-6 sm:px-[30px]">
+    <div className="mb-rise px-4 pb-16 pt-6 sm:px-[30px]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-[26px]">
         <div className="min-w-0 flex-1">
           <p className="etat-eyebrow">Situations et signaux</p>
-          <h1 className="mt-2.5 font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 32, lineHeight: 1.15, color: "var(--etat-navy)" }}>Ce qui remonte des territoires.</h1>
+          <h1 className="mt-2.5 font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 32, lineHeight: 1.15, color: "var(--etat-navy)" }}>
+            {openSituations.length} situation{openSituations.length > 1 ? "s" : ""} ouverte{openSituations.length > 1 ? "s" : ""}, {awaitingSecondSource.length} attend{awaitingSecondSource.length > 1 ? "ent" : ""} encore une source secondaire
+          </h1>
         </div>
         <div className="flex flex-none gap-6">
           {[
@@ -178,8 +187,18 @@ export default function SituationsPage() {
           (`sitFilters`). */}
       <div className="mt-4 flex flex-wrap items-center gap-1.5">
         <span className="mr-1 text-[10px] uppercase tracking-[.14em]" style={{ color: "rgba(11,26,42,.45)" }}>Filtrer</span>
-        {([{ key: "all", label: `Toutes · ${state.situations.length}` }, { key: "critique", label: `Critique · ${state.situations.filter((s) => s.priority === "critique").length}` }, { key: "haute", label: `Élevé · ${state.situations.filter((s) => s.priority === "haute").length}` }] as const).map((f) => (
-          <button key={f.key} onClick={() => setSeverityFilter(f.key)} className="rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={severityFilter === f.key ? { borderColor: "var(--etat-navy)", background: "var(--etat-navy)", color: "#F7F3E9" } : { borderColor: "rgba(11,26,42,.2)", color: "var(--etat-navy)" }}>{f.label}</button>
+        {([
+          { key: "all", label: `Toutes · ${state.situations.length}` },
+          { key: "critique", label: `Critique · ${state.situations.filter((s) => s.priority === "critique").length}` },
+          { key: "haute", label: `Élevé · ${state.situations.filter((s) => s.priority === "haute").length}` },
+          // "Modéré" (LOT V3.22) — 4e puce de sévérité de la maquette,
+          // absente jusqu'ici (seules Critique/Élevé étaient filtrables).
+          { key: "moyenne", label: `Modéré · ${state.situations.filter((s) => s.priority === "moyenne").length}`, dot: "rgb(159,185,206)" }
+        ] as const).map((f) => (
+          <button key={f.key} onClick={() => setSeverityFilter(f.key)} className="flex items-center gap-[7px] rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={severityFilter === f.key ? { borderColor: "var(--etat-navy)", background: "var(--etat-navy)", color: "#F7F3E9" } : { borderColor: "rgba(11,26,42,.2)", color: "var(--etat-navy)" }}>
+            {"dot" in f && <span className="size-[7px] shrink-0 rounded-full" style={{ background: f.dot }} />}
+            {f.label}
+          </button>
         ))}
         {channelCounts.filter((c) => c.count > 0).map(({ channel, count }) => (
           <button key={channel} onClick={() => setChannelFilter(channelFilter === channel ? "all" : channel)} className="flex items-center gap-[7px] rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={channelFilter === channel ? { borderColor: "var(--etat-navy)", background: "var(--etat-navy)", color: "#F7F3E9" } : { borderColor: "rgba(11,26,42,.2)", color: "var(--etat-navy)" }}>
