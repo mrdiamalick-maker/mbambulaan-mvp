@@ -1,63 +1,43 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { useProduct } from "@/components/providers/ProductProvider";
 import { Drawer } from "@/components/etat/Drawer";
 import {
   Mission,
   MissionForm,
-  SituationDetail,
   glyphBorderColor,
   pipelineStages,
   priorityLabels,
-  priorityToTag
+  priorityToTag,
+  situationPriorityRank
 } from "@/components/etat/shared";
 import type { Signal, Situation } from "@/domain/types";
-import { signalDispositionLabels } from "@/domain/types";
 import { channelMeta } from "@/lib/status-tokens";
-import { TrustGlyph, trustGlyphFromLevel } from "@/components/etat/TrustGlyph";
+import { TrustGlyph, TrustGlyphLabel, trustGlyphFromLevel } from "@/components/etat/TrustGlyph";
 import { deriveDatasetReferenceAt } from "@/domain/signal-crossing";
 
-// P2.DESIGN-1B (mandat CEO "Claude Design V2 → Real Product
-// Implementation", §5, "Situations & signaux") — nouvelle route réelle,
-// dédiée au pipeline terrain → signal → qualification → situation, qui
-// n'avait jusqu'ici aucune surface propre (seulement une section "Le
-// pouls de la filière" sur le Brief national et des tiroirs isolés).
-// "Determine the cleanest real product mapping" (mandat) : plutôt que
-// d'inventer un nouveau domaine, cette page lit exactement le même
-// pipeline Signal.disposition / Situation déjà utilisé par le Brief
-// national (mêmes variables, mêmes seuils — jamais un second calcul qui
-// pourrait diverger du premier).
+// LOT V3.18 ("Situations & signaux — copie conforme du rendu maquette") —
+// reconstruction complète sur le plan exact de l'écran `isSit` : maître-
+// détail 392px/1fr (jamais la liste de signaux pleine largeur + panneau
+// latéral "provenance" de la version précédente), funnel + ancienneté en
+// double panneau sous l'en-tête, détail à 4 onglets (Ce que nous savons /
+// Chronologie / Sources / Ce que vous décidez). Mandat explicite de
+// l'utilisateur, identique aux LOTs V3.16/V3.17 : "j'oublie tout
+// l'existant [...] copie conforme".
 //
-// Même discipline "jamais fabriqué" que le reste du produit :
-// - Le canal ("Provenance des signaux") vient de Signal.channel, réel.
-// - "Ce que l'on sait" par signal vient de Signal.description, réel.
-// - Aucun "délai de qualification" chiffré n'est affiché ici : contrairement
-//   au Brief national (délai mesuré ailleurs), aucune paire signal→situation
-//   horodatée fiable n'est disponible pour calculer un délai médian honnête
-//   à l'échelle de CE registre — plutôt que d'improviser un calcul fragile,
-//   la colonne "Étape" (pipelineStages, réel) porte seule cette information.
-// Photos de situations (mandat P2.DESIGN-1B.1 §8) : 6 images fournies,
-// chacune porte une signalétique de quai photographiée qui correspond
-// littéralement à un intitulé du mandat. Rapprochement fait par contenu
-// (pas par nom de fichier) contre les situations RÉELLES de demo-state.ts —
-// seules 4 des 6 intitulés du mandat ont une situation réelle correspondante
-// (même territoire, même sujet) : Joal (glace), Mbour (froid saturé),
-// Saint-Louis (retour de pirogue) et Djiffer (balance/pesée). "Transformation
-// en hausse, conservation à la traîne" et "Érosion du front de quai
-// observée" n'ont aucune situation réelle équivalente dans le Demo World
-// actuel (aucun territoire ne porte ce sujet) — conformément au mandat
-// ("never invent a situation because an image exists"), ces 2 images ne
-// sont volontairement PAS rattachées ici plutôt que forcées sur une
-// situation qui ne les décrit pas.
-const situationImages: Partial<Record<string, string>> = {
-  "sit-glace": "/images/etat-situation-glace-hors-service.webp",
-  "sit-mbour": "/images/etat-situation-capacite-saturee.webp",
-  "sit-saint-louis": "/images/etat-situation-retour-pirogue.webp",
-  "sit-djiffer": "/images/etat-situation-pesee-mareyeurs.webp"
-};
-
+// La sélection maître-détail porte sur les SITUATIONS (maquette : `sitList`
+// affiche des situations, pas des signaux) — la version précédente listait
+// les signaux avec un panneau latéral de provenance ; ce changement de
+// grain reste honnête : chaque situation affichée l'est via ses vrais
+// champs (Situation.*), ses signaux réels apparaissent dans l'onglet
+// "Sources" plutôt que d'être eux-mêmes la ligne de liste.
+//
+// Onglet "Ce que vous décidez" (mandat, non négociable — même arbitrage
+// que /app/etat/arbitrages, LOT P2.DESIGN-1B §11) : jamais les 3-4
+// options pro/con en texte libre du prototype (propres à sa fixture,
+// aucune commande générique du domaine derrière) — seulement les 2
+// actions réelles déjà supportées par le référentiel.
 const channelStackColor: Record<Signal["channel"], string> = {
   terrain: "#0B1A2A",
   poste_quai: "#B6522F",
@@ -66,190 +46,306 @@ const channelStackColor: Record<Signal["channel"], string> = {
   espace_public: "rgba(11,26,42,.18)"
 };
 
-function stageProgressDots(status: Situation["status"] | null): boolean[] {
-  if (!status) return [false, false, false, false];
-  const index = pipelineStages.findIndex((stage) => stage.status === status);
-  const ratio = index < 0 ? 0 : (index + 1) / pipelineStages.length;
-  const filled = Math.max(1, Math.round(ratio * 4));
-  return [0, 1, 2, 3].map((i) => i < filled);
-}
+const AGE_BUCKETS = [
+  { label: "0-2 j", test: (d: number) => d <= 2 },
+  { label: "3-7 j", test: (d: number) => d >= 3 && d <= 7 },
+  { label: "8-14 j", test: (d: number) => d >= 8 && d <= 14 },
+  { label: "15-30 j", test: (d: number) => d >= 15 && d <= 30 },
+  { label: "31 j +", test: (d: number) => d > 30 }
+];
+
+const TABS = [
+  { key: "connu", label: "Ce que nous savons" },
+  { key: "chrono", label: "Chronologie" },
+  { key: "sources", label: "Sources" },
+  { key: "decision", label: "Ce que vous décidez" }
+] as const;
+type TabKey = (typeof TABS)[number]["key"];
 
 export default function SituationsPage() {
   const { state } = useProduct();
+  const [severityFilter, setSeverityFilter] = useState<"all" | "critique" | "haute">("all");
   const [channelFilter, setChannelFilter] = useState<"all" | Signal["channel"]>("all");
-  const [dispositionFilter, setDispositionFilter] = useState<"all" | Signal["disposition"]>("all");
-  const [situationDrawer, setSituationDrawer] = useState<Situation | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("connu");
   const [missionDrawer, setMissionDrawer] = useState<Mission | null>(null);
 
   if (!state) return null;
 
-  // Horloge métier du jeu de données (mandat P2.DESIGN-1B.2 §3) — jamais
-  // Date.now(), cf. commentaire détaillé dans arbitrages/page.tsx
-  // (situationAge). Même fonction réelle (signal-crossing.ts), déjà
-  // utilisée ailleurs pour la fraîcheur des capacités.
   const datasetReferenceAt = deriveDatasetReferenceAt(state);
   const referenceAtMs = datasetReferenceAt ? new Date(datasetReferenceAt).getTime() : Date.now();
 
-  // Pipeline réel — mêmes seuils exacts que /app/etat ("De la capture à la
+  // Funnel réel — mêmes seuils exacts que /app/etat ("De la capture à la
   // décision"), jamais un second calcul divergent.
   const totalSignalsCaptes = state.signals.length;
   const signalsQualifies = state.signals.filter((item) => item.disposition !== "nouveau").length;
   const situationsSuivies = state.situations.length;
   const situationsAvecPreuve = state.situations.filter((item) => item.status === "resultat" || item.status === "reglee").length;
-  const nonQualifies = totalSignalsCaptes - signalsQualifies;
+  const funnel = [
+    { label: "Signaux captés", n: totalSignalsCaptes, pct: 100 },
+    { label: "Signaux qualifiés", n: signalsQualifies, pct: totalSignalsCaptes > 0 ? (signalsQualifies / totalSignalsCaptes) * 100 : 0 },
+    { label: "Situations suivies", n: situationsSuivies, pct: totalSignalsCaptes > 0 ? (situationsSuivies / totalSignalsCaptes) * 100 : 0 },
+    { label: "Situations closes avec preuve", n: situationsAvecPreuve, pct: totalSignalsCaptes > 0 ? (situationsAvecPreuve / totalSignalsCaptes) * 100 : 0 }
+  ];
 
-  const signalToSituation = new Map<string, Situation>();
-  for (const situation of state.situations) {
-    for (const signalId of situation.signalIds) signalToSituation.set(signalId, situation);
-  }
-
-  const filteredSignals = state.signals
-    .filter((item) => channelFilter === "all" || item.channel === channelFilter)
-    .filter((item) => dispositionFilter === "all" || item.disposition === dispositionFilter)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Ancienneté des situations ouvertes — répartition réelle par tranche
+  // d'âge (premier évènement d'historique → horloge métier du jeu de
+  // données), jamais une distribution fabriquée.
+  const openSituations = state.situations.filter((item) => item.status !== "reglee");
+  const situationAgeDays = (situation: Situation): number | null => {
+    const first = situation.history[0]?.at;
+    if (!first) return null;
+    return Math.max(0, Math.floor((referenceAtMs - new Date(first).getTime()) / 86_400_000));
+  };
+  const aging = AGE_BUCKETS.map((bucket) => ({
+    ...bucket,
+    n: openSituations.filter((item) => { const age = situationAgeDays(item); return age !== null && bucket.test(age); }).length
+  }));
+  const maxAgingBucket = Math.max(1, ...aging.map((item) => item.n));
 
   const channelCounts = (Object.keys(channelMeta) as Signal["channel"][])
     .map((channel) => ({ channel, count: state.signals.filter((item) => item.channel === channel).length }))
     .sort((a, b) => b.count - a.count);
 
-  return (
-    <div className="pb-16">
-      <div className="border-b border-[var(--etat-line)] px-6 pt-9 pb-8 lg:px-[60px]" style={{ background: "var(--etat-warm-white)" }}>
-        <div className="flex flex-wrap gap-14">
-          <div className="min-w-0 flex-1">
-            <p className="etat-eyebrow">Situations &amp; signaux · flux terrain</p>
-            <h1 className="etat-display etat-h1 etat-h1--registry mt-3.5">Ce qui remonte<br />des territoires.</h1>
-            <p className="mt-4 max-w-[560px] text-[14.5px] leading-[1.62]" style={{ color: "rgba(11,26,42,.72)" }}>{totalSignalsCaptes} signaux captés, {signalsQualifies} qualifiés, {situationsSuivies} devenus situations suivies. Un signal n’est jamais une situation avant qualification par un humain.</p>
-          </div>
-          <div className="w-full max-w-[470px] flex-none">
-            <p className="text-[9.5px] font-semibold uppercase tracking-[.14em] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-body)" }}>Terrain → signal → qualification → situation</p>
-            <div className="mt-4 space-y-3">
-              {[
-                { label: "Signaux captés", n: totalSignalsCaptes, max: totalSignalsCaptes, c: "#0B1A2A" },
-                { label: "Signaux qualifiés", n: signalsQualifies, max: totalSignalsCaptes, c: "#B6522F" },
-                { label: "Situations suivies", n: situationsSuivies, max: totalSignalsCaptes, c: "#DE9C74" },
-                { label: "Situations closes avec preuve", n: situationsAvecPreuve, max: totalSignalsCaptes, c: "#7FB08A" }
-              ].map((row) => (
-                <div key={row.label}>
-                  <div className="flex justify-between text-[12px]"><span className="font-medium text-[var(--etat-navy)]">{row.label}</span><span className="text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-mono)" }}>{row.n}</span></div>
-                  <div className="mt-1.5 h-[9px] w-full" style={{ background: "rgba(11,26,42,.08)" }}><div className="h-[9px]" style={{ width: `${row.max > 0 ? (row.n / row.max) * 100 : 0}%`, background: row.c }} /></div>
-                </div>
-              ))}
-            </div>
-            {nonQualifies > 0 && <p className="mt-3.5 text-[11px] leading-[1.6] text-[var(--etat-stone-600)]">{nonQualifies} signal{nonQualifies > 1 ? "aux" : ""} rest{nonQualifies > 1 ? "ent" : "e"} non qualifié{nonQualifies > 1 ? "s" : ""} : provenance incomplète ou non recoupée.</p>}
-          </div>
-        </div>
+  const filteredSituations = state.situations
+    .filter((item) => severityFilter === "all" || item.priority === severityFilter)
+    .filter((item) => channelFilter === "all" || item.signalIds.some((id) => state.signals.find((s) => s.id === id)?.channel === channelFilter))
+    .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority]);
 
-        <div className="mt-6 flex flex-wrap gap-2">
-          <button onClick={() => setDispositionFilter("all")} className="etat-tag" style={{ background: dispositionFilter === "all" ? "var(--etat-navy)" : "transparent", color: dispositionFilter === "all" ? "var(--etat-cream)" : "rgba(11,26,42,.72)", border: dispositionFilter === "all" ? "none" : "1px solid rgba(11,26,42,.20)" }}>Tous les signaux · {totalSignalsCaptes}</button>
-          {(["nouveau", "qualifie", "en_observation", "ecarte"] as const).map((disposition) => {
-            const count = state.signals.filter((item) => item.disposition === disposition).length;
-            if (count === 0) return null;
-            return (
-              <button key={disposition} onClick={() => setDispositionFilter(disposition)} className="etat-tag" style={{ background: "transparent", color: dispositionFilter === disposition ? "var(--etat-terracotta)" : "rgba(11,26,42,.72)", border: `1px solid ${dispositionFilter === disposition ? "var(--etat-terracotta)" : "rgba(11,26,42,.20)"}` }}>{signalDispositionLabels[disposition]} · {count}</button>
-            );
-          })}
-          {channelCounts.filter((c) => c.count > 0).map(({ channel, count }) => (
-            <button key={channel} onClick={() => setChannelFilter(channelFilter === channel ? "all" : channel)} className="etat-tag" style={{ background: "transparent", color: channelFilter === channel ? "var(--etat-terracotta)" : "rgba(11,26,42,.72)", border: `1px solid ${channelFilter === channel ? "var(--etat-terracotta)" : "rgba(11,26,42,.20)"}` }}>{channelMeta[channel].label} · {count}</button>
+  const selected = (selectedId && filteredSituations.find((item) => item.id === selectedId)) || filteredSituations[0] || null;
+  const selTerritory = selected ? state.territories.find((item) => item.id === selected.territoryId) : undefined;
+  const selSignals = selected ? selected.signalIds.map((id) => state.signals.find((item) => item.id === id)).filter((item): item is Signal => Boolean(item)) : [];
+  const selPrimaryChannel = selSignals[0]?.channel;
+  const selAge = selected ? situationAgeDays(selected) : null;
+  const selDecisions = selected ? state.decisions.filter((item) => item.situationId === selected.id).length : 0;
+  const selStageIndex = selected ? pipelineStages.findIndex((stage) => stage.status === selected.status) : -1;
+
+  return (
+    <div className="px-4 pb-16 pt-6 sm:px-[30px]">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-[26px]">
+        <div className="min-w-0 flex-1">
+          <p className="etat-eyebrow">Situations et signaux</p>
+          <h1 className="mt-2.5 font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 32, lineHeight: 1.15, color: "var(--etat-navy)" }}>Ce qui remonte des territoires.</h1>
+        </div>
+        <div className="flex flex-none gap-6">
+          {[
+            { v: openSituations.length, k: "Ouvertes", c: "var(--etat-navy)" },
+            { v: openSituations.filter((s) => s.priority === "critique").length, k: "Critiques", c: "var(--etat-critique)" },
+            { v: state.decisions.length, k: "Décisions", c: "var(--etat-terracotta)" }
+          ].map((stat) => (
+            <div key={stat.k} className="text-right">
+              <p style={{ fontFamily: "var(--etat-font-mono)", fontSize: 24, lineHeight: 1, color: stat.c }}>{stat.v}</p>
+              <p className="mt-[5px] text-[10px] uppercase tracking-[.08em]" style={{ color: "rgba(11,26,42,.5)" }}>{stat.k}</p>
+            </div>
           ))}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-9 px-6 py-9 lg:flex-nowrap lg:px-[60px]">
-        <div className="min-w-0 flex-1">
-          {filteredSignals.length === 0 ? (
-            <p className="text-sm text-[var(--etat-stone-600)]">Aucun signal ne correspond à ce filtre.</p>
-          ) : filteredSignals.map((signal) => {
-            const territory = state.territories.find((item) => item.id === signal.territoryId);
-            const linkedSituation = signalToSituation.get(signal.id);
-            const tag = linkedSituation ? priorityToTag[linkedSituation.priority] : "stable";
-            const age = Math.max(0, Math.floor((referenceAtMs - new Date(signal.createdAt).getTime()) / 86_400_000));
-            const photo = linkedSituation ? situationImages[linkedSituation.id] : undefined;
-            return (
-              <button
-                key={signal.id}
-                onClick={() => linkedSituation && setSituationDrawer(linkedSituation)}
-                disabled={!linkedSituation}
-                className={`flex w-full items-start gap-5 border-t border-[var(--etat-line)] py-6 text-left first:border-t-0 first:pt-0 ${linkedSituation ? "cursor-pointer" : "cursor-default"}`}
-              >
-                {/* Photo de situation (mandat P2.DESIGN-1B.1 §8) : contexte
-                    de terrain, jamais une preuve — le statut d'évidence
-                    affiché reste exclusivement TrustGlyph/signal.trust,
-                    jamais dérivé de la présence d'une photo. */}
-                {photo && (
-                  <div className="relative hidden h-[76px] w-[110px] shrink-0 overflow-hidden sm:block" style={{ border: "1px solid var(--etat-line)" }}>
-                    <Image src={photo} alt="" fill sizes="110px" className="object-cover" />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-3">
-                    {linkedSituation ? (
-                      <span className="etat-tag-outline px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[.12em]" style={{ color: glyphBorderColor[tag] }}>{priorityLabels[linkedSituation.priority]}</span>
-                    ) : (
-                      <span className="etat-tag-outline px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[.12em] text-[var(--etat-stone-400)]">{signalDispositionLabels[signal.disposition]}</span>
-                    )}
-                    <span className="text-[11.5px] text-[var(--etat-stone-600)]">{territory?.name ?? "Territoire non renseigné"}{territory ? ` · ${territory.region}` : ""}</span>
-                    <span className="ml-auto text-[11.5px] text-[var(--etat-stone-400)]" style={{ fontFamily: "var(--etat-font-mono)" }}>{age <= 0 ? "aujourd’hui" : `il y a ${age} j`}</span>
-                  </div>
-                  <p className="mt-2 text-[16px] font-semibold leading-[1.4] text-[var(--etat-navy)]">{signal.title}</p>
-                  {/* Certains signaux dérivés d'une Situation du jeu de
-                      démonstration héritent description === title (même
-                      cause que dans Arbitrages : la factory `situation()` de
-                      demo-state.ts, cf. son commentaire) — l'afficher quand
-                      même dupliquerait le titre juste au-dessus. */}
-                  {signal.description !== signal.title && (
-                    <p className="mt-1.5 max-w-[560px] text-[13px] leading-[1.6] text-[var(--etat-stone-600)]">{signal.description}</p>
-                  )}
-                  <div className="mt-3 flex flex-wrap items-center gap-4">
-                    <span className="flex items-center gap-1.5 text-[11.5px] text-[var(--etat-stone-600)]"><TrustGlyph level={trustGlyphFromLevel(signal.trust)} />{signal.source}</span>
-                    <span className="text-[11.5px] text-[var(--etat-stone-600)]">Canal : {channelMeta[signal.channel].label}</span>
-                    {linkedSituation && (
-                      <>
-                        <span className="flex gap-1">{stageProgressDots(linkedSituation.status).map((done, i) => <span key={i} className="h-[3px] w-[22px]" style={{ background: done ? "var(--etat-terracotta)" : "var(--etat-line)" }} />)}</span>
-                        <span className="text-[11px] text-[var(--etat-stone-600)]">{pipelineStages.find((s) => s.status === linkedSituation.status)?.label}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-          <div className="border-t border-[var(--etat-line)] pt-5 text-[11.5px] text-[var(--etat-stone-600)]">Les signaux liés à une situation ouvrent son dossier ; les autres restent en lecture tant qu’ils n’ont pas été qualifiés.</div>
-        </div>
-
-        <div className="w-full max-w-[320px] flex-none space-y-6">
-          <div className="p-6" style={{ background: "var(--etat-navy)" }}>
-            <p className="text-[9.5px] font-semibold uppercase tracking-[.14em]" style={{ color: "rgba(247,243,233,.60)", fontFamily: "var(--etat-font-body)" }}>Provenance des signaux</p>
-            <div className="mt-4 space-y-3">
-              {channelCounts.map(({ channel, count }) => (
-                <div key={channel}>
-                  <div className="flex justify-between text-[12px]" style={{ color: "rgba(255,253,247,.88)" }}><span>{channelMeta[channel].label}</span><span style={{ fontFamily: "var(--etat-font-mono)" }}>{count}</span></div>
-                  <div className="mt-1.5 h-[4px] w-full" style={{ background: "rgba(247,243,233,.14)" }}><div className="h-[4px]" style={{ width: `${totalSignalsCaptes > 0 ? (count / totalSignalsCaptes) * 100 : 0}%`, background: channelStackColor[channel] }} /></div>
-                </div>
-              ))}
-            </div>
+      {/* Funnel + ancienneté — grille à liseré 1px, même géométrie que la
+          maquette. */}
+      <div className="mt-4 grid grid-cols-1 gap-px border lg:grid-cols-[1.15fr_1fr]" style={{ background: "rgba(11,26,42,.12)", borderColor: "rgba(11,26,42,.12)" }}>
+        <div className="bg-white px-[18px] py-[15px]">
+          <div className="mb-3 flex items-baseline gap-2.5">
+            <p className="flex-1 text-[10px] uppercase tracking-[.12em]" style={{ color: "rgba(11,26,42,.5)" }}>De l’information reçue à la preuve</p>
+            <p className="text-[11.5px]" style={{ color: "var(--etat-terracotta)" }}>{totalSignalsCaptes > 0 ? Math.round((situationsAvecPreuve / totalSignalsCaptes) * 100) : 0}% aboutissent à une preuve</p>
           </div>
-          <div className="etat-panel p-6">
-            <p className="etat-filter-label">Disposition des signaux</p>
-            <div className="mt-3 space-y-2.5">
-              {(Object.keys(signalDispositionLabels) as Array<Signal["disposition"]>).map((disposition) => {
-                const count = state.signals.filter((item) => item.disposition === disposition).length;
-                if (count === 0) return null;
-                return (
-                  <div key={disposition} className="flex items-center justify-between border-t border-[var(--etat-line)] pt-2.5 text-[12.5px] first:border-t-0 first:pt-0">
-                    <span className="text-[var(--etat-navy)]">{signalDispositionLabels[disposition]}</span>
-                    <span className="font-semibold text-[var(--etat-navy)]">{count}</span>
-                  </div>
-                );
-              })}
+          {funnel.map((row) => (
+            <div key={row.label} className="mb-2 flex items-center gap-3">
+              <span className="w-[150px] shrink-0 text-[11.5px]" style={{ color: "var(--etat-navy)" }}>{row.label}</span>
+              <span className="relative h-4 flex-1" style={{ background: "rgba(11,26,42,.06)" }}><span className="absolute inset-y-0 left-0" style={{ width: `${row.pct}%`, background: "var(--etat-terracotta)" }} /></span>
+              <span className="w-14 shrink-0 text-right text-[12px]" style={{ fontFamily: "var(--etat-font-mono)" }}>{row.n}</span>
             </div>
+          ))}
+        </div>
+        <div className="bg-white px-[18px] py-[15px]">
+          <div className="mb-3 flex items-baseline gap-2.5">
+            <p className="flex-1 text-[10px] uppercase tracking-[.12em]" style={{ color: "rgba(11,26,42,.5)" }}>Ancienneté des situations ouvertes</p>
+            <p className="text-[11.5px]" style={{ color: "rgba(11,26,42,.55)" }}>Une situation qui vieillit sans preuve est un risque</p>
+          </div>
+          <div className="flex h-[74px] items-end gap-2">
+            {aging.map((bucket) => (
+              <div key={bucket.label} className="flex h-full flex-1 flex-col justify-end">
+                <p className="mb-1 text-center text-[11px]" style={{ fontFamily: "var(--etat-font-mono)", color: bucket.n > 0 ? "var(--etat-navy)" : "rgba(11,26,42,.35)" }}>{bucket.n}</p>
+                <div style={{ height: `${Math.max(4, (bucket.n / maxAgingBucket) * 100)}%`, background: bucket.label === "31 j +" && bucket.n > 0 ? "var(--etat-critique)" : "var(--etat-navy)" }} />
+                <p className="mt-1 text-center text-[9.5px]" style={{ color: "rgba(11,26,42,.5)" }}>{bucket.label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      <Drawer open={!!situationDrawer} onClose={() => setSituationDrawer(null)} eyebrow="Situation" title={situationDrawer?.title ?? ""} size="lg">
-        {situationDrawer && <SituationDetail situation={situationDrawer} state={state} onPlanVisit={() => { const territory = state.territories.find((item) => item.id === situationDrawer.territoryId); setSituationDrawer(null); setMissionDrawer({ key: `situation-${situationDrawer.id}`, territoryId: situationDrawer.territoryId, territoryLabel: territory?.name ?? situationDrawer.territoryId, raison: situationDrawer.title, action: situationDrawer.nextStep, glyphStatus: priorityToTag[situationDrawer.priority], suggestedObjective: "verification_vigilance" }); }} />}
-      </Drawer>
+      {/* Filtres — sévérité + canal, mêmes filtres réels que la maquette
+          (`sitFilters`). */}
+      <div className="mt-4 flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-[10px] uppercase tracking-[.14em]" style={{ color: "rgba(11,26,42,.45)" }}>Filtrer</span>
+        {([{ key: "all", label: `Toutes · ${state.situations.length}` }, { key: "critique", label: `Critique · ${state.situations.filter((s) => s.priority === "critique").length}` }, { key: "haute", label: `Élevé · ${state.situations.filter((s) => s.priority === "haute").length}` }] as const).map((f) => (
+          <button key={f.key} onClick={() => setSeverityFilter(f.key)} className="rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={severityFilter === f.key ? { borderColor: "var(--etat-navy)", background: "var(--etat-navy)", color: "#F7F3E9" } : { borderColor: "rgba(11,26,42,.2)", color: "var(--etat-navy)" }}>{f.label}</button>
+        ))}
+        {channelCounts.filter((c) => c.count > 0).map(({ channel, count }) => (
+          <button key={channel} onClick={() => setChannelFilter(channelFilter === channel ? "all" : channel)} className="flex items-center gap-[7px] rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={channelFilter === channel ? { borderColor: "var(--etat-navy)", background: "var(--etat-navy)", color: "#F7F3E9" } : { borderColor: "rgba(11,26,42,.2)", color: "var(--etat-navy)" }}>
+            <span className="size-[7px] rounded-full" style={{ background: channelStackColor[channel] }} />{channelMeta[channel].label} · {count}
+          </button>
+        ))}
+        <span className="flex-1" />
+        <span className="text-[11.5px]" style={{ color: "rgba(11,26,42,.55)" }}>{filteredSituations.length} situation(s)</span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 border lg:grid-cols-[392px_1fr]" style={{ borderColor: "rgba(11,26,42,.12)" }}>
+        <div className="border-b bg-white lg:border-b-0 lg:border-r" style={{ borderColor: "rgba(11,26,42,.12)" }}>
+          {filteredSituations.length === 0 ? (
+            <p className="p-[18px] text-[12.5px] leading-[1.55]" style={{ color: "rgba(11,26,42,.6)" }}>Aucune situation ne correspond à ces filtres. Retirez un critère pour élargir la sélection.</p>
+          ) : filteredSituations.map((situation) => {
+            const tag = priorityToTag[situation.priority];
+            const territory = state.territories.find((item) => item.id === situation.territoryId);
+            const age = situationAgeDays(situation);
+            const isSelected = selected?.id === situation.id;
+            return (
+              <button
+                key={situation.id}
+                onClick={() => setSelectedId(situation.id)}
+                className="block w-full border-b px-[15px] py-[13px] text-left"
+                style={{ borderColor: "rgba(11,26,42,.07)", backgroundColor: isSelected ? "rgba(182,82,47,.07)" : undefined, boxShadow: isSelected ? `inset 3px 0 0 ${glyphBorderColor[tag]}` : "none" }}
+              >
+                <div className="mb-[7px] flex items-center gap-2">
+                  <span className="size-[7px] shrink-0" style={{ background: glyphBorderColor[tag] }} />
+                  <span className="text-[10.5px] font-medium uppercase tracking-[.06em]" style={{ color: glyphBorderColor[tag] }}>{priorityLabels[situation.priority]}</span>
+                  <span className="flex-1" />
+                  <TrustGlyphLabel level={trustGlyphFromLevel(situation.trust)} className="text-[10.5px] text-[rgba(11,26,42,.5)]" />
+                </div>
+                <p className="mb-[7px] text-[13px] font-medium leading-[1.4]">{situation.title}</p>
+                <div className="flex items-center gap-2.5 text-[11px]" style={{ color: "rgba(11,26,42,.55)" }}>
+                  <span>{territory?.name ?? situation.territoryId}</span>
+                  <span className="h-2.5 w-px" style={{ background: "rgba(11,26,42,.18)" }} />
+                  <span>{age === null ? "—" : age <= 0 ? "aujourd’hui" : `il y a ${age} j`}</span>
+                  <span className="flex-1" />
+                  <span style={{ fontFamily: "var(--etat-font-mono)" }}>{pipelineStages.find((s) => s.status === situation.status)?.label}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {selected && (
+          <div className="min-w-0 bg-white">
+            <div className="px-6 pb-[18px] pt-5" style={{ background: "var(--etat-navy)", color: "#F7F3E9" }}>
+              <div className="mb-[11px] flex flex-wrap items-center gap-2.5">
+                <span className="flex items-center gap-[7px] rounded-full border px-2.5 py-[3px] text-[11px]" style={{ borderColor: glyphBorderColor[priorityToTag[selected.priority]] }}>
+                  <span className="size-1.5 rounded-full" style={{ background: glyphBorderColor[priorityToTag[selected.priority]] }} />{priorityLabels[selected.priority]}
+                </span>
+                <span className="text-[11.5px]" style={{ color: "rgba(247,243,233,.6)" }}>
+                  {selTerritory?.name ?? selected.territoryId} · {selAge === null ? "—" : selAge <= 0 ? "aujourd’hui" : `il y a ${selAge} j`}{selPrimaryChannel ? ` · reçu par ${channelMeta[selPrimaryChannel].label}` : ""}
+                </span>
+              </div>
+              <h2 className="mb-3 max-w-[34ch] font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 27, lineHeight: 1.2 }}>{selected.title}</h2>
+              <p className="max-w-[78ch] text-[13.5px] leading-[1.6]" style={{ color: "rgba(247,243,233,.82)" }}>{selected.description !== selected.title ? selected.description : selected.nextStep}</p>
+              <div className="mt-[15px] flex items-center gap-2.5 border-t pt-[14px]" style={{ borderColor: "rgba(247,243,233,.14)" }}>
+                <span className="shrink-0 text-[10px] uppercase tracking-[.12em]" style={{ color: "#DE9C74" }}>Pourquoi cela compte</span>
+                <span className="text-[12.5px]" style={{ color: "rgba(247,243,233,.85)" }}>{selected.nextStep}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-px border-b sm:grid-cols-4" style={{ background: "rgba(11,26,42,.1)", borderColor: "rgba(11,26,42,.1)" }}>
+              {[
+                { n: selSignals.length, k: "Signaux liés" },
+                { n: selDecisions, k: "Décisions documentées" },
+                { n: selAge ?? "—", k: "Ancienneté (jours)" },
+                { n: selStageIndex >= 0 ? `${selStageIndex + 1}/${pipelineStages.length}` : "—", k: "Étape du pipeline" }
+              ].map((tile) => (
+                <div key={tile.k} className="bg-white px-[15px] py-[13px]">
+                  <p style={{ fontFamily: "var(--etat-font-mono)", fontSize: 20, lineHeight: 1 }}>{tile.n}</p>
+                  <p className="mt-[5px] text-[10.5px] leading-[1.35]" style={{ color: "rgba(11,26,42,.55)" }}>{tile.k}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-0 overflow-x-auto border-b px-3.5" style={{ borderColor: "rgba(11,26,42,.12)" }}>
+              {TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className="shrink-0 whitespace-nowrap px-[13px] pb-2.5 pt-3"
+                  style={{ fontSize: 12.5, fontWeight: activeTab === tab.key ? 600 : 400, color: activeTab === tab.key ? "var(--etat-navy)" : "rgba(11,26,42,.5)", boxShadow: activeTab === tab.key ? "inset 0 -2px 0 var(--etat-terracotta)" : "none" }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="px-6 py-5">
+              {activeTab === "connu" && (
+                <div className="grid grid-cols-1 gap-[26px] sm:grid-cols-2">
+                  <div>
+                    <div className="mb-2.5 flex items-center gap-2"><span className="h-[2px] w-[18px]" style={{ background: "#4E7B5A" }} /><span className="text-[10px] uppercase tracking-[.12em]" style={{ color: "#4E7B5A" }}>Ce que nous savons</span></div>
+                    {selected.history.length === 0 ? <p className="text-[13px]" style={{ color: "var(--etat-stone-400)" }}>Aucun fait consigné.</p> : selected.history.slice(0, 3).map((entry, i) => (
+                      <div key={i} className="mb-2.5 border-l-2 pl-[13px] text-[13px] leading-[1.55]" style={{ borderColor: "rgba(78,123,90,.32)", color: "rgba(11,26,42,.85)" }}>{entry.detail || entry.label}</div>
+                    ))}
+                  </div>
+                  <div>
+                    <div className="mb-2.5 flex items-center gap-2"><span className="h-[2px] w-[18px]" style={{ background: "#B6522F" }} /><span className="text-[10px] uppercase tracking-[.12em]" style={{ color: "#B6522F" }}>Ce qui reste incertain</span></div>
+                    {selected.waitingReason ? (
+                      <div className="border-l-2 pl-[13px] text-[13px] leading-[1.55]" style={{ borderColor: "rgba(182,82,47,.32)", color: "rgba(11,26,42,.85)" }}>{selected.waitingReason}</div>
+                    ) : <p className="text-[13px]" style={{ color: "var(--etat-stone-400)" }}>Aucune incertitude documentée.</p>}
+                  </div>
+                </div>
+              )}
+              {activeTab === "chrono" && (
+                selected.history.length === 0 ? (
+                  <p className="text-[12.5px]" style={{ color: "var(--etat-stone-400)" }}>Aucun évènement consigné.</p>
+                ) : selected.history.map((entry, i) => (
+                  <div key={entry.id} className="flex gap-4 pb-[18px]">
+                    <span className="w-[96px] shrink-0 pt-0.5 text-right text-[11px]" style={{ fontFamily: "var(--etat-font-mono)", color: "rgba(11,26,42,.5)" }}>{new Date(entry.at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}</span>
+                    <div className="flex shrink-0 flex-col items-center self-stretch">
+                      <span className="size-2 rounded-full" style={{ background: "var(--etat-terracotta)" }} />
+                      {i < selected.history.length - 1 && <span className="mt-[5px] w-px flex-1" style={{ background: "rgba(11,26,42,.14)" }} />}
+                    </div>
+                    <div className="min-w-0 flex-1 pt-px">
+                      <p className="text-[13px] leading-[1.5]">{entry.label}</p>
+                      <p className="mt-1 text-[11px]" style={{ color: "rgba(11,26,42,.5)" }}>{entry.actor}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+              {activeTab === "sources" && (
+                <>
+                  {selSignals.length === 0 ? (
+                    <p className="text-[12.5px]" style={{ color: "var(--etat-stone-400)" }}>Aucun signal rattaché.</p>
+                  ) : selSignals.map((signal) => (
+                    <div key={signal.id} className="mb-2.5 flex items-start gap-[14px] border p-[13px]" style={{ borderColor: "rgba(11,26,42,.1)" }}>
+                      <TrustGlyph level={trustGlyphFromLevel(signal.trust)} className="mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-[13px] font-medium">{signal.source}</p>
+                        <p className="mt-[3px] text-[11.5px]" style={{ color: "rgba(11,26,42,.55)" }}>Canal : {channelMeta[signal.channel].label}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="mt-3.5 p-[13px] text-[12px] leading-[1.55]" style={{ background: "var(--etat-cream)", border: "1px solid rgba(11,26,42,.1)", color: "rgba(11,26,42,.7)" }}>Une situation ne change de niveau de connaissance que lorsqu’une source secondaire la confirme. Mbàmbulaan n’élève jamais une déclaration au rang de fait vérifié sans trace.</div>
+                </>
+              )}
+              {activeTab === "decision" && (
+                <>
+                  <div className="mb-5 grid grid-cols-1 gap-px border sm:grid-cols-2" style={{ background: "rgba(11,26,42,.1)", borderColor: "rgba(11,26,42,.1)" }}>
+                    <div className="p-[15px]" style={{ background: "var(--etat-cream)" }}>
+                      <p className="mb-2 text-[10px] uppercase tracking-[.12em]" style={{ color: "rgba(11,26,42,.5)" }}>Ce que le système constate</p>
+                      <p className="text-[13px] leading-[1.55]">{selected.waitingReason ?? "Aucune incertitude bloquante documentée."}</p>
+                    </div>
+                    <div className="p-[15px]" style={{ background: "var(--etat-cream)" }}>
+                      <p className="mb-2 text-[10px] uppercase tracking-[.12em]" style={{ color: "var(--etat-terracotta)" }}>Ce que le système suggère</p>
+                      <p className="text-[13px] leading-[1.55]">{selected.nextStep}</p>
+                    </div>
+                  </div>
+                  <p className="mb-3 text-[10px] uppercase tracking-[.12em]" style={{ color: "rgba(11,26,42,.5)" }}>Ce que vous décidez — la décision reste humaine et tracée</p>
+                  <div className="flex flex-wrap gap-2.5">
+                    <button onClick={() => setMissionDrawer({ key: `situation-${selected.id}`, territoryId: selected.territoryId, territoryLabel: selTerritory?.name ?? selected.territoryId, raison: selected.title, action: selected.nextStep, glyphStatus: priorityToTag[selected.priority], suggestedObjective: "verification_vigilance" })} className="etat-btn etat-btn-outline">Planifier une visite terrain</button>
+                    <a href="/app/etat/arbitrages" className="etat-btn etat-btn-primary">Arbitrer cette situation</a>
+                  </div>
+                  <p className="mt-3.5 text-[11px] leading-[1.6]" style={{ color: "rgba(11,26,42,.55)" }}>Mbàmbulaan n’arbitre pas : la décision est enregistrée au nom de la personne qui la prend, avec sa justification — jamais les options de texte libre d’une maquette, qui ne correspondraient à aucune commande réelle du domaine pour une situation quelconque.</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       <Drawer open={!!missionDrawer} onClose={() => setMissionDrawer(null)} eyebrow="Terrain" title="Planifier la mission">
         {missionDrawer && <MissionForm mission={missionDrawer} onDone={() => setMissionDrawer(null)} />}
       </Drawer>
