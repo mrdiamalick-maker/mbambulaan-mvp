@@ -132,6 +132,12 @@ export default function ArbitragesPage() {
             <h1 className="etat-display etat-h1 etat-h1--registry mt-3.5">Qu’est-ce qui demande<br />une décision maintenant ?</h1>
             <p className="mt-3.5 max-w-[600px] text-[14.5px] leading-[1.62]" style={{ color: "rgba(11,26,42,.72)" }}>{situationsAArbitrer.length} situation{situationsAArbitrer.length > 1 ? "s" : ""} de risque élevé ou critique attend{situationsAArbitrer.length > 1 ? "ent" : ""} une orientation. Chaque arbitrage indique ce que l’on sait, ce qui reste incertain, et qui est concerné.</p>
           </div>
+          {/* Repère de doctrine (mandat prototype, verbatim) — même registre
+              que la phrase déjà affichée dans le panneau « Décision
+              attendue » ci-dessous ; reprise ici aussi pour la même
+              fidélité de mise en page que le prototype (bandeau à droite
+              du titre, bordure terracotta). */}
+          <p className="max-w-[290px] shrink-0 border-l-2 pl-3.5 text-[12.5px] leading-[1.55]" style={{ borderColor: "var(--etat-terracotta)", color: "rgba(11,26,42,.65)" }}>Une décision n’efface pas l’incertitude. Mbàmbulaan l’enregistre avec elle, pour que la relecture soit honnête.</p>
           <div className="flex flex-none flex-wrap gap-7">
             <div><p className="etat-filter-label">Critiques</p><p className="etat-display text-[26px] not-italic" style={{ color: "var(--etat-critique)" }}>{criticalCount}</p></div>
             <div><p className="etat-filter-label">Élevées</p><p className="etat-display text-[26px] not-italic" style={{ color: "var(--etat-ocre)" }}>{highCount}</p></div>
@@ -225,7 +231,7 @@ export default function ArbitragesPage() {
                 <div className="flex-1 py-4 pl-5"><p className="etat-filter-label">Territoire</p><p className="text-[13.5px] font-semibold text-[var(--etat-navy)]">{selTerritory?.name ?? selected.territoryId}</p></div>
               </div>
 
-              <div className="mt-8 grid max-w-[900px] gap-9 sm:grid-cols-2">
+              <div className="mt-8 grid max-w-[900px] grid-cols-1 gap-9 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[.14em]" style={{ color: "var(--etat-vert)", fontFamily: "var(--etat-font-body)" }}>Ce que l’on sait</p>
                   {selKnown.length === 0 ? (
@@ -241,6 +247,21 @@ export default function ArbitragesPage() {
                   ) : (
                     <p className="mt-2.5 text-[13px] text-[var(--etat-stone-400)]">Aucune incertitude documentée pour le moment.</p>
                   )}
+                </div>
+                {/* 3e colonne du prototype ("Si rien n'est décidé") —
+                    le prototype y met une conséquence narrative propre à
+                    sa fixture (perte non quantifiable, site rendu
+                    vulnérable...), qu'aucun champ réel ne permet
+                    d'établir pour une situation quelconque du Demo World.
+                    Plutôt que d'inventer une conséquence, ce panneau
+                    reste honnête : ce qui persiste réellement si rien ne
+                    change, c'est l'état actuel de la situation — dérivé
+                    des mêmes champs réels que le reste de la page
+                    (priorité, étape, ancienneté), jamais un scénario
+                    fabriqué. */}
+                <div className="p-4" style={{ background: "var(--etat-warm-white)" }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[.14em]" style={{ color: "var(--etat-stone-400)", fontFamily: "var(--etat-font-body)" }}>Si rien n’est décidé</p>
+                  <p className="mt-2.5 text-[13px] leading-[1.55] text-[var(--etat-stone-600)]">Le dossier reste marqué « {priorityLabels[selected.priority]} », à l’étape « {pipelineStages.find((s) => s.status === selected.status)?.label ?? selected.status} », {situationAge(selected, referenceAtMs) ? `sans changement depuis ${situationAge(selected, referenceAtMs)}` : "sans changement documenté"}.</p>
                 </div>
               </div>
 

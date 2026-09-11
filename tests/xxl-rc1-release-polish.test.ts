@@ -42,13 +42,13 @@ test("TEST A — la navigation État a une source unique et le rail alterne desk
   assert.equal(etatGroups.length, 1, "l'Espace État reste un seul groupe de navigation");
   assert.deepEqual(
     etatGroups[0].items.map((item) => item.href),
-    ["/app/etat", "/app/etat/territoires", "/app/etat/situations", "/app/etat/arbitrages", "/app/etat/programmes", "/app/etat/rapport"],
-    "les 6 destinations réelles de l'Espace État doivent rester exactement les mêmes routes, dans le même ordre"
+    ["/app/etat", "/app/etat/territoires", "/app/etat/situations", "/app/etat/arbitrages", "/app/etat/programmes", "/app/etat/rapport", "/app/etat/sources"],
+    "les 7 destinations réelles de l'Espace État (6 + Sources, LOT V3.7) doivent rester exactement les mêmes routes, dans le même ordre"
   );
   // administrateur voit exactement la même navigation État qu'institution
   // (les 2 seuls rôles qui atteignent /app/etat, garde côté serveur) —
   // aucune divergence introduite par le passage à une source commune.
-  assert.deepEqual(resolvePrivateNavGroups("etat", "administrateur", []).map((g) => g.items.length), [6]);
+  assert.deepEqual(resolvePrivateNavGroups("etat", "administrateur", []).map((g) => g.items.length), [7]);
   const sidebarPrimitiveSource = readSource("../src/components/ui/sidebar.tsx");
   assert.ok(sidebarPrimitiveSource.includes("if (isMobile)"), "le rail partagé doit continuer à distinguer desktop/mobile de façon structurelle (jamais les deux montés ensemble)");
   const privateSidebarSource = readSource("../src/components/shell/PrivateSidebar.tsx");

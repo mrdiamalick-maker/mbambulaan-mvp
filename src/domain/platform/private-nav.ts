@@ -6,6 +6,7 @@ import {
   Banknote,
   Building2,
   ClipboardList,
+  Database,
   FileCheck2,
   Gauge,
   Globe2,
@@ -69,7 +70,11 @@ const etatGroup: PrivateNavGroup = {
     { href: "/app/etat/situations", label: "Situations & signaux", icon: Activity, roles: [] },
     { href: "/app/etat/arbitrages", label: "Arbitrages", icon: Scale, roles: [] },
     { href: "/app/etat/programmes", label: "Programmes", icon: LayoutGrid, roles: [] },
-    { href: "/app/etat/rapport", label: "Résultats", icon: FileCheck2, roles: [] }
+    { href: "/app/etat/rapport", label: "Résultats", icon: FileCheck2, roles: [] },
+    // Sources (LOT V3.7) — dernière destination du plan V3 à 8 écrans,
+    // jusqu'ici jamais couverte : ce que le produit connecte réellement,
+    // par opposition à ce qui reste une saisie manuelle ou une absence.
+    { href: "/app/etat/sources", label: "Sources", icon: Database, roles: [] }
   ]
 };
 

@@ -23,11 +23,11 @@ function readSource(relativePath: string): string {
 // comportement par rapport aux deux anciennes listes (AppSidebar.
 // operationalGroups/toolsGroup, EtatSidebar.navItems) qu'elle remplace.
 test("TEST 1 — resolvePrivateNavGroups reprend exactement les routes/rôles/modules réels existants", () => {
-  // Espace État : 6 destinations réelles, ouvertes à institution ET administrateur (seuls rôles qui atteignent /app/etat).
+  // Espace État : 7 destinations réelles (6 + "Sources", LOT V3.7), ouvertes à institution ET administrateur (seuls rôles qui atteignent /app/etat).
   for (const role of ["institution", "administrateur"] as const) {
     const groups = resolvePrivateNavGroups("etat", role, []);
     assert.equal(groups.length, 1);
-    assert.equal(groups[0].items.length, 6);
+    assert.equal(groups[0].items.length, 7);
   }
   // Coordination : un opérateur sans aucun module d'entitlement ne voit que
   // "Aujourd'hui" et "Flux entrant" (LOT V3.3 — role-gated, jamais un
