@@ -72,7 +72,7 @@ export function ProgrammesExplorer({
 
           <div className="rounded-lg border p-4">
             <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Portefeuille — progression × financement confirmé</p>
-            <ProgrammePortfolioScatter rows={rows} selectedId={activeRow?.initiative.id} onSelect={onSelect} />
+            <ProgrammePortfolioScatter rows={rows} state={state} selectedId={activeRow?.initiative.id} onSelect={onSelect} />
           </div>
 
           <div className="flex flex-wrap items-end gap-4 border-y py-4">

@@ -91,10 +91,15 @@ test("TEST 5 — un programme sans indicateurs/budget chiffré n'est jamais réd
 });
 
 // TEST 6 — ProgrammePortfolioScatter exclut (jamais ne place à 0) les
-// programmes non mesurables des deux axes.
+// programmes non mesurables des deux axes. Depuis le LOT V3.30 (bascule
+// "Avancement × signaux"/"Avancement × budget", copie conforme
+// littérale), l'exclusion budgétaire (budgetConfirmedPct !== null) ne
+// s'applique qu'en mode "budget" — le mode "signaux" (par défaut, comme
+// la maquette) n'exige que progressPct, l'axe Y (situations ouvertes du
+// programme) étant toujours défini (jamais null).
 test("TEST 6 — le scatter portefeuille exclut les programmes non mesurables plutôt que de les placer à 0", () => {
   const source = readSource("../src/components/programmes/ProgrammePortfolioScatter.tsx");
-  assert.ok(source.includes("row.progressPct !== null && row.budgetConfirmedPct !== null"));
+  assert.ok(source.includes('row.progressPct !== null && (axisMode === "signaux" || row.budgetConfirmedPct !== null)'));
   assert.ok(!/progressPct\s*\?\?\s*0/.test(source), "aucun repli silencieux à 0 pour une dimension non mesurée");
 });
 

@@ -8,14 +8,15 @@ import { ProgrammeCockpit } from "@/components/programmes/ProgrammeCockpit";
 import { glyphBorderColor, initiativeStatusLabel, priorityToTag } from "@/components/etat/shared";
 import { portfolioRows, portfolioStats, programmeHealthLabel, type ProgrammePortfolioRow } from "@/domain/programme-intelligence";
 import { MARITIME_ZONE_LABEL, MARITIME_ZONE_ORDER, resolveMaritimeZone } from "@/domain/atlas-overview";
+import { deriveDatasetReferenceAt } from "@/domain/signal-crossing";
 
-const compactMoney = new Intl.NumberFormat("fr-FR", { notation: "compact", style: "currency", currency: "XOF", maximumFractionDigits: 0 });
-// Formateur dédié au h1 (LOT V3.22, "copie conforme littérale") — le
-// style "currency" (compactMoney, ci-dessus, déjà utilisé par les tuiles
-// de stat) rend "889 M F CFA" (espace parasite entre F et CFA, artefact
-// de l'ICU fr-FR pour la devise XOF) ; la maquette écrit "889 M FCFA"
-// sans espace — un formateur "decimal" + suffixe littéral reproduit
-// exactement ce rendu.
+// Formateur dédié aux montants FCFA (LOT V3.22, "copie conforme
+// littérale") — le style "currency" d'Intl (style: "currency", currency:
+// "XOF") rend "889 M F CFA" (espace parasite entre F et CFA, artefact de
+// l'ICU fr-FR pour cette devise) ; la maquette écrit "889 M FCFA" sans
+// espace — un formateur "decimal" + suffixe littéral reproduit exactement
+// ce rendu. Réutilisé par le waterfall budgétaire (LOT V3.30 : le "F CFA"
+// espacé y subsistait, seul point encore non corrigé de cette page).
 const compactNumber = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 0 });
 function compactFcfa(amountFcfa: number): string {
   return `${compactNumber.format(amountFcfa)} FCFA`;
@@ -53,6 +54,40 @@ const healthColor: Record<string, string> = { aligne: "#4E7B5A", attention: "#D8
 // (LOT V3.5, déjà réel et déjà testé) ouvert en survol via DetailSurface
 // plutôt que reconstruit en page plein écran : un composant partagé avec
 // le poste de travail Coordination, jamais une 2e implémentation.
+//
+// LOT V3.30 ("Programmes — bloc par bloc, pièce par pièce", 2e relecture
+// suite au retour "dynamisme du rôle connecté") — comparaison directe de
+// la capture role-dp-programmes.png contre cette page a révélé 5 écarts
+// que les LOTs V3.19/V3.22/V3.26 avaient manqués ou simplifiés à tort :
+//  1. Le bandeau de 4 tuiles reprenait 4 lectures reformulées (Actifs/À
+//     surveiller/Territoires/Budget chiffré) au lieu des 4 lectures
+//     LITTÉRALES de la maquette (En exécution ou financés/Avancement
+//     moyen/Demandent une attention/Écarts terrain-déclaré) — remplacées
+//     ci-dessous par 4 calculs réels distincts (voir topStats).
+//  2. Le titre du waterfall ("Du montant identifié à la dépense réelle")
+//     survivait tel quel de la maquette alors qu'AUCUNE dépense/
+//     décaissement n'existe dans le Core (Funding.status est un statut de
+//     MOBILISATION, jamais de dépense — cf. tête de fichier de
+//     programme-intelligence.ts) : conservé le contenu réel (3 statuts
+//     Confirmé/En instruction/À mobiliser), corrigé le titre pour ne plus
+//     sur-promettre une "dépense réelle" jamais mesurée.
+//  3. Le panneau d'échéances ("Prochaines échéances réelles") ne montrait
+//     que le FUTUR (60 jours) — la maquette ("Jalons des 60 prochains
+//     jours", "Ce qui doit arriver, et ce qui est déjà en retard") montre
+//     aussi les échéances déjà PASSÉES sur des situations encore
+//     ouvertes : ajouté un tag "en retard"/"en cours" par comparaison à
+//     l'horloge métier (deriveDatasetReferenceAt, jamais Date.now()).
+//  4. Les captions du tableau (health · territoires) omettaient le nom du
+//     responsable — pourtant Initiative.ownerId est un champ réel, et les
+//     3 acteurs qu'il référence (Cheikh Bâ/Mamadou Fall/Fatou Ndiaye)
+//     sont EXACTEMENT les noms littéraux de la maquette (confirmé par
+//     lecture de demo-state.ts) : ajouté en tête de caption, ordre
+//     littéral "responsable · territoires · santé".
+//  5. Le scatter (ProgrammePortfolioScatter) portait un seul encodage fixe
+//     (X=avancement, Y=budget confirmé) — la maquette porte une bascule
+//     "Avancement × signaux"/"Avancement × budget" : ajoutée dans le
+//     composant, l'axe "signaux" utilisant row.ecosystem.openSituations.
+//     length (déjà réel), jamais un signal fabriqué.
 export default function ProgrammesPage() {
   const { state, role, run } = useProduct();
   const [dossierInitiativeId, setDossierInitiativeId] = useState<string | null>(null);
@@ -73,17 +108,39 @@ export default function ProgrammesPage() {
   const budgetTotal = Math.max(1, budgetBuckets.reduce((sum, b) => sum + b.total, 0));
   const confirmedBudgetPct = Math.round(((budgetBuckets.find((b) => b.key === "confirme")?.total ?? 0) / budgetTotal) * 100);
 
+  // Bandeau de 4 tuiles — 4 lectures littérales de la maquette, chacune un
+  // calcul réel distinct (voir commentaire LOT V3.30 en tête de fichier) :
+  //  - "En exécution ou financés" : programmes ayant dépassé le cadrage.
+  //  - "Avancement moyen" : moyenne réelle de progressPct (rows sans
+  //    indicateur exclues, jamais forcées à 0 — même discipline que
+  //    portfolioRows/ProgrammePortfolioScatter).
+  //  - "Demandent une attention" / "Écarts terrain / déclaré" : partition
+  //    RÉELLE par état de santé (programmeHealth), jamais une même
+  //    lecture recoupée deux fois — "attention" (risque en formation) vs
+  //    "critique" (un écart déjà confirmé entre le terrain et le
+  //    déclaré : situation prioritaire ouverte, ou budget jamais chiffré
+  //    passé le cadrage — cf. programmeHealth, programme-intelligence.ts).
+  const execOrFinancedCount = rows.filter((row) => row.initiative.status === "execution" || row.initiative.status === "financee").length;
+  const progressRows = rows.filter((row) => row.progressPct !== null);
+  const avgProgressPct = progressRows.length > 0 ? Math.round(progressRows.reduce((sum, row) => sum + row.progressPct!, 0) / progressRows.length) : 0;
+  const attentionCount = rows.filter((row) => row.health.state === "attention").length;
+  const terrainGapCount = rows.filter((row) => row.health.state === "critique").length;
+
   // Jalons — voir commentaire d'en-tête : échéances réelles (Situation.
-  // dueAt, futures) parmi les situations rattachées à un programme.
-  const referenceMs = Date.now();
-  const upcomingMilestones = state.initiatives
+  // dueAt) parmi les situations rattachées à un programme, désormais
+  // futures ET déjà en retard (tag "en retard"/"en cours") — comparées à
+  // l'horloge métier du jeu de données, jamais à l'horloge système.
+  const referenceAtRaw = deriveDatasetReferenceAt(state);
+  const referenceMs = referenceAtRaw ? new Date(referenceAtRaw).getTime() : Date.now();
+  const milestoneWindow = state.initiatives
     .flatMap((programme) => programme.situationIds
       .map((id) => state.situations.find((item) => item.id === id))
-      .filter((item): item is NonNullable<typeof item> => item != null && item.dueAt != null)
+      .filter((item): item is NonNullable<typeof item> => item != null && item.dueAt != null && item.status !== "reglee")
       .map((situation) => ({ programme, situation, dueAt: new Date(situation.dueAt!).getTime() })))
-    .filter((item) => item.dueAt >= referenceMs - 86_400_000 * 60)
+    .filter((item) => item.dueAt <= referenceMs + 86_400_000 * 60)
     .sort((a, b) => a.dueAt - b.dueAt)
-    .slice(0, 5);
+    .slice(0, 6);
+  const upcomingMilestones = milestoneWindow.map((item) => ({ ...item, overdue: item.dueAt < referenceMs }));
 
   // Couverture territoriale par façade maritime réelle (LOT V3.4,
   // domain/atlas-overview.ts) — % de territoires de la façade couverts
@@ -118,13 +175,13 @@ export default function ProgrammesPage() {
         </div>
         <div className="flex flex-wrap gap-px border lg:flex-none" style={{ background: "rgba(11,26,42,.12)", borderColor: "rgba(11,26,42,.12)" }}>
           {[
-            { v: stats.active, k: "Actifs" },
-            { v: stats.attentionOrCritical, k: "À surveiller" },
-            { v: stats.territoriesCovered, k: "Territoires" },
-            { v: compactMoney.format(stats.totalBudgetFcfa), k: "Budget chiffré" }
+            { v: `${execOrFinancedCount}/${state.initiatives.length}`, k: "En exécution ou financés", color: "var(--etat-navy)" },
+            { v: `${avgProgressPct}%`, k: "Avancement moyen", color: "var(--etat-navy)" },
+            { v: attentionCount, k: "Demandent une attention", color: "#B6522F" },
+            { v: terrainGapCount, k: "Écarts terrain / déclaré", color: "#C8452B" }
           ].map((stat) => (
             <div key={stat.k} className="min-w-[104px] bg-white px-[18px] py-3">
-              <p style={{ fontFamily: "var(--etat-font-mono)", fontSize: 22, lineHeight: 1, color: "var(--etat-navy)" }}>{stat.v}</p>
+              <p style={{ fontFamily: "var(--etat-font-mono)", fontSize: 22, lineHeight: 1, color: stat.color }}>{stat.v}</p>
               <p className="mt-1.5 text-[10px] uppercase leading-[1.3] tracking-[.07em]" style={{ color: "rgba(11,26,42,.5)" }}>{stat.k}</p>
             </div>
           ))}
@@ -133,13 +190,18 @@ export default function ProgrammesPage() {
 
       <div className="mt-5 border p-[17px]" style={{ borderColor: "rgba(11,26,42,.12)" }}>
         <div className="mb-3.5 flex flex-wrap items-baseline gap-3">
-          <p className="text-[10px] uppercase tracking-[.12em]" style={{ color: "rgba(11,26,42,.5)" }}>Du montant identifié à la dépense réelle</p>
+          {/* Titre corrigé (LOT V3.30) : la maquette écrit "à la dépense
+              réelle", mais aucune dépense/décaissement n'existe dans le
+              Core (Funding.status est un statut de MOBILISATION, jamais
+              une preuve de dépense) — le contenu réel (3 statuts déjà
+              exacts) est conservé, seul le titre cesse de sur-promettre. */}
+          <p className="text-[10px] uppercase tracking-[.12em]" style={{ color: "rgba(11,26,42,.5)" }}>Du montant identifié à la confirmation de financement</p>
           <p className="text-[11px]" style={{ color: "rgba(11,26,42,.5)" }}>Saisies manuelles — aucun système budgétaire connecté</p>
         </div>
         <div className="flex h-[38px] gap-0.5">
           {budgetBuckets.map((bucket) => (
             <div key={bucket.key} className="flex items-center overflow-hidden px-3" style={{ width: `${(bucket.total / budgetTotal) * 100}%`, background: bucket.color, minWidth: bucket.total > 0 ? 8 : 0 }}>
-              {bucket.total > 0 && <span className="whitespace-nowrap text-[12.5px]" style={{ fontFamily: "var(--etat-font-mono)", color: bucket.key === "a_mobiliser" ? "var(--etat-navy)" : "#F7F3E9" }}>{compactMoney.format(bucket.total)}</span>}
+              {bucket.total > 0 && <span className="whitespace-nowrap text-[12.5px]" style={{ fontFamily: "var(--etat-font-mono)", color: bucket.key === "a_mobiliser" ? "var(--etat-navy)" : "#F7F3E9" }}>{compactFcfa(bucket.total)}</span>}
             </div>
           ))}
         </div>
@@ -159,28 +221,41 @@ export default function ProgrammesPage() {
         <div className="shadcn-scope min-w-0 border" style={{ borderColor: "rgba(11,26,42,.12)" }}>
           <div className="px-5 pb-1.5 pt-4">
             <p className="font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 20, color: "var(--etat-navy)" }}>Cartographie du portefeuille</p>
-            <p className="mt-1 text-[11.5px]" style={{ color: "rgba(11,26,42,.52)" }}>Avancement × financement confirmé — taille : territoires couverts, couleur : santé déclarée</p>
+            {/* Sous-titre littéral de la maquette ("{N} programmes
+                positionnés — cliquez pour ouvrir") — remplace la
+                description d'axes fixe, devenue inexacte depuis l'ajout de
+                la bascule "Avancement × signaux"/"Avancement × budget"
+                (LOT V3.30) : les 2 boutons du composant portent désormais
+                cette information, jamais dupliquée ici. */}
+            <p className="mt-1 text-[11.5px]" style={{ color: "rgba(11,26,42,.52)" }}>{frenchProgrammeCount(rows.length)} positionné{rows.length > 1 ? "s" : ""} — cliquez pour ouvrir</p>
           </div>
           <div className="px-5 pb-4">
-            <ProgrammePortfolioScatter rows={rows} onSelect={setDossierInitiativeId} />
+            <ProgrammePortfolioScatter rows={rows} state={state} onSelect={setDossierInitiativeId} />
           </div>
         </div>
 
         <div className="flex min-w-0 flex-col gap-5">
           <div style={{ background: "var(--etat-navy)", color: "#F7F3E9" }}>
             <div className="px-[18px] pb-3 pt-4">
-              <p className="font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 19 }}>Prochaines échéances réelles</p>
-              <p className="mt-1 text-[11.5px]" style={{ color: "rgba(247,243,233,.55)" }}>Situations à échéance rattachées à un programme</p>
+              <p className="font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 19 }}>Jalons des 60 prochains jours</p>
+              <p className="mt-1 text-[11.5px]" style={{ color: "rgba(247,243,233,.55)" }}>Ce qui doit arriver, et ce qui est déjà en retard</p>
             </div>
             {upcomingMilestones.length === 0 ? (
               <p className="px-[18px] pb-4 text-[12px] leading-[1.55]" style={{ color: "rgba(247,243,233,.6)" }}>Aucune situation rattachée à un programme ne porte d’échéance documentée pour le moment.</p>
-            ) : upcomingMilestones.map(({ programme, situation, dueAt }) => (
-              <div key={situation.id} className="flex items-center gap-3 border-t px-[18px] py-2.5" style={{ borderColor: "rgba(247,243,233,.1)" }}>
+            ) : upcomingMilestones.map(({ programme, situation, dueAt, overdue }) => (
+              // Clé composite (programme.id + situation.id) : une situation
+              // réelle peut être rattachée à 2 programmes distincts (ex.
+              // sit-kayar → init-froid ET init-grande-cote-xxl dans le Demo
+              // World) — chaque rattachement reste une ligne honnête et
+              // distincte, jamais dédupliquée à tort ni source de clé React
+              // dupliquée.
+              <div key={`${programme.id}-${situation.id}`} className="flex items-center gap-3 border-t px-[18px] py-2.5" style={{ borderColor: "rgba(247,243,233,.1)" }}>
                 <span className="w-[52px] shrink-0 text-[12px]" style={{ fontFamily: "var(--etat-font-mono)", color: "#DE9C74" }}>{new Date(dueAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[12.5px] font-medium">{situation.title}</p>
                   <p className="mt-0.5 truncate text-[10.5px]" style={{ color: "rgba(247,243,233,.55)" }}>{programme.title}</p>
                 </div>
+                <span className="shrink-0 text-[10.5px] uppercase tracking-[.06em]" style={{ color: overdue ? "#DE7A50" : "rgba(247,243,233,.5)" }}>{overdue ? "en retard" : "en cours"}</span>
               </div>
             ))}
           </div>
@@ -221,6 +296,7 @@ export default function ProgrammesPage() {
             .filter((value): value is string => Boolean(value))
             .sort()[0];
           const criticalCount = row.ecosystem.openSituations.filter((s) => s.priority === "critique" || s.priority === "haute").length;
+          const ownerName = state.actors.find((actor) => actor.id === row.initiative.ownerId)?.name;
           return (
             <button key={row.initiative.id} onClick={() => setDossierInitiativeId(row.initiative.id)} className="flex w-full flex-col gap-2.5 border-b px-5 py-[13px] text-left lg:flex-row lg:items-center lg:gap-3" style={{ borderColor: "rgba(11,26,42,.06)" }}>
               <div className="min-w-0 flex-1">
@@ -228,7 +304,13 @@ export default function ProgrammesPage() {
                   <span className="size-[7px] shrink-0 rounded-full" style={{ background: healthColor[row.health.state] }} />
                   <span className="truncate text-[13.5px] font-medium">{row.initiative.title}</span>
                 </div>
-                <p className="mt-1 truncate pl-4 text-[11px]" style={{ color: "rgba(11,26,42,.5)" }}>{programmeHealthLabel[row.health.state]} · {row.territoryCount} territoire(s)</p>
+                {/* Ordre littéral de la maquette : "{responsable} ·
+                    {territoires} · {santé}" (ex. "Cheikh Bâ · 3
+                    territoires · Critique") — Initiative.ownerId est réel,
+                    et les 3 responsables qu'il référence dans le Demo
+                    World (Cheikh Bâ/Mamadou Fall/Fatou Ndiaye) sont
+                    exactement les noms littéraux de la maquette. */}
+                <p className="mt-1 truncate pl-4 text-[11px]" style={{ color: "rgba(11,26,42,.5)" }}>{ownerName ? `${ownerName} · ` : ""}{row.territoryCount} territoire(s) · {programmeHealthLabel[row.health.state]}</p>
               </div>
               <div className="w-full text-[11.5px] lg:w-24" style={{ color: "rgba(11,26,42,.7)" }}>{initiativeStatusLabel[row.initiative.status]}</div>
               <div className="w-full lg:w-32">
