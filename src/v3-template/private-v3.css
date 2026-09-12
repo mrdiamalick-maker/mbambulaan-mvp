@@ -1,8 +1,6 @@
 /* Feuille de style du template privé V3 — isolée de brand.css / des autres
-   feuilles existantes (§14 du mandat). Polices identiques au standalone
-   (Newsreader, IBM Plex Sans, IBM Plex Mono), auto-hébergées via
-   next/font/google dans src/app/private-v3/layout.tsx (pas de <link>
-   Google Fonts ici — voir ce fichier pour le choix). Le reste : classes
+   feuilles existantes (§14 du mandat). Polices : voir fonts.css (mêmes
+   fichiers .woff2 octet pour octet que le standalone). Le reste : classes
    utilitaires pour les états hover que le prototype exprimait via un
    attribut style-hover (non disponible en style inline React), et
    l'adaptation responsive (§18). */
@@ -12,10 +10,40 @@
   --pv3-paper: #f7f3e9;
   background: var(--pv3-paper);
   color: var(--pv3-ink);
+  /* Le layout racine (src/app/layout.tsx) charge Tailwind pour tout le
+     site, dont le Preflight (`html{line-height:1.5}`), qui traverse cette
+     route comme toutes les autres. Le standalone n'a aucun reset de ce
+     genre : ses textes sans line-height explicite gardent le "normal" du
+     navigateur, plus court. Sans cette ligne, chaque libellé/légende sans
+     line-height inline hérite du 1.5 de Tailwind — écart mesuré et
+     corrigé lors de la vérification côte à côte (§7 : correction de
+     fidélité, pas de redesign) : jusqu'à +25px sur certains blocs et
+     +106px de hauteur de page cumulée sur le Brief à lui seul.
+     Les éléments qui fixent leur propre line-height (h1, paragraphes...)
+     ne sont pas affectés : une valeur inline reste prioritaire sur
+     l'héritage. */
+  line-height: normal;
 }
 
 .pv3-root * {
   box-sizing: border-box;
+}
+
+/* src/app/brand.css (chargé pour tout le site par le layout racine) pose
+   `h1,h2,h3{letter-spacing:-.035em}` sans scoping — une deuxième fuite
+   globale du même genre que le line-height ci-dessus. Sur un h2 à 26px,
+   ça condense le texte d'environ 0,9px/caractère : mesuré, ça suffisait à
+   faire tenir sur une ligne un titre d'arbitrage que le standalone (sans
+   ce tracking) casse sur deux — un vrai "wrong line break" (§7). Les
+   titres de ce template ne fixent pas leur propre letter-spacing (comme
+   dans le standalone) : ils doivent hériter le "normal" du navigateur.
+   Chaque h1/h2/h3 fixe déjà sa propre font-family en style inline, donc
+   la font-family de brand.css n'a jamais eu prise ; seul letter-spacing
+   avait besoin de ce correctif. */
+.pv3-root h1,
+.pv3-root h2,
+.pv3-root h3 {
+  letter-spacing: normal;
 }
 
 @keyframes pv3-pulse {

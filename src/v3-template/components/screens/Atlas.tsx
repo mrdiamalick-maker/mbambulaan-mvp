@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { PROGS } from "../../data/programmes";
-import { TD, TERR } from "../../data/territories";
+import { NEIGHBOURS, TD, TERR, ZONES } from "../../data/territories";
 import { LV, V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
 import { ATLAS_VIEWBOX, geo, project } from "../../lib/geo";
 import { terrData, tseries } from "../../lib/atlas";
@@ -51,6 +51,18 @@ export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patc
       showLab, lx: -(r + 4) / k, ly: 3.5 / k, fs: 11 / k, fw: isSel ? 600 : 400, labc: isSel ? "#F7F3E9" : "rgba(247,243,233,.6)"
     };
   }), [state.sel, state.mapHover, L, zone, k]);
+
+  // Étiquettes de zone (GRANDE-CÔTE, CAP-VERT…) et de pays voisins (MALI,
+  // GAMBIE, GUINÉE-BISSAU) — décor cartographique du standalone, oublié
+  // au premier portage (§7 : "missing visual").
+  const zoneLabels = ZONES.map(([n, la, lo]) => {
+    const p = project(lo, la);
+    return { name: n, x: p[0], y: p[1], fs: 10 / k };
+  });
+  const nbLabels = NEIGHBOURS.map(([n, la, lo]) => {
+    const p = project(lo, la);
+    return { name: n, x: p[0], y: p[1], fs: 11 / k };
+  });
 
   const atlasLinks = L.cold ? LINK_PAIRS.map(([a, b]) => {
     const ra = TERR.find((t) => t[0] === a)!, rb = TERR.find((t) => t[0] === b)!;
@@ -142,6 +154,12 @@ export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patc
                   <g key={"lab" + m.name} transform={m.tr}>
                     <text x={m.lx} y={m.ly} fontFamily={V3_FONT_SANS} fontSize={m.fs} fontWeight={m.fw} fill={m.labc} textAnchor="end" opacity={m.op}>{m.name}</text>
                   </g>
+                ))}
+                {zoneLabels.map((z) => (
+                  <text key={z.name} x={z.x} y={z.y} fontFamily={V3_FONT_SANS} fontSize={z.fs} letterSpacing={2} fill="rgba(247,243,233,.3)" textAnchor="middle">{z.name}</text>
+                ))}
+                {nbLabels.map((n) => (
+                  <text key={n.name} x={n.x} y={n.y} fontFamily={V3_FONT_SANS} fontSize={n.fs} letterSpacing={1.5} fill="rgba(247,243,233,.22)" textAnchor="middle">{n.name}</text>
                 ))}
               </g>
             </svg>
