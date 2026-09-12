@@ -55,14 +55,14 @@ test("TEST 3 — le bandeau démo de PrivateHeader utilise dataSourceSummary ré
 // Décision CEO") — le sélecteur "Rôle connecté" (Ministre/Direction de
 // programme/Coordination territoriale) EST réintroduit, littéralement,
 // mais reste un APERÇU de mise en avant du menu, jamais un changement de
-// rôle réel : il ne fait que réordonner les vraies destinations
-// (reorderEtatNavForPreview, private-nav.ts), jamais n'en masque une —
-// contrairement à la maquette elle-même, qui fait disparaître certaines
-// entrées par rôle (ce que reproduire aurait masqué une capacité
-// réellement accessible à la session courante, cf. le commentaire de
-// private-nav.ts). L'arbitrage V3.1 ("pas de bascule de RÔLE RÉEL/
-// permission libre") reste vrai : aucune permission, aucune donnée, aucun
-// rôle de session n'est modifié par ce sélecteur.
+// rôle réel : il ne fait que réordonner (et, depuis le LOT V3.31, masquer
+// certaines entrées — comme la maquette elle-même le fait pour Arbitrages/
+// Résultats selon le rôle, cf. le commentaire de private-nav.ts) les
+// vraies destinations, sans jamais retirer une capacité réellement
+// accessible (la destination masquée reste atteignable par son URL et
+// sous les 2 autres aperçus). L'arbitrage V3.1 ("pas de bascule de RÔLE
+// RÉEL/permission libre") reste vrai : aucune permission, aucune donnée,
+// aucun rôle de session n'est modifié par ce sélecteur.
 test("TEST 4 — le sélecteur de rôle est réintroduit comme aperçu de menu, jamais comme un changement de rôle réel", () => {
   const headerSource = readSource("../src/components/shell/PrivateHeader.tsx");
   assert.ok(headerSource.includes("Rôle connecté"));

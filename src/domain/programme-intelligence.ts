@@ -220,6 +220,19 @@ export interface PortfolioStats {
   territoriesCovered: number;
 }
 
+// portfolioAvgProgressPct — moyenne réelle de progressPct sur les
+// programmes qui en portent un (rows sans indicateur exclues, jamais
+// forcées à 0 — même discipline que progressPct lui-même). Extrait en
+// fonction partagée au LOT V3.31 : consommé à la fois par /app/etat/
+// programmes (bandeau "Avancement moyen", LOT V3.30) et /app/etat (Brief
+// national, tuile "Avancement du portefeuille" et TLDR "Direction de
+// programme") — un seul calcul, jamais deux qui pourraient diverger.
+export function portfolioAvgProgressPct(rows: ProgrammePortfolioRow[]): number | null {
+  const withProgress = rows.filter((row) => row.progressPct !== null);
+  if (withProgress.length === 0) return null;
+  return Math.round(withProgress.reduce((sum, row) => sum + row.progressPct!, 0) / withProgress.length);
+}
+
 export function portfolioStats(state: ProductState, rows: ProgrammePortfolioRow[]): PortfolioStats {
   const chiffred = state.initiatives.filter((item) => item.budgetFcfa !== undefined);
   return {

@@ -24,6 +24,9 @@ import { vigilanceCategoryLabels, type VigilanceCase, type VigilanceSeverity } f
 import { TrustGlyphLabel, trustGlyphFromLevel } from "@/components/etat/TrustGlyph";
 import { deriveDatasetReferenceAt } from "@/domain/signal-crossing";
 import { dataSourceRegistry } from "@/domain/data-sources";
+import { useEtatPreview } from "@/components/providers/EtatPreviewProvider";
+import { portfolioAvgProgressPct, portfolioRows } from "@/domain/programme-intelligence";
+import { fluxStats, projectFluxContext } from "@/domain/incoming-message";
 
 // LOT V3.16 ("Brief national — copie conforme du rendu maquette") —
 // reconstruction du Brief national sur le plan EXACT de l'écran `isBrief`
@@ -57,6 +60,40 @@ import { dataSourceRegistry } from "@/domain/data-sources";
 // ailleurs dans le produit (signalTrendDemo/ETAT_DEMO_SERIES_NOTICE) est
 // réutilisée plutôt qu'une série fabriquée pour l'occasion — jamais 5
 // tendances inventées différentes.
+// LOT V3.31 ("Brief national — dynamisme du rôle connecté") — retour
+// explicite de l'utilisateur : "as-tu pris en compte le dynamisme du rôle
+// connecté ?" Le sélecteur "Rôle connecté" de la maquette ne réordonne
+// pas seulement le menu (LOT V3.29) — il change le contenu narratif réel
+// affiché (H1, "Lecture en 20 secondes", légende du bandeau démo,
+// vérifié par comparaison directe des 3 captures role-Ministre.png/role-
+// Directiondeprogramme.png/role-Coordinationterritoriale.png). Chaque H1/
+// TLDR par rôle ci-dessous dérive d'une lecture RÉELLE et DISTINCTE de la
+// même ProductState (jamais un second jeu de données, jamais un
+// pourcentage inventé) :
+//  - "ministre" reprend le calcul `dominant` déjà réel (Brief national
+//    LOT V3.16), inchangé ;
+//  - "direction_programme" dérive de portfolioRows/programmeHealth (déjà
+//    réel, domain/programme-intelligence.ts — même lecture que /app/etat/
+//    programmes, LOT V3.30) : combien de programmes sont en état
+//    "critique" (un écart déjà confirmé entre le terrain et le déclaré) ;
+//  - "coordination_territoriale" dérive de fluxStats/projectFluxContext
+//    (déjà réels, domain/incoming-message.ts, LOT V3.3) : combien
+//    d'éléments reçus restent à qualifier, et combien sont immédiatement
+//    qualifiables vs. nécessitent un recoupement terrain.
+// "Relais de quai mandaté" (maquette, TLDR Coordination) n'a aucun champ
+// réel équivalent (déjà établi à l'Atlas territorial, LOT V3.28) : la
+// clause finale du TLDR Coordination utilise à la place une lecture
+// honnête déjà réelle (Situation.trust, TrustLevel) — les situations
+// ouvertes jamais encore vérifiées sur site — plutôt que d'inventer un
+// "relais mandaté".
+const FRENCH_COUNT_WORDS = ["zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix"];
+function frenchCountWord(n: number): string {
+  return n >= 0 && n <= 10 ? FRENCH_COUNT_WORDS[n] : String(n);
+}
+function capitalize(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 const severityToTag: Record<VigilanceSeverity, "stable" | "vigilance" | "critique"> = { faible: "stable", moyenne: "vigilance", haute: "vigilance", critique: "critique" };
 
 // Progression d'un programme (mandat, "blocs Programmes à surveiller") —
@@ -84,6 +121,8 @@ function situationAge(situation: Situation, referenceAtMs: number): string | nul
 
 export default function EtatPage() {
   const { state } = useProduct();
+  const preview = useEtatPreview();
+  const previewRole = preview?.previewRole ?? "ministre";
   const [cases, setCases] = useState<VigilanceCase[]>([]);
   const [openAttentionId, setOpenAttentionId] = useState<string | null>(null);
   const [situationDrawer, setSituationDrawer] = useState<Situation | null>(null);
@@ -154,6 +193,35 @@ export default function EtatPage() {
     .sort((a, b) => situationPriorityRank[b.priority] - situationPriorityRank[a.priority]);
   const briefTldr = `${situationsCritiquesHautesTotal} situation(s) critique(s) ou élevée(s), ${capacitesFragilesTotal} capacité(s) fragile(s), ${situationsAArbitrer.length} décision(s) attendue(s) cette semaine.`;
 
+  // H1 + TLDR par rôle connecté (LOT V3.31, cf. commentaire d'en-tête) —
+  // 3 lectures réelles et distinctes de la même ProductState.
+  const programmeRows = portfolioRows(state);
+  const dpCriticalCount = programmeRows.filter((row) => row.health.state === "critique").length;
+  const dpAttentionCount = programmeRows.filter((row) => row.health.state === "attention").length;
+  const dpAvgProgressPct = portfolioAvgProgressPct(programmeRows) ?? 0;
+
+  const flux = fluxStats(state);
+  const openMessages = state.incomingMessages.filter((item) => item.status === "nouveau");
+  const qualifiableNowCount = openMessages.filter((item) => projectFluxContext(state, item).missing.length === 0).length;
+  const needsFieldCrossCheckCount = openMessages.length - qualifiableNowCount;
+  const unverifiedOpenSituations = state.situations.filter((item) => item.status !== "reglee" && item.trust !== "verifiee").length;
+
+  const roleHeadline = {
+    ministre: briefHeadline,
+    direction_programme: dpCriticalCount > 0
+      ? `${capitalize(frenchCountWord(dpCriticalCount))} programme${dpCriticalCount > 1 ? "s" : ""} sur ${frenchCountWord(state.initiatives.length)} demande${dpCriticalCount > 1 ? "nt" : ""} une décision d’exécution.`
+      : "Aucun programme ne demande de décision d’exécution immédiate.",
+    coordination_territoriale: flux.nouveau > 0
+      ? `${capitalize(frenchCountWord(flux.nouveau))} élément${flux.nouveau > 1 ? "s" : ""} reçu${flux.nouveau > 1 ? "s" : ""} attend${flux.nouveau > 1 ? "ent" : ""} une qualification.`
+      : "Aucun élément reçu n’attend de qualification."
+  }[previewRole];
+
+  const roleTldr = {
+    ministre: `${briefTldr}${dpAttentionCount > 0 ? ` ${dpAttentionCount} programme(s) affiche(nt) un écart entre avancement déclaré et signaux reçus.` : ""}`,
+    direction_programme: `Le portefeuille avance à ${dpAvgProgressPct}% en moyenne. ${dpCriticalCount} programme(s) en écart critique entre le terrain et le déclaré, ${dpAttentionCount} en attention.`,
+    coordination_territoriale: `${qualifiableNowCount} élément(s) qualifiable(s) immédiatement, ${needsFieldCrossCheckCount} nécessite(nt) un recoupement terrain. ${unverifiedOpenSituations} situation(s) ouverte(s) n’ont pas encore été vérifiée(s) sur site.`
+  }[previewRole];
+
   // Foyers d'attention — territoires réellement classés vigilance/
   // critique, triés par sévérité puis par situations ouvertes ; jamais un
   // classement fabriqué (même discipline que l'Atlas territorial).
@@ -219,12 +287,12 @@ export default function EtatPage() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:gap-9">
           <div className="min-w-0 flex-1">
             <p className="etat-eyebrow">Brief national · {todayLabel}</p>
-            <h1 className="mt-2.5 max-w-[22ch] font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 41, lineHeight: 1.1, color: "var(--etat-navy)" }}>{briefHeadline}</h1>
+            <h1 className="mt-2.5 max-w-[22ch] font-normal" style={{ fontFamily: "var(--etat-font-display)", fontSize: 41, lineHeight: 1.1, color: "var(--etat-navy)" }}>{roleHeadline}</h1>
             <p className="mt-3.5 max-w-[60ch]" style={{ fontFamily: "var(--etat-font-display)", fontSize: 17.5, lineHeight: 1.55, color: "rgba(11,26,42,.78)" }}>{briefSynthesis}</p>
           </div>
           <div className="w-full shrink-0 border-l-2 py-0.5 pl-4 lg:w-[236px]" style={{ borderColor: "var(--etat-terracotta)" }}>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[.14em]" style={{ color: "rgba(11,26,42,.45)" }}>Lecture en 20 secondes</p>
-            <p className="text-[12.5px] leading-[1.5]" style={{ color: "rgba(11,26,42,.8)" }}>{briefTldr}</p>
+            <p className="text-[12.5px] leading-[1.5]" style={{ color: "rgba(11,26,42,.8)" }}>{roleTldr}</p>
           </div>
         </div>
 

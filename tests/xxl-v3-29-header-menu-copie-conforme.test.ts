@@ -16,17 +16,24 @@ import { reorderEtatNavForPreview, resolvePrivateNavGroups } from "../src/domain
 // Ce produit n'a que 2 rôles réels atteignant l'Espace État (institution,
 // administrateur — etat/layout.tsx) : le sélecteur reste donc un APERÇU
 // de mise en avant du menu (EtatPreviewProvider), jamais un changement de
-// rôle réel — il réordonne les vraies destinations, jamais n'en masque
-// aucune (contrairement à la maquette elle-même).
+// rôle réel.
+//
+// TEST 1 mis à jour au LOT V3.31 : ce lot avait initialement choisi de ne
+// JAMAIS masquer une entrée (seulement réordonner), par prudence. Le
+// retour explicite de l'utilisateur ("copie conforme, n'interprète pas du
+// tout") annule ce choix — masquer une entrée sous un aperçu de rôle ne
+// retire AUCUNE capacité réelle (la destination reste pleinement
+// accessible par son URL et sous les 2 autres aperçus) : le masquage de
+// la maquette (Arbitrages pour Direction de programme, Résultats pour
+// Coordination territoriale) est donc désormais reproduit fidèlement.
 function readSource(relativePath: string): string {
   return readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), "utf-8");
 }
 
 // TEST 1 — reorderEtatNavForPreview reprend les 3 ordres littéraux
-// vérifiés par clic réel dans le bundle standalone.html, sans jamais
-// supprimer une destination réelle (contrairement à la maquette qui fait
-// disparaître Arbitrages/Résultats selon le rôle).
-test("TEST 1 — reorderEtatNavForPreview reprend les 3 ordres littéraux sans jamais supprimer de destination", () => {
+// vérifiés par capture réelle (role-*.png), y compris le masquage de
+// certaines entrées selon le rôle.
+test("TEST 1 — reorderEtatNavForPreview reprend les 3 ordres littéraux, y compris le masquage par rôle", () => {
   const groups = resolvePrivateNavGroups("etat", "institution", []);
   const items = groups[0].items;
   assert.equal(items.length, 7);
@@ -37,13 +44,13 @@ test("TEST 1 — reorderEtatNavForPreview reprend les 3 ordres littéraux sans j
   const direction = reorderEtatNavForPreview(items, "direction_programme").map((i) => i.href);
   assert.equal(direction[0], "/app/etat/programmes");
   assert.equal(direction[1], "/app/etat/rapport");
-  assert.equal(direction[direction.length - 1], "/app/etat/arbitrages", "Arbitrages est absent de la maquette pour ce rôle — relégué en fin de liste, jamais supprimé");
-  assert.equal(direction.length, 7, "aucune destination réelle n'est supprimée, contrairement à la maquette");
+  assert.ok(!direction.includes("/app/etat/arbitrages"), "Arbitrages est absent de la maquette pour ce rôle (role-Directiondeprogramme.png) — masqué, pas seulement relégué");
+  assert.equal(direction.length, 6);
 
   const coordination = reorderEtatNavForPreview(items, "coordination_territoriale").map((i) => i.href);
   assert.equal(coordination[0], "/app/etat/situations");
-  assert.equal(coordination[coordination.length - 1], "/app/etat/rapport", "Résultats est absent de la maquette pour ce rôle — relégué en fin de liste, jamais supprimé");
-  assert.equal(coordination.length, 7);
+  assert.ok(!coordination.includes("/app/etat/rapport"), "Résultats est absent de la maquette pour ce rôle (role-Coordinationterritoriale.png) — masqué, pas seulement relégué");
+  assert.equal(coordination.length, 6);
 });
 
 // TEST 2 — "Flux entrant" est ajouté au menu État pour administrateur

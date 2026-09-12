@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { usePresentationGuide } from "@/components/providers/PresentationGuideProvider";
-import { spaceIdentityLabel, type PrivateSpace } from "@/domain/platform/private-nav";
+import { resolvePrivateNavGroups, spaceIdentityLabel, type PrivateSpace } from "@/domain/platform/private-nav";
 import { dataSourceSummary } from "@/domain/data-sources";
 import type { ProductState } from "@/domain/types";
 import { GlobalSearch } from "@/components/shell/GlobalSearch";
@@ -149,6 +149,26 @@ export function PrivateHeader({
 
   const isDemo = persistence !== "postgresql";
   const sourceSummary = space === "etat" && state ? dataSourceSummary(state) : null;
+  const preview = useEtatPreview();
+  // Segment central du bandeau démo, littéral par rôle (LOT V3.31,
+  // "dynamisme du rôle connecté") — la maquette porte une légende propre
+  // à chaque aperçu ("Supervision nationale · 6 modules, arbitrages
+  // activés" / "Direction de programme · portefeuille et exécution en
+  // premier" / "Coordination territoriale · qualification et terrain en
+  // premier"), vérifiée par capture réelle (role-*.png). "6 modules" est
+  // réel : le nombre de destinations réelles du rôle "institution" (celui
+  // que l'aperçu "Ministre" représente), Brief national exclu (page
+  // courante) — 7 destinations réelles moins 1. L'identité réelle de
+  // session (actorName) reste affichée ailleurs dans l'en-tête (badge de
+  // compte, à droite) — jamais perdue, seulement pas dupliquée ici.
+  const ministreModuleCount = resolvePrivateNavGroups("etat", "institution", []).flatMap((group) => group.items).filter((item) => item.href !== "/app/etat").length;
+  const etatRoleCaption = preview
+    ? {
+        ministre: `Supervision nationale · ${ministreModuleCount} modules, arbitrages activés`,
+        direction_programme: "Direction de programme · portefeuille et exécution en premier",
+        coordination_territoriale: "Coordination territoriale · qualification et terrain en premier"
+      }[preview.previewRole]
+    : null;
 
   return (
     <>
@@ -261,7 +281,7 @@ export function PrivateHeader({
             {isDemo ? "Données de démonstration — structure réelle, valeurs illustratives" : "Base de production"}
           </span>
           <span className="hidden h-3 w-px sm:block" style={{ background: "rgba(11,26,42,.15)" }} />
-          <span className="hidden sm:inline">{actorName ? `${actorName} · ${spaceIdentityLabel(space)}` : spaceIdentityLabel(space)}</span>
+          <span className="hidden sm:inline">{etatRoleCaption ?? (actorName ? `${actorName} · ${spaceIdentityLabel(space)}` : spaceIdentityLabel(space))}</span>
           <span className="flex-1" />
           {sourceSummary && (
             <span>{sourceSummary.connectedCount} source{sourceSummary.connectedCount > 1 ? "s" : ""} connectée{sourceSummary.connectedCount > 1 ? "s" : ""} sur {sourceSummary.totalCount} envisagée{sourceSummary.totalCount > 1 ? "s" : ""}</span>

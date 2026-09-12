@@ -6,7 +6,7 @@ import { DetailSurface } from "@/components/private/DetailSurface";
 import { ProgrammePortfolioScatter } from "@/components/programmes/ProgrammePortfolioScatter";
 import { ProgrammeCockpit } from "@/components/programmes/ProgrammeCockpit";
 import { glyphBorderColor, initiativeStatusLabel, priorityToTag } from "@/components/etat/shared";
-import { portfolioRows, portfolioStats, programmeHealthLabel, type ProgrammePortfolioRow } from "@/domain/programme-intelligence";
+import { portfolioAvgProgressPct, portfolioRows, portfolioStats, programmeHealthLabel, type ProgrammePortfolioRow } from "@/domain/programme-intelligence";
 import { MARITIME_ZONE_LABEL, MARITIME_ZONE_ORDER, resolveMaritimeZone } from "@/domain/atlas-overview";
 import { deriveDatasetReferenceAt } from "@/domain/signal-crossing";
 
@@ -121,8 +121,7 @@ export default function ProgrammesPage() {
   //    déclaré : situation prioritaire ouverte, ou budget jamais chiffré
   //    passé le cadrage — cf. programmeHealth, programme-intelligence.ts).
   const execOrFinancedCount = rows.filter((row) => row.initiative.status === "execution" || row.initiative.status === "financee").length;
-  const progressRows = rows.filter((row) => row.progressPct !== null);
-  const avgProgressPct = progressRows.length > 0 ? Math.round(progressRows.reduce((sum, row) => sum + row.progressPct!, 0) / progressRows.length) : 0;
+  const avgProgressPct = portfolioAvgProgressPct(rows) ?? 0;
   const attentionCount = rows.filter((row) => row.health.state === "attention").length;
   const terrainGapCount = rows.filter((row) => row.health.state === "critique").length;
 

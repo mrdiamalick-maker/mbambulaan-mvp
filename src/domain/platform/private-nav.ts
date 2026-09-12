@@ -93,22 +93,29 @@ const etatGroup: PrivateNavGroup = {
   ]
 };
 
-// --- Aperçu de menu par rôle (LOT V3.29) -----------------------------------
+// --- Aperçu de menu par rôle (LOT V3.29, révisé LOT V3.31) -----------------
 //
 // La maquette réordonne réellement son menu selon le "Rôle connecté"
 // sélectionné dans l'en-tête (vérifié par clic réel dans le bundle
 // standalone.html) et fait même disparaître certaines entrées (Arbitrages
 // pour "Direction de programme", Résultats pour "Coordination
-// territoriale"). Ce produit n'a que 2 rôles réels atteignant l'Espace
-// État (institution, administrateur — etat/layout.tsx) : les 3 boutons de
-// la maquette ne correspondent pas à 3 comptes réels distincts, et le
-// sélecteur reste donc un simple APERÇU de mise en avant (jamais un
-// changement de rôle réel, cf. EtatPreviewProvider). Pour ne jamais
-// masquer une capacité réellement accessible à la session courante
-// derrière ce bouton de confort, cette fonction REORDONNE seulement les
-// vraies destinations (jamais n'en supprime) : celles que la maquette
-// range en dernier/absentes pour un rôle donné sont simplement reléguées
-// en fin de liste plutôt que supprimées.
+// territoriale" — confirmé de nouveau par capture réelle, role-
+// Directiondeprogramme.png/role-Coordinationterritoriale.png). Ce produit
+// n'a que 2 rôles réels atteignant l'Espace État (institution,
+// administrateur — etat/layout.tsx) : les 3 boutons de la maquette ne
+// correspondent pas à 3 comptes réels distincts, et le sélecteur reste un
+// simple APERÇU de mise en avant (jamais un changement de rôle réel, cf.
+// EtatPreviewProvider).
+//
+// LOT V3.29 avait délibérément choisi de ne JAMAIS masquer une entrée
+// (seulement réordonner), par prudence — "ne jamais masquer une capacité
+// réellement accessible à la session courante". Le retour explicite de
+// l'utilisateur (LOT V3.31, "copie conforme, n'interprète pas du tout")
+// annule ce choix : masquer une entrée sous un aperçu de rôle NE retire
+// AUCUNE capacité réelle (la destination reste pleinement accessible par
+// son URL et sous les 2 autres aperçus de rôle — administrateur/
+// institution ne perdent jamais de permission réelle), donc reproduire
+// fidèlement le masquage de la maquette ne contredit plus ce principe.
 export type EtatPreviewRole = "ministre" | "direction_programme" | "coordination_territoriale";
 
 const ETAT_PREVIEW_ORDER: Record<EtatPreviewRole, string[]> = {
@@ -117,13 +124,24 @@ const ETAT_PREVIEW_ORDER: Record<EtatPreviewRole, string[]> = {
   coordination_territoriale: ["/app/flux", "/app/etat/situations", "/app/etat/territoires", "/app/etat/programmes", "/app/etat", "/app/etat/arbitrages", "/app/etat/sources", "/app/etat/rapport"]
 };
 
+// Entrées littéralement absentes du rail pour un rôle donné dans la
+// maquette (jamais pour "ministre", qui affiche les 8 destinations).
+const ETAT_PREVIEW_HIDDEN: Record<EtatPreviewRole, string[]> = {
+  ministre: [],
+  direction_programme: ["/app/etat/arbitrages"],
+  coordination_territoriale: ["/app/etat/rapport"]
+};
+
 export function reorderEtatNavForPreview(items: PrivateNavItem[], previewRole: EtatPreviewRole): PrivateNavItem[] {
   const order = ETAT_PREVIEW_ORDER[previewRole];
-  return [...items].sort((a, b) => {
-    const ia = order.indexOf(a.href);
-    const ib = order.indexOf(b.href);
-    return (ia === -1 ? order.length : ia) - (ib === -1 ? order.length : ib);
-  });
+  const hidden = new Set(ETAT_PREVIEW_HIDDEN[previewRole]);
+  return items
+    .filter((item) => !hidden.has(item.href))
+    .sort((a, b) => {
+      const ia = order.indexOf(a.href);
+      const ib = order.indexOf(b.href);
+      return (ia === -1 ? order.length : ia) - (ib === -1 ? order.length : ib);
+    });
 }
 
 // Coordination — reprise exacte de src/components/shell/AppSidebar.tsx
