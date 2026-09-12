@@ -22,6 +22,11 @@ export interface AppState {
   mapZoom: boolean;
   atlasTab: string;
   actBar: number | null;
+  // atlasLandingOpen (PD.1) — identifiant du Landing réel dont le panneau
+  // de détail est ouvert dans l'onglet "Activité" de l'Atlas. Même
+  // discipline que sitOpen/progOpen ci-dessous : un simple sélecteur
+  // nullable, pas un nouvel écran.
+  atlasLandingOpen: string | null;
 
   // Situations
   sitOpen: number | null;
@@ -78,6 +83,7 @@ export const initialAppState: AppState = {
   mapZoom: false,
   atlasTab: "act",
   actBar: null,
+  atlasLandingOpen: null,
 
   sitOpen: null,
   sitTab: "know",

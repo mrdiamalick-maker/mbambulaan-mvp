@@ -20,6 +20,7 @@ import type {
   CoordinationSpace,
   Finding,
   FieldMission,
+  FishingTrip,
   Infrastructure,
   Initiative,
   Landing,
@@ -35,7 +36,9 @@ import type {
   Signal,
   Site,
   Situation,
-  Territory
+  Species,
+  Territory,
+  Vessel
 } from "./types";
 
 // Statuts "en cours" pour ProgramOpportunity (mandat §12, "développement"
@@ -247,4 +250,251 @@ export function currentTerritoryView(intelligence: TerritoryIntelligence): Terri
   const fieldMissions = intelligence.fieldMissions.filter((item) => CURRENT_FIELD_MISSION_STATUSES.has(item.status));
   const collectiveNeeds = intelligence.collectiveNeeds.filter((item) => CURRENT_COLLECTIVE_NEED_STATUSES.has(item.status));
   return { situations, findings, knowledgeGaps, fieldMissions, collectiveNeeds, programOpportunities: intelligence.programOpportunities };
+}
+
+// --- Landing intelligence (PD.1, mandat "Product Dressing — Landing
+// Intelligence / Maritime Operations Foundation") ---------------------
+//
+// Extension de ce fichier plutôt qu'un moteur parallèle (mandat §4 :
+// "Extend existing territory intelligence rather than creating a
+// parallel engine where appropriate") — buildTerritoryIntelligence()
+// expose déjà `activity.landings`/`landedKg`/`speciesCount` ; ce qui
+// suit ajoute les projections déterministes que le mandat PD.1 demande
+// (comptage, répartition par espèce/site, activité des pirogues,
+// tendance) sans toucher aux champs existants ni à leur définition.
+// Toujours calculé à la volée depuis ProductState (même discipline que
+// buildTerritoryIntelligence, mandat §35) : aucun nouvel objet stocké.
+//
+// Discipline "ne rien inventer" (mandat PD.1 §3/§10) : chaque valeur
+// résolue ci-dessous vient d'un champ réel de ProductState ou d'une
+// agrégation pure sur des champs réels ; quand une référence ne résout
+// à rien (véhicule/site/capitaine inconnu), le champ correspondant reste
+// `undefined` plutôt que fabriqué.
+
+export interface LandingCatchLineView {
+  speciesId: string;
+  // Nom résolu depuis Species.name — c'est aujourd'hui le seul champ de
+  // libellé du référentiel Species (mandat PD.1 §8 : "use the existing
+  // Species model AS IS" ; pas de code/nom wolof/nom scientifique, un
+  // futur lot Species Referential comblera cet écart). Repli sur
+  // l'identifiant technique si l'espèce n'est pas résolue (jamais un nom
+  // inventé).
+  speciesName: string;
+  quantityKg: number;
+  quality: Landing["catches"][number]["quality"];
+  productForm: Landing["catches"][number]["productForm"];
+}
+
+export interface LandingDetailView {
+  landing: Landing;
+  site?: Site;
+  territory?: Territory;
+  trip?: FishingTrip;
+  vessel?: Vessel;
+  captain?: Actor;
+  catches: LandingCatchLineView[];
+  // Infrastructures du même site (glace, chambre froide, balance,
+  // transport) — contexte de co-localisation uniquement (mandat PD.1
+  // §9 : "Do not claim causality"), jamais une preuve de saturation.
+  infrastructures: Infrastructure[];
+}
+
+// buildLandingDetail — projection complète d'un Landing pour un panneau
+// de détail (mandat PD.1 §3/§6). Retourne undefined si l'identifiant ne
+// résout à aucun Landing réel — jamais un objet partiel fabriqué.
+export function buildLandingDetail(state: ProductState, landingId: string): LandingDetailView | undefined {
+  const landing = state.landings.find((item) => item.id === landingId);
+  if (!landing) return undefined;
+
+  const site = state.sites.find((item) => item.id === landing.siteId);
+  const territory = site ? state.territories.find((item) => item.id === site.territoryId) : undefined;
+  const trip = state.trips.find((item) => item.id === landing.tripId);
+  const vessel = trip ? state.vessels.find((item) => item.id === trip.vesselId) : undefined;
+  const captain = trip ? state.actors.find((item) => item.id === trip.captainId) : undefined;
+  const speciesById = new Map(state.species.map((item): [string, Species] => [item.id, item]));
+  const infrastructures = site ? state.infrastructures.filter((item) => item.siteId === site.id) : [];
+
+  const catches: LandingCatchLineView[] = landing.catches.map((catchLine) => ({
+    speciesId: catchLine.speciesId,
+    speciesName: speciesById.get(catchLine.speciesId)?.name ?? catchLine.speciesId,
+    quantityKg: catchLine.quantityKg,
+    quality: catchLine.quality,
+    productForm: catchLine.productForm
+  }));
+
+  return { landing, site, territory, trip, vessel, captain, catches, infrastructures };
+}
+
+// recentLandingsForTerritory — les débarquements d'un territoire, du plus
+// récent au plus ancien (mandat PD.1 §5, bloc "recent landings"). La date
+// de tri est `weighedAt ?? arrivedAt` (la meilleure date réellement
+// connue d'un débarquement) ; un Landing encore "attendu" (aucune des
+// deux) n'a pas de date réelle et est classé après les autres plutôt que
+// de se voir attribuer une date fabriquée — trié par id pour rester
+// stable entre deux appels.
+export function recentLandingsForTerritory(state: ProductState, territoryId: string, limit = 8): LandingDetailView[] {
+  const siteIds = new Set(state.sites.filter((item) => item.territoryId === territoryId).map((item) => item.id));
+  const landings = state.landings.filter((item) => siteIds.has(item.siteId));
+  const sorted = [...landings].sort((left, right) => {
+    const leftAt = left.weighedAt ?? left.arrivedAt;
+    const rightAt = right.weighedAt ?? right.arrivedAt;
+    if (leftAt && rightAt) return rightAt.localeCompare(leftAt);
+    if (leftAt) return -1;
+    if (rightAt) return 1;
+    return left.id.localeCompare(right.id);
+  });
+  return sorted.slice(0, limit).map((item) => buildLandingDetail(state, item.id)!);
+}
+
+export interface SpeciesVolume {
+  speciesId: string;
+  speciesName: string;
+  landedKg: number;
+  landingCount: number;
+}
+
+export interface SiteVolume {
+  siteId: string;
+  siteName: string;
+  siteType: Site["type"];
+  landedKg: number;
+  landingCount: number;
+}
+
+export interface VesselActivitySummary {
+  vesselId: string;
+  vesselName: string;
+  registration: string;
+  homeSiteId: string;
+  tripCount: number;
+  landingCount: number;
+  landedKg: number;
+}
+
+export interface LandingTrendPoint {
+  // Jour calendaire (YYYY-MM-DD) dérivé de weighedAt, à défaut arrivedAt
+  // — mandat PD.1 §4 : "landing trend over available dates", jamais une
+  // période fabriquée (semaine/mois) que les données ne couvrent pas
+  // réellement. Un Landing sans l'une ou l'autre date (encore "attendu")
+  // ne produit aucun point de tendance.
+  date: string;
+  landingCount: number;
+  landedKg: number;
+}
+
+export interface TerritoryLandingActivity {
+  landingCount: number;
+  totalLandedKg: number;
+  volumeBySpecies: SpeciesVolume[]; // trié décroissant par landedKg
+  dominantSpecies?: SpeciesVolume;
+  volumeBySite: SiteVolume[]; // trié décroissant par landedKg
+  vesselActivity: VesselActivitySummary[]; // trié décroissant par landedKg
+  trend: LandingTrendPoint[]; // trié chronologiquement croissant
+}
+
+function landingDate(landing: Landing): string | undefined {
+  const at = landing.weighedAt ?? landing.arrivedAt;
+  return at ? at.slice(0, 10) : undefined;
+}
+
+// buildTerritoryLandingActivity — les sept projections déterministes
+// demandées par le mandat PD.1 (§4) : nombre de débarquements, volume
+// total, répartition par espèce, espèce dominante, répartition par site,
+// activité des pirogues, tendance sur les dates réellement disponibles.
+// Somme sur TOUS les Landing du territoire, quel que soit leur statut —
+// même discipline que `landedKg`/`speciesCount` déjà exposés par
+// buildTerritoryIntelligence ci-dessus (mandat §6 : ne pas introduire un
+// second jugement de filtrage concurrent) ; c'est Landing.trust/status,
+// affiché tel quel à côté de chaque valeur, qui porte la fiabilité —
+// jamais un filtrage silencieux qui laisserait croire à une couverture
+// différente de celle des données.
+export function buildTerritoryLandingActivity(state: ProductState, territoryId: string): TerritoryLandingActivity {
+  const sites = state.sites.filter((item) => item.territoryId === territoryId);
+  const siteById = new Map(sites.map((item): [string, Site] => [item.id, item]));
+  const landings = state.landings.filter((item) => siteById.has(item.siteId));
+  const speciesById = new Map(state.species.map((item): [string, Species] => [item.id, item]));
+  const tripById = new Map(state.trips.map((item): [string, FishingTrip] => [item.id, item]));
+  const vesselById = new Map(state.vessels.map((item): [string, Vessel] => [item.id, item]));
+
+  const landingCount = landings.length;
+  const totalLandedKg = landings.reduce((sum, item) => sum + item.totalWeightKg, 0);
+
+  const speciesAgg = new Map<string, { landedKg: number; landingIds: Set<string> }>();
+  for (const landing of landings) {
+    for (const catchLine of landing.catches) {
+      const entry = speciesAgg.get(catchLine.speciesId) ?? { landedKg: 0, landingIds: new Set<string>() };
+      entry.landedKg += catchLine.quantityKg;
+      entry.landingIds.add(landing.id);
+      speciesAgg.set(catchLine.speciesId, entry);
+    }
+  }
+  const volumeBySpecies: SpeciesVolume[] = [...speciesAgg.entries()]
+    .map(([speciesId, agg]) => ({
+      speciesId,
+      speciesName: speciesById.get(speciesId)?.name ?? speciesId,
+      landedKg: agg.landedKg,
+      landingCount: agg.landingIds.size
+    }))
+    .sort((left, right) => right.landedKg - left.landedKg);
+  const dominantSpecies = volumeBySpecies[0];
+
+  const siteAgg = new Map<string, { landedKg: number; landingCount: number }>();
+  for (const landing of landings) {
+    const entry = siteAgg.get(landing.siteId) ?? { landedKg: 0, landingCount: 0 };
+    entry.landedKg += landing.totalWeightKg;
+    entry.landingCount += 1;
+    siteAgg.set(landing.siteId, entry);
+  }
+  const volumeBySite: SiteVolume[] = [...siteAgg.entries()]
+    .map(([siteId, agg]) => {
+      const site = siteById.get(siteId);
+      return {
+        siteId,
+        siteName: site?.name ?? siteId,
+        siteType: site?.type ?? "quai",
+        landedKg: agg.landedKg,
+        landingCount: agg.landingCount
+      };
+    })
+    .sort((left, right) => right.landedKg - left.landedKg);
+
+  const vesselAgg = new Map<string, { tripIds: Set<string>; landingCount: number; landedKg: number }>();
+  for (const landing of landings) {
+    const trip = tripById.get(landing.tripId);
+    if (!trip) continue;
+    const entry = vesselAgg.get(trip.vesselId) ?? { tripIds: new Set<string>(), landingCount: 0, landedKg: 0 };
+    entry.tripIds.add(trip.id);
+    entry.landingCount += 1;
+    entry.landedKg += landing.totalWeightKg;
+    vesselAgg.set(trip.vesselId, entry);
+  }
+  const vesselActivity: VesselActivitySummary[] = [...vesselAgg.entries()]
+    .map(([vesselId, agg]) => {
+      const vessel = vesselById.get(vesselId);
+      return {
+        vesselId,
+        vesselName: vessel?.name ?? vesselId,
+        registration: vessel?.registration ?? "",
+        homeSiteId: vessel?.homeSiteId ?? "",
+        tripCount: agg.tripIds.size,
+        landingCount: agg.landingCount,
+        landedKg: agg.landedKg
+      };
+    })
+    .sort((left, right) => right.landedKg - left.landedKg);
+
+  const trendAgg = new Map<string, { landingCount: number; landedKg: number }>();
+  for (const landing of landings) {
+    const date = landingDate(landing);
+    if (!date) continue;
+    const entry = trendAgg.get(date) ?? { landingCount: 0, landedKg: 0 };
+    entry.landingCount += 1;
+    entry.landedKg += landing.totalWeightKg;
+    trendAgg.set(date, entry);
+  }
+  const trend: LandingTrendPoint[] = [...trendAgg.entries()]
+    .map(([date, agg]) => ({ date, landingCount: agg.landingCount, landedKg: agg.landedKg }))
+    .sort((left, right) => left.date.localeCompare(right.date));
+
+  return { landingCount, totalLandedKg, volumeBySpecies, dominantSpecies, volumeBySite, vesselActivity, trend };
 }
