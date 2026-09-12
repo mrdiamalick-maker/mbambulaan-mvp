@@ -51,16 +51,27 @@ test("TEST 3 — le bandeau démo de PrivateHeader utilise dataSourceSummary ré
   assert.ok(!source.includes("2 sources connectées sur 6 envisagées"), "le chiffre doit être calculé, jamais écrit en dur");
 });
 
-// TEST 4 — le sélecteur de rôle libre du prototype (boutons Ministre /
-// Direction de programme / Coordination territoriale) n'a pas été
-// réintroduit — arbitrage déjà tranché au LOT V3.1 ("pas de bascule de
-// rôle libre, la navigation doit venir du vrai modèle d'autorisation"),
-// reconfirmé ici plutôt que silencieusement défait par la fidélité
-// visuelle.
-test("TEST 4 — aucun sélecteur de rôle fictif n'a été réintroduit dans l'en-tête", () => {
-  const source = readSource("../src/components/shell/PrivateHeader.tsx");
-  assert.ok(!source.includes("roleChips"));
-  assert.ok(!source.includes("Rôle connecté"));
+// TEST 4 (renversé au LOT V3.29, "Header — copie conforme littérale,
+// Décision CEO") — le sélecteur "Rôle connecté" (Ministre/Direction de
+// programme/Coordination territoriale) EST réintroduit, littéralement,
+// mais reste un APERÇU de mise en avant du menu, jamais un changement de
+// rôle réel : il ne fait que réordonner les vraies destinations
+// (reorderEtatNavForPreview, private-nav.ts), jamais n'en masque une —
+// contrairement à la maquette elle-même, qui fait disparaître certaines
+// entrées par rôle (ce que reproduire aurait masqué une capacité
+// réellement accessible à la session courante, cf. le commentaire de
+// private-nav.ts). L'arbitrage V3.1 ("pas de bascule de RÔLE RÉEL/
+// permission libre") reste vrai : aucune permission, aucune donnée, aucun
+// rôle de session n'est modifié par ce sélecteur.
+test("TEST 4 — le sélecteur de rôle est réintroduit comme aperçu de menu, jamais comme un changement de rôle réel", () => {
+  const headerSource = readSource("../src/components/shell/PrivateHeader.tsx");
+  assert.ok(headerSource.includes("Rôle connecté"));
+  for (const label of ["Ministre", "Direction de programme", "Coordination territoriale"]) {
+    assert.ok(headerSource.includes(`label: "${label}"`), `bouton de rôle manquant : "${label}"`);
+  }
+  const navSource = readSource("../src/domain/platform/private-nav.ts");
+  assert.ok(navSource.includes("export function reorderEtatNavForPreview"));
+  assert.ok(!navSource.includes("session.role ="), "le sélecteur ne doit jamais réassigner le rôle réel de la session");
 });
 
 // TEST 5 — SidebarTrigger (bascule mobile/desktop réelle du rail, LOT

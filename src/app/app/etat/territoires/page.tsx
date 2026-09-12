@@ -33,6 +33,7 @@ import {
 import { deriveDatasetReferenceAt } from "@/domain/signal-crossing";
 import { programmeHealth, type ProgrammeHealthState } from "@/domain/programme-intelligence";
 import { trustLabels } from "@/lib/status-tokens";
+import { useEtatPreview, type EtatPeriod } from "@/components/providers/EtatPreviewProvider";
 
 // LOT V3.17 ("Atlas territorial — copie conforme du rendu maquette") —
 // reconstruction complète sur le plan exact de l'écran `isAtlas` de la
@@ -92,7 +93,7 @@ function siteDailyLandingCounts(state: ProductState, siteId: string, maxDays = 1
 const healthToMapActivity: Record<ProgrammeHealthState, MapActivity> = { aligne: "stable", attention: "vigilance", critique: "critique" };
 
 const COLD_CHAIN_INFRA_TYPES = new Set(["chambre_froide", "fabrique_glace"]);
-const PERIOD_MS = 30 * 86_400_000;
+const ETAT_PERIOD_LABEL: Record<EtatPeriod, string> = { "30j": "30 j", "90j": "90 j", "12m": "12 mois" };
 
 // Descriptions génériques par rôle (LOT V3.28) — littéral de la maquette
 // pour les rôles qui s'y prêtent ("Organisations enregistrées sur le
@@ -136,6 +137,15 @@ function programmeProgressPct(programme: Initiative): number | null {
 
 export default function TerritoiresPage() {
   const { state } = useProduct();
+  // Période réelle de l'en-tête (LOT V3.29, EtatPreviewProvider) — "sur la
+  // période" ci-dessous suit désormais le bandeau 30j/90j/12 mois de
+  // l'en-tête au lieu d'une fenêtre de 30 jours figée. Repli sur 90j si ce
+  // composant était monté hors de l'Espace État (n'arrive jamais en
+  // pratique, cette page est exclusivement sous etat/layout.tsx).
+  const etatPreview = useEtatPreview();
+  const periodDays = etatPreview?.periodDays ?? 90;
+  const periodMs = periodDays * 86_400_000;
+  const periodLabel = ETAT_PERIOD_LABEL[etatPreview?.period ?? "90j"];
   const [cases, setCases] = useState<VigilanceCase[]>([]);
   const [zoneFilter, setZoneFilter] = useState<MaritimeZone | "all">("all");
   const [selectedTerritoryId, setSelectedTerritoryId] = useState<string | null>(null);
@@ -204,7 +214,7 @@ export default function TerritoiresPage() {
 
   const selLandingsPeriod = selLandings.filter((item) => {
     const at = item.weighedAt ?? item.arrivedAt;
-    return at != null && referenceAtMs - new Date(at).getTime() <= PERIOD_MS;
+    return at != null && referenceAtMs - new Date(at).getTime() <= periodMs;
   });
   const selCatchesPeriod = selLandingsPeriod.flatMap((item) => item.catches);
   // "Espèces distinctes débarquées sur la période" (LOT V3.28) — répond
@@ -225,8 +235,8 @@ export default function TerritoiresPage() {
   const selVesselIds = new Set(state.vessels.filter((vessel) => selSiteIds.has(vessel.homeSiteId)).map((vessel) => vessel.id));
   // "Retours de pirogue documentés sur la période" — FishingTrip.arrivedAt
   // réel (retour confirmé), jamais un décompte de sorties encore en mer.
-  const selTripsReturnedPeriod = state.trips.filter((trip) => selVesselIds.has(trip.vesselId) && trip.arrivedAt != null && referenceAtMs - new Date(trip.arrivedAt).getTime() <= PERIOD_MS);
-  const selSignalsPeriod = state.signals.filter((signal) => signal.territoryId === selectedTerritory?.id && referenceAtMs - new Date(signal.createdAt).getTime() <= PERIOD_MS);
+  const selTripsReturnedPeriod = state.trips.filter((trip) => selVesselIds.has(trip.vesselId) && trip.arrivedAt != null && referenceAtMs - new Date(trip.arrivedAt).getTime() <= periodMs);
+  const selSignalsPeriod = state.signals.filter((signal) => signal.territoryId === selectedTerritory?.id && referenceAtMs - new Date(signal.createdAt).getTime() <= periodMs);
   const selSignalsQualifiedPeriod = selSignalsPeriod.filter((signal) => signal.disposition !== "nouveau");
 
   // "Capacités froides OK" (bandeau du haut, littéral) — restreint aux 2
@@ -415,7 +425,7 @@ export default function TerritoiresPage() {
                   lectures réelles. */}
               <div className="grid grid-cols-4 gap-px border-b" style={{ background: "rgba(11,26,42,.1)", borderColor: "rgba(11,26,42,.09)" }}>
                 {[
-                  { v: selLandingsPeriod.length, k: "Débarquements 30 j" },
+                  { v: selLandingsPeriod.length, k: `Débarquements ${periodLabel}` },
                   { v: selActors.length, k: "Acteurs actifs" },
                   { v: selColdChainInfra.length > 0 ? `${selColdChainOK}/${selColdChainInfra.length}` : "—", k: "Capacités froides OK", sub: selColdChainFragile > 0 ? `${selColdChainFragile} fragile${selColdChainFragile > 1 ? "s" : ""}` : undefined },
                   { v: selSituations.length, k: "Situations ouvertes", sub: "suivies" }

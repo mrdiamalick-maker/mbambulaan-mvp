@@ -58,11 +58,14 @@ test("TEST 3 — la répartition par espèce est réelle, dérivée de CatchLine
 });
 
 // TEST 4 — le bandeau de stats du haut reprend les 4 lectures littérales
-// de la maquette ("Débarquements 30j"/"Acteurs actifs"/"Capacités
+// de la maquette ("Débarquements {période}"/"Acteurs actifs"/"Capacités
 // froides OK"/"Situations ouvertes"), jamais le bandeau reformulé
-// ("Capacités fragiles"/"Programmes").
+// ("Capacités fragiles"/"Programmes"). "Débarquements" suit désormais la
+// période réelle de l'en-tête (LOT V3.29, EtatPreviewProvider) plutôt
+// qu'un "30 j" figé.
 test("TEST 4 — le bandeau de stats reprend les 4 lectures littérales de la maquette", () => {
-  for (const label of ["Débarquements 30 j", "Acteurs actifs", "Capacités froides OK", "Situations ouvertes"]) {
+  assert.ok(source.includes("`Débarquements ${periodLabel}`"));
+  for (const label of ["Acteurs actifs", "Capacités froides OK", "Situations ouvertes"]) {
     assert.ok(source.includes(label), `tuile manquante : "${label}"`);
   }
 });

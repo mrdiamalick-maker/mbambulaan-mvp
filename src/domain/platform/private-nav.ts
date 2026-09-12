@@ -62,6 +62,20 @@ export type PrivateNavGroup = {
 // `roles: []` (visible à toute session qui atteint /app/etat — la garde
 // réelle est déjà côté serveur dans etat/layout.tsx : institution ou
 // administrateur uniquement).
+//
+// "Flux entrant" (LOT V3.29, "Header + menu — copie conforme littérale") —
+// la maquette porte cette destination dans le menu de l'Espace État (2e
+// groupe, avec Sources) ; ce produit ne l'exposait qu'à la Coordination.
+// Vérifié avant ajout : administrateur porte déjà réellement les 2
+// permissions qui gouvernent /app/flux (convert_message_to_signal,
+// dismiss_incoming_message — server/permissions.ts) ET l'accès à l'Espace
+// État (etat/layout.tsx) — cet ajout ne fait donc que SURFACER un lien vers
+// une capacité déjà réellement accessible, jamais en accorder une
+// nouvelle. "institution" (le Ministre réel) ne porte aucune des deux
+// permissions de qualification : lui masquer ce lien est honnête (jamais
+// un lien mort), pas une régression par rapport à la maquette — reproduire
+// la maquette à l'identique aurait affiché un lien qui redirige
+// immédiatement ailleurs pour ce rôle réel.
 const etatGroup: PrivateNavGroup = {
   label: "Espace État",
   items: [
@@ -71,12 +85,46 @@ const etatGroup: PrivateNavGroup = {
     { href: "/app/etat/arbitrages", label: "Arbitrages", icon: Scale, roles: [] },
     { href: "/app/etat/programmes", label: "Programmes", icon: LayoutGrid, roles: [] },
     { href: "/app/etat/rapport", label: "Résultats", icon: FileCheck2, roles: [] },
+    { href: "/app/flux", label: "Flux entrant", icon: Inbox, roles: ["administrateur"] },
     // Sources (LOT V3.7) — dernière destination du plan V3 à 8 écrans,
     // jusqu'ici jamais couverte : ce que le produit connecte réellement,
     // par opposition à ce qui reste une saisie manuelle ou une absence.
     { href: "/app/etat/sources", label: "Sources", icon: Database, roles: [] }
   ]
 };
+
+// --- Aperçu de menu par rôle (LOT V3.29) -----------------------------------
+//
+// La maquette réordonne réellement son menu selon le "Rôle connecté"
+// sélectionné dans l'en-tête (vérifié par clic réel dans le bundle
+// standalone.html) et fait même disparaître certaines entrées (Arbitrages
+// pour "Direction de programme", Résultats pour "Coordination
+// territoriale"). Ce produit n'a que 2 rôles réels atteignant l'Espace
+// État (institution, administrateur — etat/layout.tsx) : les 3 boutons de
+// la maquette ne correspondent pas à 3 comptes réels distincts, et le
+// sélecteur reste donc un simple APERÇU de mise en avant (jamais un
+// changement de rôle réel, cf. EtatPreviewProvider). Pour ne jamais
+// masquer une capacité réellement accessible à la session courante
+// derrière ce bouton de confort, cette fonction REORDONNE seulement les
+// vraies destinations (jamais n'en supprime) : celles que la maquette
+// range en dernier/absentes pour un rôle donné sont simplement reléguées
+// en fin de liste plutôt que supprimées.
+export type EtatPreviewRole = "ministre" | "direction_programme" | "coordination_territoriale";
+
+const ETAT_PREVIEW_ORDER: Record<EtatPreviewRole, string[]> = {
+  ministre: ["/app/etat", "/app/etat/territoires", "/app/etat/situations", "/app/etat/arbitrages", "/app/etat/programmes", "/app/etat/rapport", "/app/flux", "/app/etat/sources"],
+  direction_programme: ["/app/etat/programmes", "/app/etat/rapport", "/app/etat/territoires", "/app/etat/situations", "/app/etat", "/app/flux", "/app/etat/sources", "/app/etat/arbitrages"],
+  coordination_territoriale: ["/app/flux", "/app/etat/situations", "/app/etat/territoires", "/app/etat/programmes", "/app/etat", "/app/etat/arbitrages", "/app/etat/sources", "/app/etat/rapport"]
+};
+
+export function reorderEtatNavForPreview(items: PrivateNavItem[], previewRole: EtatPreviewRole): PrivateNavItem[] {
+  const order = ETAT_PREVIEW_ORDER[previewRole];
+  return [...items].sort((a, b) => {
+    const ia = order.indexOf(a.href);
+    const ib = order.indexOf(b.href);
+    return (ia === -1 ? order.length : ia) - (ib === -1 ? order.length : ib);
+  });
+}
 
 // Coordination — reprise exacte de src/components/shell/AppSidebar.tsx
 // (primaryGroups + toolsGroup, LOT 9 "Operating Experience" §14/§20) :

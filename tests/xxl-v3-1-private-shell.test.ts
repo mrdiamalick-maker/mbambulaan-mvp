@@ -23,12 +23,20 @@ function readSource(relativePath: string): string {
 // comportement par rapport aux deux anciennes listes (AppSidebar.
 // operationalGroups/toolsGroup, EtatSidebar.navItems) qu'elle remplace.
 test("TEST 1 — resolvePrivateNavGroups reprend exactement les routes/rôles/modules réels existants", () => {
-  // Espace État : 7 destinations réelles (6 + "Sources", LOT V3.7), ouvertes à institution ET administrateur (seuls rôles qui atteignent /app/etat).
-  for (const role of ["institution", "administrateur"] as const) {
-    const groups = resolvePrivateNavGroups("etat", role, []);
-    assert.equal(groups.length, 1);
-    assert.equal(groups[0].items.length, 7);
-  }
+  // Espace État : 7 destinations pour "institution" (6 + "Sources", LOT
+  // V3.7), 8 pour "administrateur" (+ "Flux entrant", LOT V3.29 — il porte
+  // déjà réellement les 2 permissions de qualification, cf. le commentaire
+  // de private-nav.ts ; "institution" ne les porte pas, le lien lui reste
+  // masqué plutôt que mort).
+  const institutionGroups = resolvePrivateNavGroups("etat", "institution", []);
+  assert.equal(institutionGroups.length, 1);
+  assert.equal(institutionGroups[0].items.length, 7);
+  assert.ok(!institutionGroups[0].items.some((item) => item.href === "/app/flux"));
+
+  const administrateurGroups = resolvePrivateNavGroups("etat", "administrateur", []);
+  assert.equal(administrateurGroups.length, 1);
+  assert.equal(administrateurGroups[0].items.length, 8);
+  assert.ok(administrateurGroups[0].items.some((item) => item.href === "/app/flux"));
   // Coordination : un opérateur sans aucun module d'entitlement ne voit que
   // "Aujourd'hui" et "Flux entrant" (LOT V3.3 — role-gated, jamais un
   // module d'entitlement commercial, même discipline que "Aujourd'hui") —

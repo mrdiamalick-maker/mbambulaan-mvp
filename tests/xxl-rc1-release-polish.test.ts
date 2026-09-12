@@ -45,10 +45,11 @@ test("TEST A — la navigation État a une source unique et le rail alterne desk
     ["/app/etat", "/app/etat/territoires", "/app/etat/situations", "/app/etat/arbitrages", "/app/etat/programmes", "/app/etat/rapport", "/app/etat/sources"],
     "les 7 destinations réelles de l'Espace État (6 + Sources, LOT V3.7) doivent rester exactement les mêmes routes, dans le même ordre"
   );
-  // administrateur voit exactement la même navigation État qu'institution
-  // (les 2 seuls rôles qui atteignent /app/etat, garde côté serveur) —
-  // aucune divergence introduite par le passage à une source commune.
-  assert.deepEqual(resolvePrivateNavGroups("etat", "administrateur", []).map((g) => g.items.length), [7]);
+  // administrateur voit une destination réelle de plus qu'institution
+  // depuis le LOT V3.29 ("Flux entrant" — il porte déjà réellement les 2
+  // permissions de qualification qui la gouvernent, cf. le commentaire de
+  // private-nav.ts ; institution ne les porte pas).
+  assert.deepEqual(resolvePrivateNavGroups("etat", "administrateur", []).map((g) => g.items.length), [8]);
   const sidebarPrimitiveSource = readSource("../src/components/ui/sidebar.tsx");
   assert.ok(sidebarPrimitiveSource.includes("if (isMobile)"), "le rail partagé doit continuer à distinguer desktop/mobile de façon structurelle (jamais les deux montés ensemble)");
   const privateSidebarSource = readSource("../src/components/shell/PrivateSidebar.tsx");

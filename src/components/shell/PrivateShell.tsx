@@ -7,6 +7,7 @@ import { roleLabel } from "@/domain/platform/private-nav";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { PrivateSidebar } from "@/components/shell/PrivateSidebar";
 import { PrivateHeader } from "@/components/shell/PrivateHeader";
+import { EtatPreviewProvider } from "@/components/providers/EtatPreviewProvider";
 
 // LOT V3.1 (Scope A) — coquille UNIQUE pour tout l'espace privé
 // (Coordination ET Espace État), fondation demandée par le mandat
@@ -61,7 +62,7 @@ export function PrivateShell({
   showLoading: boolean;
 }) {
   const isAdministrateur = role === "administrateur";
-  return (
+  const shell = (
     <SidebarProvider className="shadcn-scope private-shell" style={{ "--sidebar-width": "246px" } as React.CSSProperties}>
       <PrivateSidebar space={space} role={role} modules={modules} orgName={orgName} isAdministrateur={isAdministrateur} />
       <SidebarInset>
@@ -99,4 +100,9 @@ export function PrivateShell({
       </SidebarInset>
     </SidebarProvider>
   );
+  // EtatPreviewProvider (LOT V3.29) — seulement pour l'Espace État : la
+  // Coordination garde son propre langage visuel (arbitrage V3.1) et
+  // n'a pas d'équivalent aux 2 contrôles d'en-tête de la maquette
+  // (période/rôle) qu'il porte.
+  return space === "etat" ? <EtatPreviewProvider>{shell}</EtatPreviewProvider> : shell;
 }

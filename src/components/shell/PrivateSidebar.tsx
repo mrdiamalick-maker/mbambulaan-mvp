@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 import { ShieldCog } from "lucide-react";
 import type { Role } from "@/domain/types";
 import type { PlatformModule } from "@/domain/platform/modules";
-import { resolveActiveHref, resolvePrivateNavGroups, spaceIdentityLabel, type PrivateSpace } from "@/domain/platform/private-nav";
+import { reorderEtatNavForPreview, resolveActiveHref, resolvePrivateNavGroups, spaceIdentityLabel, type PrivateSpace } from "@/domain/platform/private-nav";
 import { TrustGlyph } from "@/components/etat/TrustGlyph";
+import { useEtatPreview } from "@/components/providers/EtatPreviewProvider";
 import {
   Sidebar,
   SidebarContent,
@@ -46,7 +47,18 @@ export function PrivateSidebar({
   isAdministrateur: boolean;
 }) {
   const pathname = usePathname();
-  const groups = resolvePrivateNavGroups(space, role, modules);
+  const preview = useEtatPreview();
+  const resolvedGroups = resolvePrivateNavGroups(space, role, modules);
+  // Aperçu de menu (LOT V3.29) — réordonne les vraies destinations selon
+  // le "Rôle connecté" choisi dans l'en-tête, jamais n'en masque une
+  // (cf. le commentaire de reorderEtatNavForPreview, private-nav.ts).
+  // Aplati sur 1 seul groupe pendant l'aperçu : la maquette elle-même
+  // déplace "Flux entrant" hors de son 2e groupe (avec Sources) vers la
+  // première place pour "Coordination territoriale" — la distinction à 2
+  // groupes n'est donc pas stable par rôle, contrairement à l'ordre.
+  const groups = space === "etat" && preview
+    ? [{ label: resolvedGroups[0]?.label ?? "Espace État", items: reorderEtatNavForPreview(resolvedGroups.flatMap((group) => group.items), preview.previewRole) }]
+    : resolvedGroups;
   const homeHref = space === "etat" ? "/app/etat" : "/app/travail";
   const activeHref = resolveActiveHref(pathname, groups);
 
