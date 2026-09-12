@@ -8,9 +8,12 @@
 // script du prototype (mêmes couleurs hexadécimales / rgba, mêmes familles
 // de police) — ce ne sont pas des approximations de palette.
 
-export const V3_FONT_SERIF = "'Newsreader', serif";
-export const V3_FONT_SANS = "'IBM Plex Sans', system-ui, sans-serif";
-export const V3_FONT_MONO = "'IBM Plex Mono', monospace";
+// Auto-hébergées via next/font/google (src/app/private-v3/layout.tsx) —
+// les variables retombent sur le nom de famille + une pile générique si le
+// layout ne les a pas posées (ex. rendu isolé d'un composant en test).
+export const V3_FONT_SERIF = "var(--pv3-font-display), Newsreader, ui-serif, Georgia, serif";
+export const V3_FONT_SANS = "var(--pv3-font-body), 'IBM Plex Sans', system-ui, sans-serif";
+export const V3_FONT_MONO = "var(--pv3-font-mono), 'IBM Plex Mono', ui-monospace, monospace";
 
 export const ink = "#0B1A2A"; // marine — fond sidebar / bandeaux sombres, texte principal
 export const paper = "#F7F3E9"; // papier — fond de page

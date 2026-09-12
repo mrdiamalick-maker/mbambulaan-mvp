@@ -16,6 +16,7 @@ import { Sources } from "./components/screens/Sources";
 import { PERIOD } from "./data/period";
 import { ROLES } from "./data/roles";
 import { initialAppState } from "./state";
+import { V3_FONT_SANS } from "./theme";
 import type { PeriodKey, RoleKey, ScreenKey } from "./types";
 
 // Racine du template privé V3 — un seul shell (sidebar + header + bandeau
@@ -56,7 +57,7 @@ export function PrivateV3App() {
   }, [patch]);
 
   return (
-    <div className="pv3-root pv3-shell" style={{ display: "flex", minHeight: "100vh", fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}>
+    <div className="pv3-root pv3-shell" style={{ display: "flex", minHeight: "100vh", fontFamily: V3_FONT_SANS }}>
       <Sidebar roleDef={roleDef} screen={state.screen} role={state.role} onNavigate={navigate} />
       <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <Header period={state.period} role={state.role} periodRange={PERIOD[state.period].range} onPeriod={onPeriod} onRole={onRole} />

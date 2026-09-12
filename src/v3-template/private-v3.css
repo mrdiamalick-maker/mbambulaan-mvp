@@ -1,10 +1,11 @@
 /* Feuille de style du template privé V3 — isolée de brand.css / des autres
-   feuilles existantes (§14 du mandat). Polices Google Fonts identiques au
-   standalone (Newsreader, IBM Plex Sans, IBM Plex Mono) + classes utilitaires
-   pour les états hover que le prototype exprimait via un attribut
-   style-hover (non disponible en style inline React). */
-
-@import url("https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
+   feuilles existantes (§14 du mandat). Polices identiques au standalone
+   (Newsreader, IBM Plex Sans, IBM Plex Mono), auto-hébergées via
+   next/font/google dans src/app/private-v3/layout.tsx (pas de <link>
+   Google Fonts ici — voir ce fichier pour le choix). Le reste : classes
+   utilitaires pour les états hover que le prototype exprimait via un
+   attribut style-hover (non disponible en style inline React), et
+   l'adaptation responsive (§18). */
 
 .pv3-root {
   --pv3-ink: #0b1a2a;
