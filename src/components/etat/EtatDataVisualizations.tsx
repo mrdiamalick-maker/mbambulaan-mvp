@@ -10,8 +10,25 @@ import { ETAT_DEMO_SERIES_NOTICE, resultTrendDemo, signalTrendDemo } from "@/dom
 // même page pour "Évolution des signaux reçus") plutôt que d'inventer 5
 // courbes différentes : une seule courbe illustrative honnêtement
 // signalée, jamais 5 tendances fabriquées à part.
-export function KpiSparkline({ color = "#0B1A2A" }: { color?: string }) {
-  const values = signalTrendDemo.map((item) => item.value);
+//
+// `data` (LOT V3.28, "Atlas — bloc par bloc") : optionnel, retour arrière
+// compatible — quand un appelant DISPOSE d'une vraie série par point
+// (ex. Atlas territorial, débarquements réels par site via
+// domain/atlas-overview.ts), il la passe ici plutôt que de laisser
+// chaque site afficher la même courbe illustrative recolorée. Omis, le
+// composant garde son comportement d'origine (série illustrative
+// signalTrendDemo) — jamais un changement de comportement silencieux
+// pour les appelants existants (Brief national).
+export function KpiSparkline({ color = "#0B1A2A", data }: { color?: string; data?: number[] }) {
+  // `data` omis (undefined) → série illustrative de repli. `data` fourni,
+  // même vide (site réel sans aucun débarquement documenté) → ligne
+  // plate à zéro, jamais la série illustrative de repli (qui masquerait
+  // silencieusement une vraie absence de données). Un seul point réel
+  // est dupliqué pour dessiner une ligne plate plutôt que de diviser par
+  // zéro (index / (values.length - 1)) — jamais un point fabriqué en
+  // plus, seulement une répétition du même point réel.
+  const raw = data === undefined ? signalTrendDemo.map((item) => item.value) : data;
+  const values = raw.length <= 1 ? [raw[0] ?? 0, raw[0] ?? 0] : raw;
   const min = Math.min(...values);
   const max = Math.max(...values);
   const points = values.map((value, index) => {
