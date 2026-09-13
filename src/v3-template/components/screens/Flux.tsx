@@ -23,6 +23,10 @@ export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
   const f = getFluxDetail(openId) ?? getFluxDetail(FLUX_ROWS[0]?.id ?? 0);
   const stages = buildFluxStages();
   const chosenAction = f && state.dossChoice != null && state.dossChoice.id === f.id ? f.actions[state.dossChoice.i] : null;
+  // PD.4 §16 — même discipline que Situations : seule la coordination
+  // territoriale peut réellement qualifier (convertir/écarter) un
+  // élément du flux.
+  const canQualify = state.role === "coordination";
 
   return (
     <div style={{ padding: "24px 30px 60px" }} className="pv3-rise">
@@ -137,7 +141,7 @@ export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
                 <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 13 }}>
                   Qualification — une seule personne décide, la trace reste
                 </div>
-                {f.actions.length > 0 ? (
+                {f.actions.length > 0 && canQualify ? (
                   <>
                     <div style={{ display: "flex", gap: 9, flexWrap: "wrap", marginBottom: 16 }}>
                       {f.actions.map((ac, i) => {
@@ -168,6 +172,10 @@ export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
                       </div>
                     )}
                   </>
+                ) : f.actions.length > 0 ? (
+                  <div style={{ fontSize: 12.5, lineHeight: 1.6, color: "rgba(11,26,42,.6)", borderLeft: "2px solid rgba(11,26,42,.15)", paddingLeft: 13, maxWidth: "74ch" }}>
+                    La qualification (convertir en signal ou écarter) est réservée à la coordination territoriale.
+                  </div>
                 ) : (
                   <div style={{ fontSize: 12.5, lineHeight: 1.6, color: "rgba(11,26,42,.6)", borderLeft: "2px solid rgba(11,26,42,.15)", paddingLeft: 13, maxWidth: "74ch" }}>
                     {f.status === "converti" ? "Ce message a déjà été converti en signal." : "Ce message a déjà été écarté."}

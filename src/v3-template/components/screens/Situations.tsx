@@ -61,6 +61,11 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
 
   const chosenOption = s && state.sitChoice != null && state.sitChoice.id === s.id ? s.options[state.sitChoice.i] : null;
   const noFilter = !state.fSev && !state.fTrust && !state.fStage;
+  // PD.4 §16 — même profondeur de rôle que l'Atlas (PD.1/PD.3, mandat
+  // "Coordination territoriale: ... real qualification/action
+  // capabilities") : seule la coordination territoriale peut choisir une
+  // décision réelle ; les deux autres rôles lisent la même liste.
+  const canQualify = state.role === "coordination";
 
   if (!s) {
     return (
@@ -333,30 +338,48 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
                 <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 11 }}>
                   Ce que vous décidez — la décision reste humaine et tracée
                 </div>
-                {s.options.map((o, i) => {
-                  const on = state.sitChoice?.id === s.id && state.sitChoice?.i === i;
-                  return (
-                    <button
-                      key={o.decisionType}
-                      onClick={() => patch({ sitChoice: { id: s.id, i } })}
-                      className="pv3-border-hover-dark"
-                      style={{
-                        display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left",
-                        border: `1px solid ${on ? "#0B1A2A" : o.suggested ? "rgba(78,123,90,.45)" : "rgba(11,26,42,.14)"}`,
-                        background: on ? "rgba(182,82,47,.07)" : "transparent", cursor: "pointer", padding: "13px 16px", marginBottom: 8, transition: "all .2s"
-                      }}
-                    >
-                      <span style={{ width: 15, height: 15, borderRadius: "50%", border: `1.5px solid ${on ? "#B6522F" : "rgba(11,26,42,.28)"}`, flex: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: on ? "#B6522F" : "transparent" }} />
-                      </span>
-                      <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>{o.label}</span>
-                      <span style={{ fontSize: 11.5, color: o.suggested ? "#4E7B5A" : "rgba(11,26,42,.5)" }}>
-                        {o.suggested ? "Suggéré par le moteur de coordination" : ""}
-                      </span>
-                    </button>
-                  );
-                })}
-                {chosenOption && (
+                {/* PD.4 §16 — la capacité de qualification réelle (choisir une
+                    Decision) reste réservée à la Coordination territoriale,
+                    seul rôle dont le mandat opérationnel couvre l'action ;
+                    Ministère et Direction de programme lisent la même liste
+                    des décisions réellement possibles (DecisionType, 8
+                    valeurs réelles), sans pouvoir la sélectionner. */}
+                {canQualify ? (
+                  s.options.map((o, i) => {
+                    const on = state.sitChoice?.id === s.id && state.sitChoice?.i === i;
+                    return (
+                      <button
+                        key={o.decisionType}
+                        onClick={() => patch({ sitChoice: { id: s.id, i } })}
+                        className="pv3-border-hover-dark"
+                        style={{
+                          display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left",
+                          border: `1px solid ${on ? "#0B1A2A" : o.suggested ? "rgba(78,123,90,.45)" : "rgba(11,26,42,.14)"}`,
+                          background: on ? "rgba(182,82,47,.07)" : "transparent", cursor: "pointer", padding: "13px 16px", marginBottom: 8, transition: "all .2s"
+                        }}
+                      >
+                        <span style={{ width: 15, height: 15, borderRadius: "50%", border: `1.5px solid ${on ? "#B6522F" : "rgba(11,26,42,.28)"}`, flex: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: on ? "#B6522F" : "transparent" }} />
+                        </span>
+                        <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>{o.label}</span>
+                        <span style={{ fontSize: 11.5, color: o.suggested ? "#4E7B5A" : "rgba(11,26,42,.5)" }}>
+                          {o.suggested ? "Suggéré par le moteur de coordination" : ""}
+                        </span>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <>
+                    {s.options.map((o) => (
+                      <div key={o.decisionType} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 16px", marginBottom: 8, border: `1px solid ${o.suggested ? "rgba(78,123,90,.45)" : "rgba(11,26,42,.14)"}` }}>
+                        <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500, color: "rgba(11,26,42,.55)" }}>{o.label}</span>
+                        <span style={{ fontSize: 11.5, color: o.suggested ? "#4E7B5A" : "rgba(11,26,42,.4)" }}>{o.suggested ? "Suggéré par le moteur de coordination" : ""}</span>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.5)", marginTop: 4 }}>La qualification (choisir et enregistrer une décision) est réservée à la coordination territoriale.</div>
+                  </>
+                )}
+                {chosenOption && canQualify && (
                   <div style={{ marginTop: 14, padding: "15px 17px", background: "#0B1A2A", color: "#F7F3E9" }} className="pv3-rise-fast">
                     <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#DE9C74", marginBottom: 8 }}>Aperçu — non enregistré</div>
                     <div style={{ fontSize: 13.5, lineHeight: 1.5 }}>{chosenOption.label}</div>
