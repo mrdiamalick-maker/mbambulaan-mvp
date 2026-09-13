@@ -231,7 +231,9 @@ test("pont v3-template : toutes les situations réelles sont exposées et projet
 test("actions réelles uniquement : les options d'action sont les 8 DecisionType réels, jamais une action fictive", () => {
   const detail = getSituationDetail(0)!;
   assert.equal(detail.options.length, 8);
+  // PD.5 — create_decision est désormais réellement exécutable depuis
+  // /private-v3 (runtime V3, lib/domain-runtime.ts) : describeDecisionEffect
+  // décrit fidèlement l'effet réel, ce n'est plus un aperçu non exécuté.
   const effect = describeDecisionEffect(detail.options[0]);
   assert.match(effect, /create_decision/);
-  assert.match(effect, /non exécuté/);
 });

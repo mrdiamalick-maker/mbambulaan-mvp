@@ -81,15 +81,17 @@ export function fluxMissingFacts(state: ProductState, message: IncomingMessage):
 // --- Effets réels des deux commandes de qualification (mandat §4) -----
 //
 // Description fidèle de convert_message_to_signal / dismiss_incoming_message
-// (src/domain/rules.ts) — jamais la narration bespoke du gabarit fixture,
-// jamais une exécution simulée en direct (mandat : "do not fake
-// execution"). /private-v3 ne dispose d'aucune mutation d'état ; ce texte
-// documente ce que ferait réellement la commande dans le Produit.
+// (src/domain/rules.ts) — jamais la narration bespoke du gabarit fixture
+// (mandat PD.4 : "do not fake execution"). PD.5 (mandat "Operational
+// Knowledge Bridge", §4) rend ces deux commandes réellement exécutables
+// depuis /private-v3 via le runtime V3 (v3-template/lib/domain-runtime.ts,
+// POST /api/actions) — ce texte documente donc désormais l'effet réel
+// que la confirmation déclenche, pas un aperçu non exécuté.
 export const CONVERT_TO_SIGNAL_EFFECT =
-  "Ce message deviendrait un Signal réel (convert_message_to_signal) : canal et déclarant repris du message, disposition initiale « nouveau », traçabilité conservée vers ce message. Non exécuté dans cet environnement de démonstration.";
+  "Ce message devient un Signal réel (convert_message_to_signal) : canal et déclarant repris du message, disposition initiale « nouveau », traçabilité conservée vers ce message.";
 
 export const DISMISS_EFFECT =
-  "Ce message serait marqué écarté (dismiss_incoming_message), avec motif obligatoire — il resterait consultable, jamais supprimé, et ne pourrait plus être converti. Non exécuté dans cet environnement de démonstration.";
+  "Ce message est marqué écarté (dismiss_incoming_message), avec motif obligatoire — il reste consultable, jamais supprimé, et ne peut plus être converti.";
 
 export function fluxAgeHours(referenceAt: string, message: IncomingMessage): number | undefined {
   const ref = Date.parse(referenceAt);

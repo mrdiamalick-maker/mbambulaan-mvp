@@ -11,7 +11,8 @@
 // (aucune modification de state.ts nécessaire pour ce lot) tout en
 // gardant idRéel disponible sur chaque vue pour les appels au domaine.
 import { DEMO_STATE } from "./demo-state";
-import type { IncomingMessage } from "@/domain/types";
+import type { CommandInput, IncomingMessage, IncomingMessageDismissReason, ProductState, Signal } from "@/domain/types";
+import { incomingMessageDismissReasonLabels, signalCategoryLabels } from "@/domain/types";
 import {
   CONVERT_TO_SIGNAL_EFFECT,
   DISMISS_EFFECT,
@@ -38,8 +39,8 @@ const CHANNEL_COLOR: Record<IncomingMessage["channel"], string> = {
   espace_public: "#4A6478"
 };
 
-function referenceAt(): string {
-  return deriveDatasetReferenceAt(DEMO_STATE) ?? new Date().toISOString();
+function referenceAt(state: ProductState): string {
+  return deriveDatasetReferenceAt(state) ?? new Date().toISOString();
 }
 
 function shortTitle(body: string): string {
@@ -83,8 +84,8 @@ export interface FluxDetailView extends FluxRowView {
   actions: Array<{ label: string; effect: string; kind: "convert" | "dismiss" }>;
 }
 
-function toRowView(message: IncomingMessage, index: number): FluxRowView {
-  const territory = resolveTerritoryHint(DEMO_STATE, message);
+function toRowView(state: ProductState, message: IncomingMessage, index: number): FluxRowView {
+  const territory = resolveTerritoryHint(state, message);
   return {
     id: index,
     realId: message.id,
@@ -93,31 +94,44 @@ function toRowView(message: IncomingMessage, index: number): FluxRowView {
     title: shortTitle(message.body),
     territoryLabel: territory ? territory.name : message.territoryHint ? `${message.territoryHint} · non résolu` : "Territoire non précisé",
     from: message.reportedBy,
-    ageLabel: ageLabel(fluxAgeHours(referenceAt(), message)),
+    ageLabel: ageLabel(fluxAgeHours(referenceAt(state), message)),
     receivedLabel: formatDateTime(message.receivedAt),
     status: message.status,
     stage: fluxStage(message)
   };
 }
 
-// FLUX_ROWS — triées du plus ancien au plus récent, même convention que
-// le gabarit fixture ("Plus ancien en premier"). Les 4 IncomingMessage
-// réels du Demo World actuel sont tous au statut "nouveau" (audit PD.4) —
+// sortedMessagesOf — triés du plus ancien au plus récent, même convention
+// que le gabarit fixture ("Plus ancien en premier"). Les 4 IncomingMessage
+// réels du Demo World initial sont tous au statut "nouveau" (audit PD.4) —
 // une liste plus courte que le gabarit fixture (6 éléments variés), mais
 // entièrement réelle plutôt que complétée artificiellement (mandat §19).
-const sortedMessages = [...DEMO_STATE.incomingMessages].sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
+function sortedMessagesOf(state: ProductState): IncomingMessage[] {
+  return [...state.incomingMessages].sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
+}
 
-export const FLUX_ROWS: FluxRowView[] = sortedMessages.map(toRowView);
+// buildFluxRows/getFluxDetail/buildFluxStages (PD.5, mandat "Operational
+// Knowledge Bridge", §3/§4) — désormais paramétrées par un ProductState
+// explicite (repli DEMO_STATE, le singleton statique de PD.1/PD.4, pour
+// ne rien changer aux appelants existants) plutôt que de lire uniquement
+// le singleton figé au chargement du module : le runtime V3
+// (lib/domain-runtime.ts) leur passe l'état réel, live, lu depuis
+// GET /api/state — même calcul, jamais une seconde logique dupliquée.
+export function buildFluxRows(state: ProductState = DEMO_STATE): FluxRowView[] {
+  return sortedMessagesOf(state).map((message, index) => toRowView(state, message, index));
+}
 
-export function getFluxDetail(rowId: number): FluxDetailView | undefined {
-  const message = sortedMessages[rowId];
+export const FLUX_ROWS: FluxRowView[] = buildFluxRows();
+
+export function getFluxDetail(rowId: number, state: ProductState = DEMO_STATE): FluxDetailView | undefined {
+  const message = sortedMessagesOf(state)[rowId];
   if (!message) return undefined;
-  const row = toRowView(message, rowId);
+  const row = toRowView(state, message, rowId);
   return {
     ...row,
     body: message.body,
-    matched: fluxMatchedFacts(DEMO_STATE, message),
-    missing: fluxMissingFacts(DEMO_STATE, message),
+    matched: fluxMatchedFacts(state, message),
+    missing: fluxMissingFacts(state, message),
     // Actions réelles uniquement (mandat §4) : convert_message_to_signal
     // et dismiss_incoming_message sont les deux seules commandes qui
     // qualifient réellement un IncomingMessage — jamais les actions
@@ -149,11 +163,55 @@ export interface FluxStageTile {
 // (fluxStage la fait déjà correspondre au même palier réel côté
 // domaine) — un seul palier "à_qualifier" est donc montré ici plutôt que
 // deux tuiles pointant artificiellement vers des comptages différents.
-export function buildFluxStages(): FluxStageTile[] {
-  const counts = fluxStageCounts(DEMO_STATE);
+export function buildFluxStages(state: ProductState = DEMO_STATE): FluxStageTile[] {
+  const counts = fluxStageCounts(state);
   return [
     { key: "a_qualifier", label: "À qualifier", count: counts.a_qualifier, def: "Reçu, en attente d'une décision de qualification (converti ou écarté).", color: "#B6522F" },
     { key: "qualifie", label: "Qualifié", count: counts.qualifie, def: "Converti en Signal réel.", color: "#4E7B5A" },
     { key: "ecarte", label: "Écarté", count: counts.ecarte, def: "Écarté avec motif — consultable, jamais supprimé.", color: "rgba(11,26,42,.4)" }
   ];
+}
+
+// --- PD.5 — exécution réelle (mandat "Operational Knowledge Bridge", §4) --
+//
+// buildConvertCommand/buildDismissCommand construisent la commande
+// CANONIQUE (convert_message_to_signal / dismiss_incoming_message,
+// rules.ts) prête à être envoyée à POST /api/actions par le runtime V3
+// (lib/domain-runtime.ts) — toute la logique de résolution/validation
+// reste ici, jamais recréée dans Flux.tsx (mandat §3 : "Do not recreate
+// business logic in React"). category et reason restent un choix humain
+// explicite, jamais déduit (même discipline que le domaine :
+// IncomingMessageDismissReason, types.ts, "le coordinateur choisit, rien
+// n'est déduit") — title/description reprennent le contenu réel du
+// message tel quel, jamais un texte fabriqué.
+export const DISMISS_REASONS: IncomingMessageDismissReason[] = ["hors_perimetre", "doublon", "information_insuffisante", "autre"];
+export const CONVERT_CATEGORIES: Signal["category"][] = ["infrastructure", "production", "marche", "qualite", "securite", "conformite", "autre"];
+export { incomingMessageDismissReasonLabels, signalCategoryLabels };
+
+export type FluxCommandResult = { command: CommandInput } | { error: string };
+
+export function buildConvertCommand(state: ProductState, rowId: number, category: Signal["category"]): FluxCommandResult {
+  const message = sortedMessagesOf(state)[rowId];
+  if (!message) return { error: "Message introuvable." };
+  if (message.status !== "nouveau") return { error: "Ce message n'est plus à qualifier." };
+  const territory = resolveTerritoryHint(state, message);
+  if (!territory) return { error: "Aucun territoire résolu pour ce message — la conversion exige un territoire réel." };
+  return {
+    command: {
+      type: "convert_message_to_signal",
+      messageId: message.id,
+      territoryId: territory.id,
+      category,
+      title: shortTitle(message.body),
+      description: message.body,
+      reportedByActorId: message.reportedByActorId
+    }
+  };
+}
+
+export function buildDismissCommand(state: ProductState, rowId: number, reason: IncomingMessageDismissReason): FluxCommandResult {
+  const message = sortedMessagesOf(state)[rowId];
+  if (!message) return { error: "Message introuvable." };
+  if (message.status !== "nouveau") return { error: "Ce message n'est plus à qualifier." };
+  return { command: { type: "dismiss_incoming_message", messageId: message.id, reason } };
 }

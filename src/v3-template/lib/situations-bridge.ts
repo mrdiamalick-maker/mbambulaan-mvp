@@ -8,7 +8,7 @@
 // AppState.sitOpen/sitChoice (state.ts, gabarit gelé) sont typés `number`,
 // laissés inchangés pour ce lot.
 import { DEMO_STATE } from "./demo-state";
-import type { Decision, DecisionType, Situation } from "@/domain/types";
+import type { CommandInput, Decision, DecisionType, ProductState, Situation } from "@/domain/types";
 import { decisionTypeLabels } from "@/domain/types";
 import {
   buildKnownItems,
@@ -45,7 +45,7 @@ const SEVERITY_BY_PRIORITY: Record<Situation["priority"], { label: "Critique" | 
 
 const STAGE_LABELS = ["", "Signal reçu", "En instruction", "Qualifiée", "Résultat/close"];
 
-function sinceLabel(state: typeof DEMO_STATE, situation: Situation): string {
+function sinceLabel(state: ProductState, situation: Situation): string {
   const days = situationAgeDays(state, situation);
   if (days === undefined) return "ancienneté inconnue";
   if (days === 0) return "aujourd'hui";
@@ -73,17 +73,17 @@ export interface SituationRowView {
   isOpen: boolean;
 }
 
-function territoryName(situation: Situation): string {
-  return DEMO_STATE.territories.find((t) => t.id === situation.territoryId)?.name ?? situation.territoryId;
+function territoryName(state: ProductState, situation: Situation): string {
+  return state.territories.find((t) => t.id === situation.territoryId)?.name ?? situation.territoryId;
 }
 
-function toRowView(situation: Situation, index: number): SituationRowView {
+function toRowView(state: ProductState, situation: Situation, index: number): SituationRowView {
   const severity = SEVERITY_BY_PRIORITY[situation.priority];
   const stageBucket = situationStageBucket(situation);
   return {
     id: index,
     realId: situation.id,
-    territoryLabel: territoryName(situation),
+    territoryLabel: territoryName(state, situation),
     title: situation.title,
     severityLabel: severity.label,
     severityColor: severity.color,
@@ -91,7 +91,7 @@ function toRowView(situation: Situation, index: number): SituationRowView {
     trustGlyph: trustGlyph(situation.trust),
     trustLabel: trustLabels[situation.trust],
     trustTier: trustGlyphTier(situation.trust),
-    since: sinceLabel(DEMO_STATE, situation),
+    since: sinceLabel(state, situation),
     stageBucket,
     stageLabel: STAGE_LABELS[stageBucket],
     priority: situation.priority,
@@ -99,17 +99,29 @@ function toRowView(situation: Situation, index: number): SituationRowView {
   };
 }
 
-// SITUATION_ROWS — triées par ancienneté décroissante de première trace
-// connue (la plus ancienne en tête), même convention de lecture que le
-// reste du produit (Débarquements récents, etc., "le plus significatif
-// en premier").
-const sortedSituations = [...DEMO_STATE.situations].sort((a, b) => {
-  const aAge = situationAgeDays(DEMO_STATE, a) ?? 0;
-  const bAge = situationAgeDays(DEMO_STATE, b) ?? 0;
-  return bAge - aAge || a.id.localeCompare(b.id);
-});
+// sortedSituationsOf — triées par ancienneté décroissante de première
+// trace connue (la plus ancienne en tête), même convention de lecture
+// que le reste du produit (Débarquements récents, etc., "le plus
+// significatif en premier").
+function sortedSituationsOf(state: ProductState): Situation[] {
+  return [...state.situations].sort((a, b) => {
+    const aAge = situationAgeDays(state, a) ?? 0;
+    const bAge = situationAgeDays(state, b) ?? 0;
+    return bAge - aAge || a.id.localeCompare(b.id);
+  });
+}
 
-export const SITUATION_ROWS: SituationRowView[] = sortedSituations.map(toRowView);
+// buildSituationRows/getSituationDetail/etc. (PD.5, mandat "Operational
+// Knowledge Bridge", §3/§4) — désormais paramétrées par un ProductState
+// explicite (repli DEMO_STATE pour ne rien changer aux appelants
+// existants) : le runtime V3 (lib/domain-runtime.ts) leur passe l'état
+// réel, live, lu depuis GET /api/state — même calcul, jamais une seconde
+// logique dupliquée.
+export function buildSituationRows(state: ProductState = DEMO_STATE): SituationRowView[] {
+  return sortedSituationsOf(state).map((situation, index) => toRowView(state, situation, index));
+}
+
+export const SITUATION_ROWS: SituationRowView[] = buildSituationRows();
 
 export interface SituationHeaderStats {
   openCount: number;
@@ -118,23 +130,23 @@ export interface SituationHeaderStats {
   closedWithProofCount: number;
 }
 
-export function buildSituationHeaderStats(): SituationHeaderStats {
-  const open = DEMO_STATE.situations.filter(isOpenSituation);
-  const funnel = buildSituationsFunnel(DEMO_STATE);
+export function buildSituationHeaderStats(state: ProductState = DEMO_STATE): SituationHeaderStats {
+  const open = state.situations.filter(isOpenSituation);
+  const funnel = buildSituationsFunnel(state);
   return {
     openCount: open.length,
     criticalCount: open.filter((s) => s.priority === "critique").length,
-    toQualifyCount: DEMO_STATE.situations.filter((s) => situationStageBucket(s) === 1).length,
+    toQualifyCount: state.situations.filter((s) => situationStageBucket(s) === 1).length,
     closedWithProofCount: funnel[3].count
   };
 }
 
-export function getSituationsFunnelView() {
-  return buildSituationsFunnel(DEMO_STATE).map((step) => ({ label: step.label, count: step.count, pctLabel: `${step.pct}%`, read: step.read }));
+export function getSituationsFunnelView(state: ProductState = DEMO_STATE) {
+  return buildSituationsFunnel(state).map((step) => ({ label: step.label, count: step.count, pctLabel: `${step.pct}%`, read: step.read }));
 }
 
-export function getSituationsAgingView() {
-  return buildSituationsAging(DEMO_STATE);
+export function getSituationsAgingView(state: ProductState = DEMO_STATE) {
+  return buildSituationsAging(state);
 }
 
 export interface SituationMetricView {
@@ -194,30 +206,31 @@ function timeLabel(iso: string): string {
 
 const ALL_DECISION_TYPES = Object.keys(decisionTypeLabels) as DecisionType[];
 
-export function getSituationDetail(rowId: number): SituationDetailView | undefined {
+export function getSituationDetail(rowId: number, state: ProductState = DEMO_STATE): SituationDetailView | undefined {
+  const sortedSituations = sortedSituationsOf(state);
   const situation = sortedSituations[rowId];
   if (!situation) return undefined;
-  const row = toRowView(situation, rowId);
+  const row = toRowView(state, situation, rowId);
 
   const firstSignalChannel = (() => {
-    const signals = DEMO_STATE.signals.filter((s) => situation.signalIds.includes(s.id));
+    const signals = state.signals.filter((s) => situation.signalIds.includes(s.id));
     return signals[0]?.channel;
   })();
 
-  const recommendation = situationRecommendation(DEMO_STATE, situation);
-  const maritime = resolveMaritimeContext(DEMO_STATE, situation);
-  const convergence = resolveFindingConvergence(DEMO_STATE, situation);
+  const recommendation = situationRecommendation(state, situation);
+  const maritime = resolveMaritimeContext(state, situation);
+  const convergence = resolveFindingConvergence(state, situation);
 
   return {
     ...row,
     description: situation.description,
     channelLabel: firstSignalChannel,
     nextStep: situation.nextStep,
-    known: buildKnownItems(DEMO_STATE, situation),
-    unknown: buildUncertainties(DEMO_STATE, situation),
-    metrics: buildSituationMetrics(DEMO_STATE, situation).map((m) => ({ value: String(m.value), label: m.label })),
-    timeline: buildRealTimeline(DEMO_STATE, situation).map((entry) => ({ dateLabel: timeLabel(entry.at), label: entry.label, detail: entry.detail, who: entry.who })),
-    sources: buildSituationSources(DEMO_STATE, situation).map((source) => ({
+    known: buildKnownItems(state, situation),
+    unknown: buildUncertainties(state, situation),
+    metrics: buildSituationMetrics(state, situation).map((m) => ({ value: String(m.value), label: m.label })),
+    timeline: buildRealTimeline(state, situation).map((entry) => ({ dateLabel: timeLabel(entry.at), label: entry.label, detail: entry.detail, who: entry.who })),
+    sources: buildSituationSources(state, situation).map((source) => ({
       kind: source.kind,
       label: source.label,
       detail: source.detail,
@@ -253,10 +266,29 @@ export function getSituationDetail(rowId: number): SituationDetailView | undefin
   };
 }
 
-// Description fidèle de create_decision (mandat §15) — jamais une
-// exécution simulée : /private-v3 ne mute aucun état.
+// Description fidèle de create_decision (mandat PD.4 §15, conservée à
+// l'identique) — texte d'aperçu affiché avant toute confirmation.
 export function describeDecisionEffect(option: SituationOptionView): string {
-  return `Ceci enregistrerait une Decision réelle (${option.label}) rattachée à cette situation, avec motif, auteur et horodatage (create_decision) — non exécuté dans cet environnement de démonstration.`;
+  return `Ceci enregistre une Decision réelle (${option.label}) rattachée à cette situation, avec motif, auteur et horodatage (create_decision).`;
+}
+
+// buildDecisionCommand (PD.5, mandat "Operational Knowledge Bridge", §4) —
+// construit la commande canonique create_decision (rules.ts) prête à être
+// envoyée à POST /api/actions par le runtime V3. rationale reste un choix
+// humain explicite et obligatoire (applyDecisionCommand la refuse vide) —
+// jamais déduite du libellé de l'option choisie.
+export type SituationCommandResult = { command: CommandInput } | { error: string };
+
+export function buildDecisionCommand(
+  state: ProductState,
+  situationRealId: string,
+  decisionType: DecisionType,
+  rationale: string
+): SituationCommandResult {
+  const situation = state.situations.find((item) => item.id === situationRealId);
+  if (!situation) return { error: "Situation introuvable." };
+  if (!rationale.trim()) return { error: "La justification de la décision est obligatoire." };
+  return { command: { type: "create_decision", situationId: situation.id, decisionType, rationale: rationale.trim() } };
 }
 
 export type { Decision };

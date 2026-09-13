@@ -119,7 +119,10 @@ test("actions réelles uniquement : un message 'nouveau' n'expose que les 2 comm
   assert.deepEqual(detail.actions.map((a) => a.kind).sort(), ["convert", "dismiss"]);
   assert.ok(detail.actions.find((a) => a.kind === "convert")!.effect === CONVERT_TO_SIGNAL_EFFECT);
   assert.ok(detail.actions.find((a) => a.kind === "dismiss")!.effect === DISMISS_EFFECT);
-  for (const action of detail.actions) assert.match(action.effect, /non exécuté/i);
+  // PD.5 — ces deux commandes sont désormais réellement exécutables
+  // depuis /private-v3 (lib/domain-runtime.ts) : le texte décrit l'effet
+  // réel, ce n'est plus un aperçu non exécuté.
+  for (const action of detail.actions) assert.match(action.effect, /convert_message_to_signal|dismiss_incoming_message/);
 });
 
 test("empty/incomplete : un identifiant de ligne inconnu ne produit aucun objet partiel", () => {
