@@ -120,7 +120,11 @@ export const initialAppState: AppState = {
   arbSel: 0,
   arbOpt: null,
 
-  dossStage: "review",
+  // PD.4 — "a_qualifier" est la clé réelle (fluxStage, flux-bridge.ts) ;
+  // "review" n'existe plus (3 paliers réels remplacent les 4 du gabarit
+  // fixture, cf. rapport de lot : le domaine ne distingue pas "reçu" de
+  // "à qualifier").
+  dossStage: "a_qualifier",
   dossOpen: 0,
   dossChoice: null
 };

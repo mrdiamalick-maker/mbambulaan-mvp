@@ -12,7 +12,7 @@
 // "The current Demo World instances may remain demo data") — ce sont les
 // mêmes données que le reste du Produit (createDemoState, déjà utilisé par
 // l'application réelle), jamais une fixture parallèle inventée pour ce lot.
-import { createDemoState } from "@/data/demo-state";
+import { DEMO_STATE } from "./demo-state";
 import type { Infrastructure } from "@/domain/types";
 import {
   buildLandingDetail,
@@ -30,8 +30,6 @@ import type { RoleKey } from "../types";
 // Ré-exporté : Atlas.tsx type son panneau de détail sur cette vue sans
 // jamais importer le domaine directement (voir l'en-tête ci-dessus).
 export type { LandingDetailView };
-
-const DEMO_STATE = createDemoState();
 
 // TERRITORY_ID_BY_NAME — les 18 territoires du gabarit V3 (data/territories.ts,
 // noms éditoriaux affichés) et les 18 territoires du domaine réel

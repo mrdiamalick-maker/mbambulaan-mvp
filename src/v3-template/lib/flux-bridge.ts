@@ -1,0 +1,159 @@
+// Pont Flux ↔ domaine réel — PD.4, mandat "Product Dressing — Situations
+// & Flux Real Domain Integration". Même discipline que landing-bridge.ts
+// (PD.1) : le SEUL endroit où l'écran Flux (gabarit gelé) touche le
+// domaine réel Mbàmbulaan ; Flux.tsx ne connaît que les vues déjà
+// formatées exportées ci-dessous.
+//
+// FluxRowView.id est un entier séquentiel (0..N-1, ordre d'ancienneté),
+// PAS l'identifiant réel du message (IncomingMessage.id est une chaîne).
+// Choix délibéré : AppState.dossOpen/dossChoice (state.ts, gabarit gelé)
+// sont typés `number` — un entier séquentiel les laisse inchangés
+// (aucune modification de state.ts nécessaire pour ce lot) tout en
+// gardant idRéel disponible sur chaque vue pour les appels au domaine.
+import { DEMO_STATE } from "./demo-state";
+import type { IncomingMessage } from "@/domain/types";
+import {
+  CONVERT_TO_SIGNAL_EFFECT,
+  DISMISS_EFFECT,
+  fluxAgeHours,
+  fluxMatchedFacts,
+  fluxMissingFacts,
+  fluxStage,
+  fluxStageCounts,
+  resolveTerritoryHint,
+  type FluxStage
+} from "@/domain/flux-intelligence";
+import { deriveDatasetReferenceAt } from "@/domain/signal-crossing";
+import { channelMeta } from "@/lib/status-tokens";
+import { formatCalendarDate } from "./landing-bridge";
+
+// Couleurs de canal — reprises verbatim de la palette déjà utilisée par
+// le gabarit Flux fixture (rust/ardoise/brun déjà présents dans
+// data/flux.ts), jamais une nouvelle teinte introduite pour ce lot.
+const CHANNEL_COLOR: Record<IncomingMessage["channel"], string> = {
+  terrain: "#B6522F",
+  telephone: "#8E6420",
+  whatsapp_structure: "#4A6478",
+  poste_quai: "#B6522F",
+  espace_public: "#4A6478"
+};
+
+function referenceAt(): string {
+  return deriveDatasetReferenceAt(DEMO_STATE) ?? new Date().toISOString();
+}
+
+function shortTitle(body: string): string {
+  const trimmed = body.replace(/^«\s*/, "").replace(/\s*»$/, "").trim();
+  if (trimmed.length <= 72) return trimmed;
+  const cut = trimmed.slice(0, 72);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${cut.slice(0, lastSpace > 40 ? lastSpace : 72)}…`;
+}
+
+function formatDateTime(iso: string): string {
+  const time = new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+  return `${formatCalendarDate(iso.slice(0, 10))} ${time}`;
+}
+
+function ageLabel(hours: number | undefined): string {
+  if (hours === undefined) return "âge inconnu";
+  if (hours < 1) return "< 1 h";
+  if (hours < 48) return `${hours} h`;
+  return `${Math.floor(hours / 24)} j`;
+}
+
+export interface FluxRowView {
+  id: number;
+  realId: string;
+  channelLabel: string;
+  channelColor: string;
+  title: string;
+  territoryLabel: string;
+  from: string;
+  ageLabel: string;
+  receivedLabel: string;
+  status: IncomingMessage["status"];
+  stage: FluxStage;
+}
+
+export interface FluxDetailView extends FluxRowView {
+  body: string;
+  matched: Array<{ label: string; value: string }>;
+  missing: string[];
+  actions: Array<{ label: string; effect: string; kind: "convert" | "dismiss" }>;
+}
+
+function toRowView(message: IncomingMessage, index: number): FluxRowView {
+  const territory = resolveTerritoryHint(DEMO_STATE, message);
+  return {
+    id: index,
+    realId: message.id,
+    channelLabel: channelMeta[message.channel].label,
+    channelColor: CHANNEL_COLOR[message.channel],
+    title: shortTitle(message.body),
+    territoryLabel: territory ? territory.name : message.territoryHint ? `${message.territoryHint} · non résolu` : "Territoire non précisé",
+    from: message.reportedBy,
+    ageLabel: ageLabel(fluxAgeHours(referenceAt(), message)),
+    receivedLabel: formatDateTime(message.receivedAt),
+    status: message.status,
+    stage: fluxStage(message)
+  };
+}
+
+// FLUX_ROWS — triées du plus ancien au plus récent, même convention que
+// le gabarit fixture ("Plus ancien en premier"). Les 4 IncomingMessage
+// réels du Demo World actuel sont tous au statut "nouveau" (audit PD.4) —
+// une liste plus courte que le gabarit fixture (6 éléments variés), mais
+// entièrement réelle plutôt que complétée artificiellement (mandat §19).
+const sortedMessages = [...DEMO_STATE.incomingMessages].sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
+
+export const FLUX_ROWS: FluxRowView[] = sortedMessages.map(toRowView);
+
+export function getFluxDetail(rowId: number): FluxDetailView | undefined {
+  const message = sortedMessages[rowId];
+  if (!message) return undefined;
+  const row = toRowView(message, rowId);
+  return {
+    ...row,
+    body: message.body,
+    matched: fluxMatchedFacts(DEMO_STATE, message),
+    missing: fluxMissingFacts(DEMO_STATE, message),
+    // Actions réelles uniquement (mandat §4) : convert_message_to_signal
+    // et dismiss_incoming_message sont les deux seules commandes qui
+    // qualifient réellement un IncomingMessage — jamais les actions
+    // bespoke du gabarit fixture ("Rattacher à la situation existante",
+    // "Transférer hors périmètre"…), qu'aucune commande ne supporte.
+    // Non proposées si le message n'est plus "nouveau" (les deux
+    // commandes réelles refusent déjà cette transition, cf. rules.ts).
+    actions:
+      message.status === "nouveau"
+        ? [
+            { label: "Convertir en signal", effect: CONVERT_TO_SIGNAL_EFFECT, kind: "convert" as const },
+            { label: "Écarter", effect: DISMISS_EFFECT, kind: "dismiss" as const }
+          ]
+        : []
+  };
+}
+
+export interface FluxStageTile {
+  key: FluxStage;
+  label: string;
+  count: number;
+  def: string;
+  color: string;
+}
+
+// FLUX_STAGES — remplace STAGE_DEFS (mandat §1 : "do not invent new
+// workflow stages"). Le gabarit fixture distinguait "Reçu" et "À
+// qualifier" ; IncomingMessage.status ne porte pas cette nuance
+// (fluxStage la fait déjà correspondre au même palier réel côté
+// domaine) — un seul palier "à_qualifier" est donc montré ici plutôt que
+// deux tuiles pointant artificiellement vers des comptages différents.
+export function buildFluxStages(): FluxStageTile[] {
+  const counts = fluxStageCounts(DEMO_STATE);
+  return [
+    { key: "a_qualifier", label: "À qualifier", count: counts.a_qualifier, def: "Reçu, en attente d'une décision de qualification (converti ou écarté).", color: "#B6522F" },
+    { key: "qualifie", label: "Qualifié", count: counts.qualifie, def: "Converti en Signal réel.", color: "#4E7B5A" },
+    { key: "ecarte", label: "Écarté", count: counts.ecarte, def: "Écarté avec motif — consultable, jamais supprimé.", color: "rgba(11,26,42,.4)" }
+  ];
+}
