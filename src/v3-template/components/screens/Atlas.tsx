@@ -13,8 +13,10 @@ import {
   formatInfrastructureContext,
   formatKg,
   getLandingDetail,
+  getSiteIntelligenceView,
   getTerritoryLandingView,
-  type LandingDetailView
+  type LandingDetailView,
+  type SiteIntelligenceView
 } from "../../lib/landing-bridge";
 import { trustLabels } from "@/lib/status-tokens";
 import type { AppState } from "../../state";
@@ -116,6 +118,121 @@ function LandingDetailPanel({ view, onClose }: { view: LandingDetailView; onClos
   );
 }
 
+// SiteDetailPanel (PD.3, mandat §10 : "SITE / ACTIVITY / INFRASTRUCTURES /
+// CAPACITIES / STATUS / RECENT LANDINGS / CURRENT ATTENTION") — même
+// discipline visuelle que LandingDetailPanel ci-dessus : un panneau
+// inséré dans l'onglet déjà existant, jamais un nouvel écran. Cliquer un
+// débarquement récent à l'intérieur de ce panneau ouvre le panneau de
+// débarquement (onOpenLanding) et referme celui-ci — un seul panneau de
+// détail actif à la fois (mandat §10 : "avoid long prose").
+function SiteDetailPanel({ view, onClose, onOpenLanding }: { view: SiteIntelligenceView; onClose: () => void; onOpenLanding: (landingId: string) => void }) {
+  const { siteName, siteTypeLabel, territoryName, activityHeadline, topSpecies, infrastructures, recent, attention, territorySituations } = view;
+  return (
+    <div className="pv3-rise-fast" style={{ border: "1px solid #0B1A2A", background: "#FFFFFF", padding: "14px 16px 16px", marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: V3_FONT_SERIF, fontSize: 18, lineHeight: 1.2 }}>{siteName}</div>
+          <div style={{ fontSize: 11, color: "rgba(11,26,42,.55)", marginTop: 3 }}>
+            {siteTypeLabel}{territoryName ? ` · ${territoryName}` : ""}
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          style={{ flex: "none", border: "1px solid rgba(11,26,42,.18)", background: "transparent", cursor: "pointer", borderRadius: 999, padding: "4px 11px", fontSize: 11, fontFamily: V3_FONT_SANS, color: "rgba(11,26,42,.65)" }}
+        >
+          Fermer
+        </button>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 12 }}>
+        <div style={{ fontSize: 9.5, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", flex: 1 }}>Activité</div>
+        <div style={{ fontFamily: V3_FONT_MONO, fontSize: 12, color: "#B6522F" }}>{activityHeadline}</div>
+      </div>
+      {topSpecies.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginTop: 8 }}>
+          {topSpecies.map((sp) => (
+            <div key={sp.speciesId} style={{ border: "1px solid rgba(11,26,42,.1)", padding: "8px 10px", background: "#F7F3E9" }}>
+              <div style={{ fontFamily: V3_FONT_MONO, fontSize: 13 }}>{sp.weightLabel}</div>
+              <div style={{ fontSize: 9.5, color: "rgba(11,26,42,.6)", marginTop: 2 }}>{sp.speciesName}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ marginTop: 14 }}>
+        <div style={{ fontSize: 9.5, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 6 }}>Infrastructures / capacités</div>
+        {infrastructures.length > 0 ? (
+          infrastructures.map((infra, i) => (
+            <div key={i} style={{ border: "1px solid rgba(11,26,42,.1)", padding: "9px 11px", marginBottom: 7 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                <div style={{ flex: 1, fontSize: 12.5, fontWeight: 500 }}>{infra.name}</div>
+                <div style={{ fontSize: 11, fontWeight: 500, color: infra.statusColor, flex: "none" }}>{infra.statusLabel}</div>
+              </div>
+              <div style={{ fontSize: 10.5, color: "rgba(11,26,42,.55)", marginTop: 4 }}>
+                {infra.typeLabel}{infra.organizationName ? ` · ${infra.organizationName}` : ""} · {infra.capacityText}
+              </div>
+              <div style={{ fontSize: 10.5, marginTop: 3, color: infra.availabilityFresh ? "#4E7B5A" : "rgba(11,26,42,.5)" }}>{infra.availabilityLabel}</div>
+              <div style={{ fontSize: 10, marginTop: 2, color: "rgba(11,26,42,.4)" }}>{infra.trustLabel} · mis à jour le {infra.updatedAtLabel}</div>
+            </div>
+          ))
+        ) : (
+          <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.5)" }}>Aucune infrastructure recensée pour ce site.</div>
+        )}
+      </div>
+
+      {attention.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 9.5, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 6 }}>Attention actuelle</div>
+          {attention.map((a) => (
+            <div key={a.id} style={{ borderLeft: `3px solid ${a.color}`, padding: "2px 0 2px 10px", marginBottom: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.35 }}>{a.title}</div>
+              <div style={{ fontSize: 10.5, color: "rgba(11,26,42,.55)", marginTop: 3, lineHeight: 1.4 }}>{a.description}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {territorySituations.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 9.5, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 6 }}>Situations ouvertes du territoire</div>
+          {territorySituations.map((s) => (
+            <div key={s.id} style={{ borderLeft: `3px solid ${s.borderColor}`, padding: "2px 0 2px 10px", marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 500 }}>{s.title}</div>
+              <div style={{ fontSize: 10.5, color: "rgba(11,26,42,.55)", marginTop: 2 }}>{s.meta}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ marginTop: 14 }}>
+        <div style={{ fontSize: 9.5, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 6 }}>Débarquements récents à ce site</div>
+        {recent.length > 0 ? (
+          recent.map((row) => (
+            <div
+              key={row.id}
+              onClick={() => onOpenLanding(row.id)}
+              className="pv3-row-hover-04"
+              style={{ border: "1px solid rgba(11,26,42,.1)", padding: "9px 11px", marginBottom: 6, cursor: "pointer", transition: "background .2s" }}
+            >
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                <div style={{ flex: 1, fontSize: 12, fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {row.vesselName}{row.registration ? ` · ${row.registration}` : ""}
+                </div>
+                <div style={{ fontFamily: V3_FONT_MONO, fontSize: 11, flex: "none" }}>{row.weightLabel}</div>
+              </div>
+              <div style={{ fontSize: 10.5, color: "rgba(11,26,42,.55)", marginTop: 3 }}>
+                {row.dateLabel}{row.dominantSpeciesName ? ` · ${row.dominantSpeciesName}` : ""} · {trustLabels[row.trust]}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.5)" }}>Aucun débarquement enregistré sur ce site à ce jour.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const ALWAYS_LABELLED = ["Saint-Louis", "Kayar", "Hann", "Mbour", "Joal-Fadiouth", "Kafountine", "Foundiougne"];
 const LINK_PAIRS: Array<[string, string]> = [["Joal-Fadiouth", "Mbour"], ["Mbour", "Popenguine"]];
 const ATLAS_TABS: Array<[string, string]> = [["act", "Activité"], ["cap", "Capacités"], ["acteurs", "Acteurs"], ["sit", "Situations"], ["prog", "Programmes"]];
@@ -206,6 +323,11 @@ export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patc
   const landingView = useMemo(() => getTerritoryLandingView(t.name), [t.name]);
   const landingDepth = atlasLandingDepthForRole(state.role);
   const openLanding = useMemo(() => (state.atlasLandingOpen ? getLandingDetail(state.atlasLandingOpen) : undefined), [state.atlasLandingOpen]);
+  // PD.3 — panneau de détail de site, mutuellement exclusif avec le
+  // panneau de débarquement ci-dessus (state.ts : "un seul panneau de
+  // détail actif à la fois").
+  const openSite = useMemo(() => (state.atlasSiteOpen ? getSiteIntelligenceView(state.atlasSiteOpen) : undefined), [state.atlasSiteOpen]);
+  const openSiteLanding = (landingId: string) => patch({ atlasLandingOpen: landingId, atlasSiteOpen: null });
   const trend = landingView?.trendPoints ?? [];
   const trendMaxKg = Math.max(1, ...trend.map((p) => p.landedKg));
   const trendBw = trend.length ? 360 / trend.length : 360;
@@ -427,21 +549,34 @@ export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patc
                   <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.5)" }}>Aucune espèce enregistrée sur ce site.</div>
                 )}
 
-                {/* PD.1 — site activity, avec contexte d'infrastructure (jamais causal) */}
+                {/* PD.1/PD.3 — site activity, avec contexte d'infrastructure (jamais causal) ;
+                    site cliquable pour le détail (§10) réservé à la Coordination territoriale (§14),
+                    même profondeur de rôle que le détail de débarquement. */}
                 <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginTop: 18, marginBottom: 8 }}>Activité par site</div>
+                {openSite && landingDepth === "detailed" && (
+                  <SiteDetailPanel view={openSite} onClose={() => patch({ atlasSiteOpen: null })} onOpenLanding={openSiteLanding} />
+                )}
                 {landingView && landingView.siteRows.length > 0 ? (
-                  landingView.siteRows.map((site) => (
-                    <div key={site.siteId} style={{ border: "1px solid rgba(11,26,42,.1)", padding: "12px 14px", marginBottom: 9 }}>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                        <div style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>{site.siteName}</div>
-                        <div style={{ fontFamily: V3_FONT_MONO, fontSize: 12.5 }}>{formatKg(site.landedKg)}</div>
+                  landingView.siteRows.map((site) => {
+                    const clickable = landingDepth === "detailed";
+                    return (
+                      <div
+                        key={site.siteId}
+                        onClick={clickable ? () => patch({ atlasSiteOpen: site.siteId, atlasLandingOpen: null }) : undefined}
+                        className={clickable ? "pv3-row-hover-04" : undefined}
+                        style={{ border: "1px solid rgba(11,26,42,.1)", padding: "12px 14px", marginBottom: 9, cursor: clickable ? "pointer" : "default", transition: "background .2s" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                          <div style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>{site.siteName}</div>
+                          <div style={{ fontFamily: V3_FONT_MONO, fontSize: 12.5 }}>{formatKg(site.landedKg)}</div>
+                        </div>
+                        <div style={{ fontSize: 11, color: "rgba(11,26,42,.55)", marginTop: 6 }}>
+                          {site.landingCount} débarquement{site.landingCount > 1 ? "s" : ""}
+                          {site.infrastructureNote ? ` · ${site.infrastructureNote}` : ""}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 11, color: "rgba(11,26,42,.55)", marginTop: 6 }}>
-                        {site.landingCount} débarquement{site.landingCount > 1 ? "s" : ""}
-                        {site.infrastructureNote ? ` · ${site.infrastructureNote}` : ""}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.5)" }}>Aucun débarquement enregistré sur les sites de ce territoire.</div>
                 )}
@@ -457,7 +592,7 @@ export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patc
                     return (
                       <div
                         key={row.id}
-                        onClick={clickable ? () => patch({ atlasLandingOpen: row.id }) : undefined}
+                        onClick={clickable ? () => patch({ atlasLandingOpen: row.id, atlasSiteOpen: null }) : undefined}
                         className={clickable ? "pv3-row-hover-04" : undefined}
                         style={{ border: "1px solid rgba(11,26,42,.1)", padding: "11px 14px", marginBottom: 8, cursor: clickable ? "pointer" : "default", transition: "background .2s" }}
                       >

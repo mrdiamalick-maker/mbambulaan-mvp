@@ -16,12 +16,15 @@ import { createDemoState } from "@/data/demo-state";
 import type { Infrastructure } from "@/domain/types";
 import {
   buildLandingDetail,
+  buildSiteIntelligence,
   buildTerritoryLandingActivity,
   recentLandingsForTerritory,
   type LandingDetailView,
+  type SiteInfrastructureView,
   type SiteVolume,
   type TerritoryLandingActivity
 } from "@/domain/territory-intelligence";
+import { priorityLabels, priorityToTag, glyphBorderColor, trustLabels } from "@/lib/status-tokens";
 import type { RoleKey } from "../types";
 
 // Ré-exporté : Atlas.tsx type son panneau de détail sur cette vue sans
@@ -73,11 +76,22 @@ export function formatKg(value: number): string {
   return `${Math.round(value).toLocaleString("fr-FR")} kg`;
 }
 
-const INFRA_TYPE_LABEL: Partial<Record<Infrastructure["type"], string>> = {
+// INFRA_TYPE_LABEL — couvre les 7 valeurs déclarées par Infrastructure["type"]
+// (mandat PD.3 §5 : "audit the actual infrastructure taxonomy before
+// coding"). Seules "fabrique_glace"/"chambre_froide"/"balance"/"transport"
+// sont réellement instanciées dans le Demo World actuel (vérifié,
+// aucune "quai"/"marche"/"transformation" au niveau Infrastructure —
+// Site.type porte "quai"/"marche" séparément) ; les trois autres libellés
+// sont conservés ici pour rester honnête si le référentiel les
+// instancie un jour, jamais pour laisser un type non traduit.
+const INFRA_TYPE_LABEL: Record<Infrastructure["type"], string> = {
   fabrique_glace: "Glace",
   chambre_froide: "Chambre froide",
   balance: "Balance",
-  transport: "Transport froid"
+  transport: "Transport froid",
+  transformation: "Transformation",
+  quai: "Quai",
+  marche: "Marché"
 };
 
 const INFRA_STATE_LABEL: Record<Infrastructure["status"], string> = {
@@ -93,9 +107,8 @@ const INFRA_STATE_LABEL: Record<Infrastructure["status"], string> = {
 // interprétation ("en tension", "à risque"…) qui laisserait croire à un
 // lien démontré entre le volume débarqué et l'état de l'infrastructure.
 export function formatInfrastructureContext(infrastructures: Infrastructure[]): string | undefined {
-  const relevant = infrastructures.filter((item) => item.type in INFRA_TYPE_LABEL);
-  if (relevant.length === 0) return undefined;
-  return relevant.map((item) => `${INFRA_TYPE_LABEL[item.type]} ${INFRA_STATE_LABEL[item.status]}`).join(" · ");
+  if (infrastructures.length === 0) return undefined;
+  return infrastructures.map((item) => `${INFRA_TYPE_LABEL[item.type]} ${INFRA_STATE_LABEL[item.status]}`).join(" · ");
 }
 
 function buildSiteInfrastructureNote(siteId: string): string | undefined {
@@ -187,6 +200,144 @@ export function getLandingDetail(landingId: string): LandingDetailView | undefin
 // commun aux trois rôles.
 export type AtlasLandingDepth = "aggregated" | "detailed";
 
+// Réutilisée telle quelle par le détail de site (PD.3, mandat §14 :
+// "Coordination territoriale: richest operational Site detail... where
+// permitted") — même profondeur de rôle, pas une seconde règle.
 export function atlasLandingDepthForRole(role: RoleKey): AtlasLandingDepth {
   return role === "coordination" ? "detailed" : "aggregated";
+}
+
+// --- Site Intelligence (PD.3) -----------------------------------------
+//
+// Couleurs de statut d'infrastructure — reprises verbatim de la palette
+// déjà utilisée pour la carte/les jauges de l'Atlas (theme.ts : LV.stable/
+// vigilance/critique), jamais une nouvelle échelle : "opérationnelle" =
+// vert déjà utilisé pour une capacité froide OK ailleurs dans ce même
+// écran, "fragile"/"indisponible" = les deux teintes d'alerte déjà
+// utilisées par la carte pour vigilance/critique.
+const INFRA_STATUS_COLOR: Record<Infrastructure["status"], string> = {
+  operationnelle: "#4E7B5A",
+  fragile: "#E0A455",
+  indisponible: "#E05A3C"
+};
+
+export interface SiteInfrastructureRowView {
+  name: string;
+  typeLabel: string;
+  statusLabel: string;
+  statusColor: string;
+  organizationName?: string;
+  // capacityText (mandat §7 : formes autorisées explicitement données par
+  // le mandat, "X kg available cold capacity declared") — juxtaposition
+  // factuelle théorique/disponible, jamais un ratio ni un pourcentage
+  // calculé à partir des deux.
+  capacityText: string;
+  availabilityLabel: string;
+  availabilityFresh: boolean;
+  trustLabel: string;
+  updatedAtLabel: string;
+}
+
+// formatSiteInfrastructureRow — même doctrine de fraîcheur que
+// describeCapacityAvailability (actor-network.ts, réutilisée par
+// buildSiteIntelligence) et même formulation que OrganizationProfileSheet.tsx
+// (§A2, déjà en production) : jamais un pourcentage de confiance inventé,
+// une Capacity expirée reste "à revérifier", jamais requalifiée
+// "indisponible" par la seule péremption.
+export function formatSiteInfrastructureRow(view: SiteInfrastructureView): SiteInfrastructureRowView {
+  const { infrastructure, organization, capacity, availability } = view;
+  const capacityText = capacity
+    ? `${capacity.availableQuantity} ${capacity.unit} disponibles déclarés sur ${infrastructure.theoreticalCapacity} ${infrastructure.unit} théoriques`
+    : `${infrastructure.availableCapacity} ${infrastructure.unit} disponibles sur ${infrastructure.theoreticalCapacity} ${infrastructure.unit} théoriques`;
+
+  let availabilityLabel: string;
+  let availabilityFresh = false;
+  if (availability.kind === "valide") {
+    availabilityLabel = `Disponibilité vérifiée jusqu’au ${formatCalendarDate(availability.capacity.validUntil.slice(0, 10))}.`;
+    availabilityFresh = true;
+  } else if (availability.kind === "aRevoir") {
+    availabilityLabel = `À revérifier avant toute mobilisation (dernière validité connue : ${formatCalendarDate(availability.capacity.validUntil.slice(0, 10))}).`;
+  } else {
+    availabilityLabel = "Aucune capacité datée déclarée pour cette infrastructure.";
+  }
+
+  return {
+    name: infrastructure.name,
+    typeLabel: INFRA_TYPE_LABEL[infrastructure.type],
+    statusLabel: INFRA_STATE_LABEL[infrastructure.status],
+    statusColor: INFRA_STATUS_COLOR[infrastructure.status],
+    organizationName: organization?.name,
+    capacityText,
+    availabilityLabel,
+    availabilityFresh,
+    trustLabel: trustLabels[infrastructure.trust],
+    updatedAtLabel: formatCalendarDate(infrastructure.updatedAt.slice(0, 10))
+  };
+}
+
+export interface SiteAttentionRow {
+  id: string;
+  title: string;
+  description: string;
+  level: "critique" | "vigilance";
+  color: string;
+}
+
+export interface SiteSituationRow {
+  id: string;
+  title: string;
+  meta: string;
+  borderColor: string;
+}
+
+export interface SiteIntelligenceView {
+  siteId: string;
+  siteName: string;
+  siteTypeLabel: string;
+  territoryName?: string;
+  activityHeadline: string;
+  topSpecies: Array<{ speciesId: string; speciesName: string; weightLabel: string }>;
+  infrastructures: SiteInfrastructureRowView[];
+  recent: LandingRowView[];
+  attention: SiteAttentionRow[];
+  // territorySituations (mandat §10) — situations RÉELLES et ouvertes du
+  // territoire de ce site ; Situation n'a pas de siteId dans le domaine
+  // actuel (cf. rapport PD.0), donc explicitement présenté comme un
+  // contexte de territoire, jamais comme spécifique à ce site précis.
+  territorySituations: SiteSituationRow[];
+}
+
+const SITE_TYPE_LABEL: Record<string, string> = { quai: "Quai", marche: "Marché", zone_peche: "Zone de pêche" };
+
+// getSiteIntelligenceView — point d'entrée unique consommé par le panneau
+// de détail de site de l'Atlas (PD.3 §10). Retourne undefined si
+// l'identifiant ne résout à aucun Site réel.
+export function getSiteIntelligenceView(siteId: string): SiteIntelligenceView | undefined {
+  const intelligence = buildSiteIntelligence(DEMO_STATE, siteId);
+  if (!intelligence) return undefined;
+  const { site, territory, activity, recentLandings, infrastructures, attention, territorySituations } = intelligence;
+
+  return {
+    siteId: site.id,
+    siteName: site.name,
+    siteTypeLabel: SITE_TYPE_LABEL[site.type] ?? site.type,
+    territoryName: territory?.name,
+    activityHeadline: `${activity.landingCount} débarquement${activity.landingCount > 1 ? "s" : ""} · ${formatKg(activity.totalLandedKg)}`,
+    topSpecies: activity.volumeBySpecies.slice(0, 3).map((sp) => ({ speciesId: sp.speciesId, speciesName: sp.speciesName, weightLabel: formatKg(sp.landedKg) })),
+    infrastructures: infrastructures.map(formatSiteInfrastructureRow),
+    recent: recentLandings.map(toRowView),
+    attention: attention.map((alert) => ({
+      id: alert.id,
+      title: alert.title,
+      description: alert.description,
+      level: alert.attentionLevel,
+      color: alert.attentionLevel === "critique" ? "#E05A3C" : "#E0A455"
+    })),
+    territorySituations: territorySituations.map((situation) => ({
+      id: situation.id,
+      title: situation.title,
+      meta: `${priorityLabels[situation.priority]} · ${trustLabels[situation.trust]}`,
+      borderColor: glyphBorderColor[priorityToTag[situation.priority]]
+    }))
+  };
 }

@@ -16,6 +16,7 @@
 // autrement.
 import type {
   Actor,
+  Capacity,
   CollectiveNeed,
   CoordinationSpace,
   Finding,
@@ -40,6 +41,16 @@ import type {
   Territory,
   Vessel
 } from "./types";
+// PD.3 (mandat "Site & Infrastructure Intelligence", §6/§8) — réutilise
+// délibérément deux moteurs déjà écrits plutôt que d'en refaire des
+// équivalents : describeCapacityAvailability (LOT 7, "déclarée disponible"
+// ≠ "disponible maintenant") et les détections déterministes de
+// signal-crossing.ts (infrastructure fragilisée sur site actif, fraîcheur
+// de capacité). "Domain engine decides. UI explains." (mandat §8) — cette
+// projection ne recalcule aucune des deux règles, elle les appelle et les
+// filtre au périmètre du site.
+import { describeCapacityAvailability, type CapacityAvailability } from "./actor-network";
+import { detectCapacityFreshnessGapAlerts, detectImpairedInfrastructureAlerts, type SignalCrossingAlert } from "./signal-crossing";
 
 // Statuts "en cours" pour ProgramOpportunity (mandat §12, "développement"
 // distinct de la coordination et du terrain) — mêmes valeurs que
@@ -347,7 +358,21 @@ export function buildLandingDetail(state: ProductState, landingId: string): Land
 export function recentLandingsForTerritory(state: ProductState, territoryId: string, limit = 8): LandingDetailView[] {
   const siteIds = new Set(state.sites.filter((item) => item.territoryId === territoryId).map((item) => item.id));
   const landings = state.landings.filter((item) => siteIds.has(item.siteId));
-  const sorted = [...landings].sort((left, right) => {
+  return sortLandingsByRecency(landings).slice(0, limit).map((item) => buildLandingDetail(state, item.id)!);
+}
+
+// recentLandingsForSite (PD.3, mandat §11 : "Territory → sites → site
+// detail → recent landing activity", "these are two views over the SAME
+// domain") — même tri, même fonction de détail que
+// recentLandingsForTerritory ci-dessus, simplement filtré à un seul site
+// plutôt qu'à tous les sites d'un territoire. Aucun second moteur de tri.
+export function recentLandingsForSite(state: ProductState, siteId: string, limit = 8): LandingDetailView[] {
+  const landings = state.landings.filter((item) => item.siteId === siteId);
+  return sortLandingsByRecency(landings).slice(0, limit).map((item) => buildLandingDetail(state, item.id)!);
+}
+
+function sortLandingsByRecency(landings: Landing[]): Landing[] {
+  return [...landings].sort((left, right) => {
     const leftAt = left.weighedAt ?? left.arrivedAt;
     const rightAt = right.weighedAt ?? right.arrivedAt;
     if (leftAt && rightAt) return rightAt.localeCompare(leftAt);
@@ -355,7 +380,6 @@ export function recentLandingsForTerritory(state: ProductState, territoryId: str
     if (rightAt) return 1;
     return left.id.localeCompare(right.id);
   });
-  return sorted.slice(0, limit).map((item) => buildLandingDetail(state, item.id)!);
 }
 
 export interface SpeciesVolume {
@@ -394,14 +418,23 @@ export interface LandingTrendPoint {
   landedKg: number;
 }
 
-export interface TerritoryLandingActivity {
+// LandingActivitySummary (PD.3, mandat §4/§11 : "these are two views over
+// the SAME domain. Do not create duplicate data engines.") — le socle
+// commun aux deux échelles d'agrégation (territoire, site) : tout ce qui
+// ne dépend pas de "combien de sites différents ce périmètre contient"
+// (volumeBySite n'a de sens qu'à l'échelle du territoire, cf.
+// TerritoryLandingActivity ci-dessous).
+export interface LandingActivitySummary {
   landingCount: number;
   totalLandedKg: number;
   volumeBySpecies: SpeciesVolume[]; // trié décroissant par landedKg
   dominantSpecies?: SpeciesVolume;
-  volumeBySite: SiteVolume[]; // trié décroissant par landedKg
   vesselActivity: VesselActivitySummary[]; // trié décroissant par landedKg
   trend: LandingTrendPoint[]; // trié chronologiquement croissant
+}
+
+export interface TerritoryLandingActivity extends LandingActivitySummary {
+  volumeBySite: SiteVolume[]; // trié décroissant par landedKg
 }
 
 function landingDate(landing: Landing): string | undefined {
@@ -409,21 +442,17 @@ function landingDate(landing: Landing): string | undefined {
   return at ? at.slice(0, 10) : undefined;
 }
 
-// buildTerritoryLandingActivity — les sept projections déterministes
-// demandées par le mandat PD.1 (§4) : nombre de débarquements, volume
-// total, répartition par espèce, espèce dominante, répartition par site,
-// activité des pirogues, tendance sur les dates réellement disponibles.
-// Somme sur TOUS les Landing du territoire, quel que soit leur statut —
-// même discipline que `landedKg`/`speciesCount` déjà exposés par
-// buildTerritoryIntelligence ci-dessus (mandat §6 : ne pas introduire un
-// second jugement de filtrage concurrent) ; c'est Landing.trust/status,
-// affiché tel quel à côté de chaque valeur, qui porte la fiabilité —
-// jamais un filtrage silencieux qui laisserait croire à une couverture
-// différente de celle des données.
-export function buildTerritoryLandingActivity(state: ProductState, territoryId: string): TerritoryLandingActivity {
-  const sites = state.sites.filter((item) => item.territoryId === territoryId);
-  const siteById = new Map(sites.map((item): [string, Site] => [item.id, item]));
-  const landings = state.landings.filter((item) => siteById.has(item.siteId));
+// aggregateLandingActivity — moteur unique des agrégations landing (PD.1
+// §4, étendu PD.3 §11) : reçoit déjà la liste des Landing du périmètre
+// (territoire entier ou un seul site) et produit exactement les mêmes
+// projections des deux côtés. Somme sur TOUS les Landing reçus, quel que
+// soit leur statut — même discipline que `landedKg`/`speciesCount` déjà
+// exposés par buildTerritoryIntelligence plus haut (mandat PD.1 §6 : ne
+// pas introduire un second jugement de filtrage concurrent) ; c'est
+// Landing.trust/status, affiché tel quel à côté de chaque valeur, qui
+// porte la fiabilité — jamais un filtrage silencieux qui laisserait
+// croire à une couverture différente de celle des données.
+function aggregateLandingActivity(state: ProductState, landings: Landing[]): LandingActivitySummary {
   const speciesById = new Map(state.species.map((item): [string, Species] => [item.id, item]));
   const tripById = new Map(state.trips.map((item): [string, FishingTrip] => [item.id, item]));
   const vesselById = new Map(state.vessels.map((item): [string, Vessel] => [item.id, item]));
@@ -449,26 +478,6 @@ export function buildTerritoryLandingActivity(state: ProductState, territoryId: 
     }))
     .sort((left, right) => right.landedKg - left.landedKg);
   const dominantSpecies = volumeBySpecies[0];
-
-  const siteAgg = new Map<string, { landedKg: number; landingCount: number }>();
-  for (const landing of landings) {
-    const entry = siteAgg.get(landing.siteId) ?? { landedKg: 0, landingCount: 0 };
-    entry.landedKg += landing.totalWeightKg;
-    entry.landingCount += 1;
-    siteAgg.set(landing.siteId, entry);
-  }
-  const volumeBySite: SiteVolume[] = [...siteAgg.entries()]
-    .map(([siteId, agg]) => {
-      const site = siteById.get(siteId);
-      return {
-        siteId,
-        siteName: site?.name ?? siteId,
-        siteType: site?.type ?? "quai",
-        landedKg: agg.landedKg,
-        landingCount: agg.landingCount
-      };
-    })
-    .sort((left, right) => right.landedKg - left.landedKg);
 
   const vesselAgg = new Map<string, { tripIds: Set<string>; landingCount: number; landedKg: number }>();
   for (const landing of landings) {
@@ -508,5 +517,137 @@ export function buildTerritoryLandingActivity(state: ProductState, territoryId: 
     .map(([date, agg]) => ({ date, landingCount: agg.landingCount, landedKg: agg.landedKg }))
     .sort((left, right) => left.date.localeCompare(right.date));
 
-  return { landingCount, totalLandedKg, volumeBySpecies, dominantSpecies, volumeBySite, vesselActivity, trend };
+  return { landingCount, totalLandedKg, volumeBySpecies, dominantSpecies, vesselActivity, trend };
+}
+
+// buildTerritoryLandingActivity — les sept projections déterministes
+// demandées par le mandat PD.1 (§4).
+export function buildTerritoryLandingActivity(state: ProductState, territoryId: string): TerritoryLandingActivity {
+  const sites = state.sites.filter((item) => item.territoryId === territoryId);
+  const siteById = new Map(sites.map((item): [string, Site] => [item.id, item]));
+  const landings = state.landings.filter((item) => siteById.has(item.siteId));
+
+  const siteAgg = new Map<string, { landedKg: number; landingCount: number }>();
+  for (const landing of landings) {
+    const entry = siteAgg.get(landing.siteId) ?? { landedKg: 0, landingCount: 0 };
+    entry.landedKg += landing.totalWeightKg;
+    entry.landingCount += 1;
+    siteAgg.set(landing.siteId, entry);
+  }
+  const volumeBySite: SiteVolume[] = [...siteAgg.entries()]
+    .map(([siteId, agg]) => {
+      const site = siteById.get(siteId);
+      return {
+        siteId,
+        siteName: site?.name ?? siteId,
+        siteType: site?.type ?? "quai",
+        landedKg: agg.landedKg,
+        landingCount: agg.landingCount
+      };
+    })
+    .sort((left, right) => right.landedKg - left.landedKg);
+
+  return { ...aggregateLandingActivity(state, landings), volumeBySite };
+}
+
+// buildSiteLandingActivity (PD.3, mandat §11) — même moteur, filtré à un
+// seul site plutôt qu'à tous les sites d'un territoire. Pas de
+// volumeBySite ici : à l'échelle d'un seul site, cette répartition serait
+// toujours un tableau à une seule entrée (le site lui-même) — un champ
+// sans valeur informative que l'appelant n'a pas besoin de recevoir.
+export function buildSiteLandingActivity(state: ProductState, siteId: string): LandingActivitySummary {
+  const landings = state.landings.filter((item) => item.siteId === siteId);
+  return aggregateLandingActivity(state, landings);
+}
+
+// --- Site Intelligence (PD.3, mandat "Product Dressing — Site &
+// Infrastructure Intelligence") --------------------------------------
+//
+// But du lot (§1) : répondre à "quelle capacité existe sur ce site pour
+// traiter cette activité ?" en connectant Landing Activity (PD.1) au Site
+// et à son Infrastructure/Capacity réelles. Lecture seule, jamais
+// persistée (§4 : "Read model only") — recalculée à chaque appel comme
+// buildTerritoryIntelligence/buildLandingDetail.
+//
+// Discipline "pas de fausse saturation" (mandat §7) : cette projection ne
+// compare JAMAIS un volume débarqué à une capacité déclarée pour en tirer
+// une conclusion ("saturé", "en surcharge", "insuffisant") — chaque
+// nombre reste affiché à côté de l'autre, jamais combiné en un ratio ou
+// une alerte inventée ici. La seule alerte présente (`attention`
+// ci-dessous) est celle que le moteur de règles déterministe
+// (signal-crossing.ts) a déjà lui-même décidé de lever.
+
+// SiteInfrastructureView — une Infrastructure du site, avec la Capacity
+// réelle qui lui est reliée quand elle existe (mandat §6 : "distinguish
+// theoretical capacity / available capacity / last known validity /
+// infrastructure status — do not flatten these concepts"). `capacity`
+// reste absent si aucun enregistrement de Capacity ne référence cette
+// Infrastructure (mandat §16 : état honnête plutôt qu'inventé).
+export interface SiteInfrastructureView {
+  infrastructure: Infrastructure;
+  organization?: Organization;
+  capacity?: Capacity;
+  // availability — TOUJOURS calculée par describeCapacityAvailability
+  // (actor-network.ts, LOT 7), jamais réinterprétée ici : "valide"
+  // (disponible ET fraîche), "aRevoir" (expirée ou non disponible),
+  // "inconnue" (aucune Capacity reliée). Ni un score, ni une couleur de
+  // saturation.
+  availability: CapacityAvailability;
+}
+
+export interface SiteIntelligence {
+  site: Site;
+  territory?: Territory;
+  // Activité de débarquement à ce site précis — même moteur que
+  // buildTerritoryLandingActivity (mandat §11), pas un second calcul.
+  activity: LandingActivitySummary;
+  recentLandings: LandingDetailView[];
+  infrastructures: SiteInfrastructureView[];
+  // attention (mandat §8/§10, "CURRENT ATTENTION") — détections
+  // déterministes RÉELLEMENT levées par signal-crossing.ts pour ce site
+  // précis (infrastructure fragilisée sur site actif, fraîcheur de
+  // capacité) : jamais recalculées ici, seulement filtrées à ce site. Ce
+  // sont des détections du moteur de règles, pas des Finding enregistrés
+  // par un humain — distinction gardée honnête côté affichage (mandat
+  // §8 : "Domain engine decides. UI explains.").
+  attention: SignalCrossingAlert[];
+  // territorySituations (mandat §10) — les Situation réellement ouvertes
+  // du TERRITOIRE (Situation n'a pas de siteId dans le domaine actuel,
+  // cf. rapport PD.0 : lien territoire uniquement, jamais fabriqué au
+  // niveau site). Exposé à part, jamais confondu avec `attention`
+  // ci-dessus qui est, elle, réellement scopée au site.
+  territorySituations: Situation[];
+}
+
+// buildSiteIntelligence — point d'entrée unique de ce lot. Retourne
+// undefined si l'identifiant ne résout à aucun Site réel (mandat §16 :
+// état honnête, jamais un objet partiel fabriqué).
+export function buildSiteIntelligence(state: ProductState, siteId: string): SiteIntelligence | undefined {
+  const site = state.sites.find((item) => item.id === siteId);
+  if (!site) return undefined;
+
+  const territory = state.territories.find((item) => item.id === site.territoryId);
+  const activity = buildSiteLandingActivity(state, siteId);
+  const recentLandings = recentLandingsForSite(state, siteId, 8);
+
+  const siteInfrastructures = state.infrastructures.filter((item) => item.siteId === siteId);
+  const capacityByInfrastructureId = new Map(state.capacities.map((item): [string, Capacity] => [item.infrastructureId, item]));
+  const infrastructures: SiteInfrastructureView[] = siteInfrastructures.map((infrastructure) => {
+    const capacity = capacityByInfrastructureId.get(infrastructure.id);
+    const organization = state.organizations.find((item) => item.id === infrastructure.organizationId);
+    return { infrastructure, organization, capacity, availability: describeCapacityAvailability(capacity) };
+  });
+
+  const infrastructureIds = new Set(siteInfrastructures.map((item) => item.id));
+  const attention = [...detectImpairedInfrastructureAlerts(state), ...detectCapacityFreshnessGapAlerts(state)].filter((alert) =>
+    alert.sourceRefs.some(
+      (ref) => (ref.objectType === "site" && ref.objectId === siteId) || (ref.objectType === "infrastructure" && infrastructureIds.has(ref.objectId))
+    )
+  );
+
+  const territorySituations = territory
+    ? state.situations.filter((situation) => situation.territoryId === territory.id && situation.status !== "reglee")
+    : [];
+
+  return { site, territory, activity, recentLandings, infrastructures, attention, territorySituations };
 }

@@ -27,6 +27,12 @@ export interface AppState {
   // discipline que sitOpen/progOpen ci-dessous : un simple sélecteur
   // nullable, pas un nouvel écran.
   atlasLandingOpen: string | null;
+  // atlasSiteOpen (PD.3) — identifiant du Site réel dont le panneau de
+  // détail est ouvert. Mutuellement exclusif avec atlasLandingOpen (un
+  // seul panneau de détail actif à la fois, mandat PD.3 §10 : "avoid long
+  // prose", "do not create a full-screen facility record" — empiler deux
+  // panneaux irait à l'encontre de cette sobriété).
+  atlasSiteOpen: string | null;
 
   // Situations
   sitOpen: number | null;
@@ -84,6 +90,7 @@ export const initialAppState: AppState = {
   atlasTab: "act",
   actBar: null,
   atlasLandingOpen: null,
+  atlasSiteOpen: null,
 
   sitOpen: null,
   sitTab: "know",
