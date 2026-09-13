@@ -273,13 +273,20 @@ export function currentTerritoryView(intelligence: TerritoryIntelligence): Terri
 
 export interface LandingCatchLineView {
   speciesId: string;
-  // Nom résolu depuis Species.name — c'est aujourd'hui le seul champ de
-  // libellé du référentiel Species (mandat PD.1 §8 : "use the existing
-  // Species model AS IS" ; pas de code/nom wolof/nom scientifique, un
-  // futur lot Species Referential comblera cet écart). Repli sur
-  // l'identifiant technique si l'espèce n'est pas résolue (jamais un nom
-  // inventé).
+  // Nom résolu depuis Species.nameFr (PD.2, "Species Referential V1" —
+  // remplace Species.name comme champ de référence pour tout code
+  // nouveau, mandat §3/§5). Repli sur l'identifiant technique si
+  // l'espèce n'est pas résolue (jamais un nom inventé).
   speciesName: string;
+  // scientificName/localName (PD.2, mandat §9 : "primary display:
+  // French/reference name ; secondary/contextual: local name and/or
+  // scientific name") — absents si le référentiel ne les connaît pas
+  // pour cette espèce, jamais fabriqués. localName ne reprend que le
+  // PREMIER alias connu (mandat §5 : une liste peut exister, mais
+  // l'affichage discret d'un panneau de détail n'en montre qu'un —
+  // jamais une énumération complète qui alourdirait la lecture).
+  speciesScientificName?: string;
+  speciesLocalName?: string;
   quantityKg: number;
   quality: Landing["catches"][number]["quality"];
   productForm: Landing["catches"][number]["productForm"];
@@ -314,13 +321,18 @@ export function buildLandingDetail(state: ProductState, landingId: string): Land
   const speciesById = new Map(state.species.map((item): [string, Species] => [item.id, item]));
   const infrastructures = site ? state.infrastructures.filter((item) => item.siteId === site.id) : [];
 
-  const catches: LandingCatchLineView[] = landing.catches.map((catchLine) => ({
-    speciesId: catchLine.speciesId,
-    speciesName: speciesById.get(catchLine.speciesId)?.name ?? catchLine.speciesId,
-    quantityKg: catchLine.quantityKg,
-    quality: catchLine.quality,
-    productForm: catchLine.productForm
-  }));
+  const catches: LandingCatchLineView[] = landing.catches.map((catchLine) => {
+    const catchSpecies = speciesById.get(catchLine.speciesId);
+    return {
+      speciesId: catchLine.speciesId,
+      speciesName: catchSpecies?.nameFr ?? catchLine.speciesId,
+      speciesScientificName: catchSpecies?.scientificName,
+      speciesLocalName: catchSpecies?.localNames[0],
+      quantityKg: catchLine.quantityKg,
+      quality: catchLine.quality,
+      productForm: catchLine.productForm
+    };
+  });
 
   return { landing, site, territory, trip, vessel, captain, catches, infrastructures };
 }
@@ -431,7 +443,7 @@ export function buildTerritoryLandingActivity(state: ProductState, territoryId: 
   const volumeBySpecies: SpeciesVolume[] = [...speciesAgg.entries()]
     .map(([speciesId, agg]) => ({
       speciesId,
-      speciesName: speciesById.get(speciesId)?.name ?? speciesId,
+      speciesName: speciesById.get(speciesId)?.nameFr ?? speciesId,
       landedKg: agg.landedKg,
       landingCount: agg.landingIds.size
     }))

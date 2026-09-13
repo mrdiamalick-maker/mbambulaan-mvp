@@ -228,17 +228,43 @@ export function createDemoState(): ProductState {
     }
   ]);
 
+  // Espèces (PD.2, "Species Referential V1") — mêmes 10 `id` qu'avant ce
+  // lot (aucun id remplacé, mandat §7) ; `code`/`nameFr`/`localNames`/
+  // `active` ajoutés pour toutes. `scientificName` renseigné SEULEMENT
+  // là où une valeur défendable est connue pour l'espèce désignée par ce
+  // nom usuel précis dans ce contexte (mandat §6) — sinon omis :
+  //  - Sardinelle RONDE → Sardinella aurita (par opposition à la
+  //    sardinelle "plate", Sardinella maderensis — la précision "ronde"
+  //    du nom usuel pointe sans ambiguïté vers cette espèce).
+  //  - Thiof → Epinephelus aeneus (exemple donné explicitement par le
+  //    mandat lui-même, §9).
+  //  - Ethmalose → Ethmalosa fimbriata (le genre Ethmalosa n'a qu'une
+  //    seule espèce commerciale ouest-africaine).
+  //  - Poisson-ceinture → Trichiurus lepturus (nom usuel du poisson-sabre/
+  //    ruban dominant sur cette façade, sans espèce concurrente notable).
+  //  - Poulpe → Octopus vulgaris (poulpe commun, espèce dominante des
+  //    pêcheries sénégalaises/mauritaniennes documentées).
+  //  - Maquereau / Mulet / Sole / Carangue / Crevette côtière : chacun de
+  //    ces noms usuels recouvre plusieurs espèces distinctes réellement
+  //    présentes localement (ex. Mugilidae pour "mulet", plusieurs
+  //    Carangidae pour "carangue") sans que le nom usuel seul permette de
+  //    trancher — laissé vide plutôt qu'une identité inventée.
+  // `localNames` : seul "Yaboy" (sardinelle) est retenu, nom wolof déjà
+  // largement documenté pour cette espèce précise — les autres restent un
+  // tableau vide plutôt qu'un alias local non vérifié (même prudence que
+  // scientificName : une erreur de nom local n'est pas moins dommageable
+  // qu'un nom scientifique inventé).
   const species: ProductState["species"] = [
-    { id: "sp-sardinelle", name: "Sardinelle ronde", family: "Clupéidés", seasonality: "Pic de novembre à mai (simulation)", sensitivity: "surveillance", indicativePriceFcfaKg: 950 },
-    { id: "sp-thiof", name: "Thiof", family: "Serranidés", seasonality: "Disponibilité irrégulière", sensitivity: "sensible", indicativePriceFcfaKg: 3200 },
-    { id: "sp-maquereau", name: "Maquereau", family: "Scombridés", seasonality: "Toute l’année, variations locales", sensitivity: "stable", indicativePriceFcfaKg: 1450 },
-    { id: "sp-mulet", name: "Mulet", family: "Mugilidés", seasonality: "Saison fraîche", sensitivity: "stable", indicativePriceFcfaKg: 1800 },
-    { id: "sp-sole", name: "Sole", family: "Soleidés", seasonality: "Disponibilité limitée", sensitivity: "surveillance", indicativePriceFcfaKg: 2800 },
-    { id: "sp-ethmalose", name: "Ethmalose", family: "Clupéidés", seasonality: "Présence variable selon les estuaires", sensitivity: "stable", indicativePriceFcfaKg: 850 },
-    { id: "sp-carangue", name: "Carangue", family: "Carangidés", seasonality: "Variations côtières", sensitivity: "stable", indicativePriceFcfaKg: 1650 },
-    { id: "sp-ceinture", name: "Poisson-ceinture", family: "Trichiuridés", seasonality: "Disponibilité irrégulière", sensitivity: "surveillance", indicativePriceFcfaKg: 1350 },
-    { id: "sp-poulpe", name: "Poulpe", family: "Octopodidés", seasonality: "Fenêtres saisonnières", sensitivity: "sensible", indicativePriceFcfaKg: 3100 },
-    { id: "sp-crevette", name: "Crevette côtière", family: "Pénéidés", seasonality: "Zones estuariennes et saison des pluies", sensitivity: "surveillance", indicativePriceFcfaKg: 3600 }
+    { id: "sp-sardinelle", code: "SAR_ROUND", name: "Sardinelle ronde", nameFr: "Sardinelle ronde", scientificName: "Sardinella aurita", localNames: ["Yaboy"], family: "Clupéidés", seasonality: "Pic de novembre à mai (simulation)", sensitivity: "surveillance", indicativePriceFcfaKg: 950, active: true },
+    { id: "sp-thiof", code: "THIOF", name: "Thiof", nameFr: "Thiof", scientificName: "Epinephelus aeneus", localNames: [], family: "Serranidés", seasonality: "Disponibilité irrégulière", sensitivity: "sensible", indicativePriceFcfaKg: 3200, active: true },
+    { id: "sp-maquereau", code: "MAQUEREAU", name: "Maquereau", nameFr: "Maquereau", localNames: [], family: "Scombridés", seasonality: "Toute l’année, variations locales", sensitivity: "stable", indicativePriceFcfaKg: 1450, active: true },
+    { id: "sp-mulet", code: "MULET", name: "Mulet", nameFr: "Mulet", localNames: [], family: "Mugilidés", seasonality: "Saison fraîche", sensitivity: "stable", indicativePriceFcfaKg: 1800, active: true },
+    { id: "sp-sole", code: "SOLE", name: "Sole", nameFr: "Sole", localNames: [], family: "Soleidés", seasonality: "Disponibilité limitée", sensitivity: "surveillance", indicativePriceFcfaKg: 2800, active: true },
+    { id: "sp-ethmalose", code: "ETHMALOSE", name: "Ethmalose", nameFr: "Ethmalose", scientificName: "Ethmalosa fimbriata", localNames: [], family: "Clupéidés", seasonality: "Présence variable selon les estuaires", sensitivity: "stable", indicativePriceFcfaKg: 850, active: true },
+    { id: "sp-carangue", code: "CARANGUE", name: "Carangue", nameFr: "Carangue", localNames: [], family: "Carangidés", seasonality: "Variations côtières", sensitivity: "stable", indicativePriceFcfaKg: 1650, active: true },
+    { id: "sp-ceinture", code: "CEINTURE", name: "Poisson-ceinture", nameFr: "Poisson-ceinture", scientificName: "Trichiurus lepturus", localNames: [], family: "Trichiuridés", seasonality: "Disponibilité irrégulière", sensitivity: "surveillance", indicativePriceFcfaKg: 1350, active: true },
+    { id: "sp-poulpe", code: "POULPE", name: "Poulpe", nameFr: "Poulpe", scientificName: "Octopus vulgaris", localNames: [], family: "Octopodidés", seasonality: "Fenêtres saisonnières", sensitivity: "sensible", indicativePriceFcfaKg: 3100, active: true },
+    { id: "sp-crevette", code: "CREVETTE_COTIERE", name: "Crevette côtière", nameFr: "Crevette côtière", localNames: [], family: "Pénéidés", seasonality: "Zones estuariennes et saison des pluies", sensitivity: "surveillance", indicativePriceFcfaKg: 3600, active: true }
   ];
 
   const trips: ProductState["trips"] = [

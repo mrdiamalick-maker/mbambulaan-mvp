@@ -205,13 +205,57 @@ export interface FishingTrip {
   source: string;
 }
 
+// Species — évolution additive (PD.2, mandat "Product Dressing — Species
+// Referential V1"). But du lot : donner une identité stable au même
+// poisson à travers Landing/CatchLine, ServiceRequest, PriceObservation,
+// ScarcityIndicator, sans jamais toucher aux `id` déjà référencés par ces
+// objets (mandat §7, "CRITICAL: Do not replace existing Species ids").
 export interface Species {
   id: string;
+  // code (§4) — identifiant technique STABLE et indépendant du libellé
+  // affiché : jamais recalculé depuis name/nameFr au runtime, choisi une
+  // fois pour toutes à l'écriture du référentiel. Convention retenue et
+  // documentée ici (mandat : "choose and document one") :
+  // MAJUSCULES_SNAKE_CASE, ASCII sans accent, un ou plusieurs mots
+  // distinctifs du nom usuel séparés par "_" — reprend verbatim les
+  // exemples donnés par le mandat (SAR_ROUND, THIOF, ETHMALOSE) pour les
+  // espèces concernées. Voir demo-state.ts pour les 10 valeurs figées et
+  // leur justification.
+  code: string;
+  // name — CONSERVÉ tel quel (mandat §3/§7, "preserve existing fields
+  // when removal would create unnecessary migration risk") : encore lu
+  // aujourd'hui par ServiceRequestForm, BuyerTaskView,
+  // CoordinationWorkspace, MarketWorkspace, ProfessionalAtlasWorkspace,
+  // SustainabilityWorkspace, OperationsWorkspace, PilotageWorkspace (tous
+  // /app, hors périmètre de ce lot). Nouveau code : lire `nameFr`
+  // ci-dessous plutôt que ce champ (même valeur pour les 10 espèces
+  // existantes, aucune divergence introduite par ce lot).
   name: string;
+  // nameFr (§3/§5) — nom de référence français/affiché, vocabulaire du
+  // référentiel cible. Champ à privilégier pour tout affichage nouveau.
+  nameFr: string;
+  // scientificName (§6) — renseigné UNIQUEMENT quand une valeur
+  // défendable est connue pour l'espèce de démonstration concernée ;
+  // absent sinon plutôt qu'une identité scientifique inventée (mandat :
+  // "Product correctness is more important than fixture completeness").
+  // Voir demo-state.ts pour la justification espèce par espèce.
+  scientificName?: string;
+  // localNames (§5) — noms locaux/alias (dont wolof) : une LISTE, jamais
+  // un seul nom supposé unique ("do not assume one fish has exactly one
+  // Wolof/common name"). Toujours un tableau (vide plutôt qu'absent) —
+  // vide tant qu'aucun alias n'est connu avec une confiance suffisante,
+  // même discipline de prudence que scientificName : une erreur de nom
+  // local n'est pas moins dommageable qu'un nom scientifique inventé.
+  localNames: string[];
   family: string;
   seasonality: string;
   sensitivity: "stable" | "surveillance" | "sensible";
   indicativePriceFcfaKg: number;
+  // active (§3) — permet une future désactivation douce du référentiel
+  // (espèce retirée de l'usage courant) sans jamais supprimer un
+  // enregistrement encore référencé par l'historique (Landing/Lot/...).
+  // Toutes les espèces de démonstration sont actives à ce jour.
+  active: boolean;
 }
 
 export interface CatchLine {

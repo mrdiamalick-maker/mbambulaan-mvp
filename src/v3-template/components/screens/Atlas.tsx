@@ -75,14 +75,28 @@ function LandingDetailPanel({ view, onClose }: { view: LandingDetailView; onClos
       <div style={{ marginTop: 12 }}>
         <div style={{ fontSize: 9.5, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 6 }}>Espèces / quantités</div>
         {catches.length > 0 ? (
-          catches.map((c, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 12, padding: "5px 0", borderBottom: i < catches.length - 1 ? "1px solid rgba(11,26,42,.07)" : "none" }}>
-              <span>
-                {c.speciesName} <span style={{ color: "rgba(11,26,42,.5)" }}>· qualité {c.quality} · {c.productForm.replaceAll("_", " ")}</span>
-              </span>
-              <span style={{ fontFamily: V3_FONT_MONO, flex: "none" }}>{formatKg(c.quantityKg)}</span>
-            </div>
-          ))
+          catches.map((c, i) => {
+            // PD.2 — identité secondaire (nom scientifique et/ou nom local),
+            // discrète et jamais fabriquée : absente dès que le référentiel
+            // ne connaît ni l'un ni l'autre pour cette espèce (mandat §9 —
+            // "Do not overload... the CEO should still scan quantities
+            // immediately" : une seule ligne italique de plus, jamais une
+            // troisième colonne qui déplacerait le poids).
+            const identity = [c.speciesScientificName, c.speciesLocalName].filter(Boolean).join(" · ");
+            return (
+              <div key={i} style={{ padding: "5px 0", borderBottom: i < catches.length - 1 ? "1px solid rgba(11,26,42,.07)" : "none" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 12 }}>
+                  <span>
+                    {c.speciesName} <span style={{ color: "rgba(11,26,42,.5)" }}>· qualité {c.quality} · {c.productForm.replaceAll("_", " ")}</span>
+                  </span>
+                  <span style={{ fontFamily: V3_FONT_MONO, flex: "none" }}>{formatKg(c.quantityKg)}</span>
+                </div>
+                {identity && (
+                  <div style={{ fontSize: 10.5, fontStyle: "italic", color: "rgba(11,26,42,.45)", marginTop: 2 }}>{identity}</div>
+                )}
+              </div>
+            );
+          })
         ) : (
           <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.5)" }}>Aucune espèce enregistrée pour ce débarquement.</div>
         )}
