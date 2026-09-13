@@ -1,4 +1,6 @@
 import type { CollectiveNeed, Finding, Learning, Outcome, ProductState, Result, Role, Signal, Situation, SituationStatus, TrustLevel } from "@/domain/types";
+import { applyCommand } from "@/domain/rules";
+import { deriveDatasetReferenceAt, detectImpairedInfrastructureAlerts, signalCrossingAlertToFindingDraft } from "@/domain/signal-crossing";
 
 const now = "2026-07-29T08:30:00.000Z";
 const tomorrow = "2026-07-30T16:00:00.000Z";
@@ -1469,7 +1471,7 @@ export function createDemoState(): ProductState {
     status: "valide"
   };
 
-  return {
+  const base: ProductState = {
     revision: 1,
     tenant: { id: "tenant-demo", name: "Démonstration nationale Mbàmbulaan", mode: "demonstration" },
     organizations,
@@ -2768,5 +2770,114 @@ export function createDemoState(): ProductState {
       ...generatedNotifications
     ],
     audit: []
+  };
+
+  // PD.5 — Pont de connaissance opérationnelle (mandat "Operational
+  // Knowledge Bridge", §7/§9/§11, pattern B). Le Demo World produit déjà,
+  // SANS AUCUNE donnée ajoutée pour cette démonstration, une détection
+  // déterministe réelle ("impaired-infrastructure-on-active-site",
+  // signal-crossing.ts) sur le territoire de Joal, à partir des seuls
+  // Vessel/FishingTrip/Landing/Infrastructure/Capacity déjà construits
+  // ci-dessus — confirmée indépendamment par TEST F
+  // (tests/intelligence-feed.test.ts, "la détection ... reste active").
+  // Plutôt que d'écrire à la main un Finding/Situation avec des
+  // sourceRefs inventés (interdit, mandat §9 : "Do NOT manually set
+  // arbitrary ... Finding.sourceRefs"), cette détection réelle est
+  // promue par les 3 MÊMES commandes canoniques qu'un humain utiliserait
+  // depuis l'Intelligence Feed — record_finding (proposed) →
+  // update_finding_status (confirmed, décision humaine explicite) →
+  // promote_finding_to_situation (situation réelle) — jamais fusionnées
+  // ni court-circuitées : DETECTION ≠ FINDING PROPOSED ≠ FINDING
+  // CONFIRMED ≠ SITUATION reste respecté (mandat §10).
+  //
+  // Seule exception, documentée et strictement limitée aux horodatages
+  // des objets NOUVELLEMENT créés par cette séquence : timestamp()/
+  // history() (rules.ts) lisent l'horloge réelle (new Date().toISOString()),
+  // ce que le reste de ce fichier évite précisément pour rester
+  // déterministe (constante `now` ci-dessus). Sans normalisation,
+  // deriveDatasetReferenceAt (signal-crossing.ts) adopterait la date
+  // réelle du jour comme nouvelle référence temporelle de tout le jeu de
+  // données — un effet de bord qui romprait la reproductibilité de
+  // TOUTES les autres règles et de leurs tests. Les horodatages sont donc
+  // recalés sur la référence déjà déterminée par le jeu de données
+  // lui-même (deriveDatasetReferenceAt(base), calculée AVANT cette
+  // séquence) — jamais leur contenu (titre, constat, sourceRefs, statut,
+  // ids), qui reste exactement celui produit par le chemin canonique.
+  const maritimeAlert = detectImpairedInfrastructureAlerts(base).find((alert) => alert.territoryId === "joal");
+  if (!maritimeAlert) return base;
+
+  const maritimeDraft = signalCrossingAlertToFindingDraft(maritimeAlert);
+  const maritimeProposed = applyCommand(base, {
+    type: "record_finding",
+    actorId: "act-coordinateur",
+    ...maritimeDraft
+  });
+  const maritimeFindingId = maritimeProposed.findings.find((item) => item.detectionKey === maritimeDraft.detectionKey)!.id;
+  const maritimeConfirmed = applyCommand(maritimeProposed, {
+    type: "update_finding_status",
+    actorId: "act-coordinateur",
+    findingId: maritimeFindingId,
+    status: "confirmed",
+    note: "Confirmé après vérification au poste de quai de Joal — infrastructure et débarquements récents contrôlés sur place."
+  });
+  // priority "haute", jamais mécaniquement égale à maritimeAlert.
+  // attentionLevel ("critique" ici, cf. infrastructure indisponible) :
+  // promote_finding_to_situation expose priority comme un choix humain
+  // explicite au moment de la promotion (rules.ts), pas une copie forcée
+  // du niveau d'attention de la règle — cette Situation reste sérieuse et
+  // prioritaire sans concurrencer sit-glace pour le statut de seule
+  // situation critique ENCORE inexpliquée de Joal (correction Product
+  // Review LOT 1, 2026-09-01, "priorité institutionnelle avant
+  // explicabilité" — cf. TEST G, tests/situation-narrative.test.ts) :
+  // celle-ci, à l'inverse, EST expliquée (Finding confirmé), donc jamais
+  // le bon cas pour illustrer une situation critique sans explication.
+  const maritimePromoted = applyCommand(maritimeConfirmed, {
+    type: "promote_finding_to_situation",
+    actorId: "act-coordinateur",
+    findingId: maritimeFindingId,
+    priority: "haute"
+  });
+  const maritimeSituationId = maritimePromoted.findings.find((item) => item.id === maritimeFindingId)!.promotedToSituationId!;
+
+  // Seconde exception, tout aussi étroite que la précédente et pour la
+  // même raison (déterminisme du Demo World, cf. TEST F,
+  // tests/xxl-r0-demo-integrity.test.ts : "createDemoState() reste
+  // intact et déterministe" — deux appels doivent produire un résultat
+  // strictement identique) : id()/history() (rules.ts) tirent leurs
+  // identifiants de crypto.randomUUID(), un aléa d'infrastructure, pas
+  // une donnée métier. Les identifiants générés par cette séquence sont
+  // donc recalés sur des identifiants fixes, lisibles, après coup — la
+  // même discipline que le reste de ce fichier (fnd-joal-glace-recurrence,
+  // sit-joal-glace-recurrence, etc.), jamais une seconde fois pour le
+  // contenu (titre, constat, sourceRefs, statut), qui reste exactement
+  // celui produit par le chemin canonique ci-dessus.
+  const FINAL_FINDING_ID = "fnd-joal-infrastructure-fragile";
+  const FINAL_SITUATION_ID = "sit-joal-infrastructure-fragile";
+  const normalizedAt = deriveDatasetReferenceAt(base) ?? now;
+
+  return {
+    ...maritimePromoted,
+    findings: maritimePromoted.findings.map((item) =>
+      item.id === maritimeFindingId
+        ? { ...item, id: FINAL_FINDING_ID, promotedToSituationId: FINAL_SITUATION_ID, createdAt: normalizedAt, reviewedAt: normalizedAt }
+        : item
+    ),
+    situations: maritimePromoted.situations.map((item) =>
+      item.id === maritimeSituationId
+        ? {
+            ...item,
+            id: FINAL_SITUATION_ID,
+            reference: "MBA-SIT-JOALIF",
+            findingId: FINAL_FINDING_ID,
+            history: item.history.map((entry, index) => ({ ...entry, id: `hist-${FINAL_SITUATION_ID}-${index + 1}`, at: normalizedAt }))
+          }
+        : item
+    ),
+    audit: maritimePromoted.audit.map((entry, index) => ({
+      ...entry,
+      id: `audit-${FINAL_SITUATION_ID}-${index + 1}`,
+      objectId: entry.objectId === maritimeFindingId ? FINAL_FINDING_ID : entry.objectId === maritimeSituationId ? FINAL_SITUATION_ID : entry.objectId,
+      at: normalizedAt
+    }))
   };
 }

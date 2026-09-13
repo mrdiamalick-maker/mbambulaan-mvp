@@ -106,12 +106,23 @@ test("glyphe de confiance : 3 paliers visuels, jamais un aplatissement du libell
   assert.equal(trustGlyphTier("consolidee"), 2);
 });
 
-test("résolution de contexte maritime : vide quand le Finding ne cite aucun objet maritime (état réel actuel)", () => {
+test("résolution de contexte maritime : vide pour toute Situation sauf celle promue depuis la détection maritime réelle (mandat PD.5 §9/§11)", () => {
+  // PD.5 — le Demo World comporte désormais 1 Situation réellement
+  // traçable jusqu'à un objet maritime (cf. demo-state.ts : détection
+  // déterministe "impaired-infrastructure-on-active-site" à Joal, promue
+  // via record_finding → update_finding_status → promote_finding_to_situation,
+  // jamais une liaison fabriquée à la main) — contre 0/31 à l'audit PD.4.
+  // Toutes les autres Situations du Demo World restent sans contexte
+  // maritime, constat qui reste honnête et documenté, pas une anomalie.
+  const maritimeSituations = state.situations.filter((situation) => resolveMaritimeContext(state, situation).length > 0);
+  assert.equal(maritimeSituations.length, 1, "une seule Situation réelle doit porter un contexte maritime dans ce Demo World");
+  const [maritimeSituation] = maritimeSituations;
+  const finding = state.findings.find((f) => f.id === maritimeSituation.findingId);
+  assert.equal(finding?.ruleId, "impaired-infrastructure-on-active-site");
+
   for (const situation of state.situations) {
+    if (situation.id === maritimeSituation.id) continue;
     const maritime = resolveMaritimeContext(state, situation);
-    // Audit PD.4 : aucun des 3 Finding du Demo World actuel ne cite de
-    // Vessel/FishingTrip/Landing/Infrastructure/Capacity/Site — constat
-    // attendu, documenté dans le rapport de lot, pas une anomalie.
     assert.equal(maritime.length, 0, `contexte maritime inattendu pour ${situation.id}`);
   }
 });
