@@ -8,15 +8,17 @@
 // devient réel, plus un bloc "Contexte maritime" ajouté dans l'onglet
 // Synthèse (mandat PD.4 §9, capacité nouvelle), visible uniquement
 // lorsqu'un lien réel et traçable existe.
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  SITUATION_ROWS,
+  buildDecisionCommand,
   buildSituationHeaderStats,
+  buildSituationRows,
   describeDecisionEffect,
   getSituationDetail,
   getSituationsAgingView,
   getSituationsFunnelView
 } from "../../lib/situations-bridge";
+import { useDomainRuntime } from "../../lib/domain-runtime";
 import { V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
 import type { AppState } from "../../state";
 
@@ -39,25 +41,37 @@ function FilterChip({ label, on, dot, dotc, onClick }: { label: string; on: bool
 }
 
 export function Situations({ state, patch }: { state: AppState; patch: Patch }) {
+  // PD.5 — runtime V3 (mandat "Operational Knowledge Bridge", §3/§4) :
+  // lit le ProductState canonique réel (GET /api/state) au lieu du
+  // singleton statique DEMO_STATE ; le gabarit visuel reste identique.
+  const runtime = useDomainRuntime();
+  const liveState = runtime.state;
+
+  const [rationale, setRationale] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitOk, setSubmitOk] = useState(false);
+
+  const situationRows = useMemo(() => (liveState ? buildSituationRows(liveState) : []), [liveState]);
   const list = useMemo(
     () =>
-      SITUATION_ROWS.filter(
+      situationRows.filter(
         (s) =>
           (!state.fSev || s.severityLabel === state.fSev) &&
           (!state.fTrust || (state.fTrust === "Déclarée" ? s.trustTier === 0 : s.trustTier === 2)) &&
           (!state.fStage || s.stageBucket === 1)
       ),
-    [state.fSev, state.fTrust, state.fStage]
+    [situationRows, state.fSev, state.fTrust, state.fStage]
   );
 
-  const openId = state.sitOpen == null ? (list[0]?.id ?? SITUATION_ROWS[0]?.id ?? 0) : state.sitOpen;
-  const s = getSituationDetail(openId) ?? getSituationDetail(SITUATION_ROWS[0]?.id ?? 0);
-  const funnel = getSituationsFunnelView();
-  const aging = getSituationsAgingView();
+  const openId = state.sitOpen == null ? (list[0]?.id ?? situationRows[0]?.id ?? 0) : state.sitOpen;
+  const s = liveState ? (getSituationDetail(openId, liveState) ?? getSituationDetail(situationRows[0]?.id ?? 0, liveState)) : undefined;
+  const funnel = liveState ? getSituationsFunnelView(liveState) : [];
+  const aging = liveState ? getSituationsAgingView(liveState) : [];
   const funRead = funnel[state.funHover == null ? 3 : state.funHover];
   const mxAge = Math.max(1, ...aging.map((a) => a.count));
   const sitTab = state.sitTab || "know";
-  const header = buildSituationHeaderStats();
+  const header = liveState ? buildSituationHeaderStats(liveState) : undefined;
 
   const chosenOption = s && state.sitChoice != null && state.sitChoice.id === s.id ? s.options[state.sitChoice.i] : null;
   const noFilter = !state.fSev && !state.fTrust && !state.fStage;
@@ -67,10 +81,38 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
   // décision réelle ; les deux autres rôles lisent la même liste.
   const canQualify = state.role === "coordination";
 
-  if (!s) {
+  useEffect(() => {
+    setRationale("");
+    setSubmitError(null);
+    setSubmitOk(false);
+  }, [state.sitChoice?.id, state.sitChoice?.i]);
+
+  async function confirmDecision() {
+    if (!liveState || !s || !chosenOption) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    const result = buildDecisionCommand(liveState, s.realId, chosenOption.decisionType, rationale);
+    if ("error" in result) {
+      setSubmitError(result.error);
+      setSubmitting(false);
+      return;
+    }
+    try {
+      await runtime.dispatch(result.command);
+      setSubmitOk(true);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Action refusée.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!liveState || !s || !header) {
     return (
       <div style={{ padding: "24px 30px 60px" }} className="pv3-rise">
-        <p style={{ fontSize: 13, color: "rgba(11,26,42,.6)" }}>Aucune situation réelle disponible dans le Demo World.</p>
+        <p style={{ fontSize: 13, color: runtime.error ? "#C8452B" : "rgba(11,26,42,.6)" }}>
+          {runtime.error ? `Connexion au domaine réel impossible : ${runtime.error}` : liveState ? "Aucune situation réelle disponible dans le Demo World." : "Connexion au domaine réel Mbàmbulaan…"}
+        </p>
       </div>
     );
   }
@@ -134,7 +176,7 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
 
       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 14 }}>
         <span style={{ fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginRight: 4 }}>Filtrer</span>
-        <FilterChip label={"Toutes · " + SITUATION_ROWS.length} on={noFilter} onClick={() => patch({ fSev: null, fTrust: null, fStage: null })} />
+        <FilterChip label={"Toutes · " + situationRows.length} on={noFilter} onClick={() => patch({ fSev: null, fTrust: null, fStage: null })} />
         <FilterChip label="Critique" on={state.fSev === "Critique"} dot dotc="#C8452B" onClick={() => patch({ fSev: state.fSev === "Critique" ? null : "Critique" })} />
         <FilterChip label="Élevé" on={state.fSev === "Élevé"} dot dotc="#D89A4A" onClick={() => patch({ fSev: state.fSev === "Élevé" ? null : "Élevé" })} />
         <FilterChip label="Modéré" on={state.fSev === "Modéré"} dot dotc="#9FB9CE" onClick={() => patch({ fSev: state.fSev === "Modéré" ? null : "Modéré" })} />
@@ -143,7 +185,7 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
         <FilterChip label="À qualifier" on={state.fStage === "aqual"} onClick={() => patch({ fStage: state.fStage === "aqual" ? null : "aqual" })} />
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 11.5, color: "rgba(11,26,42,.55)" }}>
-          {list.length} situation{list.length > 1 ? "s" : ""} affichée{list.length > 1 ? "s" : ""} sur {SITUATION_ROWS.length}
+          {list.length} situation{list.length > 1 ? "s" : ""} affichée{list.length > 1 ? "s" : ""} sur {situationRows.length}
         </span>
       </div>
 
@@ -381,9 +423,41 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
                 )}
                 {chosenOption && canQualify && (
                   <div style={{ marginTop: 14, padding: "15px 17px", background: "#0B1A2A", color: "#F7F3E9" }} className="pv3-rise-fast">
-                    <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#DE9C74", marginBottom: 8 }}>Aperçu — non enregistré</div>
+                    <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#DE9C74", marginBottom: 8 }}>Décision à enregistrer</div>
                     <div style={{ fontSize: 13.5, lineHeight: 1.5 }}>{chosenOption.label}</div>
-                    <div style={{ fontSize: 11.5, color: "rgba(247,243,233,.65)", marginTop: 9 }}>{describeDecisionEffect(chosenOption)}</div>
+                    <div style={{ fontSize: 11.5, color: "rgba(247,243,233,.65)", marginTop: 9, marginBottom: 12 }}>{describeDecisionEffect(chosenOption)}</div>
+
+                    <div style={{ fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(247,243,233,.6)", marginBottom: 7 }}>Justification (obligatoire)</div>
+                    <textarea
+                      value={rationale}
+                      onChange={(e) => setRationale(e.target.value)}
+                      placeholder="Pourquoi cette décision, maintenant ?"
+                      rows={2}
+                      style={{
+                        width: "100%", boxSizing: "border-box", resize: "vertical", marginBottom: 12,
+                        background: "rgba(247,243,233,.08)", border: "1px solid rgba(247,243,233,.25)", borderRadius: 4,
+                        color: "#F7F3E9", fontFamily: V3_FONT_SANS, fontSize: 12.5, padding: "8px 10px"
+                      }}
+                    />
+
+                    {submitOk ? (
+                      <div style={{ fontSize: 12.5, color: "#7FB08A" }}>Décision enregistrée — l’état réel a été mis à jour.</div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={confirmDecision}
+                          disabled={submitting || !rationale.trim()}
+                          style={{
+                            border: "1px solid #DE9C74", background: submitting || !rationale.trim() ? "rgba(222,156,116,.4)" : "#DE9C74",
+                            color: "#0B1A2A", cursor: submitting || !rationale.trim() ? "default" : "pointer",
+                            padding: "9px 18px", fontSize: 12.5, fontFamily: V3_FONT_SANS, fontWeight: 600, borderRadius: 4
+                          }}
+                        >
+                          {submitting ? "Enregistrement…" : "Confirmer la décision"}
+                        </button>
+                        {submitError && <div style={{ fontSize: 12, color: "#E8927A", marginTop: 9 }}>{submitError}</div>}
+                      </>
+                    )}
                   </div>
                 )}
               </div>

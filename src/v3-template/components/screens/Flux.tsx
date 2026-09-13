@@ -10,23 +10,79 @@
 // lieu des 3-4 actions bespoke du gabarit, mandat §4) reflètent la
 // cardinalité réelle du domaine plutôt que celle, plus riche mais
 // fictive, du gabarit fixture.
-import { FLUX_ROWS, buildFluxStages, getFluxDetail } from "../../lib/flux-bridge";
+import { useEffect, useState } from "react";
+import {
+  CONVERT_CATEGORIES,
+  DISMISS_REASONS,
+  buildConvertCommand,
+  buildDismissCommand,
+  buildFluxRows,
+  buildFluxStages,
+  getFluxDetail,
+  incomingMessageDismissReasonLabels,
+  signalCategoryLabels
+} from "../../lib/flux-bridge";
+import { useDomainRuntime } from "../../lib/domain-runtime";
 import { V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
 import type { AppState } from "../../state";
+import type { IncomingMessageDismissReason, Signal } from "@/domain/types";
 
 type Patch = (p: Partial<AppState>) => void;
 
 export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
+  // PD.5 — runtime V3 (mandat "Operational Knowledge Bridge", §3/§4) :
+  // lit le ProductState canonique réel (GET /api/state) plutôt que le
+  // singleton statique DEMO_STATE tant que la session de démonstration
+  // n'est pas encore établie. Le gabarit visuel reste identique ; seule
+  // la source des données change.
+  const runtime = useDomainRuntime();
+  const liveState = runtime.state;
+
+  const [category, setCategory] = useState<Signal["category"]>("autre");
+  const [reason, setReason] = useState<IncomingMessageDismissReason>("hors_perimetre");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitOk, setSubmitOk] = useState(false);
+
+  const fluxRows = liveState ? buildFluxRows(liveState) : [];
   const stage = state.dossStage || "a_qualifier";
-  const filtered = FLUX_ROWS.filter((row) => row.stage === stage);
-  const openId = state.dossOpen ?? filtered[0]?.id ?? FLUX_ROWS[0]?.id ?? 0;
-  const f = getFluxDetail(openId) ?? getFluxDetail(FLUX_ROWS[0]?.id ?? 0);
-  const stages = buildFluxStages();
+  const filtered = fluxRows.filter((row) => row.stage === stage);
+  const openId = state.dossOpen ?? filtered[0]?.id ?? fluxRows[0]?.id ?? 0;
+  const f = liveState ? (getFluxDetail(openId, liveState) ?? getFluxDetail(fluxRows[0]?.id ?? 0, liveState)) : undefined;
+  const stages = liveState ? buildFluxStages(liveState) : [];
   const chosenAction = f && state.dossChoice != null && state.dossChoice.id === f.id ? f.actions[state.dossChoice.i] : null;
   // PD.4 §16 — même discipline que Situations : seule la coordination
   // territoriale peut réellement qualifier (convertir/écarter) un
   // élément du flux.
   const canQualify = state.role === "coordination";
+
+  // Choix (catégorie/motif) et retour de soumission réinitialisés à
+  // chaque changement d'action choisie — jamais un état résiduel d'une
+  // qualification précédente.
+  useEffect(() => {
+    setSubmitError(null);
+    setSubmitOk(false);
+  }, [state.dossChoice?.id, state.dossChoice?.i]);
+
+  async function confirmQualification() {
+    if (!liveState || !f || !chosenAction) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    const result = chosenAction.kind === "convert" ? buildConvertCommand(liveState, f.id, category) : buildDismissCommand(liveState, f.id, reason);
+    if ("error" in result) {
+      setSubmitError(result.error);
+      setSubmitting(false);
+      return;
+    }
+    try {
+      await runtime.dispatch(result.command);
+      setSubmitOk(true);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Action refusée.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div style={{ padding: "24px 30px 60px" }} className="pv3-rise">
@@ -42,11 +98,19 @@ export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
         </div>
       </div>
 
+      {!liveState && (
+        <div style={{ padding: "16px 18px", marginBottom: 20, border: "1px solid rgba(11,26,42,.12)", background: "#FFFFFF", fontSize: 12.5, color: runtime.error ? "#C8452B" : "rgba(11,26,42,.6)" }}>
+          {runtime.error ? `Connexion au domaine réel impossible : ${runtime.error}` : "Connexion au domaine réel Mbàmbulaan…"}
+        </div>
+      )}
+
+      {liveState && (
+      <>
       <div style={{ display: "flex", gap: 0, border: "1px solid rgba(11,26,42,.12)", background: "#FFFFFF", marginBottom: 20, flexWrap: "wrap" }}>
         {stages.map((st) => (
           <button
             key={st.key}
-            onClick={() => patch({ dossStage: st.key, dossOpen: FLUX_ROWS.find((row) => row.stage === st.key)?.id ?? 0, dossChoice: null })}
+            onClick={() => patch({ dossStage: st.key, dossOpen: fluxRows.find((row) => row.stage === st.key)?.id ?? 0, dossChoice: null })}
             style={{
               flex: 1, minWidth: 160, border: 0, borderRight: "1px solid rgba(11,26,42,.1)",
               background: stage === st.key ? "rgba(182,82,47,.06)" : "transparent", cursor: "pointer",
@@ -164,7 +228,67 @@ export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
                     {chosenAction ? (
                       <div style={{ padding: "16px 19px", background: "#0B1A2A", color: "#F7F3E9" }} className="pv3-rise-fast">
                         <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#DE9C74", marginBottom: 9 }}>Effet de cette qualification</div>
-                        <div style={{ fontSize: 13.5, lineHeight: 1.55 }}>{chosenAction.effect}</div>
+                        <div style={{ fontSize: 13.5, lineHeight: 1.55, marginBottom: 14 }}>{chosenAction.effect}</div>
+
+                        {chosenAction.kind === "convert" && (
+                          <div style={{ marginBottom: 14 }}>
+                            <div style={{ fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(247,243,233,.6)", marginBottom: 8 }}>Catégorie du signal</div>
+                            <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                              {CONVERT_CATEGORIES.map((c) => (
+                                <button
+                                  key={c}
+                                  onClick={() => setCategory(c)}
+                                  style={{
+                                    border: `1px solid ${category === c ? "#DE9C74" : "rgba(247,243,233,.3)"}`,
+                                    background: category === c ? "rgba(222,156,116,.18)" : "transparent",
+                                    color: "#F7F3E9", cursor: "pointer", padding: "5px 11px", fontSize: 11.5, borderRadius: 999, fontFamily: V3_FONT_SANS
+                                  }}
+                                >
+                                  {signalCategoryLabels[c]}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {chosenAction.kind === "dismiss" && (
+                          <div style={{ marginBottom: 14 }}>
+                            <div style={{ fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(247,243,233,.6)", marginBottom: 8 }}>Motif de l’écart</div>
+                            <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                              {DISMISS_REASONS.map((r) => (
+                                <button
+                                  key={r}
+                                  onClick={() => setReason(r)}
+                                  style={{
+                                    border: `1px solid ${reason === r ? "#DE9C74" : "rgba(247,243,233,.3)"}`,
+                                    background: reason === r ? "rgba(222,156,116,.18)" : "transparent",
+                                    color: "#F7F3E9", cursor: "pointer", padding: "5px 11px", fontSize: 11.5, borderRadius: 999, fontFamily: V3_FONT_SANS
+                                  }}
+                                >
+                                  {incomingMessageDismissReasonLabels[r]}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {submitOk ? (
+                          <div style={{ fontSize: 12.5, color: "#7FB08A" }}>Qualification enregistrée — l’état réel a été mis à jour.</div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={confirmQualification}
+                              disabled={submitting}
+                              style={{
+                                border: "1px solid #DE9C74", background: "#DE9C74", color: "#0B1A2A", cursor: submitting ? "default" : "pointer",
+                                padding: "9px 18px", fontSize: 12.5, fontFamily: V3_FONT_SANS, fontWeight: 600, borderRadius: 4, opacity: submitting ? 0.6 : 1
+                              }}
+                            >
+                              {submitting ? "Enregistrement…" : "Confirmer"}
+                            </button>
+                            {submitError && <div style={{ fontSize: 12, color: "#E8927A", marginTop: 9 }}>{submitError}</div>}
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div style={{ fontSize: 12.5, lineHeight: 1.6, color: "rgba(11,26,42,.6)", borderLeft: "2px solid rgba(11,26,42,.15)", paddingLeft: 13, maxWidth: "74ch" }}>
@@ -188,6 +312,8 @@ export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }
