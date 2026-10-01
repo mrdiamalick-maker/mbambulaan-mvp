@@ -7,35 +7,43 @@ test("le cycle complet impose ses validations et conserve son historique", () =>
   let state = createDemoState();
   const id = "sit-glace";
   const actorId = "act-coordinateur";
+  // PD.5 — sit-glace n'est plus nécessairement en tête de state.situations
+  // (promote_finding_to_situation, comme toute création de Situation,
+  // préfixe le tableau ; le Demo World comporte désormais une chaîne
+  // verticale maritime réelle promue au chargement, cf. demo-state.ts) :
+  // on la retrouve par id plutôt que par position, seule hypothèse que ce
+  // test a jamais réellement voulu vérifier.
+  const auditBefore = state.audit.length;
+  const current = () => state.situations.find((item) => item.id === id)!;
 
-  assert.equal(availableAction(state.situations[0].status), "qualify");
+  assert.equal(availableAction(current().status), "qualify");
   state = applyCommand(state, { type: "qualify", situationId: id, actorId });
-  assert.equal(state.situations[0].status, "qualification");
-  assert.equal(state.situations[0].trust, "verifiee");
+  assert.equal(current().status, "qualification");
+  assert.equal(current().trust, "verifiee");
 
   state = applyCommand(state, { type: "prioritize", situationId: id, actorId });
-  assert.equal(state.situations[0].status, "priorisee");
-  assert.equal(state.situations[0].priority, "critique");
+  assert.equal(current().status, "priorisee");
+  assert.equal(current().priority, "critique");
 
   state = applyCommand(state, { type: "coordinate", situationId: id, actorId });
-  assert.equal(state.situations[0].status, "coordination");
-  assert.equal(state.situations[0].responsibleId, actorId);
-  assert.ok(state.situations[0].dueAt);
+  assert.equal(current().status, "coordination");
+  assert.equal(current().responsibleId, actorId);
+  assert.ok(current().dueAt);
 
   state = applyCommand(state, { type: "start_intervention", situationId: id, actorId });
-  assert.equal(state.situations[0].status, "intervention");
+  assert.equal(current().status, "intervention");
 
   assert.throws(
     () => applyCommand(state, { type: "wait", situationId: id, actorId, reason: "" }),
     /motif d’attente/
   );
   state = applyCommand(state, { type: "wait", situationId: id, actorId, reason: "Pièce en acheminement" });
-  assert.equal(state.situations[0].status, "attente");
-  assert.equal(state.situations[0].waitingReason, "Pièce en acheminement");
+  assert.equal(current().status, "attente");
+  assert.equal(current().waitingReason, "Pièce en acheminement");
 
   state = applyCommand(state, { type: "resume", situationId: id, actorId });
-  assert.equal(state.situations[0].status, "intervention");
-  assert.equal(state.situations[0].waitingReason, undefined);
+  assert.equal(current().status, "intervention");
+  assert.equal(current().waitingReason, undefined);
 
   assert.throws(
     () => applyCommand(state, { type: "record_result", situationId: id, actorId, result: "", confirmation: "" }),
@@ -48,9 +56,9 @@ test("le cycle complet impose ses validations et conserve son historique", () =>
     result: "Machine remise en service",
     confirmation: "Constat signé du poste de quai"
   });
-  assert.equal(state.situations[0].status, "resultat");
-  assert.equal(state.situations[0].result, "Machine remise en service");
-  assert.equal(state.situations[0].confirmation, "Constat signé du poste de quai");
+  assert.equal(current().status, "resultat");
+  assert.equal(current().result, "Machine remise en service");
+  assert.equal(current().confirmation, "Constat signé du poste de quai");
 
   // D10 (PRODUCT_DECISION_LOG.md) : record_result produit désormais
   // aussi une Evidence réelle de type "confirmation" — additif, ne
@@ -61,11 +69,11 @@ test("le cycle complet impose ses validations et conserve son historique", () =>
   assert.equal(resultEvidence!.recordedByActorId, actorId);
 
   state = applyCommand(state, { type: "close", situationId: id, actorId });
-  assert.equal(state.situations[0].status, "reglee");
-  assert.match(state.situations[0].nextStep, /apprentissage/);
-  assert.equal(state.situations[0].history.length, 9);
-  assert.equal(state.audit.length, 8);
-  validateSituation(state.situations[0]);
+  assert.equal(current().status, "reglee");
+  assert.match(current().nextStep, /apprentissage/);
+  assert.equal(current().history.length, 9);
+  assert.equal(state.audit.length, auditBefore + 8);
+  validateSituation(current());
 });
 
 // LOT 0.1 (mandat "aligner le Core métier avec le Blueprint V1", TEST A) :

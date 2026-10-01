@@ -1,0 +1,118 @@
+/* Feuille de style du template privé V3 — isolée de brand.css / des autres
+   feuilles existantes (§14 du mandat). Polices : voir fonts.css (mêmes
+   fichiers .woff2 octet pour octet que le standalone). Le reste : classes
+   utilitaires pour les états hover que le prototype exprimait via un
+   attribut style-hover (non disponible en style inline React), et
+   l'adaptation responsive (§18). */
+
+.pv3-root {
+  --pv3-ink: #0b1a2a;
+  --pv3-paper: #f7f3e9;
+  background: var(--pv3-paper);
+  color: var(--pv3-ink);
+  /* Le layout racine (src/app/layout.tsx) charge Tailwind pour tout le
+     site, dont le Preflight (`html{line-height:1.5}`), qui traverse cette
+     route comme toutes les autres. Le standalone n'a aucun reset de ce
+     genre : ses textes sans line-height explicite gardent le "normal" du
+     navigateur, plus court. Sans cette ligne, chaque libellé/légende sans
+     line-height inline hérite du 1.5 de Tailwind — écart mesuré et
+     corrigé lors de la vérification côte à côte (§7 : correction de
+     fidélité, pas de redesign) : jusqu'à +25px sur certains blocs et
+     +106px de hauteur de page cumulée sur le Brief à lui seul.
+     Les éléments qui fixent leur propre line-height (h1, paragraphes...)
+     ne sont pas affectés : une valeur inline reste prioritaire sur
+     l'héritage. */
+  line-height: normal;
+}
+
+.pv3-root * {
+  box-sizing: border-box;
+}
+
+/* src/app/brand.css (chargé pour tout le site par le layout racine) pose
+   `h1,h2,h3{letter-spacing:-.035em}` sans scoping — une deuxième fuite
+   globale du même genre que le line-height ci-dessus. Sur un h2 à 26px,
+   ça condense le texte d'environ 0,9px/caractère : mesuré, ça suffisait à
+   faire tenir sur une ligne un titre d'arbitrage que le standalone (sans
+   ce tracking) casse sur deux — un vrai "wrong line break" (§7). Les
+   titres de ce template ne fixent pas leur propre letter-spacing (comme
+   dans le standalone) : ils doivent hériter le "normal" du navigateur.
+   Chaque h1/h2/h3 fixe déjà sa propre font-family en style inline, donc
+   la font-family de brand.css n'a jamais eu prise ; seul letter-spacing
+   avait besoin de ce correctif. */
+.pv3-root h1,
+.pv3-root h2,
+.pv3-root h3 {
+  letter-spacing: normal;
+}
+
+@keyframes pv3-pulse {
+  0% { transform: scale(1); opacity: 0.5; }
+  75% { transform: scale(3.2); opacity: 0; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+@keyframes pv3-rise {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.pv3-rise { animation: pv3-rise 0.4s ease-out; }
+.pv3-rise-fast { animation: pv3-rise 0.28s ease-out; }
+
+/* Nav item — état "idle" de la sidebar */
+.pv3-nav-idle:hover { background: rgba(247, 243, 233, 0.07); color: #f7f3e9; }
+.pv3-nav-sec:hover { background: rgba(247, 243, 233, 0.07); color: #f7f3e9; }
+
+/* Lignes de listes cliquables (brief decisions/programmes, portefeuille…) */
+.pv3-row-hover-06:hover { background: rgba(182, 82, 47, 0.06); }
+.pv3-row-hover-05:hover { background: rgba(182, 82, 47, 0.05); }
+.pv3-row-hover-04:hover { background: rgba(182, 82, 47, 0.04); }
+.pv3-row-hover-dark:hover { background: rgba(247, 243, 233, 0.06); }
+
+.pv3-border-hover-dark:hover { border-color: #0b1a2a !important; }
+
+.pv3-scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+/* svg text rendering, matches prototype defaults */
+.pv3-root svg text { user-select: none; }
+
+/* ---------------------------------------------------------------------
+   Responsive adaptation (§18 du mandat).
+   Le standalone source de vérité n'a AUCUNE intention responsive sous
+   1360px (shell racine en `min-width:1360px` fixe, aucune media query,
+   aucune nav mobile) : c'est une console opérationnelle pensée pour un
+   poste de travail. §18 exige pourtant zéro débordement horizontal
+   jusqu'à 390px. Ces deux exigences sont contradictoires en dessous de
+   1360px ; la liberté d'implémentation laissée par §20 est utilisée ici
+   pour combler ce vide plutôt que pour improviser un empilement
+   générique — la grille éditoriale, la typographie et les couleurs
+   restent celles du design, seule la mise en page se réorganise.
+   Documenté comme écart assumé dans le rapport de clôture. --------- */
+@media (max-width: 860px) {
+  .pv3-shell {
+    flex-direction: column;
+  }
+  .pv3-sidebar {
+    width: 100% !important;
+    height: auto !important;
+    position: relative !important;
+    top: auto !important;
+  }
+  .pv3-sidebar-nav {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+  }
+  .pv3-sidebar-nav button {
+    width: auto !important;
+  }
+  /* Toute grille éditoriale (deux, trois, quatre, cinq colonnes) repasse
+     en une seule colonne : la lecture reste dans le même ordre que sur
+     desktop, simplement empilée plutôt que juxtaposée. Le sélecteur
+     cible l'attribut style rendu par React — inutile de toucher aux
+     ~25 grilles une par une dans chaque écran. */
+  .pv3-root div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+

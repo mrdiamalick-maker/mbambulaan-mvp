@@ -33,8 +33,15 @@ test("TEST A — les 5 règles produisent des résultats déterministes (même �
 test("TEST B — record_finding refuse de dupliquer une détection déjà enregistrée (idempotence, mandat §6)", () => {
   const state = createDemoState();
   const alerts = computeSignalCrossingAlerts(state);
-  const alert = alerts.find((item) => item.ruleId === "impaired-infrastructure-on-active-site");
-  assert.ok(alert, "la règle infrastructure fragilisée doit produire au moins une détection sur le Demo World");
+  // PD.5 (mandat "Operational Knowledge Bridge", §9/§11) — la détection
+  // Joal (impaired-infrastructure-on-active-site) est désormais déjà
+  // connue au chargement du Demo World, promue via la chaîne verticale
+  // maritime réelle (cf. demo-state.ts) : ce TEST B vérifie l'idempotence
+  // sur une détection encore libre, pas nécessairement Joal.
+  const alert = alerts.find(
+    (item) => item.ruleId === "impaired-infrastructure-on-active-site" && !state.findings.some((f) => f.detectionKey === item.id)
+  );
+  assert.ok(alert, "la règle infrastructure fragilisée doit produire au moins une détection encore libre sur le Demo World");
   const draft = signalCrossingAlertToFindingDraft(alert!);
 
   const once = applyCommand(state, { type: "record_finding", actorId: "act-coordinateur", ...draft });
@@ -56,7 +63,11 @@ test("TEST B — record_finding refuse de dupliquer une détection déjà enregi
 test("TEST B bis — dismiss_detection refuse aussi de dupliquer une détection déjà traitée", () => {
   const state = createDemoState();
   const alerts = computeSignalCrossingAlerts(state);
-  const alert = alerts.find((item) => item.ruleId === "impaired-infrastructure-on-active-site")!;
+  // PD.5 — même raison que TEST B : Joal est déjà connue au chargement,
+  // ce test a besoin d'une détection encore libre.
+  const alert = alerts.find(
+    (item) => item.ruleId === "impaired-infrastructure-on-active-site" && !state.findings.some((f) => f.detectionKey === item.id)
+  )!;
   const draft = signalCrossingAlertToFindingDraft(alert);
 
   const dismissed = applyCommand(state, {

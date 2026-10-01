@@ -73,6 +73,9 @@ try {
     "/mentions-legales",
     "/confidentialite",
     "/connexion",
+    // Template privé V3 (rebuild Claude Design) — route volontairement hors
+    // /app/*, sans session ni ProductState (voir src/app/private-v3/layout.tsx).
+    "/private-v3",
     "/robots.txt",
     "/sitemap.xml",
     "/manifest.webmanifest",
