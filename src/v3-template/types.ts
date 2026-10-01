@@ -12,6 +12,21 @@ export type ScreenKey =
   | "flux"
   | "sources";
 
+export const SCREEN_KEYS: readonly ScreenKey[] = [
+  "brief",
+  "atlas",
+  "situations",
+  "arbitrages",
+  "programmes",
+  "resultats",
+  "flux",
+  "sources"
+];
+
+export function isScreenKey(value: unknown): value is ScreenKey {
+  return typeof value === "string" && (SCREEN_KEYS as readonly string[]).includes(value);
+}
+
 export type PeriodKey = "30j" | "90j" | "12m";
 
 export type TrustLevel = "declaree" | "observee" | "verifiee";

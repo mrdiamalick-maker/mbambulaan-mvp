@@ -126,7 +126,7 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
             {header.openCount} situations ouvertes, {header.toQualifyCount} attendent encore une qualification
           </h1>
         </div>
-        <div style={{ flex: "none", display: "flex", gap: 24 }}>
+        <div className="pv3-situation-stats" style={{ flex: "none", display: "flex", gap: 24 }}>
           {[
             { v: header.openCount, k: "ouvertes", c: "#0B1A2A" },
             { v: header.criticalCount, k: "critiques", c: "#C8452B" },

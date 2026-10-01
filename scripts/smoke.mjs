@@ -46,6 +46,21 @@ async function expectStatus(path, status, options) {
   return response;
 }
 
+async function expectRedirect(path, destination) {
+  const response = await fetch(`${base}${path}`, withSession({ redirect: "manual" }));
+  if (![302, 307, 308].includes(response.status)) {
+    throw new Error(`${path} devait rediriger vers ${destination}, mais a répondu ${response.status}`);
+  }
+  const location = response.headers.get("location");
+  if (!location) throw new Error(`${path} redirige sans en-tête Location.`);
+  const actual = new URL(location, base);
+  const expected = new URL(destination, base);
+  if (`${actual.pathname}${actual.search}` !== `${expected.pathname}${expected.search}`) {
+    throw new Error(`${path} redirige vers ${actual.pathname}${actual.search} au lieu de ${expected.pathname}${expected.search}`);
+  }
+  return response;
+}
+
 async function action(type, extra = {}) {
   const response = await expectOk("/api/actions", {
     method: "POST",
@@ -73,9 +88,6 @@ try {
     "/mentions-legales",
     "/confidentialite",
     "/connexion",
-    // Template privé V3 (rebuild Claude Design) — route volontairement hors
-    // /app/*, sans session ni ProductState (voir src/app/private-v3/layout.tsx).
-    "/private-v3",
     "/robots.txt",
     "/sitemap.xml",
     "/manifest.webmanifest",
@@ -94,6 +106,7 @@ try {
   if (unauthenticatedPage.status !== 307 && unauthenticatedPage.status !== 302) {
     throw new Error(`/app/travail sans session devrait rediriger, a répondu ${unauthenticatedPage.status}`);
   }
+  await expectRedirect("/etat", "/connexion?next=%2Fetat");
   await expectStatus("/api/state", 401);
   await expectStatus("/api/auth/login", 401, {
     method: "POST",
@@ -213,9 +226,9 @@ try {
   // (à la différence du middleware) : Next sert directement le contenu de
   // la destination avec un 200 — on vérifie donc l'absence du contenu
   // protégé plutôt que le code de statut.
-  const etatText = await (await expectOk("/app/etat")).text();
-  if (etatText.includes("qualifie et signale")) {
-    throw new Error("/app/etat reste visible pour un mandat coordinateur.");
+  const etatText = await (await expectOk("/etat")).text();
+  if (etatText.includes("Supervision nationale · 6 modules")) {
+    throw new Error("/etat reste visible pour un mandat coordinateur.");
   }
   await expectStatus("/api/ministry/field-visits", 403);
 
@@ -235,9 +248,47 @@ try {
   if (!ministryCookie) throw new Error("La connexion ministère n'établit pas de session.");
   sessionCookie = ministryCookie.split(";")[0];
 
-  for (const path of ["/app/etat", "/app/etat/rapport"]) {
-    await expectOk(path);
+  const etatHome = await expectOk("/etat");
+  const etatHomeText = await etatHome.text();
+  for (const roleLabel of ["Ministre", "Direction de programme", "Coordination territoriale"]) {
+    if (!etatHomeText.includes(roleLabel)) throw new Error(`/etat n'expose plus la perspective ${roleLabel}.`);
   }
+
+  // La destination par défaut du formulaire de connexion reste /app ;
+  // l'entrée serveur doit donc orienter le mandat institutionnel vers la
+  // nouvelle route canonique, sans dépendre d'un paramètre client.
+  await expectRedirect("/app", "/etat");
+  await expectRedirect("/private-v3", "/etat");
+
+  const legacyRedirects = [
+    ["/app/etat", "/etat"],
+    ["/app/etat/territoires", "/etat?ecran=atlas"],
+    ["/app/etat/situations", "/etat?ecran=situations"],
+    ["/app/etat/arbitrages", "/etat?ecran=arbitrages"],
+    ["/app/etat/programmes", "/etat?ecran=programmes"],
+    ["/app/etat/rapport", "/etat?ecran=resultats"],
+    ["/app/etat/redevabilite", "/etat?ecran=arbitrages"]
+  ];
+  for (const [source, destination] of legacyRedirects) await expectRedirect(source, destination);
+
+  for (const [screen, marker] of [
+    ["atlas", "Atlas territorial"],
+    // Situations charge ses données canoniques côté client : le premier
+    // HTML contient donc son état de connexion dédié, puis l'en-tête réel
+    // apparaît après hydratation (vérifié séparément en QA navigateur).
+    ["situations", "Connexion au domaine réel Mbàmbulaan…"],
+    ["arbitrages", "Arbitrages"],
+    ["programmes", "Portefeuille de programmes"],
+    ["resultats", "Résultats et redevabilité"],
+    ["flux", "Flux entrant"]
+  ]) {
+    const html = await (await expectOk(`/etat?ecran=${screen}`)).text();
+    if (!html.includes(marker)) throw new Error(`Le deep link /etat?ecran=${screen} n'affiche pas l'écran attendu (${marker}).`);
+  }
+
+  await expectStatus("/etat/inconnue", 404);
+  await expectStatus("/private-v3/inconnue", 404);
+  await expectStatus("/app/etat/inconnue", 404);
 
   const administrationAsMinistry = await expectOk("/app/administration");
   if ((await administrationAsMinistry.text()).includes("Mandats actifs")) {
@@ -299,9 +350,9 @@ try {
 
   // Garde de rôle, même principe que /app/etat plus haut : un mandat
   // capitaine ne doit voir ni l'Espace État ni l'Administration.
-  const etatAsCaptain = await (await expectOk("/app/etat")).text();
-  if (etatAsCaptain.includes("qualifie et signale")) {
-    throw new Error("/app/etat reste visible pour un mandat capitaine.");
+  const etatAsCaptain = await (await expectOk("/etat")).text();
+  if (etatAsCaptain.includes("Supervision nationale · 6 modules")) {
+    throw new Error("/etat reste visible pour un mandat capitaine.");
   }
   const administrationAsCaptain = await (await expectOk("/app/administration")).text();
   if (administrationAsCaptain.includes("Mandats actifs")) {
@@ -351,7 +402,7 @@ try {
   sessionCookie = "";
   await expectStatus("/api/state", 401);
 
-  console.log(`Smoke E2E: authentification réelle, Espace État (parcours, missions, vigilance, rapport bailleurs), Terrain mobile (entrée dédiée, retour, appel simulé, signalement), Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
+  console.log(`Smoke E2E: authentification réelle, /etat canonique (login, alias, deep links, rôles et gardes), APIs institutionnelles, Terrain mobile (entrée dédiée, retour, appel simulé, signalement), Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
 } finally {
   server?.kill("SIGTERM");
 }

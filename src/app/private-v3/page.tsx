@@ -1,5 +1,5 @@
-import { PrivateV3App } from "../../v3-template/App";
+import { redirect } from "next/navigation";
 
 export default function PrivateV3Page() {
-  return <PrivateV3App />;
+  redirect("/etat");
 }

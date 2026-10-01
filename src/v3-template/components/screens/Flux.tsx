@@ -32,9 +32,9 @@ type Patch = (p: Partial<AppState>) => void;
 export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
   // PD.5 — runtime V3 (mandat "Operational Knowledge Bridge", §3/§4) :
   // lit le ProductState canonique réel (GET /api/state) plutôt que le
-  // singleton statique DEMO_STATE tant que la session de démonstration
-  // n'est pas encore établie. Le gabarit visuel reste identique ; seule
-  // la source des données change.
+  // singleton statique DEMO_STATE. La session réelle est établie par
+  // /connexion avant l'entrée dans /etat ; le gabarit visuel reste
+  // identique, seule la source des données change.
   const runtime = useDomainRuntime();
   const liveState = runtime.state;
 

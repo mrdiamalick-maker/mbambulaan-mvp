@@ -114,5 +114,13 @@
   .pv3-root div[style*="grid-template-columns"] {
     grid-template-columns: 1fr !important;
   }
+  .pv3-situation-stats {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 12px !important;
+  }
+  .pv3-situation-stats > div {
+    flex: 1 1 120px;
+    text-align: left !important;
+  }
 }
-

@@ -2,7 +2,7 @@
 
 // domain-runtime — PD.5, mandat "Operational Knowledge Bridge", §2/§3/§6.
 //
-// Le plus petit pont possible entre /private-v3 (gabarit gelé, pure
+// Le plus petit pont possible entre /etat (gabarit V3, pure
 // présentation) et le moteur canonique du domaine Mbàmbulaan
 // (applyCommand, server/repository.ts) — exposé par les 2 SEULES routes
 // HTTP qui constituent la frontière réelle de mutation/lecture
@@ -19,18 +19,11 @@
 // dans le state React du navigateur.
 //
 // Établissement de l'acteur réel (mandat §6, "a visual demo role must
-// NOT silently become security authorization" / §21, "no new
-// authentication design") — /private-v3 n'a et ne doit pas avoir de flux
-// de connexion propre. Ce module réutilise le point d'entrée
-// /api/auth/login déjà existant, avec le compte de démonstration
-// "coordinateur" déjà semé par server/accounts-repository.ts
-// (ensureDemoAccount — actif uniquement en mode démonstration,
-// process.env.NODE_ENV !== "production" ou DEMO_MODE === "true", jamais
-// en production réelle : la même porte de sécurité que le reste du
-// produit, pas une nouvelle). C'est le seul rôle réel couvrant les 3
-// commandes nécessaires à ce lot (convert_message_to_signal,
-// dismiss_incoming_message, create_decision — cf. server/permissions.ts,
-// "coordinateur" → all). Le rôle AFFICHÉ de V3 (AppState.role :
+// NOT silently become security authorization") — depuis que V3 devient
+// l'Espace État canonique, ce module consomme exclusivement la session
+// ouverte par /connexion. Il ne crée plus silencieusement une session de
+// démonstration « coordinateur » et ne remplace donc jamais le mandat
+// institutionnel authentifié. Le rôle AFFICHÉ de V3 (AppState.role :
 // ministre/programme/coordination, state.ts, gabarit gelé) reste un
 // choix de présentation strictement dissocié de cet acteur réel — jamais
 // transmis au serveur, jamais utilisé pour décider une autorisation :
@@ -38,16 +31,6 @@
 // à partir de la session réelle établie ici.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CommandInput, ProductState, Role } from "@/domain/types";
-
-const DEMO_ACTOR_EMAIL = "demo@mbambulaan.sn";
-// Repli documenté de server/accounts-repository.ts (ensureDemoAccount) —
-// jamais un secret inventé pour ce lot : le même mot de passe par défaut
-// que le serveur sème lui-même quand DEMO_ACCOUNT_PASSWORD n'est pas
-// défini. Si un déploiement définit DEMO_ACCOUNT_PASSWORD explicitement,
-// cette connexion automatique échoue proprement (état "error" ci-dessous)
-// plutôt que de deviner un secret réel — jamais un affaiblissement de
-// l'authentification réelle.
-const DEMO_ACTOR_PASSWORD = "demo-mbambulaan-2026";
 
 export interface DomainRuntimeState {
   state: ProductState | null;
@@ -78,16 +61,6 @@ async function fetchState(): Promise<{ state: ProductState; actorId: string; rol
   return { state: body.state, actorId: body.session.actorId, role: body.session.role };
 }
 
-async function establishDemoSession(): Promise<boolean> {
-  const res = await fetch("/api/auth/login", {
-    method: "POST",
-    credentials: "include",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email: DEMO_ACTOR_EMAIL, password: DEMO_ACTOR_PASSWORD })
-  });
-  return res.ok;
-}
-
 export function useDomainRuntime(): DomainRuntime {
   const [status, setStatus] = useState<DomainRuntimeState>({ state: null, loading: true, error: null, actorId: null, role: null });
   const idempotencySeq = useRef(0);
@@ -96,21 +69,12 @@ export function useDomainRuntime(): DomainRuntime {
   const load = useCallback(async () => {
     setStatus((previous) => ({ ...previous, loading: true, error: null }));
     try {
-      let result = await fetchState();
-      if (!result) {
-        const ok = await establishDemoSession();
-        if (!ok) {
-          if (mounted.current) {
-            setStatus({ state: null, loading: false, error: "Impossible d'établir une session de démonstration réelle (compte non disponible).", actorId: null, role: null });
-          }
-          return;
-        }
-        result = await fetchState();
-      }
+      const result = await fetchState();
       if (!result) {
         if (mounted.current) {
-          setStatus({ state: null, loading: false, error: "Session établie mais lecture de l'état impossible.", actorId: null, role: null });
+          setStatus({ state: null, loading: false, error: "Session absente ou expirée.", actorId: null, role: null });
         }
+        if (typeof window !== "undefined") window.location.assign("/connexion?next=/etat");
         return;
       }
       if (mounted.current) {

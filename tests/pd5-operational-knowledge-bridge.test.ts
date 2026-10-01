@@ -56,9 +56,11 @@ test("PD.5 §2 — le runtime V3 n'importe jamais l'architecture UI légataire (
   assert.doesNotMatch(RUNTIME_SOURCE, /from\s+["'][^"']*ProductProvider["']/);
 });
 
-test("PD.5 §21/§6 — aucune nouvelle conception d'authentification : réutilise /api/auth/login existant avec le compte de démonstration déjà semé", () => {
-  assert.match(RUNTIME_SOURCE, /\/api\/auth\/login/);
-  assert.match(RUNTIME_SOURCE, /demo@mbambulaan\.sn/);
+test("PD.5 §21/§6 — V3 consomme la session réelle sans connexion de démonstration silencieuse", () => {
+  assert.doesNotMatch(RUNTIME_SOURCE, /\/api\/auth\/login/);
+  assert.doesNotMatch(RUNTIME_SOURCE, /demo@mbambulaan\.sn/);
+  assert.match(RUNTIME_SOURCE, /fetch\("\/api\/state"/);
+  assert.match(RUNTIME_SOURCE, /\/connexion\?next=\/etat/);
   // Le rôle AFFICHÉ de V3 (AppState.role) ne doit jamais transiter par ce
   // module — seul le rôle réel (Role, session serveur) compte pour
   // l'autorisation, jamais RoleKey (ministre/programme/coordination).
@@ -67,7 +69,7 @@ test("PD.5 §21/§6 — aucune nouvelle conception d'authentification : réutili
 
 // --- §18 (b) — autorisation réelle de l'acteur choisi (coordinateur) ----
 
-test("PD.5 §6 — l'acteur réel du runtime (coordinateur) est autorisé pour les 3 commandes rendues exécutables", () => {
+test("PD.5 §6 — le mandat coordinateur conserve les 3 commandes de qualification V3", () => {
   assert.ok(canRole("coordinateur", "convert_message_to_signal"));
   assert.ok(canRole("coordinateur", "dismiss_incoming_message"));
   assert.ok(canRole("coordinateur", "create_decision"));

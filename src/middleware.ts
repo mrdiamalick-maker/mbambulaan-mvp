@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Garde d'accès minimale pour l'espace Produit professionnel (/app/*).
+// Garde d'accès minimale pour les espaces Produit professionnels
+// (/app/* et le nouvel Espace État canonique /etat).
 // Le Produit n'est pas recadré ni reconstruit ici : ce middleware protège
 // simplement l'accès public direct à cet espace pendant que le Public est
 // livré. La vérification complète de la session (signature HMAC) reste
 // faite côté serveur par `currentSession()` ; ce middleware tourne en
 // runtime Edge (compatible Cloudflare) et bloque déjà toute navigation
-// directe sans cookie de session vers /app/*.
+// directe sans cookie de session vers /app/*, /etat ou son ancien alias.
 export const config = {
-  matcher: ["/app/:path*"]
+  matcher: ["/app/:path*", "/etat/:path*", "/private-v3/:path*"]
 };
 
 export function middleware(request: NextRequest) {
