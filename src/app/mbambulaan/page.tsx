@@ -40,13 +40,14 @@ export default function MbambulaanPage() {
       <PublicSectionHero
         eyebrow="Mbàmbulaan"
         title={<>Mbàmbulaan organise la coordination là où les acteurs, les situations et les capacités sont <span className="text-[var(--pub-turquoise-300)]">dispersés.</span></>}
-        description="Nous commençons par la pêche artisanale sénégalaise : comprendre les territoires, qualifier les situations, relier les bons acteurs et suivre l’action jusqu’au résultat."
+        description="Mbàmbulaan est un programme de développement et une infrastructure numérique de coordination de l’économie maritime sénégalaise. Nous commençons par la pêche artisanale : comprendre les territoires, qualifier les situations, relier les bons acteurs et suivre l’action jusqu’au résultat."
         actions={<><Link href="/atlas" className="pub-btn pub-btn-on-dark"><MapPinned size={16}/> Comprendre un territoire</Link><Link href="/solutions" className="pub-btn pub-btn-primary">Décrire une situation <ArrowRight size={16}/></Link></>}
         backgroundImage="/images/mbambulaan-terrain-hero.jpg"
         backgroundAlt="Équipe Mbàmbulaan sur le terrain, échange avec des acteurs de la filière sur un quai."
       />
 
       <section className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-20">
+        <p className="pub-display mb-10 max-w-3xl text-[1.6rem] not-italic leading-[1.2] text-[var(--pub-deep-900)] md:text-[2rem]">Relier sans se substituer : Mbàmbulaan met en relation et coordonne, sans jamais prendre la place des acteurs du terrain.</p>
         <div className="grid gap-4 md:grid-cols-3">
           {pillars.map(({ title, text, icon: Icon }) => (
             <article key={title} className="pub-card p-6">
@@ -90,6 +91,8 @@ export default function MbambulaanPage() {
           </div>
           <div className="mt-8 flex flex-col gap-4 rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-surface)] p-6 md:flex-row md:items-center md:justify-between"><div><p className="text-sm font-bold text-[var(--pub-deep-900)]">Vous ne savez pas encore par où commencer ?</p><p className="mt-1 text-sm text-[var(--pub-stone-700)]">Parlez-nous du contexte. Nous vous orienterons vers le bon point d’entrée.</p></div><Link href="/contact" className="pub-btn pub-btn-outline"><Compass size={16}/> Parler à Mbàmbulaan</Link></div>
         </section>
+
+        <p className="mt-16 max-w-3xl text-xs leading-5 text-[var(--pub-stone-500)]">Mbàmbulaan est une initiative privée sénégalaise, conçue et développée par EPIC CONSEIL.</p>
       </section>
       <PublicFooter/>
     </main>

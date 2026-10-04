@@ -158,7 +158,14 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
                   <p className="mt-4 max-w-2xl text-sm leading-7 text-white/64">WhatsApp, téléphone et email sont des canaux d’entrée vers Mbàmbulaan. Ils ne remplacent pas la qualification : ils facilitent la relation lorsque le web n’est pas le canal le plus naturel.</p>
                 </div>
                 <div className="grid border-t border-white/10 sm:grid-cols-3 lg:border-l lg:border-t-0 lg:grid-cols-1">
-                  <a href="https://wa.me/221770000000" target="_blank" rel="noopener noreferrer" data-analytics="whatsapp_clicked" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><MessageCircle size={18} className="text-[var(--pub-turquoise-300)]" /> WhatsApp</a>
+                  {/* Checkpoint D : pas de numéro WhatsApp réel exploitable
+                      publiquement à ce stade — un lien wa.me vers un numéro
+                      fictif simulerait un canal actif qui ne répondrait
+                      jamais. Oriente vers le même formulaire honnête que
+                      "Être rappelé" (canal préféré déjà pré-sélectionné sur
+                      WhatsApp par défaut, ContactRequestForm), jamais une
+                      fausse transmission. */}
+                  <Link href="/contact?intent=callback" data-analytics="whatsapp_clicked" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><MessageCircle size={18} className="text-[var(--pub-turquoise-300)]" /> WhatsApp</Link>
                   <Link href="/contact?intent=callback" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><PhoneCall size={18} className="text-[var(--pub-turquoise-300)]" /> Être rappelé</Link>
                   <a href="mailto:contact@mbambulaan.sn" className="flex items-center gap-3 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><Mail size={18} className="text-[var(--pub-turquoise-300)]" /> Email</a>
                 </div>
