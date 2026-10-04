@@ -6,6 +6,11 @@ export type PublicDomainDefinition = {
   definition: string;
   stakes: string;
   solutionHref: string;
+  /** checkpoint E — absents tant qu'aucun fichier réel n'existe pour ce
+   * domaine ; VideoBlock/DocumentBlock rendent alors honnêtement leur
+   * état "à venir", jamais un faux contenu. */
+  video?: { url: string; title: string };
+  document?: { url: string; label: string };
 };
 
 export const publicDomains: PublicDomainDefinition[] = [

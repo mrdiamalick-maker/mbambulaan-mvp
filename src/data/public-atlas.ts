@@ -37,6 +37,11 @@ export interface PublicTerritory {
   updatedAt: string;
   relatedContentIds?: string[];
   relatedOpportunityIds?: string[];
+  /** checkpoint E — absents tant qu'aucun reportage/document réel n'existe
+   * pour ce territoire ; VideoBlock/DocumentBlock rendent alors
+   * honnêtement leur état "à venir", jamais un faux contenu. */
+  video?: { url: string; title: string };
+  document?: { url: string; label: string };
 }
 
 export const publicTerritories: PublicTerritory[] = [

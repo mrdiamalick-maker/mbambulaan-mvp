@@ -8,6 +8,10 @@ import { EventOnMount } from "@/components/public/EventOnMount";
 import { findContentById, publicNews, type PublicContentDomain } from "@/data/public-content";
 import { publicTerritories } from "@/data/public-atlas";
 import { findPublicDomainByTitle } from "@/data/public-domains";
+import { Gallery } from "@/components/public/Gallery";
+import { VideoBlock } from "@/components/public/VideoBlock";
+import { DocumentBlock } from "@/components/public/DocumentBlock";
+import { QuoteBlock } from "@/components/public/QuoteBlock";
 
 // PUB-D3 (audit Premium XXL Public, CEO 2026-08-16) : une seule respiration
 // visuelle contextuelle par article, entre "À retenir" et le corps — une
@@ -96,6 +100,29 @@ export default async function ContentDetailPage({ params }: { params: Promise<{ 
             </section>
           ))}
         </article>
+
+        {/* checkpoint E (mandat Public V1, §2/§3) — médias éditoriaux :
+            rendus uniquement quand l'article en porte réellement (gallery/
+            quote), jamais une galerie vide ou une citation fabriquée pour
+            l'occasion. VideoBlock/DocumentBlock rendent toujours un état
+            honnête (réel si fourni, "à venir" sinon) — montrés ici pour
+            prouver que le gabarit article est prêt à les recevoir. */}
+        {item.gallery && item.gallery.length > 0 && (
+          <div className="mt-10">
+            <Gallery images={item.gallery} />
+          </div>
+        )}
+
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <VideoBlock video={item.video} />
+          <DocumentBlock document={item.document} />
+        </div>
+
+        {item.quote && (
+          <div className="mt-10">
+            <QuoteBlock quote={item.quote} />
+          </div>
+        )}
 
         <div className="mt-10 flex items-start gap-3 rounded-xl border border-[var(--pub-stone-150)] bg-white px-4 py-3 text-xs font-semibold leading-5 text-[var(--pub-stone-500)]"><BadgeCheck size={15} className="mt-0.5 shrink-0 text-[var(--pub-turquoise-500)]"/><span>{item.verification}</span></div>
 

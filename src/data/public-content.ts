@@ -27,6 +27,18 @@ export type PublicNewsItem = {
   publishedAt: string;
   readingTime: string;
   verification: "Démonstration éditoriale" | "Information publique consolidée" | "Enrichi par Mbàmbulaan";
+  /**
+   * Médias éditoriaux (checkpoint E, mandat Public V1 §2/§3) — toujours
+   * optionnels et honnêtes : seuls des visuels réellement présents dans
+   * public/images alimentent `gallery` ; `video`/`document` restent
+   * absents tant qu'aucun fichier réel n'existe (Gallery/VideoBlock/
+   * DocumentBlock rendent alors leur état honnête "à venir"/absent,
+   * jamais un faux contenu).
+   */
+  gallery?: { src: string; alt: string; caption?: string; credit?: string }[];
+  video?: { url: string; title: string };
+  document?: { url: string; label: string };
+  quote?: { text: string; attribution: string; status: "demonstration" | "verified" };
 };
 
 export type PublicOpportunityType = "Formation" | "Programme" | "Financement" | "Rencontre" | "Appel";
@@ -63,7 +75,21 @@ export const publicNews: PublicNewsItem[] = [
     territory: "Sénégal",
     publishedAt: "10 août 2026",
     readingTime: "7 min",
-    verification: "Démonstration éditoriale"
+    verification: "Démonstration éditoriale",
+    // checkpoint E — 3 photos réellement présentes dans public/images
+    // (déjà utilisées comme visuels de couverture ailleurs sur le site),
+    // combinées ici pour démontrer honnêtement la galerie sur un article
+    // dont le sujet (toute la chaîne de valeur) couvre les 3 scènes.
+    gallery: [
+      { src: "/images/mbambulaan-terrain-hero.jpg", alt: "Débarquement animé sur une plage sénégalaise, pirogues et acheteurs réunis au retour de pêche.", caption: "Débarquement — le premier maillon visible de la chaîne." },
+      { src: "/images/decouvrir-cover.jpg", alt: "Poissons fumés sur des claies en bois, fumée s'élevant au-dessus d'un site de transformation artisanale.", caption: "Transformation — fumage artisanal avant mise en marché." },
+      { src: "/images/mbambulaan-terrain.jpg", alt: "Échange entre une équipe Mbàmbulaan et un acteur de la filière, pirogues au second plan.", caption: "Terrain — comprendre la chaîne suppose d'aller à sa rencontre." }
+    ],
+    quote: {
+      text: "Chaque étape dépend de la précédente : sans chaîne du froid organisée, un bon débarquement perd sa valeur avant même d'atteindre le marché.",
+      attribution: "Illustration éditoriale, à partir d'observations de terrain",
+      status: "demonstration"
+    }
   },
   {
     id: "guide-besoin-froid",

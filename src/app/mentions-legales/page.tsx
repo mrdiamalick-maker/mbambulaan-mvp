@@ -20,10 +20,16 @@ export default function LegalNoticePage() {
       </section>
 
       <section className="mx-auto max-w-3xl px-5 py-14 md:px-10 md:py-20">
+        {/* checkpoint E (mandat Public V1, §5) : aligner honnêtement ce qui
+            est déjà connu, sans inventer ce qui ne l'est pas (RCCM, NINEA,
+            DPO, hébergeur contractuel, adresse sociale...). */}
+        <div className="mb-8 rounded-xl border border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)] px-4 py-3 text-xs font-semibold leading-5 text-[var(--pub-stone-700)]">
+          Version de prépublication — certaines informations juridiques seront complétées avant ouverture publique.
+        </div>
         <div className="space-y-8 text-sm leading-7 text-[var(--pub-stone-700)]">
           <div>
             <h2 className="pub-display text-xl not-italic text-[var(--pub-deep-900)]">Éditeur du site</h2>
-            <p className="mt-3">Mbàmbulaan est une entreprise sénégalaise. Les informations d’immatriculation complètes (raison sociale, forme juridique, siège social, numéro d’immatriculation) seront précisées ici lors de l’ouverture publique du site.</p>
+            <p className="mt-3">Mbàmbulaan est une initiative privée sénégalaise, conçue et développée par EPIC CONSEIL. Les informations d’immatriculation complètes (raison sociale, forme juridique, siège social, numéro d’immatriculation) seront précisées ici lors de l’ouverture publique du site.</p>
           </div>
           <div>
             <h2 className="pub-display text-xl not-italic text-[var(--pub-deep-900)]">Contact</h2>
@@ -40,6 +46,10 @@ export default function LegalNoticePage() {
           <div>
             <h2 className="pub-display text-xl not-italic text-[var(--pub-deep-900)]">Données de démonstration</h2>
             <p className="mt-3">Certains contenus, opportunités ou repères territoriaux affichés sur ce site sont explicitement identifiés comme des exemples ou des démonstrations éditoriales. Ils ne constituent pas des données officielles ou des engagements contractuels.</p>
+          </div>
+          <div>
+            <h2 className="pub-display text-xl not-italic text-[var(--pub-deep-900)]">Canal WhatsApp</h2>
+            <p className="mt-3">Le canal WhatsApp n’est pas encore activé publiquement. La page Contact oriente vers un rappel qualifié (téléphone, e-mail) en attendant l’ouverture d’un numéro WhatsApp officiel.</p>
           </div>
         </div>
       </section>

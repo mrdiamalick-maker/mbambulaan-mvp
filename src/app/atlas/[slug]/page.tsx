@@ -7,6 +7,8 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import { EventOnMount } from "@/components/public/EventOnMount";
 import { findTerritoryBySlug, publicTerritories } from "@/data/public-atlas";
 import { publicNews } from "@/data/public-content";
+import { VideoBlock } from "@/components/public/VideoBlock";
+import { DocumentBlock } from "@/components/public/DocumentBlock";
 
 export function generateStaticParams() {
   return publicTerritories.map((item) => ({ slug: item.slug }));
@@ -76,6 +78,16 @@ export default async function TerritoryDetailPage({ params }: { params: Promise<
             <div className="mt-6 border-t border-white/10 pt-5 text-xs leading-5 text-white/50"><p>Source : {territory.source}</p><p className="mt-2">Mise à jour : {territory.updatedAt}</p></div>
             <Link href={`/contact?intent=correction&territory=${encodeURIComponent(territory.name)}`} className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-turquoise-300)]"><MessageSquareWarning size={16}/> Signaler une correction</Link>
           </aside>
+        </div>
+
+        {/* checkpoint E (mandat Public V1, §2/§3) — VideoBlock/DocumentBlock
+            toujours rendus avec leur état honnête (réel si fourni pour ce
+            territoire, "à venir" sinon) : prouve que le gabarit territoire
+            est prêt à recevoir un futur reportage ou document technique,
+            sans jamais simuler un contenu qui n'existe pas. */}
+        <div className="mt-16 grid gap-4 sm:grid-cols-2">
+          <VideoBlock video={territory.video} />
+          <DocumentBlock document={territory.document} />
         </div>
 
         {relatedContent.length > 0 && <div className="mt-16"><p className="pub-eyebrow">Pour comprendre le contexte</p><h2 className="pub-display mt-3 text-[2rem] not-italic text-[var(--pub-deep-900)]">Contenus liés à {territory.name}</h2><div className="mt-6 grid gap-4 lg:grid-cols-3">{relatedContent.map((item) => <Link key={item.id} href={`/decouvrir/${item.id}`} className="pub-card group flex min-h-52 flex-col p-5"><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]"><BookOpenText size={14}/>{item.category}</div><h3 className="mt-4 text-lg font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{item.title}</h3><span className="mt-auto inline-flex items-center gap-2 pt-5 text-sm font-bold text-[var(--pub-deep-800)]">Lire <ArrowRight size={14} className="transition group-hover:translate-x-1"/></span></Link>)}</div></div>}

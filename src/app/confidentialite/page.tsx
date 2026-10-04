@@ -47,6 +47,11 @@ export default function PrivacyPage() {
       </section>
 
       <section className="mx-auto max-w-3xl px-5 py-14 md:px-10 md:py-20">
+        {/* checkpoint E (mandat Public V1, §5) — même notice honnête que
+            /mentions-legales, cohérence entre les deux pages légales. */}
+        <div className="mb-8 rounded-xl border border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)] px-4 py-3 text-xs font-semibold leading-5 text-[var(--pub-stone-700)]">
+          Version de prépublication — certaines informations juridiques seront complétées avant ouverture publique.
+        </div>
         <div className="space-y-8">
           {sections.map((section) => (
             <div key={section.title}>
@@ -54,6 +59,10 @@ export default function PrivacyPage() {
               <p className="mt-3 text-sm leading-7 text-[var(--pub-stone-700)]">{section.text}</p>
             </div>
           ))}
+          <div>
+            <h2 className="pub-display text-xl not-italic text-[var(--pub-deep-900)]">Qui développe Mbàmbulaan</h2>
+            <p className="mt-3 text-sm leading-7 text-[var(--pub-stone-700)]">Mbàmbulaan est une initiative privée sénégalaise, conçue et développée par EPIC CONSEIL.</p>
+          </div>
         </div>
       </section>
       <PublicFooter />
