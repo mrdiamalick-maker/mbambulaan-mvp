@@ -1,155 +1,152 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowLeft, ArrowRight, BadgeCheck, BookOpenText, Compass, MapPinned } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
-import { EventOnMount } from "@/components/public/EventOnMount";
-import { findContentById, publicNews, type PublicContentDomain } from "@/data/public-content";
-import { publicTerritories } from "@/data/public-atlas";
-import { findPublicDomainByTitle } from "@/data/public-domains";
-import { Gallery } from "@/components/public/Gallery";
-import { VideoBlock } from "@/components/public/VideoBlock";
-import { DocumentBlock } from "@/components/public/DocumentBlock";
-import { QuoteBlock } from "@/components/public/QuoteBlock";
-
-// PUB-D3 (audit Premium XXL Public, CEO 2026-08-16) : une seule respiration
-// visuelle contextuelle par article, entre "À retenir" et le corps — une
-// position dans la chaîne de valeur (mêmes 6 étapes que ValueChainDiagram
-// sur l'Accueil, réutilisées plutôt qu'un nouveau motif par domaine).
-// Volontairement partiel : les domaines transverses (compétences,
-// financement, territoires, durabilité, équipements) n'ont pas de position
-// unique dans la chaîne — pas de correspondance forcée, la respiration
-// reste absente pour ces articles plutôt que d'être un habillage sans sens.
-const chainStages = ["Mer", "Débarquement", "Conservation", "Transformation", "Transport", "Marchés"] as const;
-const domainToChainStage: Partial<Record<PublicContentDomain, (typeof chainStages)[number]>> = {
-  "Pêche & ressources": "Mer",
-  "Débarquement": "Débarquement",
-  "Conservation & froid": "Conservation",
-  "Transformation & valorisation": "Transformation",
-  "Transport & logistique": "Transport",
-  "Commerce & débouchés": "Marchés"
-};
+import { ContentVideoHero } from "@/components/public/ContentVideoHero";
+import { CONTENT, PHOTOS, THEMES, contentBySlug, territoryBySlug } from "@/data/public-v2-content";
 
 export function generateStaticParams() {
-  return publicNews.map((item) => ({ slug: item.id }));
+  return CONTENT.map((item) => ({ slug: item.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const item = findContentById(slug);
+  const item = contentBySlug(slug);
   if (!item) return {};
   return {
     title: `${item.title} | Mbàmbulaan Découvrir`,
-    description: item.excerpt,
-    alternates: { canonical: `/decouvrir/${item.id}` },
-    openGraph: { title: item.title, description: item.excerpt }
+    description: item.dek,
+    alternates: { canonical: `/decouvrir/${item.slug}` },
+    openGraph: { title: item.title, description: item.dek }
   };
+}
+
+function themeLabel(theme: string) {
+  return THEMES.find(([key]) => key === theme)?.[1] ?? theme;
 }
 
 export default async function ContentDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const item = findContentById(slug);
+  const item = contentBySlug(slug);
   if (!item) notFound();
 
-  const related = publicNews.filter((news) => news.domain === item.domain && news.id !== item.id).slice(0, 3);
-  const territory = item.territory ? publicTerritories.find((t) => t.name === item.territory) : undefined;
-  const takeaways = item.body.slice(0, 3).map((paragraph) => paragraph.split(". ")[0].replace(/\.$/, ""));
-  const domain = findPublicDomainByTitle(item.domain);
-  const domainHref = domain ? `/decouvrir/domaine/${domain.slug}` : "/decouvrir";
-  const activeStage = domainToChainStage[item.domain];
+  const related = CONTENT.filter((c) => c.theme === item.theme && c.slug !== item.slug).slice(0, 3);
+  const meta = item.dur ? `${item.date} · ${item.dur}` : item.read ? `${item.date} · ${item.read} de lecture` : item.date;
 
   return (
-    <main className="pub-scope min-h-screen">
-      <EventOnMount event="content_view" properties={{ content: item.id, domain: item.domain }} />
-      <PublicHeader dark />
+    <main style={{ fontFamily: "var(--font-instrument-sans), system-ui, sans-serif", color: "#1E2A38", background: "#fff" }}>
+      <PublicHeader />
 
-      <section className="pub-hero px-5 pb-14 pt-10 md:px-10 md:pb-20 md:pt-14">
-        <div className="mx-auto max-w-4xl">
-          <Link href="/decouvrir" className="inline-flex items-center gap-2 text-sm font-bold text-white/64 transition hover:text-white"><ArrowLeft size={15}/> Retour à Découvrir</Link>
-          <div className="mt-7 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-300)]"><span className="inline-flex items-center gap-1.5"><BookOpenText size={13}/> {item.category}</span><span className="text-white/30">·</span><Link href={domainHref} className="transition hover:text-white">{item.domain}</Link></div>
-          <h1 className="pub-display mt-4 text-[clamp(2.8rem,6vw,5rem)] not-italic leading-[1.02]">{item.title}</h1>
-          <p className="mt-5 max-w-3xl text-base leading-7 text-white/70">{item.excerpt}</p>
-          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-semibold text-white/50"><span>{item.publishedAt}</span><span>·</span><span>{item.readingTime} de lecture</span>{item.territory && <><span>·</span><span className="inline-flex items-center gap-1"><MapPinned size={13}/> {item.territory}</span></>}</div>
-        </div>
-      </section>
+      <header style={{ maxWidth: 880, margin: "0 auto", padding: "clamp(36px,5vw,64px) clamp(20px,4vw,48px) 36px", display: "flex", flexDirection: "column", gap: 20 }}>
+        <Link href="/decouvrir" className="pv2-back" style={{ alignSelf: "flex-start", fontSize: 14.5, fontWeight: 600, color: "#4C5566", textDecoration: "none" }}>← Découvrir</Link>
+        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#B6522F" }}>{item.type} · {themeLabel(item.theme)}</p>
+        <h1 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontWeight: 400, fontSize: "clamp(38px,5vw,64px)", lineHeight: 1.04, letterSpacing: "-.02em" }}>{item.title}</h1>
+        <p style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: "clamp(20px,2vw,25px)", lineHeight: 1.4, color: "#3A4556" }}>{item.dek}</p>
+        <p style={{ margin: 0, fontSize: 14, color: "#4C5566" }}>{meta}</p>
+      </header>
 
-      <section className="mx-auto max-w-4xl px-5 py-12 md:px-10 md:py-16">
-        <div className="rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-surface)] p-6 md:p-7">
-          <p className="pub-eyebrow">À retenir</p>
-          <div className="mt-5 grid gap-4 md:grid-cols-3">{takeaways.map((text, index) => <div key={`${index}-${text}`} className="rounded-2xl border border-[var(--pub-stone-150)] bg-white p-4"><span className="text-xs font-black text-[var(--pub-turquoise-500)]">0{index + 1}</span><p className="mt-2 text-sm font-semibold leading-6 text-[var(--pub-deep-900)]">{text}.</p></div>)}</div>
-        </div>
-
-        {activeStage && (
-          <div className="mt-8 flex items-center gap-1.5 overflow-x-auto rounded-xl border border-[var(--pub-stone-150)] bg-[var(--pub-surface)] px-4 py-3">
-            <span className="shrink-0 pr-1 text-[10px] font-black uppercase tracking-[.08em] text-[var(--pub-stone-500)]">Dans la chaîne</span>
-            {chainStages.map((stageName, index) => (
-              <span key={stageName} className="flex shrink-0 items-center gap-1.5">
-                {index > 0 && <span className="h-px w-3.5 shrink-0 bg-[var(--pub-stone-150)]" aria-hidden />}
-                <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${stageName === activeStage ? "bg-[var(--pub-turquoise-500)] text-white" : "text-[var(--pub-stone-500)]"}`}>{stageName}</span>
-              </span>
-            ))}
+      {item.type === "Vidéo" ? (
+        <ContentVideoHero img={PHOTOS[item.img]} alt={item.caption ?? item.title} dur={item.dur} />
+      ) : (
+        <figure style={{ maxWidth: 1200, margin: "0 auto", padding: "0 clamp(0px,4vw,48px)" }}>
+          <div style={{ aspectRatio: "21/10", overflow: "hidden", background: "#12263A", position: "relative" }}>
+            <Image src={PHOTOS[item.img]} alt="" fill sizes="100vw" style={{ objectFit: "cover" }} priority />
           </div>
-        )}
+          {item.caption && <figcaption style={{ padding: "10px 0 0", fontSize: 13.5, color: "#4C5566" }}>{item.caption}</figcaption>}
+        </figure>
+      )}
 
-        <article className="mt-12 space-y-8 text-base leading-8 text-[var(--pub-stone-700)]">
-          {item.body.map((paragraph, index) => (
-            <section key={index}>
-              <p className="pub-eyebrow">{index === 0 ? "Contexte" : index === item.body.length - 1 ? "Implications" : "Ce qui se joue"}</p>
-              <p className="mt-3">{paragraph}</p>
-            </section>
-          ))}
-        </article>
-
-        {/* checkpoint E (mandat Public V1, §2/§3) — médias éditoriaux :
-            rendus uniquement quand l'article en porte réellement (gallery/
-            quote), jamais une galerie vide ou une citation fabriquée pour
-            l'occasion. VideoBlock/DocumentBlock rendent toujours un état
-            honnête (réel si fourni, "à venir" sinon) — montrés ici pour
-            prouver que le gabarit article est prêt à les recevoir. */}
-        {item.gallery && item.gallery.length > 0 && (
-          <div className="mt-10">
-            <Gallery images={item.gallery} />
-          </div>
-        )}
-
-        <div className="mt-10 grid gap-4 sm:grid-cols-2">
-          <VideoBlock video={item.video} />
-          <DocumentBlock document={item.document} />
-        </div>
-
-        {item.quote && (
-          <div className="mt-10">
-            <QuoteBlock quote={item.quote} />
-          </div>
-        )}
-
-        <div className="mt-10 flex items-start gap-3 rounded-xl border border-[var(--pub-stone-150)] bg-white px-4 py-3 text-xs font-semibold leading-5 text-[var(--pub-stone-500)]"><BadgeCheck size={15} className="mt-0.5 shrink-0 text-[var(--pub-turquoise-500)]"/><span>{item.verification}</span></div>
-
-        {territory && (
-          <section className="mt-12 rounded-[var(--pub-radius-md)] bg-[var(--pub-deep-800)] p-6 text-white md:p-7">
-            <div className="flex items-start gap-4"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/8 text-[var(--pub-turquoise-300)]"><MapPinned size={19}/></span><div><p className="pub-eyebrow pub-eyebrow--dark">Dans quel territoire ?</p><h2 className="mt-3 text-2xl font-bold tracking-[-.035em]">{territory.name}</h2><p className="mt-3 text-sm leading-6 text-white/62">Ce contenu prend davantage de sens lorsqu’il est replacé dans les activités, infrastructures et services documentés du territoire.</p><Link href={`/atlas/${territory.slug}`} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-turquoise-300)]">Voir le territoire dans l’Atlas <ArrowRight size={15}/></Link></div></div>
-          </section>
-        )}
-
-        <section className="mt-12 rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-white p-6 md:p-7">
-          <p className="pub-eyebrow">Passer de la compréhension à l’action</p>
-          <h2 className="mt-3 text-2xl font-bold tracking-[-.035em] text-[var(--pub-deep-900)]">Ce sujet correspond à une situation réelle ?</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--pub-stone-700)]">Décrivez la situation, le territoire et le contexte. Mbàmbulaan qualifie ensuite le besoin avant d’organiser la suite.</p>
-          <Link href={item.cta?.href ?? "/solutions"} className="pub-btn pub-btn-primary mt-6">{item.cta?.label ?? "Décrire ma situation"} <ArrowRight size={16}/></Link>
-        </section>
-      </section>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "clamp(40px,5vw,64px) clamp(20px,4vw,48px) 24px", display: "flex", flexDirection: "column", gap: 24, fontSize: 18.5, lineHeight: 1.7, color: "#1E2A38" }}>
+        {item.blocks.map((b, i) => {
+          if (b.t === "p") return <p key={i} style={{ margin: 0 }}>{b.text}</p>;
+          if (b.t === "h") return <h2 key={i} style={{ margin: "20px 0 0", fontFamily: "var(--font-newsreader), serif", fontWeight: 500, fontSize: 30, lineHeight: 1.2, color: "#0B1A2A" }}>{b.text}</h2>;
+          if (b.t === "steps")
+            return (
+              <ol key={i} style={{ listStyle: "none", margin: "8px 0", padding: 0, display: "flex", flexDirection: "column", borderTop: "1px solid rgba(11,26,42,.14)" }}>
+                {b.items.map((s, j) => (
+                  <li key={j} style={{ display: "flex", gap: 20, padding: "14px 0", borderBottom: "1px solid rgba(11,26,42,.14)", fontSize: 16.5, lineHeight: 1.5 }}>
+                    <span style={{ flex: "none", width: 150, fontWeight: 600, color: "#0B1A2A" }}>{s.n}</span>
+                    <span style={{ color: "#3A4556" }}>{s.d}</span>
+                  </li>
+                ))}
+              </ol>
+            );
+          if (b.t === "figure")
+            return (
+              <figure key={i} style={{ margin: "16px 0" }}>
+                <div style={{ aspectRatio: "3/2", overflow: "hidden", background: "#12263A", position: "relative" }}>
+                  <Image src={PHOTOS[b.img]} alt="" fill sizes="(min-width: 760px) 720px, 100vw" style={{ objectFit: "cover" }} />
+                </div>
+                <figcaption style={{ paddingTop: 10, fontSize: 14, lineHeight: 1.5, color: "#4C5566" }}>{b.caption}</figcaption>
+              </figure>
+            );
+          if (b.t === "quote")
+            return (
+              <blockquote key={i} style={{ margin: "20px 0", display: "flex", flexDirection: "column", gap: 14 }}>
+                <p style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontStyle: "italic", fontWeight: 300, fontSize: "clamp(26px,3vw,34px)", lineHeight: 1.3, color: "#0B1A2A" }}>« {b.text} »</p>
+                <cite style={{ fontStyle: "normal", fontSize: 14.5, fontWeight: 600, color: "#B6522F" }}>— {b.who}</cite>
+              </blockquote>
+            );
+          if (b.t === "place") {
+            const terr = territoryBySlug(b.terr);
+            if (!terr) return null;
+            return (
+              <Link key={i} href={`/atlas/${terr.slug}`} className="pv2-card" style={{ display: "flex", gap: 20, alignItems: "stretch", margin: "12px 0", background: "#F7F3E9", textDecoration: "none", color: "#0B1A2A" }}>
+                <span style={{ flex: "none", width: "clamp(100px,24%,160px)", overflow: "hidden", background: "#12263A", position: "relative" }}>
+                  <Image src={PHOTOS[terr.img]} alt="" fill sizes="160px" style={{ objectFit: "cover" }} />
+                </span>
+                <span style={{ display: "flex", flexDirection: "column", gap: 6, padding: "18px 18px 18px 0", fontSize: 15.5, lineHeight: 1.5 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#B6522F" }}>Territoire · Atlas</span>
+                  <span style={{ fontFamily: "var(--font-newsreader), serif", fontSize: 23, lineHeight: 1.2 }}>{terr.name}</span>
+                  <span style={{ color: "#3A4556" }}>{b.text}</span>
+                </span>
+              </Link>
+            );
+          }
+          if (b.t === "doc")
+            return (
+              <Link key={i} href="/contact?profil=info" className="pv2-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "18px 0", borderTop: "1px solid #0B1A2A", borderBottom: "1px solid rgba(11,26,42,.14)", textDecoration: "none", color: "#0B1A2A", fontSize: 16 }}>
+                <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ fontWeight: 600 }}>{b.title}</span>
+                  <span style={{ fontSize: 14, color: "#4C5566" }}>{b.meta} · sur demande</span>
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "#B6522F", flex: "none" }}>Nous contacter →</span>
+              </Link>
+            );
+          return null;
+        })}
+        <p style={{ margin: "16px 0 0", paddingTop: 20, borderTop: "1px solid rgba(11,26,42,.14)", fontSize: 15.5, color: "#3A4556" }}>
+          Vous connaissez ce sujet de près ? <Link href="/partager" style={{ color: "#B6522F", fontWeight: 600 }}>Partager une information</Link>
+        </p>
+      </div>
 
       {related.length > 0 && (
-        <section className="border-t border-[var(--pub-stone-150)] bg-white px-5 py-14 md:px-10 md:py-18">
-          <div className="mx-auto max-w-[1500px]">
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div><p className="pub-eyebrow">Poursuivre</p><h2 className="mt-3 text-2xl font-[740] tracking-[-.035em] text-[var(--pub-deep-900)] md:text-3xl">Approfondir : {item.domain}</h2></div><Link href={domainHref} className="inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-deep-800)]"><Compass size={15}/> Voir tout le domaine</Link></div>
-            <div className="mt-8 grid gap-4 lg:grid-cols-3">{related.map((news) => <Link key={news.id} href={`/decouvrir/${news.id}`} className="pub-card group flex min-h-56 flex-col p-5"><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.11em] text-[var(--pub-turquoise-500)]"><BookOpenText size={14}/>{news.category}</div><h3 className="mt-4 text-lg font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{news.title}</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{news.excerpt}</p><span className="mt-auto inline-flex items-center gap-2 pt-5 text-sm font-bold text-[var(--pub-deep-800)]">Lire <ArrowRight size={14} className="transition group-hover:translate-x-1"/></span></Link>)}</div>
+        <section style={{ borderTop: "1px solid rgba(11,26,42,.1)", marginTop: "clamp(40px,5vw,72px)" }}>
+          <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(48px,6vw,80px) clamp(20px,4vw,48px)", display: "flex", flexDirection: "column", gap: 32 }}>
+            <h2 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontWeight: 400, fontSize: "clamp(28px,3vw,38px)" }}>À lire aussi</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,280px),1fr))", gap: "clamp(24px,3vw,40px)" }}>
+              {related.map((c) => (
+                <Link key={c.slug} href={`/decouvrir/${c.slug}`} className="pv2-card" style={{ display: "flex", flexDirection: "column", gap: 12, textDecoration: "none", color: "#0B1A2A" }}>
+                  <span style={{ display: "block", aspectRatio: "3/2", overflow: "hidden", background: "#12263A", position: "relative" }}>
+                    <Image src={PHOTOS[c.img]} alt="" fill sizes="(min-width: 900px) 30vw, 100vw" style={{ objectFit: "cover" }} />
+                  </span>
+                  <span style={{ fontSize: 13.5, fontWeight: 600, color: "#B6522F" }}>{c.type} · {themeLabel(c.theme)}</span>
+                  <span style={{ fontFamily: "var(--font-newsreader), serif", fontSize: 23, lineHeight: 1.18 }}>{c.title}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
       )}
 
       <PublicFooter />
+
+      <style>{`
+        .pv2-back:hover { color: #0B1A2A; }
+        .pv2-card:hover { color: #9E431F; }
+      `}</style>
     </main>
   );
 }
