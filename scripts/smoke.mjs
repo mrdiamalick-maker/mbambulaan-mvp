@@ -77,7 +77,7 @@ try {
   for (const path of [
     "/",
     "/decouvrir",
-    "/decouvrir/terrain-joal",
+    "/decouvrir/joal-transformation",
     "/atlas",
     "/atlas/joal-fadiouth",
     "/opportunites",
