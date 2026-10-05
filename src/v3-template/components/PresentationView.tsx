@@ -34,7 +34,7 @@ export function PresentationView({ onClose }: { onClose: () => void }) {
   }, [onClose, slides.length]);
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Mode présentation" style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0B1A2A", color: "#F7F3E9", display: "flex", flexDirection: "column" }}>
+    <div role="dialog" aria-modal="true" aria-label="Mode présentation" style={{ position: "fixed", inset: 0, zIndex: 300, background: "#0B1A2A", color: "#F7F3E9", display: "flex", flexDirection: "column", overflowY: "auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 28px" }}>
         <span style={{ fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(247,243,233,.5)", flex: 1 }}>Mode présentation · {index + 1} / {slides.length}</span>
         <button onClick={onClose} ref={closeButtonRef} aria-label="Quitter le mode présentation" style={{ border: "1px solid rgba(247,243,233,.3)", background: "transparent", color: "#F7F3E9", cursor: "pointer", borderRadius: 999, padding: 7, display: "flex" }}>

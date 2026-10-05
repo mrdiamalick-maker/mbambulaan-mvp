@@ -16,6 +16,7 @@
 // slug générique.
 import { DEMO_STATE } from "./demo-state";
 import type { Initiative, ProductState } from "@/domain/types";
+import { PROGS } from "../data/programmes";
 
 export const PROGRAMME_ID_BY_TITLE: Record<string, string> = {
   "Résilience de la chaîne du froid · Petite-Côte": "init-froid",
@@ -100,4 +101,67 @@ export function getProgrammeSynthesis(fixtureTitle: string, state: ProductState 
     decisionMaker: leadInQueue ? (decider ? `${decider.name} · ${decider.role.replaceAll("_", " ")}` : "Non assigné") : undefined,
     deadline: undefined
   };
+}
+
+// INITIATIVE_STATUS_LABEL — même vocabulaire que /app/app/etat/rapport/
+// page.tsx (Initiative.status), pas un 2e vocabulaire de statut de
+// programme pour le Portfolio.
+export const INITIATIVE_STATUS_LABEL: Record<Initiative["status"], string> = {
+  cadrage: "Cadrage", financee: "Financée", execution: "Exécution", terminee: "Terminée"
+};
+
+// ProgrammePortfolioMetric — closeout (lot "etat-v5-integration", §2) :
+// remplace les totaux/avancements/calendrier/santé de data/programmes.ts
+// par le domaine réel pour Portfolio.tsx. Chaque champ est undefined (ou
+// un compteur à 0) quand la donnée réelle n'existe pas — jamais reconstitué
+// depuis la fixture. Spécifiquement : aucune dépense réelle n'est suivie
+// par Funding (3 statuts possibles : a_mobiliser/en_instruction/confirme,
+// aucun "dépensé"), et aucun jalon structuré n'existe sur Initiative — ces
+// deux métriques restent donc absentes ici, à masquer ou annoter côté UI,
+// jamais comblées par la valeur fixture budSpent/milestones.
+export interface ProgrammePortfolioMetric {
+  fixtureId: number;
+  title: string;
+  hasRealMatch: boolean;
+  status?: Initiative["status"];
+  budgetIdentifiedFcfa?: number;
+  budgetConfirmedFcfa: number;
+  budgetUnchiffre: boolean;
+  avancementPct?: number;
+  openLinkedSituationsCount: number;
+  criticalLinkedSituationsCount: number;
+}
+
+export function getProgrammePortfolioMetrics(state: ProductState = DEMO_STATE): ProgrammePortfolioMetric[] {
+  return PROGS.map((p) => {
+    const initiativeId = PROGRAMME_ID_BY_TITLE[p.title];
+    const initiative = initiativeId ? state.initiatives.find((item) => item.id === initiativeId) : undefined;
+    if (!initiative) {
+      return {
+        fixtureId: p.id, title: p.title, hasRealMatch: false,
+        budgetConfirmedFcfa: 0, budgetUnchiffre: true,
+        openLinkedSituationsCount: 0, criticalLinkedSituationsCount: 0
+      };
+    }
+    const confirmed = initiative.funding.filter((f) => f.status === "confirme").reduce((sum, f) => sum + f.amountFcfa, 0);
+    const avancementPct = initiative.indicators.length > 0
+      ? Math.round(
+          initiative.indicators.reduce((sum, i) => {
+            const span = Math.abs(i.target - i.baseline) || 1;
+            return sum + Math.min(100, Math.max(0, (Math.abs(i.current - i.baseline) / span) * 100));
+          }, 0) / initiative.indicators.length
+        )
+      : undefined;
+    const linked = state.situations.filter((s) => initiative.situationIds.includes(s.id) && s.status !== "reglee");
+    const critical = linked.filter((s) => s.priority === "critique" || s.priority === "haute");
+    return {
+      fixtureId: p.id, title: p.title, hasRealMatch: true, status: initiative.status,
+      budgetIdentifiedFcfa: initiative.budgetFcfa,
+      budgetConfirmedFcfa: confirmed,
+      budgetUnchiffre: initiative.budgetStatus === "a_estimer",
+      avancementPct,
+      openLinkedSituationsCount: linked.length,
+      criticalLinkedSituationsCount: critical.length
+    };
+  });
 }
