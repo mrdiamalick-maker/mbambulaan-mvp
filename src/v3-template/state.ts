@@ -1,4 +1,5 @@
 import type { PeriodKey, RoleKey, ScreenKey } from "./types";
+import type { DocumentRequest } from "./lib/document-bridge";
 
 // État applicatif unique du template V3 — portage direct du `state` du
 // standalone (même forme, mêmes noms de champs) pour que la logique de
@@ -70,6 +71,16 @@ export interface AppState {
   dossStage: string;
   dossOpen: number;
   dossChoice: { id: number; i: number } | null;
+
+  // Documents (mandat "Intégration /etat V5 + Corrections Produit" §11/§12)
+  // — un document générable à la fois, ouvert depuis l'écran d'origine
+  // (Brief/Programme/Situation/Arbitrage), jamais un nouveau module de
+  // navigation permanent (§3 : conserver les modules existants).
+  docOpen: DocumentRequest | null;
+
+  // Mode présentation (§13) — même principe : une capability, pas un
+  // nouveau module de navigation permanent.
+  presentOpen: boolean;
 }
 
 export const initialAppState: AppState = {
@@ -126,5 +137,8 @@ export const initialAppState: AppState = {
   // "à qualifier").
   dossStage: "a_qualifier",
   dossOpen: 0,
-  dossChoice: null
+  dossChoice: null,
+
+  docOpen: null,
+  presentOpen: false
 };

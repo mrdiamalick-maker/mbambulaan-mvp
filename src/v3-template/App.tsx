@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { DemoBanner } from "./components/DemoBanner";
+import { DocumentView } from "./components/DocumentView";
+import { PresentationView } from "./components/PresentationView";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { Brief } from "./components/screens/Brief";
@@ -92,6 +94,8 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
         {state.screen === "flux" && <Flux state={state} patch={patch} />}
         {state.screen === "sources" && <Sources />}
       </main>
+      {state.docOpen && <DocumentView request={state.docOpen} onClose={() => patch({ docOpen: null })} />}
+      {state.presentOpen && <PresentationView onClose={() => patch({ presentOpen: false })} />}
     </div>
   );
 }

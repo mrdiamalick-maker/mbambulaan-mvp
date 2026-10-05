@@ -19,6 +19,9 @@ import {
   type SiteIntelligenceView
 } from "../../lib/landing-bridge";
 import { trustLabels } from "@/lib/status-tokens";
+// mandat "Intégration /etat V5 + Corrections Produit" §4 — synthèse réelle
+// en tête du détail territoire, voir lib/territory-synthesis.ts.
+import { getTerritorySynthesis } from "../../lib/territory-synthesis";
 import type { AppState } from "../../state";
 
 type Patch = (p: Partial<AppState>) => void;
@@ -321,6 +324,9 @@ export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patc
   // fixtures TD/TERR du gabarit gelé (§11/§12 du mandat : ne remplacer que
   // les blocs que PD.1 couvre réellement).
   const landingView = useMemo(() => getTerritoryLandingView(t.name), [t.name]);
+  // §4 — synthèse réelle (sujet d'attention, enjeu, action, responsable,
+  // décision attendue), jamais les fixtures t.reading/t.level ci-dessous.
+  const synthesis = useMemo(() => getTerritorySynthesis(t.name), [t.name]);
   const landingDepth = atlasLandingDepthForRole(state.role);
   const openLanding = useMemo(() => (state.atlasLandingOpen ? getLandingDetail(state.atlasLandingOpen) : undefined), [state.atlasLandingOpen]);
   // PD.3 — panneau de détail de site, mutuellement exclusif avec le
@@ -467,6 +473,40 @@ export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patc
         </div>
 
         <div style={{ background: "#FFFFFF", borderLeft: "1px solid rgba(11,26,42,.12)", minHeight: 660, alignSelf: "stretch" }}>
+          {/* §4 (correction P1 Territoire) — synthèse décisionnelle réelle,
+              toujours en tête, avant les onglets : sujet d'attention
+              principal, enjeu, action en cours, responsable, décision
+              attendue si le dossier est réellement en file d'arbitrage. */}
+          {synthesis && (
+            <div style={{ padding: "14px 20px 16px", borderBottom: "1px solid rgba(11,26,42,.09)", background: "#F7F3E9" }}>
+              <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 8 }}>Synthèse</div>
+              {synthesis.hasAttention ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.4, flex: 1, minWidth: 180 }}>{synthesis.subject}</div>
+                    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".04em", color: synthesis.activityColor, flex: "none" }}>{synthesis.priorityLabel}</span>
+                  </div>
+                  {synthesis.stake && (
+                    <div style={{ fontSize: 12, color: "rgba(11,26,42,.65)", marginTop: 5, lineHeight: 1.45 }}>{synthesis.stake}</div>
+                  )}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8, marginTop: 10 }}>
+                    <DetailField k="Action en cours" v={synthesis.action || "Non renseignée"} />
+                    <DetailField k="Responsable" v={synthesis.responsible ?? "Non assigné"} />
+                  </div>
+                  {synthesis.decisionExpected && (
+                    <div style={{ marginTop: 8 }}>
+                      <DetailField k="Décision attendue" v={synthesis.decisionExpected} />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ fontSize: 12.5, color: "rgba(11,26,42,.55)", lineHeight: 1.5 }}>
+                  Aucune situation ouverte ne nécessite d’attention sur ce territoire à ce jour.
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid rgba(11,26,42,.09)" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>

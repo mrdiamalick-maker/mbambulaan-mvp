@@ -39,7 +39,14 @@ export const ROLES: Record<RoleKey, RoleDef> = {
   },
   programme: {
     main: ["programmes", "resultats", "atlas", "situations", "brief"],
-    sec: ["flux", "sources"],
+    // §14 du mandat "Intégration /etat V5 + Corrections Produit" :
+    // "rendre Arbitrages accessible à la Direction de programme" — elle
+    // prépare/instruit les dossiers, le Ministère les tranche ; en
+    // navigation secondaire (comme le Ministère le fait pour flux/
+    // sources), jamais retirée de son périmètre de lecture. L'écran
+    // n'ouvre quant à lui aucune action que l'autorisation serveur
+    // (assertCan, src/server/permissions.ts) n'accorderait déjà.
+    sec: ["arbitrages", "flux", "sources"],
     note: "Direction de programme · portefeuille et exécution en premier",
     head: "Deux programmes sur neuf demandent une décision d’exécution",
     tldr:

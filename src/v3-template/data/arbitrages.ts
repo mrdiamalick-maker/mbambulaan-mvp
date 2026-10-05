@@ -4,6 +4,12 @@
 export interface ArbOption { t: string; cost: string; pro: string; con: string }
 export interface Arbitrage {
   due: string; urgency: string; dueC: string; title: string; meta: string; context: string;
+  // decider (mandat "Intégration /etat V5 + Corrections Produit" §10,
+  // point 8 — "le décideur") : le niveau institutionnel qui tranche,
+  // jamais un nom de personne fabriqué. Dérivé de la doctrine de rôles du
+  // produit (data/roles.ts, §3/§14 du mandat — "MINISTÈRE : lecture +
+  // arbitrage"), pas d'une fixture inventée pour ce lot.
+  decider: string;
   known: string[]; unknown: string[]; inaction: string; options: ArbOption[];
 }
 
@@ -12,6 +18,7 @@ export const ARB: Arbitrage[] = [
     due: "J−2", urgency: "avant vendredi", dueC: "#C8452B",
     title: "Mobiliser une capacité froide de remplacement à Joal",
     meta: "Joal-Fadiouth · chaîne du froid · 3 options",
+    decider: "Ministère, sur préparation de la Coordination territoriale",
     context: "La machine à glace du quai de Joal est déclarée hors service depuis deux jours et une sortie en mer rentre cette nuit. La décision porte sur l’engagement d’une capacité de remplacement avant que la panne ait été techniquement qualifiée.",
     known: ["Panne déclarée par le gestionnaire du quai, horodatée le 7 septembre.", "Deux capacités sur trois restent en service à Mbour, à 28 km.", "Une sortie en mer rentre dans la nuit."],
     unknown: ["Nature exacte de la panne — aucune vérification technique.", "Volume attendu au retour.", "Disponibilité réelle de Mbour au moment du débarquement."],
@@ -26,6 +33,7 @@ export const ARB: Arbitrage[] = [
     due: "J−4", urgency: "cette semaine", dueC: "#D89A4A",
     title: "Autoriser le délestage temporaire Mbour → Popenguine",
     meta: "Petite-Côte · logistique · 3 options",
+    decider: "Ministère, sur préparation de la Coordination territoriale",
     context: "La chaîne du froid de Mbour est réduite à une capacité de marge alors qu’elle est aussi le repli désigné de Joal. Popenguine dispose d’une capacité confirmée disponible à 19 km.",
     known: ["Saturation observée au poste de quai de Mbour sur deux jours.", "Capacité disponible confirmée à Popenguine.", "Mbour est le repli désigné pour Joal depuis le 7 septembre."],
     unknown: ["Coût réel du transport quotidien vers Popenguine.", "Durée de la tension — dépend des sorties en mer."],
@@ -40,6 +48,7 @@ export const ARB: Arbitrage[] = [
     due: "J−9", urgency: "avant la revue", dueC: "rgba(11,26,42,.6)",
     title: "Requalifier le statut du programme « Référentiel pirogues »",
     meta: "Portefeuille · 4 territoires · 3 options",
+    decider: "Ministère, sur proposition de la Direction de programme",
     context: "Le programme affiche 43 % d’avancement et des jalons administratifs tenus, alors que quatre signaux opérationnels restent ouverts et qu’un indicateur stagne depuis trois semaines. La décision porte sur ce que le portefeuille doit afficher avant la revue territoriale du 30 septembre.",
     known: ["Jalons administratifs tenus : déploiement effectué sur 4 sites.", "Les immatriculations vérifiées sont passées de 18 % à 43 %.", "Quatre signaux opérationnels ouverts, dont un retard prestataire de trois semaines."],
     unknown: ["Si le retard prestataire est ponctuel ou structurel.", "Effet réel sur la date de la revue du 30 septembre."],

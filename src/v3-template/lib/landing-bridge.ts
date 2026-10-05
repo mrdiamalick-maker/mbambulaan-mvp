@@ -185,6 +185,19 @@ export function getLandingDetail(landingId: string): LandingDetailView | undefin
   return buildLandingDetail(DEMO_STATE, landingId);
 }
 
+// getNationalLandingTotals (mandat "Intégration /etat V5 + Corrections
+// Produit" §9 — ajoute le premier rang ACTIVITÉ RÉALISÉE de la chaîne
+// causale de l'écran Résultats, manquant jusqu'ici) — même calcul que
+// buildTerritoryLandingActivity (territory-intelligence.ts), sans filtre
+// de territoire : total national réellement enregistré, pas une donnée
+// supplémentaire inventée pour ce lot.
+export function getNationalLandingTotals(): { landingCount: number; totalLandedKg: number } {
+  return {
+    landingCount: DEMO_STATE.landings.length,
+    totalLandedKg: DEMO_STATE.landings.reduce((sum, item) => sum + item.totalWeightKg, 0)
+  };
+}
+
 // atlasLandingDepthForRole — profondeur d'information permise par rôle
 // (mandat PD.1 §13). Ministère ("aggregated territorial landing reading")
 // et Direction de programme ("same territory context where relevant, no

@@ -54,8 +54,30 @@ export function Arbitrages({ state, patch }: { state: AppState; patch: Patch }) 
 
         <div style={{ background: "#FFFFFF", alignSelf: "stretch" }}>
           <div style={{ padding: "20px 24px 18px", borderBottom: "1px solid rgba(11,26,42,.1)" }}>
-            <h2 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 26, lineHeight: 1.2, margin: "0 0 11px", maxWidth: "36ch" }}>{a.title}</h2>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+              <h2 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 26, lineHeight: 1.2, margin: "0 0 11px", maxWidth: "36ch", flex: 1 }}>{a.title}</h2>
+              {/* §11 du mandat — générateur documentaire réel (DocumentView),
+                  jamais une recommandation auto-générée : voir lib/document-bridge.ts. */}
+              <button
+                onClick={() => patch({ docOpen: { type: "decision", arbitrageIndex: sel } })}
+                style={{ flex: "none", border: "1px solid rgba(11,26,42,.22)", background: "transparent", color: "#0B1A2A", cursor: "pointer", borderRadius: 4, padding: "8px 14px", fontSize: 12, fontFamily: "inherit", fontWeight: 500 }}
+              >
+                Générer la note de décision
+              </button>
+            </div>
             <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: "rgba(11,26,42,.78)", maxWidth: "80ch" }}>{a.context}</p>
+            {/* §10 du mandat, point 8 — le décideur, toujours visible avec
+                l'échéance qui justifie "pourquoi maintenant". */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 18, marginTop: 14, paddingTop: 12, borderTop: "1px solid rgba(11,26,42,.08)" }}>
+              <div>
+                <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 4 }}>Décideur</div>
+                <div style={{ fontSize: 12.5 }}>{a.decider}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 4 }}>Pourquoi maintenant</div>
+                <div style={{ fontSize: 12.5 }}>Échéance {a.due} — {a.urgency}.</div>
+              </div>
+            </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1, background: "rgba(11,26,42,.1)", borderBottom: "1px solid rgba(11,26,42,.1)" }}>

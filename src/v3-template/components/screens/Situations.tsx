@@ -75,6 +75,14 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
 
   const chosenOption = s && state.sitChoice != null && state.sitChoice.id === s.id ? s.options[state.sitChoice.i] : null;
   const noFilter = !state.fSev && !state.fTrust && !state.fStage;
+  // §5 du mandat "Intégration /etat V5 + Corrections Produit" (correction
+  // P1 Situations) : l'ancienneté (détection de l'escalade) reste
+  // toujours visible, pour tous les rôles — c'est le graphique qui aide
+  // réellement à agir. Le suivi du traitement (entonnoir) est utile à la
+  // Coordination territoriale qui qualifie au jour le jour, beaucoup
+  // moins au Ministère qui arbitre — masqué pour ce rôle plutôt que
+  // répété comme un effet dashboard sans usage de décision.
+  const showFunnel = state.role !== "ministre";
   // PD.4 §16 — même profondeur de rôle que l'Atlas (PD.1/PD.3, mandat
   // "Coordination territoriale: ... real qualification/action
   // capabilities") : seule la coordination territoriale peut choisir une
@@ -141,22 +149,24 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 1, background: "rgba(11,26,42,.12)", border: "1px solid rgba(11,26,42,.12)", marginBottom: 18 }}>
-        <div style={{ background: "#FFFFFF", padding: "15px 18px" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
-            <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", flex: 1 }}>De l’information reçue à la preuve</div>
-            <div style={{ fontSize: 11.5, color: "#B6522F" }}>{funRead.read}</div>
-          </div>
-          {funnel.map((f, i) => (
-            <div key={f.label} onMouseEnter={() => patch({ funHover: i })} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-              <div style={{ width: 150, flex: "none", fontSize: 11.5, color: state.funHover === i ? "#0B1A2A" : "rgba(11,26,42,.7)", fontWeight: state.funHover === i ? 600 : 400 }}>{f.label}</div>
-              <div style={{ flex: 1, height: 16, background: "rgba(11,26,42,.06)", position: "relative" }}>
-                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: f.pctLabel, background: ["#0B1A2A", "#B6522F", "#DE9C74", "#7FB08A"][i], transition: "width .5s cubic-bezier(.4,0,.2,1)" }} />
-              </div>
-              <div style={{ width: 56, flex: "none", textAlign: "right", fontFamily: V3_FONT_MONO, fontSize: 12 }}>{f.count}</div>
+      <div style={{ display: "grid", gridTemplateColumns: showFunnel ? "1.15fr 1fr" : "1fr", gap: 1, background: "rgba(11,26,42,.12)", border: "1px solid rgba(11,26,42,.12)", marginBottom: 18 }}>
+        {showFunnel && (
+          <div style={{ background: "#FFFFFF", padding: "15px 18px" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
+              <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", flex: 1 }}>De l’information reçue à la preuve</div>
+              <div style={{ fontSize: 11.5, color: "#B6522F" }}>{funRead.read}</div>
             </div>
-          ))}
-        </div>
+            {funnel.map((f, i) => (
+              <div key={f.label} onMouseEnter={() => patch({ funHover: i })} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                <div style={{ width: 150, flex: "none", fontSize: 11.5, color: state.funHover === i ? "#0B1A2A" : "rgba(11,26,42,.7)", fontWeight: state.funHover === i ? 600 : 400 }}>{f.label}</div>
+                <div style={{ flex: 1, height: 16, background: "rgba(11,26,42,.06)", position: "relative" }}>
+                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: f.pctLabel, background: ["#0B1A2A", "#B6522F", "#DE9C74", "#7FB08A"][i], transition: "width .5s cubic-bezier(.4,0,.2,1)" }} />
+                </div>
+                <div style={{ width: 56, flex: "none", textAlign: "right", fontFamily: V3_FONT_MONO, fontSize: 12 }}>{f.count}</div>
+              </div>
+            ))}
+          </div>
+        )}
         <div style={{ background: "#FFFFFF", padding: "15px 18px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
             <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", flex: 1 }}>Ancienneté des situations ouvertes</div>
@@ -233,7 +243,16 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
               </span>
               <span style={{ fontSize: 11.5, color: "rgba(247,243,233,.6)" }}>{s.territoryLabel} · {s.since}{s.channelLabel ? ` · reçu via ${s.channelLabel}` : ""}</span>
             </div>
-            <h2 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 27, lineHeight: 1.2, margin: "0 0 12px", maxWidth: "34ch" }}>{s.title}</h2>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+              <h2 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 27, lineHeight: 1.2, margin: "0 0 12px", maxWidth: "34ch", flex: 1 }}>{s.title}</h2>
+              {/* §11/§12 du mandat — générateur documentaire réel. */}
+              <button
+                onClick={() => patch({ docOpen: { type: "situation", situationId: s.id } })}
+                style={{ flex: "none", border: "1px solid rgba(247,243,233,.3)", background: "transparent", color: "#F7F3E9", cursor: "pointer", borderRadius: 4, padding: "7px 12px", fontSize: 11.5, fontFamily: "inherit", fontWeight: 500 }}
+              >
+                Générer une note de situation
+              </button>
+            </div>
             <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: "rgba(247,243,233,.82)", maxWidth: "78ch" }}>{s.description}</p>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 15, paddingTop: 14, borderTop: "1px solid rgba(247,243,233,.14)", flexWrap: "wrap" }}>
               <span style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#DE9C74", flex: "none" }}>Prochaine étape</span>
@@ -313,6 +332,43 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
                     ) : (
                       <div style={{ fontSize: 12.5, color: "rgba(11,26,42,.5)" }}>Aucune incertitude documentée à ce stade.</div>
                     )}
+                  </div>
+                </div>
+
+                {/* §6 du mandat — après ÉTABLI/INCERTITUDES : ACTEURS,
+                    CONSÉQUENCES/ENJEUX, puis un rappel condensé de
+                    DÉCISION et SOURCES (approfondies dans les onglets
+                    Action/Sources, jamais nécessaires pour comprendre). */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 26, marginTop: 22, paddingTop: 20, borderTop: "1px solid rgba(11,26,42,.09)" }}>
+                  <div>
+                    <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 9 }}>Acteurs</div>
+                    <div style={{ fontSize: 13, lineHeight: 1.55 }}>
+                      {s.responsibleLabel ? <>Responsable : <strong>{s.responsibleLabel}</strong></> : "Aucun responsable assigné à ce jour."}
+                    </div>
+                    {s.channelLabel && <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.55)", marginTop: 5 }}>Reçue via {s.channelLabel}.</div>}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#B6522F", marginBottom: 9 }}>Conséquences / enjeux</div>
+                    {s.systemRisks.length > 0 ? (
+                      <div style={{ fontSize: 13, lineHeight: 1.55, color: "rgba(11,26,42,.85)" }}>{s.systemRisks.join(" · ")}</div>
+                    ) : (
+                      <div style={{ fontSize: 12.5, color: "rgba(11,26,42,.5)" }}>Aucun enjeu distinct documenté au-delà de la situation elle-même.</div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 20, marginTop: 20, paddingTop: 16, borderTop: "1px solid rgba(11,26,42,.09)" }}>
+                  <div style={{ flex: "1 1 220px" }}>
+                    <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 6 }}>Décision</div>
+                    <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                      {s.stageBucket >= 4 ? "Un résultat a déjà été consigné." : "Aucune décision enregistrée à ce stade."} Voir l’onglet « Action ».
+                    </div>
+                  </div>
+                  <div style={{ flex: "1 1 220px" }}>
+                    <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 6 }}>Sources</div>
+                    <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                      {s.sources.length > 0 ? `${s.sources.length} source${s.sources.length > 1 ? "s" : ""} rattachée${s.sources.length > 1 ? "s" : ""}.` : "Aucune source rattachée à ce dossier."} Voir l’onglet « Sources ».
+                    </div>
                   </div>
                 </div>
               </div>

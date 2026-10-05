@@ -185,6 +185,11 @@ export interface SituationOptionView {
 export interface SituationDetailView extends SituationRowView {
   description: string;
   channelLabel?: string;
+  // responsibleLabel (mandat "Intégration /etat V5 + Corrections Produit"
+  // §6, bloc ACTEURS de l'onglet Synthèse) — même résolution que
+  // /app/etat/arbitrages (state.actors.find sur Situation.responsibleId) ;
+  // absent si aucun acteur n'est encore assigné, jamais inventé.
+  responsibleLabel?: string;
   nextStep: string;
   known: Array<{ label: string; detail: string }>;
   unknown: Array<{ label: string; detail: string }>;
@@ -220,11 +225,13 @@ export function getSituationDetail(rowId: number, state: ProductState = DEMO_STA
   const recommendation = situationRecommendation(state, situation);
   const maritime = resolveMaritimeContext(state, situation);
   const convergence = resolveFindingConvergence(state, situation);
+  const responsible = situation.responsibleId ? state.actors.find((item) => item.id === situation.responsibleId) : undefined;
 
   return {
     ...row,
     description: situation.description,
     channelLabel: firstSignalChannel,
+    responsibleLabel: responsible ? `${responsible.name} · ${responsible.role.replaceAll("_", " ")}` : undefined,
     nextStep: situation.nextStep,
     known: buildKnownItems(state, situation),
     unknown: buildUncertainties(state, situation),

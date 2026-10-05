@@ -4,6 +4,9 @@ import { ASKS_BY_PROG, DECISIONS_BY_PROG, MS_ST, PROGS } from "../../data/progra
 import { LVD, V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
 import { SITS } from "../../data/situations";
 import { TD, TERR } from "../../data/territories";
+// mandat "Intégration /etat V5 + Corrections Produit" §8 — synthèse
+// réelle en tête du détail programme, voir lib/programme-bridge.ts.
+import { getProgrammeSynthesis } from "../../lib/programme-bridge";
 import type { AppState } from "../../state";
 
 type Patch = (p: Partial<AppState>) => void;
@@ -28,6 +31,10 @@ export function ProgrammeDetail({
   const misaligned = realCount >= 2 && p.health !== "Critique";
   const decisions = DECISIONS_BY_PROG[p.id] ?? [];
   const asks = ASKS_BY_PROG[p.id] ?? [];
+  // §8 — écart majeur, décision attendue, décideur, échéance : uniquement
+  // s'ils existent réellement (lib/programme-bridge.ts), jamais déduits
+  // des gauges fixtures ci-dessous.
+  const synthesis = getProgrammeSynthesis(p.title);
 
   const gauges = [
     { k: "Avancement", v: p.progress + "%", sub: "déclaré", c: "#DE9C74", pct: p.progress },
@@ -52,6 +59,13 @@ export function ProgrammeDetail({
             </div>
             <h1 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 31, lineHeight: 1.15, margin: "0 0 11px", maxWidth: "30ch" }}>{p.title}</h1>
             <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: "rgba(247,243,233,.78)", maxWidth: "74ch" }}>{p.why}</p>
+            {/* §11/§12 du mandat — générateur documentaire réel. */}
+            <button
+              onClick={() => patch({ docOpen: { type: "programme", programmeId: p.id } })}
+              style={{ marginTop: 14, border: "1px solid rgba(247,243,233,.3)", background: "transparent", color: "#F7F3E9", cursor: "pointer", borderRadius: 4, padding: "8px 14px", fontSize: 12, fontFamily: "inherit", fontWeight: 500 }}
+            >
+              Générer un rapport de programme
+            </button>
           </div>
           <div style={{ flex: "none", width: 340, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             {gauges.map((g) => (
@@ -69,6 +83,39 @@ export function ProgrammeDetail({
           </div>
         </div>
       </div>
+
+      {/* §8 (correction P1 Détail programme) — écart majeur, décision
+          attendue, décideur et échéance, immédiatement en tête, avant les
+          onglets PROMESSE→EXÉCUTION→RÉSULTATS→ÉCARTS→DÉCISIONS ;
+          uniquement les champs réellement renseignés dans le domaine. */}
+      {synthesis.hasRealMatch && (synthesis.gapMajor || synthesis.decisionExpected) && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 24, padding: "14px 30px", background: "#F7F3E9", borderBottom: "1px solid rgba(11,26,42,.12)" }}>
+          {synthesis.gapMajor && (
+            <div style={{ flex: "1 1 240px" }}>
+              <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "#B6522F", marginBottom: 5 }}>Écart majeur</div>
+              <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>{synthesis.gapMajor}</div>
+            </div>
+          )}
+          {synthesis.decisionExpected && (
+            <div style={{ flex: "1 1 240px" }}>
+              <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 5 }}>Décision attendue</div>
+              <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>{synthesis.decisionExpected}</div>
+            </div>
+          )}
+          {synthesis.decisionMaker && (
+            <div style={{ flex: "none" }}>
+              <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 5 }}>Décideur</div>
+              <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>{synthesis.decisionMaker}</div>
+            </div>
+          )}
+          {synthesis.decisionExpected && (
+            <div style={{ flex: "none" }}>
+              <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 5 }}>Échéance</div>
+              <div style={{ fontSize: 12.5, lineHeight: 1.5, color: "rgba(11,26,42,.5)" }}>Non documentée dans le domaine à ce jour.</div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 0, borderBottom: "1px solid rgba(11,26,42,.12)", padding: "0 24px", background: "#FFFFFF", position: "sticky", top: 60, zIndex: 20, overflowX: "auto" }}>
         {TABS.map(([k, label]) => {

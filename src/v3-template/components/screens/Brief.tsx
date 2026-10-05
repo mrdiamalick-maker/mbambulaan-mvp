@@ -99,6 +99,23 @@ export function Brief({
           <p style={{ margin: 0, fontFamily: V3_FONT_SERIF, fontSize: 17.5, lineHeight: 1.55, color: "rgba(11,26,42,.78)", maxWidth: "60ch" }}>
             {P.synthesis}
           </p>
+          <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+            {/* §11/§12 du mandat — générateur documentaire réel. */}
+            <button
+              onClick={() => patch({ docOpen: { type: "synthese" } })}
+              style={{ border: "1px solid rgba(11,26,42,.22)", background: "transparent", color: "#0B1A2A", cursor: "pointer", borderRadius: 4, padding: "8px 14px", fontSize: 12, fontFamily: V3_FONT_SANS, fontWeight: 500 }}
+            >
+              Générer une note de synthèse
+            </button>
+            {/* §13 du mandat — mode présentation réel (narration, pas un
+                plein écran du tableau de bord). */}
+            <button
+              onClick={() => patch({ presentOpen: true })}
+              style={{ border: "1px solid #0B1A2A", background: "#0B1A2A", color: "#F7F3E9", cursor: "pointer", borderRadius: 4, padding: "8px 14px", fontSize: 12, fontFamily: V3_FONT_SANS, fontWeight: 500 }}
+            >
+              Mode présentation
+            </button>
+          </div>
         </div>
         <div style={{ flex: "none", width: 236, borderLeft: "2px solid #B6522F", padding: "2px 0 2px 16px" }}>
           <div style={{ fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 8 }}>

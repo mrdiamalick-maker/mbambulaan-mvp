@@ -3,6 +3,9 @@
 import { useMemo } from "react";
 import { IND, KINDC, PROGS, TERR_PERF } from "../../data/programmes";
 import { V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
+// mandat "Intégration /etat V5 + Corrections Produit" §9 — premier rang
+// ACTIVITÉ RÉALISÉE de la chaîne causale, voir lib/landing-bridge.ts.
+import { getNationalLandingTotals, formatKg } from "../../lib/landing-bridge";
 import type { AppState } from "../../state";
 
 type Patch = (p: Partial<AppState>) => void;
@@ -70,6 +73,8 @@ export function Resultats({ state, patch }: { state: AppState; patch: Patch }) {
   const evLabs = per === "12m"
     ? [{ i: 4, lab: "premiers relais mandatés" }, { i: 8, lab: "couverture 18 sites" }]
     : [{ i: Math.max(1, nPts - 8), lab: "mandat relais Cap-Vert" }, { i: nPts - 3, lab: "panne Joal" }];
+
+  const nationalActivity = getNationalLandingTotals();
 
   const chainCols = ["Résultat", "Changement", "Impact"].map((k) => {
     const items = IND.filter((i) => i.kind === k).map((i) => {
@@ -263,10 +268,34 @@ export function Resultats({ state, patch }: { state: AppState; patch: Patch }) {
 
       <div style={{ background: "#FFFFFF", border: "1px solid rgba(11,26,42,.12)" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, padding: "16px 20px 12px", borderBottom: "1px solid rgba(11,26,42,.09)" }}>
-          <div style={{ fontFamily: V3_FONT_SERIF, fontSize: 20, flex: 1 }}>Du résultat au changement, du changement à l’impact</div>
+          <div style={{ fontFamily: V3_FONT_SERIF, fontSize: 20, flex: 1 }}>De l’activité réalisée à l’impact</div>
           <div style={{ fontSize: 11, color: "rgba(11,26,42,.5)" }}>Mbàmbulaan ne présente jamais un résultat comme un impact</div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 1, background: "rgba(11,26,42,.1)" }}>
+        {/* §9 du mandat — premier rang ACTIVITÉ RÉALISÉE, toujours
+            factuel et jamais confondu avec un résultat opérationnel : ce
+            qui a été fait, pas ce que cela a produit. Donnée réelle
+            nationale (lib/landing-bridge.ts), pas une fixture. */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 1, background: "rgba(11,26,42,.1)" }}>
+          <div style={{ background: "#FFFFFF", padding: "17px 20px 20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 6 }}>
+              <span style={{ width: 18, height: 2, background: "#9FB9CE" }} />
+              <span style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#4A6478" }}>Activité réalisée</span>
+            </div>
+            <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.55)", marginBottom: 14, lineHeight: 1.45 }}>Ce qui a été fait et enregistré — pas encore ce que cela produit.</div>
+            <div style={{ padding: "10px 0", borderTop: "1px solid rgba(11,26,42,.07)" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                <div style={{ flex: 1, fontSize: 12.5, lineHeight: 1.45 }}>Débarquements enregistrés</div>
+                <div style={{ fontFamily: V3_FONT_MONO, fontSize: 12.5 }}>{nationalActivity.landingCount}</div>
+              </div>
+            </div>
+            <div style={{ padding: "10px 0", borderTop: "1px solid rgba(11,26,42,.07)" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                <div style={{ flex: 1, fontSize: 12.5, lineHeight: 1.45 }}>Volume débarqué</div>
+                <div style={{ fontFamily: V3_FONT_MONO, fontSize: 12.5 }}>{formatKg(nationalActivity.totalLandedKg)}</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 10.5, color: "rgba(11,26,42,.45)", marginTop: 10 }}>Total national enregistré à ce jour — non filtré par période.</div>
+          </div>
           {chainCols.map((col) => (
             <div key={col.k} style={{ background: "#FFFFFF", padding: "17px 20px 20px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 6 }}>
