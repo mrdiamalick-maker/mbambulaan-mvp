@@ -1,61 +1,34 @@
 import Link from "next/link";
-import { ArrowUpRight, MapPinned } from "lucide-react";
 
-const columns = [
-  {
-    title: "Explorer",
-    links: [["Découvrir", "/decouvrir"], ["Territoires", "/atlas"], ["Opportunités", "/opportunites"]]
-  },
-  {
-    // LOT 6 (mandat "Public — Comprendre, trouver, contribuer", §28) —
-    // "Signaler / corriger" existait déjà (accessible depuis l'Atlas,
-    // territoire par territoire) mais n'avait aucune porte d'entrée
-    // globale visible depuis le footer, contrairement à "Proposer une
-    // capacité". Complète les 3 types de contribution du mandat sans
-    // ajouter de nouveau formulaire (réutilise /contact?intent=correction,
-    // déjà câblé).
-    title: "Agir",
-    links: [["Décrire une situation", "/solutions"], ["Proposer une capacité", "/contact?intent=contribution"], ["Signaler une correction", "/contact?intent=correction"], ["Contact", "/contact"], ["Accès professionnel", "/connexion"]]
-  },
-  {
-    title: "Mbàmbulaan",
-    links: [["Notre approche", "/mbambulaan"], ["Confidentialité", "/confidentialite"], ["Mentions légales", "/mentions-legales"]]
-  }
-] as const;
-
+// PublicFooter — Public V2, iso-design depuis Mbambulaan_Public_V2.html.
 export function PublicFooter() {
   return (
-    <footer className="pub-hero border-t border-white/8 px-5 py-14 text-white md:px-10">
-      <div className="mx-auto grid max-w-[1500px] gap-10 lg:grid-cols-[1.5fr_.55fr_.55fr_.55fr]">
-        <div className="max-w-md">
-          <Link href="/" className="inline-flex items-center gap-2.5">
-            <span className="pub-display text-2xl italic leading-none text-[var(--pub-turquoise-400)]">M</span>
-            <span>
-              <strong className="brand-wordmark pub-display block text-lg not-italic">Mbàmbulaan</strong>
-              <span className="text-xs text-white/45">Économie maritime · terrain, réseau, technologie</span>
+    <footer style={{ background: "#0B1A2A", color: "rgba(247,243,233,.8)", borderTop: "1px solid rgba(247,243,233,.1)" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "56px clamp(20px,4vw,48px) 32px", display: "flex", flexDirection: "column", gap: 40 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 32 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 360 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ width: 36, height: 36, background: "#F7F3E9", display: "grid", placeItems: "center", fontFamily: "var(--font-newsreader), serif", fontStyle: "italic", fontSize: 22, color: "#B6522F" }}>M</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: "#F7F3E9" }}>Mbàmbulaan</span>
             </span>
-          </Link>
-          <p className="mt-5 text-sm leading-6 text-white/54">Mbàmbulaan relie territoires, situations et capacités pour mieux coordonner l’action, en commençant par la pêche artisanale sénégalaise.</p>
-          <Link href="/atlas" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[var(--pub-turquoise-300)]"><MapPinned size={15}/> Ouvrir l’Atlas</Link>
-          <p className="mt-5 text-[11px] leading-5 text-white/35">Les données de démonstration ou d’illustration sont identifiées comme telles et ne sont jamais présentées comme des données officielles.</p>
-        </div>
-        {columns.map((column) => (
-          <div key={column.title}>
-            <p className="text-[10px] font-black uppercase tracking-[.12em] text-white/32">{column.title}</p>
-            <div className="mt-4 space-y-3">
-              {column.links.map(([label, href]) => (
-                <Link key={href} href={href} className="flex items-center gap-1.5 text-sm font-semibold text-white/64 transition hover:text-[var(--pub-turquoise-300)]">
-                  {label}{label === "Accès professionnel" && <ArrowUpRight size={13}/>}
-                </Link>
-              ))}
-            </div>
+            <p style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontStyle: "italic", fontSize: 19, color: "#F7F3E9" }}>La mer reste porteuse d’avenir.</p>
           </div>
-        ))}
-      </div>
-      <div className="pub-tideline mx-auto mt-10 max-w-[1500px]" />
-      <div className="mx-auto mt-6 flex max-w-[1500px] flex-col gap-2 text-[11px] text-white/32 sm:flex-row sm:justify-between">
-        <span>© 2026 Mbàmbulaan Sénégal</span>
-        <span>Relier les territoires · qualifier les situations · mobiliser les capacités · coordonner l’action</span>
+          <nav aria-label="Pied de page" style={{ display: "flex", flexWrap: "wrap", gap: "12px 32px", fontSize: 15 }}>
+            <Link href="/decouvrir" style={{ color: "#F7F3E9", textDecoration: "none" }}>Découvrir</Link>
+            <Link href="/atlas" style={{ color: "#F7F3E9", textDecoration: "none" }}>Atlas</Link>
+            <Link href="/mbambulaan" style={{ color: "#F7F3E9", textDecoration: "none" }}>Mbàmbulaan</Link>
+            <Link href="/partager" style={{ color: "#F7F3E9", textDecoration: "none" }}>Partager une information</Link>
+            <Link href="/contact" style={{ color: "#F7F3E9", textDecoration: "none" }}>Contact</Link>
+            <Link href="/connexion" style={{ color: "rgba(247,243,233,.65)", textDecoration: "none" }}>Espace privé</Link>
+          </nav>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 12, paddingTop: 24, borderTop: "1px solid rgba(247,243,233,.12)", fontSize: 13, color: "rgba(247,243,233,.6)" }}>
+          <span>Initiative privée sénégalaise · conçue et développée par EPIC CONSEIL</span>
+          <span style={{ display: "flex", gap: 20 }}>
+            <Link href="/mentions-legales" style={{ color: "rgba(247,243,233,.6)", textDecoration: "none" }}>Mentions légales</Link>
+            <Link href="/confidentialite" style={{ color: "rgba(247,243,233,.6)", textDecoration: "none" }}>Confidentialité</Link>
+          </span>
+        </div>
       </div>
     </footer>
   );

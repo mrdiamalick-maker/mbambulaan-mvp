@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { Newsreader, Instrument_Sans } from "next/font/google";
 import { PwaRegistration } from "@/components/providers/PwaRegistration";
 import { PublicAnalyticsTracker } from "@/components/public/PublicAnalyticsTracker";
 import "./globals.css";
@@ -51,9 +52,18 @@ export const viewport: Viewport = {
   themeColor: "#0B1A2A"
 };
 
+// Public V2 (mandat "Relais exceptionnel Codex — Public V2 ISO design") —
+// Newsreader (titres) et Instrument Sans (texte courant) sont les deux
+// polices du HTML source Mbàmbulaan_Public_V2.html ; chargées ici une
+// seule fois pour tout le site public, exposées en variables CSS et
+// référencées directement par leur nom (fontFamily: 'var(--font-newsreader)…')
+// dans les composants Public V2, sans dépendre d'une classe utilitaire.
+const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-newsreader", style: ["normal", "italic"], display: "swap" });
+const instrumentSans = Instrument_Sans({ subsets: ["latin"], variable: "--font-instrument-sans", display: "swap" });
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" data-scroll-behavior="smooth">
+    <html lang="fr" data-scroll-behavior="smooth" className={`${newsreader.variable} ${instrumentSans.variable}`}>
       <body>
         <PwaRegistration />
         <PublicAnalyticsTracker />

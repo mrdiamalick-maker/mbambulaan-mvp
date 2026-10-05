@@ -1,78 +1,115 @@
-import Link from "next/link";
-import { ArrowUpRight, Compass, MapPinned, Menu } from "lucide-react";
+"use client";
 
-const links = [
+// PublicHeader — Public V2, iso-design depuis Mbambulaan_Public_V2.html
+// (Claude Design, autorité visuelle unique). Remplace entièrement la
+// composition V1 (nav Découvrir/Territoires/Opportunités/Mbàmbulaan,
+// fond sombre/clair variable) : nav Découvrir/Atlas/Mbàmbulaan/Contact,
+// toujours blanc, sticky, CTA "Partager une information" + lien "Espace
+// privé". `dark` reste accepté (12 appelants) mais n'a plus d'effet —
+// le header V2 est toujours blanc, jamais de variante sombre.
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const NAV = [
   { href: "/decouvrir", label: "Découvrir" },
-  { href: "/atlas", label: "Territoires" },
-  { href: "/opportunites", label: "Opportunités" },
-  { href: "/mbambulaan", label: "Mbàmbulaan" }
+  { href: "/atlas", label: "Atlas" },
+  { href: "/mbambulaan", label: "Mbàmbulaan" },
+  { href: "/contact", label: "Contact" }
 ];
 
-export function PublicHeader({ dark = false }: { dark?: boolean }) {
-  const textClass = dark ? "text-white" : "text-[var(--pub-deep-900)]";
-  const subtleClass = dark ? "text-white/62" : "text-[var(--pub-stone-500)]";
+function isCurrent(pathname: string, href: string) {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature kept for the 12 existing callers; V2 header is always white
+export function PublicHeader(_props: { dark?: boolean }) {
+  const pathname = usePathname();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Fermer le tiroir mobile à chaque changement de route (même discipline
+  // que Gallery.tsx : jamais un tiroir qui reste ouvert après navigation).
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setDrawerOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [drawerOpen]);
 
   return (
-    <header className={`relative z-30 border-b ${dark ? "border-white/10 bg-[var(--pub-deep-900)]/85" : "border-[var(--pub-stone-150)] bg-[var(--pub-ivory-100)]/92"} ${textClass} backdrop-blur-xl`}>
-      <div className="mx-auto flex min-h-[76px] max-w-[1500px] items-center justify-between gap-4 px-5 md:px-10">
-        <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label="Mbàmbulaan, accueil">
-          <span className="pub-display text-[1.55rem] italic leading-none text-[var(--pub-turquoise-400)]">M</span>
-          <span className="min-w-0">
-            <strong className="brand-wordmark block truncate pub-display text-[1.08rem] not-italic tracking-[-.01em]">Mbàmbulaan</strong>
-            <span className={`hidden text-[10px] font-semibold uppercase tracking-[.12em] sm:block ${subtleClass}`}>
-              Terrain · réseau · technologie
-            </span>
+    <header style={{ position: "sticky", top: 0, zIndex: 60, background: "#fff", borderBottom: "1px solid rgba(11,26,42,.1)" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 clamp(20px,4vw,48px)", height: 72, display: "flex", alignItems: "center", gap: 20 }}>
+        <Link href="/" aria-label="Mbàmbulaan — accueil" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#0B1A2A", flex: "none" }}>
+          <span style={{ width: 38, height: 38, background: "#0B1A2A", display: "grid", placeItems: "center", fontFamily: "var(--font-newsreader), serif", fontStyle: "italic", fontSize: 24, color: "#E8A07F", lineHeight: 1 }}>M</span>
+          <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+            <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-.01em" }}>Mbàmbulaan</span>
+            <span style={{ fontSize: 11.5, fontWeight: 500, color: "#4C5566", marginTop: 2 }}>Économie maritime · Sénégal</span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-7 text-[13px] font-semibold xl:flex" aria-label="Navigation publique">
-          {links.map((link) => (
-            <Link key={link.href} href={link.href} className={`group relative py-2 transition ${subtleClass} ${dark ? "hover:text-white" : "hover:text-[var(--pub-deep-900)]"}`}>
-              {link.label}
-              <span className="absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-[var(--pub-turquoise-400)] transition-transform duration-300 group-hover:scale-x-100" />
-            </Link>
-          ))}
+        <nav aria-label="Navigation principale" className="pv2-nav-wide" style={{ alignItems: "center", gap: 2, marginLeft: "auto", height: "100%" }}>
+          {NAV.map((item) => {
+            const current = isCurrent(pathname, item.href);
+            return (
+              <Link key={item.href} href={item.href} aria-current={current ? "page" : undefined} style={{ position: "relative", display: "flex", alignItems: "center", height: "100%", padding: "0 16px", fontSize: 15, fontWeight: 600, textDecoration: "none", color: current ? "#0B1A2A" : "#3A4556" }} className="pv2-nav-link">
+                {item.label}
+                <span style={{ position: "absolute", left: 16, right: 16, bottom: -1, height: 3, background: "#B6522F", opacity: current ? 1 : 0 }} />
+              </Link>
+            );
+          })}
         </nav>
-
-        <div className="flex shrink-0 items-center gap-2">
-          <Link href="/atlas" className={`hidden min-h-10 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-bold lg:inline-flex ${dark ? "border-white/16 text-white hover:bg-white/8" : "border-[var(--pub-stone-300)] text-[var(--pub-deep-800)] hover:bg-white"}`}>
-            <MapPinned size={15} /> Ouvrir l’Atlas
-          </Link>
-          <Link href="/solutions" className="pub-btn pub-btn-primary hidden sm:inline-flex">
-            <Compass size={15} /> Décrire une situation
-          </Link>
-
-          <details className="group relative xl:hidden">
-            <summary className={`grid size-10 cursor-pointer list-none place-items-center rounded-full border [&::-webkit-details-marker]:hidden ${dark ? "border-white/16 text-white" : "border-[var(--pub-stone-300)] text-[var(--pub-deep-800)]"}`} aria-label="Ouvrir le menu">
-              <Menu size={18} />
-            </summary>
-            <div className="absolute right-0 top-12 z-50 w-[290px] overflow-hidden rounded-2xl border border-[var(--pub-stone-150)] bg-white p-2 text-[var(--pub-deep-900)] shadow-2xl">
-              <nav aria-label="Navigation publique mobile">
-                {links.map((link) => (
-                  <Link key={link.href} href={link.href} className="block rounded-xl px-4 py-3 text-sm font-bold hover:bg-[var(--pub-ivory-200)]">
-                    {link.label}
-                  </Link>
-                ))}
-                <Link href="/atlas" className="mt-1 flex items-center gap-2 rounded-xl bg-[var(--pub-ivory-200)] px-4 py-3 text-sm font-bold text-[var(--pub-deep-800)]">
-                  <MapPinned size={16} /> Ouvrir l’Atlas
-                </Link>
-                <Link href="/solutions" className="mt-1 flex items-center gap-2 rounded-xl bg-[var(--pub-deep-800)] px-4 py-3 text-sm font-bold text-white">
-                  <Compass size={16} /> Décrire une situation
-                </Link>
-                <Link href="/contact" className="mt-1 block rounded-xl px-4 py-3 text-sm font-bold text-[var(--pub-deep-800)]">Contact</Link>
-                <Link href="/connexion" className="block rounded-xl px-4 py-3 text-sm font-semibold text-[var(--pub-stone-500)]">Accès professionnel</Link>
-              </nav>
-            </div>
-          </details>
-
-          <Link
-            href="/connexion"
-            className={`hidden min-h-10 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold uppercase tracking-[.06em] transition lg:inline-flex ${dark ? "text-white/58 hover:text-white" : "text-[var(--pub-stone-500)] hover:text-[var(--pub-deep-900)]"}`}
-          >
-            Accès pro <ArrowUpRight size={13} />
-          </Link>
+        <div className="pv2-nav-wide" style={{ alignItems: "center", gap: 18, marginLeft: 16 }}>
+          <Link href="/connexion" style={{ fontSize: 13.5, fontWeight: 500, color: "#4C5566", textDecoration: "none" }} className="pv2-link-hover">Espace privé</Link>
+          <Link href="/partager" style={{ display: "inline-flex", alignItems: "center", minHeight: 42, padding: "0 18px", background: "#0B1A2A", fontSize: 14, fontWeight: 600, textDecoration: "none", color: "#fff", borderRadius: 2 }} className="pv2-cta-hover">Partager une information</Link>
         </div>
+
+        <button
+          onClick={() => setDrawerOpen((open) => !open)}
+          aria-label="Menu"
+          aria-expanded={drawerOpen}
+          className="pv2-burger"
+          style={{ marginLeft: "auto", width: 48, height: 48, display: "grid", placeItems: "center", background: "transparent", border: "1px solid rgba(11,26,42,.25)", borderRadius: 2, cursor: "pointer", flex: "none" }}
+        >
+          <span style={{ display: "flex", flexDirection: "column", gap: 5, width: 18 }}>
+            <span style={{ height: 1.5, background: "#0B1A2A", display: "block", transform: drawerOpen ? "translateY(6.5px) rotate(45deg)" : "none", transition: "transform .25s" }} />
+            <span style={{ height: 1.5, background: "#0B1A2A", display: "block", opacity: drawerOpen ? 0 : 1 }} />
+            <span style={{ height: 1.5, background: "#0B1A2A", display: "block", transform: drawerOpen ? "translateY(-6.5px) rotate(-45deg)" : "none", transition: "transform .25s" }} />
+          </span>
+        </button>
       </div>
+
+      {drawerOpen && (
+        <div role="dialog" aria-label="Menu" style={{ position: "fixed", inset: "72px 0 0 0", zIndex: 59, background: "#0B1A2A", color: "#F7F3E9", overflowY: "auto", padding: "16px clamp(20px,5vw,48px) 40px", display: "flex", flexDirection: "column", gap: 28 }}>
+          <nav style={{ display: "flex", flexDirection: "column" }}>
+            {NAV.map((item) => (
+              <Link key={item.href} href={item.href} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "16px 0", borderBottom: "1px solid rgba(247,243,233,.14)", fontFamily: "var(--font-newsreader), serif", fontSize: 32, textDecoration: "none", color: "#F7F3E9" }}>
+                {item.label}<span style={{ font: "400 15px var(--font-instrument-sans), sans-serif", color: "#E8A07F" }}>→</span>
+              </Link>
+            ))}
+          </nav>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <Link href="/partager" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 52, background: "#B6522F", color: "#fff", fontWeight: 600, textDecoration: "none", borderRadius: 2 }}>Partager une information</Link>
+            <Link href="/connexion" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 48, color: "rgba(247,243,233,.8)", fontWeight: 500, textDecoration: "none" }}>Espace privé →</Link>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .pv2-nav-wide { display: none; }
+        .pv2-burger { display: grid; }
+        @media (min-width: 1000px) {
+          .pv2-nav-wide { display: flex; }
+          .pv2-burger { display: none; }
+        }
+        .pv2-nav-link:hover, .pv2-link-hover:hover { color: #9E431F; }
+        .pv2-cta-hover:hover { background: #B6522F; }
+      `}</style>
     </header>
   );
 }
