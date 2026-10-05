@@ -23,8 +23,6 @@ export async function POST(request: NextRequest) {
   }
 
   const description = typeof body.description === "string" ? body.description.trim() : "";
-  const contactName = typeof body.contactName === "string" ? body.contactName.trim() : "";
-  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
   const intent = typeof body.intent === "string" ? body.intent : "";
   const actorType = typeof body.actorType === "string" ? body.actorType : "";
   const preferredChannel = typeof body.preferredChannel === "string" ? body.preferredChannel : "";
@@ -32,15 +30,33 @@ export async function POST(request: NextRequest) {
   const consent = body.consent === true;
 
   if (!description || description.length < 8) return badRequest("Merci de décrire votre besoin (au moins quelques mots).");
-  if (!contactName) return badRequest("Le nom est requis.");
-  if (!phone || phone.replace(/[^0-9+]/g, "").length < 8) return badRequest("Un numéro de téléphone valide est requis.");
   if (!intent) return badRequest("L’intention est requise.");
   if (!actorType) return badRequest("Le type d’acteur est requis.");
   if (!VALID_CHANNELS.has(preferredChannel)) return badRequest("Le canal préféré est requis.");
   if (!consent) return badRequest("Le consentement est requis pour traiter la demande.");
 
-  const email = typeof body.email === "string" && body.email.trim() ? body.email.trim() : undefined;
-  if (email && !/^\S+@\S+\.\S+$/.test(email)) return badRequest("L’adresse e-mail n’est pas valide.");
+  // Partager une information (Public V2) permet de rester anonyme : dans
+  // ce cas, le serveur ignore toute coordonnée qui aurait pu transiter
+  // depuis le client plutôt que de lui faire confiance — la promesse
+  // « vos coordonnées ne sont jamais publiées » doit tenir même en cas de
+  // bug côté formulaire.
+  const anonymous = body.anonymous === true;
+  let contactName = typeof body.contactName === "string" ? body.contactName.trim() : "";
+  let phone = typeof body.phone === "string" ? body.phone.trim() : "";
+  let email = typeof body.email === "string" && body.email.trim() ? body.email.trim() : undefined;
+
+  if (anonymous) {
+    contactName = "Anonyme";
+    phone = "";
+    email = undefined;
+  } else {
+    if (!contactName) return badRequest("Le nom est requis.");
+    const hasValidPhone = phone.replace(/[^0-9+]/g, "").length >= 8;
+    const hasValidEmail = !!email && /^\S+@\S+\.\S+$/.test(email);
+    if (phone && !hasValidPhone) return badRequest("Le numéro de téléphone n’est pas valide.");
+    if (email && !hasValidEmail) return badRequest("L’adresse e-mail n’est pas valide.");
+    if (!hasValidPhone && !hasValidEmail) return badRequest("Merci d’indiquer un téléphone ou un e-mail valide.");
+  }
 
   const input: PublicRequestInput = {
     source: source as PublicRequestInput["source"],

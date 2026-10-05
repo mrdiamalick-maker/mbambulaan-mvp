@@ -1,181 +1,246 @@
+"use client";
+
+// Contact — Public V2, écran "08 Contact". Remplace entièrement le
+// sélecteur V1 (Agir/Construire avec Mbàmbulaan/Échanger + bloc omnicanal)
+// par le sélecteur de profil à 6 entrées du HTML, avec champs conditionnels
+// selon le profil choisi. Branché sur le même backend réel que /partager
+// (/api/public/requests) ; le profil "signaler" ne soumet rien ici, il
+// redirige vers le formulaire dédié.
+import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import type { Metadata } from "next";
-import {
-  ArrowRight,
-  Building2,
-  Handshake,
-  Mail,
-  MessageCircle,
-  Newspaper,
-  PhoneCall,
-  Search,
-  UsersRound
-} from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
-import { PublicSectionHero } from "@/components/public/PublicSectionHero";
-import { ContactRequestForm } from "@/components/public/ContactRequestForm";
-import { ContributionForm } from "@/components/public/ContributionForm";
-import { EventOnMount } from "@/components/public/EventOnMount";
-import type { PublicRequestIntent } from "@/domain/public/request";
-import type { PublicAnalyticsEvent } from "@/domain/public/analytics";
+import { CONTACT_FIELDS, CONTACT_MSG_LABEL, CONTACT_PROFILES, TERRITORIES, type ContactProfileKey } from "@/data/public-v2-content";
+import type { PublicRequestActorType, PublicRequestIntent } from "@/domain/public/request";
 
-export const metadata: Metadata = {
-  title: "Contact | Mbàmbulaan",
-  description: "Besoin, capacité à proposer, organisation, partenariat ou demande presse : Mbàmbulaan oriente votre demande vers le bon parcours.",
-  alternates: { canonical: "/contact" }
+const PROFILE_INTENT: Record<ContactProfileKey, PublicRequestIntent> = {
+  pro: "autre",
+  organisation: "organisation",
+  signaler: "autre",
+  collaboration: "partenariat",
+  info: "programme",
+  autre: "autre"
+};
+const PROFILE_ACTOR: Record<ContactProfileKey, PublicRequestActorType> = {
+  pro: "particulier",
+  organisation: "institution",
+  signaler: "particulier",
+  collaboration: "organisation_professionnelle",
+  info: "particulier",
+  autre: "autre"
 };
 
-// PUB-C1 (audit Premium XXL Public, CEO 2026-08-16) : les 6 intentions
-// regroupées par logique plutôt que 6 cards identiques — Agir / Construire
-// avec Mbàmbulaan / Échanger, exactement le regroupement de l'audit.
-const contactGroups = [
-  {
-    label: "Agir",
-    items: [
-      { title: "J’ai un besoin", text: "Transport, froid, équipement, formation, sourcing, financement ou autre besoin à qualifier.", icon: Search, href: "/solutions" },
-      { title: "Je propose mes services", text: "Faites connaître vos capacités, vos territoires d’intervention et vos conditions à Mbàmbulaan.", icon: UsersRound, href: "/contact?intent=contribution" }
-    ]
-  },
-  {
-    label: "Construire avec Mbàmbulaan",
-    items: [
-      { title: "Je représente une organisation", text: "Entreprise, ONG, programme ou institution : étudions une intervention, un partenariat ou un déploiement.", icon: Building2, href: "/contact?intent=organisation" },
-      { title: "Je souhaite devenir partenaire", text: "Proposer une collaboration structurée avec Mbàmbulaan, sur un territoire, un programme ou une capacité.", icon: Handshake, href: "/contact?intent=partenariat" }
-    ]
-  },
-  {
-    label: "Échanger",
-    items: [
-      { title: "Presse, recherche ou information", text: "Demande d’information, échange éditorial, recherche, données publiques ou prise de contact institutionnelle.", icon: Newspaper, href: "/contact?intent=presse" },
-      { title: "Autre demande", text: "Vous ne savez pas quelle entrée choisir ? Décrivez simplement votre besoin à Mbàmbulaan.", icon: MessageCircle, href: "/contact?intent=autre" }
-    ]
-  }
-] as const;
-
-const formConfigs: Partial<Record<string, { intent: PublicRequestIntent; title: string; description: string; category?: string; descriptionLabel?: string; descriptionPlaceholder?: string; descriptionRequired?: boolean; analyticsEvent?: PublicAnalyticsEvent }>> = {
-  organisation: { intent: "organisation", title: "Je représente une organisation", description: "Entreprise, ONG, programme ou institution : décrivez votre contexte pour étudier une intervention, un partenariat ou un déploiement." },
-  partenariat: { intent: "partenariat", title: "Devenir partenaire", description: "Proposez une collaboration structurée avec Mbàmbulaan, sur un territoire, un programme ou une capacité.", analyticsEvent: "partnership_submission" },
-  presse: { intent: "presse", title: "Presse, recherche ou information", description: "Demande d’information, échange éditorial, recherche ou prise de contact institutionnelle.", descriptionLabel: "Votre demande" },
-  information: { intent: "presse", title: "Presse, recherche ou information", description: "Demande d’information, échange éditorial, recherche ou prise de contact institutionnelle.", descriptionLabel: "Votre demande" },
-  autre: { intent: "autre", title: "Autre demande", description: "Décrivez simplement votre besoin ou votre question. Mbàmbulaan vous oriente ensuite." },
-  programme: { intent: "programme", title: "Étudier une intervention", description: "Territoire, bénéficiaires, partenaires, déploiement terrain : Mbàmbulaan peut organiser le cadrage d’un projet ou d’un programme." },
-  callback: { intent: "callback", title: "Être rappelé", description: "Laissez vos coordonnées, un membre de l’équipe Mbàmbulaan vous rappelle.", descriptionLabel: "Précisez si besoin (optionnel)", descriptionRequired: false, analyticsEvent: "callback_requested" },
-  correction: { intent: "autre", category: "Correction Atlas", title: "Signaler une information ou proposer une correction", description: "Vos contributions sont examinées par Mbàmbulaan avant toute mise à jour publique de l’Atlas.", descriptionLabel: "Votre signalement", analyticsEvent: "atlas_correction" }
-};
-
-type SearchParams = Record<string, string | string[] | undefined>;
-
-function first(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
+export default function ContactPage() {
+  return (
+    <Suspense fallback={null}>
+      <ContactForm />
+    </Suspense>
+  );
 }
 
-export default async function ContactPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const params = await searchParams;
-  const intentParam = first(params.intent);
-  const source = first(params.source) ?? "contact";
-  const territory = first(params.territory);
-  const opportunity = first(params.opportunity);
+function ContactForm() {
+  const searchParams = useSearchParams();
+  const initial = (searchParams.get("profil") as ContactProfileKey | null) ?? null;
 
-  if (intentParam === "solution") {
-    redirect(`/solutions${territory ? `?territory=${encodeURIComponent(territory)}` : ""}`);
+  const [profile, setProfile] = useState<ContactProfileKey | null>(initial);
+  const [metier, setMetier] = useState("");
+  const [terr, setTerr] = useState("");
+  const [org, setOrg] = useState("");
+  const [orgType, setOrgType] = useState("");
+  const [fonction, setFonction] = useState("");
+  const [collab, setCollab] = useState("");
+  const [sujet, setSujet] = useState("");
+  const [nom, setNom] = useState("");
+  const [email, setEmail] = useState("");
+  const [tel, setTel] = useState("");
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [reference, setReference] = useState<string | null>(null);
+
+  const fields = profile ? CONTACT_FIELDS[profile] : [];
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!profile) return;
+    const hasPhone = tel.replace(/[^0-9+]/g, "").length >= 8;
+    const hasEmail = /^\S+@\S+\.\S+$/.test(email);
+    if (!nom.trim() || (!hasPhone && !hasEmail) || msg.trim().length < 3) {
+      setError(true);
+      return;
+    }
+    setError(false);
+    setPending(true);
+    try {
+      const response = await fetch("/api/public/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "web",
+          intent: PROFILE_INTENT[profile],
+          category: CONTACT_PROFILES.find(([k]) => k === profile)?.[1],
+          territory: terr === "autre" ? undefined : terr || undefined,
+          description: msg.trim(),
+          actorType: PROFILE_ACTOR[profile],
+          organization: org.trim() || undefined,
+          contactName: nom.trim(),
+          phone: tel.trim(),
+          email: email.trim() || undefined,
+          preferredChannel: hasPhone ? "whatsapp" : "email",
+          consent: true,
+          context: { page: "contact", profile, metier: metier || undefined, orgType: orgType || undefined, fonction: fonction.trim() || undefined, collab: collab || undefined, sujet: sujet || undefined }
+        })
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        setError(true);
+        return;
+      }
+      setReference(payload.reference);
+    } catch {
+      setError(true);
+    } finally {
+      setPending(false);
+    }
   }
 
-  const config = intentParam === "contribution" ? undefined : intentParam ? formConfigs[intentParam] : undefined;
+  function reset() {
+    setProfile(null);
+    setMetier(""); setTerr(""); setOrg(""); setOrgType(""); setFonction(""); setCollab(""); setSujet("");
+    setNom(""); setEmail(""); setTel(""); setMsg(""); setError(false); setReference(null);
+  }
 
   return (
-    <main className="pub-scope min-h-screen">
-      <PublicHeader dark />
-      <PublicSectionHero
-        eyebrow="Contact"
-        title={<>Comment pouvons-nous <span className="text-[var(--pub-turquoise-300)]">vous aider ?</span></>}
-        description="Choisissez l’intention qui correspond le mieux à votre situation. Mbàmbulaan oriente ensuite la demande vers le bon parcours, sans vous imposer un formulaire générique."
-      />
+    <main style={{ fontFamily: "var(--font-instrument-sans), system-ui, sans-serif", color: "#1E2A38", background: "#fff" }}>
+      <PublicHeader />
 
-      <section className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-20">
-        {intentParam === "contribution" ? (
-          <div className="mx-auto max-w-3xl">
-            <EventOnMount event="contact_started" properties={{ intent: "contribution" }} />
-            <p className="pub-eyebrow">Proposer mes services</p>
-            <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Faites connaître votre capacité à Mbàmbulaan.</h2>
-            <p className="mt-4 text-sm leading-6 text-[var(--pub-stone-700)]">Entreprise, transporteur, transformateur, ONG, expert ou organisation : cette entrée alimente le réseau Mbàmbulaan, jamais un annuaire public.</p>
-            <div className="mt-8"><ContributionForm /></div>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(40px,5vw,72px) clamp(20px,4vw,48px) clamp(56px,7vw,96px)", display: "flex", flexWrap: "wrap", gap: "clamp(32px,5vw,80px)", alignItems: "flex-start" }}>
+        <aside style={{ flex: "1 1 300px", display: "flex", flexDirection: "column", gap: 20 }}>
+          <h1 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontWeight: 400, fontSize: "clamp(40px,4.8vw,64px)", lineHeight: 1, letterSpacing: "-.02em" }}>Nous contacter</h1>
+          <p style={{ margin: 0, fontSize: 17.5, lineHeight: 1.6, color: "#3A4556" }}>Dites-nous qui vous êtes : votre message sera orienté vers la bonne personne.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 18, borderTop: "1px solid rgba(11,26,42,.15)", fontSize: 15, color: "#3A4556" }}>
+            <a href="mailto:contact@mbambulaan.sn" style={{ fontWeight: 600, textDecoration: "none", color: "#3A4556" }}>contact@mbambulaan.sn</a>
+            <span>Dakar, Sénégal</span>
           </div>
-        ) : config ? (
-          <div className="mx-auto max-w-3xl">
-            <EventOnMount event="contact_started" properties={{ intent: config.intent, category: config.category }} />
-            <p className="pub-eyebrow">Contact</p>
-            <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">{config.title}</h2>
-            <p className="mt-4 text-sm leading-6 text-[var(--pub-stone-700)]">{config.description}</p>
-            <div className="mt-8">
-              <ContactRequestForm
-                intent={config.intent}
-                category={config.category}
-                descriptionLabel={config.descriptionLabel}
-                descriptionPlaceholder={config.descriptionPlaceholder}
-                descriptionRequired={config.descriptionRequired}
-                source={source}
-                context={{ page: "contact", territory, opportunity }}
-                analyticsEvent={config.analyticsEvent}
-              />
+        </aside>
+
+        <div style={{ flex: "2 1 520px", display: "flex", flexDirection: "column", gap: 32, minWidth: 0 }}>
+          {reference ? (
+            <div style={{ background: "#F7F3E9", padding: "clamp(24px,4vw,48px)", display: "flex", flexDirection: "column", gap: 18 }}>
+              <span style={{ width: 52, height: 52, borderRadius: "50%", background: "#0B1A2A", color: "#E8A07F", display: "grid", placeItems: "center", fontSize: 22 }}>✓</span>
+              <h2 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontWeight: 400, fontSize: "clamp(30px,3.4vw,42px)", lineHeight: 1.1 }}>Merci, votre message est bien parti.</h2>
+              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.6, color: "#3A4556" }}>Nous vous répondrons dans les meilleurs délais. Référence : <strong style={{ color: "#0B1A2A" }}>{reference}</strong></p>
+              <button type="button" onClick={reset} style={{ alignSelf: "flex-start", minHeight: 48, padding: "0 20px", background: "#0B1A2A", color: "#fff", border: 0, borderRadius: 2, font: "600 15px var(--font-instrument-sans), sans-serif", cursor: "pointer" }}>Nouveau message</button>
             </div>
-          </div>
-        ) : (
-          <>
-            {/* PUB-C1 : sélecteur de parcours groupé (Agir / Construire avec
-                Mbàmbulaan / Échanger) plutôt que 6 cards identiques — chaque
-                groupe est un panneau blanc avec ses 2 lignes séparées par
-                une bordure légère, même geste que ChoiceList sur
-                SolutionWizard (PUB-S1). */}
-            <div className="grid gap-8 md:grid-cols-3">
-              {contactGroups.map((group) => (
-                <div key={group.label}>
-                  <p className="pub-eyebrow">{group.label}</p>
-                  <div className="mt-4 divide-y divide-[var(--pub-stone-150)] rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-surface)]">
-                    {group.items.map(({ title, text, icon: Icon, href }) => (
-                      <Link key={title} href={href} className="flex items-center gap-3 p-4 transition hover:bg-[var(--pub-ivory-100)]">
-                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--pub-ivory-200)] text-[var(--pub-deep-800)]"><Icon size={16} /></span>
-                        <span className="min-w-0 flex-1">
-                          <strong className="block text-sm font-bold text-[var(--pub-deep-900)]">{title}</strong>
-                          <span className="mt-0.5 block text-xs leading-5 text-[var(--pub-stone-500)]">{text}</span>
+          ) : (
+            <>
+              <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+                <legend style={{ padding: 0, marginBottom: 14, fontWeight: 600, fontSize: 15 }}>Vous êtes…</legend>
+                <div style={{ display: "flex", flexDirection: "column", borderTop: "1px solid rgba(11,26,42,.14)" }}>
+                  {CONTACT_PROFILES.map(([key, label, hint]) => {
+                    const active = profile === key;
+                    return (
+                      <button key={key} type="button" onClick={() => setProfile(key)} aria-pressed={active} style={{ display: "flex", alignItems: "center", gap: 16, minHeight: 64, padding: "12px 16px", background: active ? "#F7F3E9" : "transparent", color: "#0B1A2A", border: 0, borderBottom: "1px solid rgba(11,26,42,.14)", textAlign: "left", cursor: "pointer", font: "inherit" }}>
+                        <span style={{ flex: "none", width: 18, height: 18, borderRadius: "50%", border: `1.5px solid ${active ? "#B6522F" : "rgba(11,26,42,.4)"}`, display: "grid", placeItems: "center" }}>
+                          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#B6522F", opacity: active ? 1 : 0 }} />
                         </span>
-                        <ArrowRight size={13} className="shrink-0 text-[var(--pub-stone-300)]" />
-                      </Link>
-                    ))}
-                  </div>
+                        <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          <span style={{ fontFamily: "var(--font-newsreader), serif", fontSize: 22, lineHeight: 1.2 }}>{label}</span>
+                          {hint && <span style={{ fontSize: 14, opacity: 0.75 }}>{hint}</span>}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              </fieldset>
 
-            {/* PUB-C2 : bloc omnicanal conservé tel quel (structure). PUB-C3 :
-                #031a22 (couleur legacy hors palette --pub-*) → --pub-deep-900. */}
-            <section className="mt-12 overflow-hidden rounded-[28px] bg-[var(--pub-deep-900)] text-white shadow-2xl">
-              <div className="grid gap-0 lg:grid-cols-[1.1fr_.9fr]">
-                <div className="p-6 md:p-10">
-                  <p className="text-xs font-black uppercase tracking-[.14em] text-[var(--pub-turquoise-300)]">Parler à Mbàmbulaan</p>
-                  <h2 className="mt-4 text-3xl font-[740] tracking-[-.04em] md:text-4xl">Le bon canal dépend du contexte.</h2>
-                  <p className="mt-4 max-w-2xl text-sm leading-7 text-white/64">WhatsApp, téléphone et email sont des canaux d’entrée vers Mbàmbulaan. Ils ne remplacent pas la qualification : ils facilitent la relation lorsque le web n’est pas le canal le plus naturel.</p>
+              {profile === "signaler" && (
+                <div style={{ background: "#F7F3E9", padding: 28, display: "flex", flexDirection: "column", gap: 14 }}>
+                  <p style={{ margin: 0, fontSize: 17, lineHeight: 1.55 }}>Pour signaler une situation, utilisez le formulaire dédié : il vous guide en quelques étapes simples.</p>
+                  <Link href="/partager" style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", minHeight: 50, padding: "0 24px", background: "#B6522F", color: "#fff", fontWeight: 600, fontSize: 15, textDecoration: "none", borderRadius: 2 }}>Partager une information →</Link>
                 </div>
-                <div className="grid border-t border-white/10 sm:grid-cols-3 lg:border-l lg:border-t-0 lg:grid-cols-1">
-                  {/* Checkpoint D : pas de numéro WhatsApp réel exploitable
-                      publiquement à ce stade — un lien wa.me vers un numéro
-                      fictif simulerait un canal actif qui ne répondrait
-                      jamais. Oriente vers le même formulaire honnête que
-                      "Être rappelé" (canal préféré déjà pré-sélectionné sur
-                      WhatsApp par défaut, ContactRequestForm), jamais une
-                      fausse transmission. */}
-                  <Link href="/contact?intent=callback" data-analytics="whatsapp_clicked" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><MessageCircle size={18} className="text-[var(--pub-turquoise-300)]" /> WhatsApp</Link>
-                  <Link href="/contact?intent=callback" className="flex items-center gap-3 border-b border-white/10 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><PhoneCall size={18} className="text-[var(--pub-turquoise-300)]" /> Être rappelé</Link>
-                  <a href="mailto:contact@mbambulaan.sn" className="flex items-center gap-3 p-5 text-sm font-bold text-white/82 transition hover:bg-white/[.04]"><Mail size={18} className="text-[var(--pub-turquoise-300)]" /> Email</a>
-                </div>
-              </div>
-            </section>
-          </>
-        )}
-      </section>
+              )}
+
+              {profile && profile !== "signaler" && (
+                <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 18, background: "#F7F3E9", padding: "clamp(22px,3vw,36px)" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,220px),1fr))", gap: 16 }}>
+                    {fields.includes("metier") && (
+                      <label style={{ display: "flex", flexDirection: "column", gap: 8, fontWeight: 600, fontSize: 15 }}>Votre métier
+                        <select value={metier} onChange={(e) => setMetier(e.target.value)} style={{ minHeight: 50, padding: "0 12px", border: "1px solid rgba(11,26,42,.3)", borderRadius: 2, background: "#fff", font: "400 16px var(--font-instrument-sans), sans-serif" }}>
+                          <option value="">—</option>
+                          <option>Pêcheur</option><option>Mareyeur·se</option><option>Transformatrice·teur</option><option>Commerçant·e</option><option>Propriétaire de pirogue</option><option>Autre métier</option>
+                        </select>
+                      </label>
+                    )}
+                    {fields.includes("terr") && (
+                      <label style={{ display: "flex", flexDirection: "column", gap: 8, fontWeight: 600, fontSize: 15 }}>Territoire
+                        <select value={terr} onChange={(e) => setTerr(e.target.value)} style={{ minHeight: 50, padding: "0 12px", border: "1px solid rgba(11,26,42,.3)", borderRadius: 2, background: "#fff", font: "400 16px var(--font-instrument-sans), sans-serif" }}>
+                          <option value="">—</option>
+                          {TERRITORIES.map((t) => <option key={t.slug} value={t.slug}>{t.name}</option>)}
+                          <option value="autre">Autre</option>
+                        </select>
+                      </label>
+                    )}
+                    {fields.includes("org") && (
+                      <label style={{ display: "flex", flexDirection: "column", gap: 8, fontWeight: 600, fontSize: 15 }}>Organisation
+                        <input value={org} onChange={(e) => setOrg(e.target.value)} style={{ minHeight: 50, padding: "0 14px", border: "1px solid rgba(11,26,42,.3)", borderRadius: 2, font: "400 16px var(--font-instrument-sans), sans-serif" }} />
+                      </label>
+                    )}
+                    {fields.includes("orgType") && (
+                      <label style={{ display: "flex", flexDirection: "column", gap: 8, fontWeight: 600, fontSize: 15 }}>Type d’organisation
+                        <select value={orgType} onChange={(e) => setOrgType(e.target.value)} style={{ minHeight: 50, padding: "0 12px", border: "1px solid rgba(11,26,42,.3)", borderRadius: 2, background: "#fff", font: "400 16px var(--font-instrument-sans), sans-serif" }}>
+                          <option value="">—</option>
+                          <option>Institution publique</option><option>Collectivité territoriale</option><option>Organisation professionnelle</option><option>ONG / association</option><option>Entreprise</option><option>Partenaire technique ou financier</option><option>Recherche / université</option>
+                        </select>
+                      </label>
+                    )}
+                    {fields.includes("fonction") && (
+                      <label style={{ display: "flex", flexDirection: "column", gap: 8, fontWeight: 600, fontSize: 15 }}>Votre fonction
+                        <input value={fonction} onChange={(e) => setFonction(e.target.value)} style={{ minHeight: 50, padding: "0 14px", border: "1px solid rgba(11,26,42,.3)", borderRadius: 2, font: "400 16px var(--font-instrument-sans), sans-serif" }} />
+                      </label>
+                    )}
+                    {fields.includes("collab") && (
+                      <label style={{ display: "flex", flexDirection: "column", gap: 8, fontWeight: 600, fontSize: 15 }}>Nature de la collaboration
+                        <select value={collab} onChange={(e) => setCollab(e.target.value)} style={{ minHeight: 50, padding: "0 12px", border: "1px solid rgba(11,26,42,.3)", borderRadius: 2, background: "#fff", font: "400 16px var(--font-instrument-sans), sans-serif" }}>
+                          <option value="">—</option>
+                          <option>Projet territorial</option><option>Formation</option><option>Recherche / connaissance</option><option>Contenus / médias</option><option>Financement</option><option>Autre</option>
+                        </select>
+                      </label>
+                    )}
+                    {fields.includes("sujet") && (
+                      <label style={{ display: "flex", flexDirection: "column", gap: 8, fontWeight: 600, fontSize: 15 }}>Sujet
+                        <select value={sujet} onChange={(e) => setSujet(e.target.value)} style={{ minHeight: 50, padding: "0 12px", border: "1px solid rgba(11,26,42,.3)", borderRadius: 2, background: "#fff", font: "400 16px var(--font-instrument-sans), sans-serif" }}>
+                          <option value="">—</option>
+                          <option>Le programme Mbàmbulaan</option><option>L’Atlas</option><option>Les contenus</option><option>Presse</option><option>Autre</option>
+                        </select>
+                      </label>
+                    )}
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,200px),1fr))", gap: 16 }}>
+                    <label style={{ display: "flex", flexDirection: "column", gap: 8, fontWeight: 600, fontSize: 15 }}>Nom<input value={nom} onChange={(e) => setNom(e.target.value)} style={{ minHeight: 50, padding: "0 14px", border: "1px solid rgba(11,26,42,.3)", borderRadius: 2, font: "400 16px var(--font-instrument-sans), sans-serif" }} /></label>
+                    <label style={{ display: "flex", flexDirection: "column", gap: 8, fontWeight: 600, fontSize: 15 }}>E-mail<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ minHeight: 50, padding: "0 14px", border: "1px solid rgba(11,26,42,.3)", borderRadius: 2, font: "400 16px var(--font-instrument-sans), sans-serif" }} /></label>
+                    <label style={{ display: "flex", flexDirection: "column", gap: 8, fontWeight: 600, fontSize: 15 }}>Téléphone<input value={tel} onChange={(e) => setTel(e.target.value)} placeholder="+221" style={{ minHeight: 50, padding: "0 14px", border: "1px solid rgba(11,26,42,.3)", borderRadius: 2, font: "400 16px var(--font-instrument-sans), sans-serif" }} /></label>
+                  </div>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 8, fontWeight: 600, fontSize: 15 }}>{CONTACT_MSG_LABEL[profile]}
+                    <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={5} style={{ padding: "12px 14px", border: "1px solid rgba(11,26,42,.3)", borderRadius: 2, font: "400 16px/1.5 var(--font-instrument-sans), sans-serif", resize: "vertical" }} />
+                  </label>
+                  {error && <p role="alert" style={{ margin: 0, fontSize: 14.5, fontWeight: 600, color: "#B3261E" }}>Merci d’indiquer votre nom, un moyen de contact (e-mail ou téléphone) et votre message.</p>}
+                  <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+                    <span style={{ fontSize: 13.5, color: "#4C5566", maxWidth: 380 }}>Vos coordonnées servent uniquement à vous répondre.</span>
+                    <button type="submit" disabled={pending} className="pv2-btn-rust" style={{ minHeight: 52, padding: "0 26px", background: "#B6522F", color: "#fff", border: 0, borderRadius: 2, font: "600 15.5px var(--font-instrument-sans), sans-serif", cursor: pending ? "default" : "pointer", opacity: pending ? 0.7 : 1 }}>{pending ? "Envoi…" : "Envoyer"}</button>
+                  </div>
+                </form>
+              )}
+            </>
+          )}
+        </div>
+      </div>
 
       <PublicFooter />
+
+      <style>{`.pv2-btn-rust:hover { background: #9E431F; }`}</style>
     </main>
   );
 }

@@ -1,100 +1,90 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, Compass, MapPinned, Network, Radar, Route } from "lucide-react";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
-import { PublicSectionHero } from "@/components/public/PublicSectionHero";
-import { LoopDiagram } from "@/components/public/LoopDiagram";
-import { EditorialPhoto } from "@/components/public/EditorialPhoto";
+import { LOOP3, PHOTOS } from "@/data/public-v2-content";
 
+// Mbàmbulaan — Public V2, écran "06 Mbàmbulaan". Remplace entièrement la
+// composition V1 (piliers Terrain/Réseau/Technologie, tensions, LoopDiagram
+// SVG, 3 portes d'entrée) par les 5 sections du HTML : hero, "En quelques
+// mots", "Pourquoi ?", "Comment ça marche" (LOOP3) et "Qui porte
+// Mbàmbulaan ?" (mention EPIC CONSEIL).
 export const metadata: Metadata = {
   title: "Mbàmbulaan | Infrastructure de coordination",
-  description: "Mbàmbulaan organise la coordination entre territoires, situations et capacités dans l’économie maritime, en commençant par la pêche artisanale sénégalaise.",
+  description: "Mbàmbulaan est un programme de développement et une infrastructure numérique de connaissance, de confiance et de coordination de l’économie maritime.",
   alternates: { canonical: "/mbambulaan" }
 };
 
-const pillars = [
-  { title: "Terrain", text: "Comprendre les réalités, identifier les situations et maintenir une relation directe avec les territoires.", icon: Route },
-  { title: "Réseau", text: "Relier organisations, professionnels, entreprises, partenaires, experts et programmes lorsque l’action l’exige.", icon: Network },
-  { title: "Technologie", text: "Structurer l’information, relier les contextes et rendre la coordination plus simple, traçable et fiable.", icon: Radar }
-] as const;
-
-const tensions = [
-  { title: "Information fragmentée", text: "Il est difficile de savoir qui fait quoi, où, avec quelle capacité réelle et dans quelles conditions." },
-  { title: "Besoins mal qualifiés", text: "Une demande vague conduit facilement à une réponse inadaptée, surdimensionnée ou impossible à mobiliser." },
-  { title: "Actions isolées", text: "Équipement, financement, formation, logistique et débouchés sont encore trop souvent traités séparément." }
-] as const;
-
-const capabilities = [
-  { title: "Comprendre", text: "Rendre lisibles les territoires, les métiers, les capacités documentées et les enjeux de la filière." },
-  { title: "Qualifier", text: "Transformer une demande vague en situation exploitable, avec territoire, contexte, contraintes et résultat recherché." },
-  { title: "Relier", text: "Identifier les acteurs et capacités pertinents sans transformer Mbàmbulaan en annuaire public ou marketplace." },
-  { title: "Coordonner", text: "Organiser la suite entre les parties concernées et suivre ce qui doit réellement se passer jusqu’au résultat." }
-] as const;
-
 export default function MbambulaanPage() {
   return (
-    <main className="pub-scope min-h-screen">
-      <PublicHeader dark />
+    <main style={{ fontFamily: "var(--font-instrument-sans), system-ui, sans-serif", color: "#1E2A38", background: "#fff" }}>
+      <PublicHeader />
 
-      <PublicSectionHero
-        eyebrow="Mbàmbulaan"
-        title={<>Mbàmbulaan organise la coordination là où les acteurs, les situations et les capacités sont <span className="text-[var(--pub-turquoise-300)]">dispersés.</span></>}
-        description="Mbàmbulaan est un programme de développement et une infrastructure numérique de coordination de l’économie maritime sénégalaise. Nous commençons par la pêche artisanale : comprendre les territoires, qualifier les situations, relier les bons acteurs et suivre l’action jusqu’au résultat."
-        actions={<><Link href="/atlas" className="pub-btn pub-btn-on-dark"><MapPinned size={16}/> Comprendre un territoire</Link><Link href="/solutions" className="pub-btn pub-btn-primary">Décrire une situation <ArrowRight size={16}/></Link></>}
-        backgroundImage="/images/mbambulaan-terrain-hero.jpg"
-        backgroundAlt="Équipe Mbàmbulaan sur le terrain, échange avec des acteurs de la filière sur un quai."
-      />
-
-      <section className="mx-auto max-w-[1500px] px-5 py-14 md:px-10 md:py-20">
-        <p className="pub-display mb-10 max-w-3xl text-[1.6rem] not-italic leading-[1.2] text-[var(--pub-deep-900)] md:text-[2rem]">Relier sans se substituer : Mbàmbulaan met en relation et coordonne, sans jamais prendre la place des acteurs du terrain.</p>
-        <div className="grid gap-4 md:grid-cols-3">
-          {pillars.map(({ title, text, icon: Icon }) => (
-            <article key={title} className="pub-card p-6">
-              <span className="grid size-11 place-items-center rounded-xl bg-[var(--pub-ivory-200)] text-[var(--pub-deep-800)]"><Icon size={20}/></span>
-              <h2 className="mt-5 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">{title}</h2>
-              <p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{text}</p>
-            </article>
-          ))}
+      <section style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(48px,6vw,96px) clamp(20px,4vw,48px) clamp(40px,5vw,64px)", display: "flex", flexWrap: "wrap", gap: "clamp(32px,5vw,80px)", alignItems: "flex-end" }}>
+        <div style={{ flex: "1 1 480px", display: "flex", flexDirection: "column", gap: 22 }}>
+          <h1 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontWeight: 400, fontSize: "clamp(42px,5.6vw,76px)", lineHeight: 1, letterSpacing: "-.02em" }}>Relier le terrain, la connaissance et l’action.</h1>
+          <p style={{ margin: 0, fontSize: 19, lineHeight: 1.6, color: "#3A4556", maxWidth: 600 }}>Mbàmbulaan rassemble ce que l’on sait de l’économie maritime sénégalaise — territoires, métiers, ressources, équipements, besoins — pour que chacun puisse mieux la comprendre et mieux agir.</p>
         </div>
-
-        <div className="mt-10"><EditorialPhoto src="/images/mbambulaan-terrain.jpg" alt="Équipe Mbàmbulaan en échange avec des acteurs de la filière sur un site de débarquement." caption="Présence terrain : comprendre un territoire suppose d’abord de s’y rendre."/></div>
-
-        <section className="mt-16">
-          <p className="pub-eyebrow">Pourquoi Mbàmbulaan existe</p>
-          <h2 className="pub-display mt-3 max-w-4xl text-[2.4rem] not-italic leading-[1.05] text-[var(--pub-deep-900)] md:text-[3.4rem]">Le problème n’est pas seulement le manque de solutions. C’est le manque de coordination.</h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">{tensions.map((item) => <article key={item.title} className="pub-card p-6"><h3 className="text-xl font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{item.title}</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{item.text}</p></article>)}</div>
-          <p className="mt-6 max-w-3xl text-sm leading-7 text-[var(--pub-stone-700)]">Mbàmbulaan crée une couche de coordination commune entre ces situations : une information plus fiable, des besoins mieux qualifiés et des actions qui peuvent enfin être reliées entre elles.</p>
-        </section>
-
-        <section className="mt-16 rounded-[var(--pub-radius-lg)] border border-[var(--pub-stone-150)] bg-white p-6 md:p-10">
-          <p className="pub-eyebrow">Comment ça fonctionne</p>
-          <h2 className="mt-4 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Une situation devient une action coordonnée.</h2>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--pub-stone-700)]">Mbàmbulaan relie les territoires et les capacités, qualifie les situations et coordonne l’action. La boucle ci-dessous décrit comment cette coordination se déroule dans le temps.</p>
-          <div className="mt-8"><LoopDiagram/></div>
-        </section>
-
-        <section id="valeur-immediate" className="mt-16 scroll-mt-24">
-          <p className="pub-eyebrow">Ce qui existe déjà</p>
-          <h2 className="mt-3 text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Une infrastructure utile avant même tous les outils professionnels.</h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{capabilities.map((item) => <article key={item.title} className="pub-card p-6"><h3 className="text-xl font-bold tracking-[-.025em] text-[var(--pub-deep-900)]">{item.title}</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">{item.text}</p></article>)}</div>
-          <div className="mt-6 rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-surface)] p-5"><p className="text-sm leading-6 text-[var(--pub-stone-700)]">Les outils professionnels viendront renforcer cette infrastructure avec des workflows et espaces adaptés aux organisations qui opèrent quotidiennement dans la filière, à mesure que les usages réels le justifieront.</p></div>
-        </section>
-
-        <section className="mt-16">
-          <p className="pub-eyebrow">Entrer dans Mbàmbulaan</p>
-          <h2 className="mt-3 max-w-3xl text-3xl font-[740] tracking-[-.04em] text-[var(--pub-deep-900)] md:text-4xl">Trois portes d’entrée, une même logique de coordination.</h2>
-          <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            <article className="pub-card p-6"><p className="text-xs font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-500)]">J’ai une situation à résoudre</p><h3 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Décrire la situation avant de qualifier le besoin.</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Transport, froid, équipement, formation, financement, sourcing ou autre situation : Mbàmbulaan organise la qualification.</p><Link href="/solutions" className="pub-btn pub-btn-primary mt-6">Décrire ma situation <ArrowRight size={16}/></Link></article>
-            <article className="pub-card p-6"><p className="text-xs font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-500)]">Je peux apporter une capacité</p><h3 className="mt-3 text-2xl font-bold tracking-[-.03em] text-[var(--pub-deep-900)]">Faire connaître une capacité mobilisable.</h3><p className="mt-3 text-sm leading-6 text-[var(--pub-stone-700)]">Entreprise, ONG, expert, transporteur, formateur, financeur ou organisation : l’entrée dans le réseau reste qualifiée.</p><Link href="/contact?intent=contribution" className="pub-btn pub-btn-outline mt-6">Proposer une capacité <ArrowRight size={16}/></Link></article>
-            <article className="rounded-[var(--pub-radius-md)] bg-[var(--pub-deep-800)] p-6 text-white"><p className="text-xs font-black uppercase tracking-[.12em] text-[var(--pub-turquoise-300)]">Je veux agir sur un territoire</p><h3 className="mt-3 text-2xl font-bold tracking-[-.03em]">Comprendre le contexte avant d’intervenir.</h3><p className="mt-3 text-sm leading-6 text-white/62">L’Atlas relie activités, capacités documentées et contenus territoriaux pour préparer une décision ou une intervention.</p><Link href="/atlas" className="pub-btn pub-btn-primary mt-6"><MapPinned size={16}/> Ouvrir l’Atlas</Link></article>
-          </div>
-          <div className="mt-8 flex flex-col gap-4 rounded-[var(--pub-radius-md)] border border-[var(--pub-stone-150)] bg-[var(--pub-surface)] p-6 md:flex-row md:items-center md:justify-between"><div><p className="text-sm font-bold text-[var(--pub-deep-900)]">Vous ne savez pas encore par où commencer ?</p><p className="mt-1 text-sm text-[var(--pub-stone-700)]">Parlez-nous du contexte. Nous vous orienterons vers le bon point d’entrée.</p></div><Link href="/contact" className="pub-btn pub-btn-outline"><Compass size={16}/> Parler à Mbàmbulaan</Link></div>
-        </section>
-
-        <p className="mt-16 max-w-3xl text-xs leading-5 text-[var(--pub-stone-500)]">Mbàmbulaan est une initiative privée sénégalaise, conçue et développée par EPIC CONSEIL.</p>
+        <div style={{ flex: "1 1 380px", aspectRatio: "4/3", overflow: "hidden", background: "#12263A", position: "relative" }}>
+          <Image src={PHOTOS.rel} alt="" fill sizes="(min-width: 900px) 40vw, 100vw" style={{ objectFit: "cover" }} priority />
+        </div>
       </section>
-      <PublicFooter/>
+
+      <section style={{ background: "#F7F3E9" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(56px,7vw,104px) clamp(20px,4vw,48px)", display: "flex", flexWrap: "wrap", gap: "clamp(32px,5vw,80px)" }}>
+          <h2 style={{ flex: "1 1 280px", margin: 0, fontFamily: "var(--font-newsreader), serif", fontWeight: 400, fontSize: "clamp(30px,3.2vw,42px)", lineHeight: 1.1 }}>En quelques mots</h2>
+          <div style={{ flex: "2 1 480px", display: "flex", flexDirection: "column", gap: 20, fontSize: 18, lineHeight: 1.65, color: "#1E2A38" }}>
+            <p style={{ margin: 0 }}>C’est à la fois <strong>un programme de développement</strong>, qui travaille avec les acteurs du littoral, et <strong>un outil numérique</strong>, qui organise et partage la connaissance de la filière.</p>
+            <p style={{ margin: 0 }}>Son premier terrain est la pêche artisanale sénégalaise. Il a vocation à s’étendre progressivement à l’ensemble de l’économie maritime : ports, transport, tourisme côtier, aquaculture, environnement.</p>
+            <p style={{ margin: 0, paddingTop: 16, borderTop: "1px solid rgba(11,26,42,.15)", fontFamily: "var(--font-newsreader), serif", fontStyle: "italic", fontSize: 19, color: "#3A4556" }}>« Mbàmbulaan est un programme de développement et une infrastructure numérique de connaissance, de confiance et de coordination de l’économie maritime. »</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(56px,7vw,104px) clamp(20px,4vw,48px)", display: "flex", flexWrap: "wrap", gap: "clamp(32px,5vw,80px)" }}>
+          <h2 style={{ flex: "1 1 280px", margin: 0, fontFamily: "var(--font-newsreader), serif", fontWeight: 400, fontSize: "clamp(30px,3.2vw,42px)", lineHeight: 1.1 }}>Pourquoi ?</h2>
+          <div style={{ flex: "2 1 480px", display: "flex", flexDirection: "column", gap: 20, fontSize: 18, lineHeight: 1.65, color: "#1E2A38" }}>
+            <p style={{ margin: 0 }}>La pêche artisanale fait vivre des centaines de milliers de personnes au Sénégal. Pourtant, l’information qui la concerne est dispersée : entre les quais, les organisations, les institutions et les partenaires.</p>
+            <p style={{ margin: 0 }}>Quand on ne voit pas clairement ce qui existe, ce qui manque et ce qui fonctionne, il devient difficile de bien investir, de bien former ou de bien coordonner.</p>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ background: "#0B1A2A", color: "#F7F3E9" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(56px,7vw,104px) clamp(20px,4vw,48px)", display: "flex", flexDirection: "column", gap: 40 }}>
+          <h2 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontWeight: 400, fontSize: "clamp(30px,3.2vw,42px)", lineHeight: 1.1 }}>Comment ça marche</h2>
+          <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,280px),1fr))", gap: "clamp(28px,4vw,56px)" }}>
+            {LOOP3.map((s) => (
+              <li key={s.n} style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 20, borderTop: "1px solid rgba(247,243,233,.25)" }}>
+                <span style={{ fontFamily: "var(--font-newsreader), serif", fontStyle: "italic", fontSize: 32, color: "#E8A07F" }}>{s.n}</span>
+                <span style={{ fontSize: 17, lineHeight: 1.6, color: "rgba(247,243,233,.85)" }}>{s.long}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "clamp(56px,7vw,104px) clamp(20px,4vw,48px)", display: "flex", flexWrap: "wrap", gap: "clamp(32px,5vw,80px)" }}>
+          <h2 style={{ flex: "1 1 280px", margin: 0, fontFamily: "var(--font-newsreader), serif", fontWeight: 400, fontSize: "clamp(30px,3.2vw,42px)", lineHeight: 1.1 }}>Qui porte Mbàmbulaan ?</h2>
+          <div style={{ flex: "2 1 480px", display: "flex", flexDirection: "column", gap: 20, fontSize: 18, lineHeight: 1.65, color: "#1E2A38" }}>
+            <p style={{ margin: 0 }}>Mbàmbulaan est une initiative privée sénégalaise, conçue et développée par EPIC CONSEIL, en dialogue avec les professionnels, les organisations de la filière et les institutions.</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, paddingTop: 8 }}>
+              <Link href="/contact?profil=organisation" className="pv2-btn-dark" style={{ display: "inline-flex", alignItems: "center", minHeight: 50, padding: "0 24px", background: "#0B1A2A", color: "#fff", fontWeight: 600, fontSize: 15, textDecoration: "none", borderRadius: 2 }}>Proposer une collaboration</Link>
+              <Link href="/partager" className="pv2-btn-outline" style={{ display: "inline-flex", alignItems: "center", minHeight: 50, padding: "0 24px", border: "1px solid #0B1A2A", color: "#0B1A2A", fontWeight: 600, fontSize: 15, textDecoration: "none", borderRadius: 2 }}>Partager une information</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <PublicFooter />
+
+      <style>{`
+        .pv2-btn-dark:hover { background: #B6522F; }
+        .pv2-btn-outline:hover { background: #0B1A2A; color: #fff; }
+      `}</style>
     </main>
   );
 }
