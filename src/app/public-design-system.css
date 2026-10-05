@@ -531,3 +531,23 @@
 @media (prefers-reduced-motion: reduce) {
   .pub-card, .pub-btn { transition: none; }
 }
+
+/* Public V2 — carte Atlas (AtlasMap.tsx / TerritoryMiniMap.tsx), iso-design
+   depuis Mbambulaan_Public_V2.html : tuiles Esri teintées sépia, infobulles
+   de territoire habillées dans la palette V2 plutôt que le style Leaflet
+   par défaut. */
+.pv2-atlas-map .leaflet-tile-pane {
+  filter: sepia(.25) saturate(.8);
+}
+.pv2-atlas-map .leaflet-tooltip.mb-tip {
+  background: #0B1A2A;
+  color: #F7F3E9;
+  border: none;
+  border-radius: 2px;
+  font: 600 13px "Instrument Sans", sans-serif;
+  padding: 4px 9px;
+  box-shadow: none;
+}
+.pv2-atlas-map .leaflet-tooltip.mb-tip::before {
+  border-top-color: #0B1A2A;
+}

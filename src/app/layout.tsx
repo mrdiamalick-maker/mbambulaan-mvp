@@ -14,6 +14,7 @@ import "./public-design-system.css";
 // son en-tête pour le détail.
 import "./etat-design-system.css";
 import "./mb-foundations.css";
+import "leaflet/dist/leaflet.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
