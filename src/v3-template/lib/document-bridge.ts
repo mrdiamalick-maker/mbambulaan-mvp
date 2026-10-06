@@ -107,7 +107,7 @@ function programmeDocument(programmeId: number, state: ProductState): GeneratedD
         synthesis.gapMajor ?? "Aucun écart majeur identifié dans le domaine réel.",
         synthesis.decisionExpected ? `Décision attendue : ${synthesis.decisionExpected}` : "Aucune décision en file d’arbitrage pour ce programme à ce jour.",
         synthesis.decisionMaker ? `Décideur pressenti : ${synthesis.decisionMaker}` : "",
-        "Échéance : non documentée dans le domaine réel à ce jour."
+        synthesis.deadline ? `Échéance : ${synthesis.deadline}.` : "Échéance : non documentée dans le domaine réel à ce jour."
       ].filter(Boolean)
     });
   } else {

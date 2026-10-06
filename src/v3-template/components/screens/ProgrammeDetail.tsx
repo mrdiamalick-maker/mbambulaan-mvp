@@ -111,7 +111,7 @@ export function ProgrammeDetail({
           {synthesis.decisionExpected && (
             <div style={{ flex: "none" }}>
               <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 5 }}>Échéance</div>
-              <div style={{ fontSize: 12.5, lineHeight: 1.5, color: "rgba(11,26,42,.5)" }}>Non documentée dans le domaine à ce jour.</div>
+              <div style={{ fontSize: 12.5, lineHeight: 1.5, color: "rgba(11,26,42,.5)" }}>{synthesis.deadline ?? "Non documentée dans le domaine à ce jour."}</div>
             </div>
           )}
         </div>

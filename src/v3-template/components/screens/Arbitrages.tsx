@@ -1,16 +1,70 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { ARB } from "../../data/arbitrages";
-import { V3_FONT_MONO, V3_FONT_SERIF } from "../../theme";
+import { getArbitragePrimaryAction } from "../../data/roles";
+import { buildDecisionCommand } from "../../lib/situations-bridge";
+import { useDomainRuntime } from "../../lib/domain-runtime";
+import { V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
 import type { AppState } from "../../state";
 
 type Patch = (p: Partial<AppState>) => void;
 
 export function Arbitrages({ state, patch }: { state: AppState; patch: Patch }) {
+  const runtime = useDomainRuntime();
   const sel = state.arbSel ?? 0;
   const a = ARB[sel];
   const openIdx = state.arbOpt != null && state.arbOpt.id === sel ? state.arbOpt.i : null;
   const chosen = openIdx != null ? a.options[openIdx] : null;
+  const primaryAction = getArbitragePrimaryAction(state.role);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [rationale, setRationale] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setModalOpen(false);
+    setRationale("");
+    setSubmitError(null);
+  }, [sel, openIdx]);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    closeButtonRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setModalOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [modalOpen]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timeout = window.setTimeout(() => setToast(null), 4500);
+    return () => window.clearTimeout(timeout);
+  }, [toast]);
+
+  async function confirmDecision() {
+    if (!chosen || !a.situationId || !runtime.state) return;
+    const result = buildDecisionCommand(runtime.state, a.situationId, chosen.decisionType, rationale);
+    if ("error" in result) {
+      setSubmitError(result.error);
+      return;
+    }
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await runtime.dispatch(result.command);
+      setModalOpen(false);
+      setToast(`Décision enregistrée : ${chosen.t}`);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Décision refusée.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div style={{ padding: "24px 30px 60px" }} className="pv3-rise">
@@ -30,6 +84,7 @@ export function Arbitrages({ state, patch }: { state: AppState; patch: Patch }) 
         <div style={{ background: "#FFFFFF", borderRight: "1px solid rgba(11,26,42,.12)", alignSelf: "stretch" }}>
           {ARB.map((x, i) => (
             <button
+              type="button"
               key={i}
               onClick={() => patch({ arbSel: i, arbOpt: null })}
               style={{
@@ -107,6 +162,7 @@ export function Arbitrages({ state, patch }: { state: AppState; patch: Patch }) 
               const open = openIdx === i;
               return (
                 <button
+                  type="button"
                   key={i}
                   onClick={() => patch({ arbOpt: { id: sel, i } })}
                   className="pv3-border-hover-dark"
@@ -139,17 +195,62 @@ export function Arbitrages({ state, patch }: { state: AppState; patch: Patch }) 
             })}
             {chosen && (
               <div style={{ marginTop: 16, padding: "17px 20px", background: "#0B1A2A", color: "#F7F3E9" }} className="pv3-rise-fast">
-                <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#DE9C74", marginBottom: 9 }}>Ce qui sera enregistré</div>
+                <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#DE9C74", marginBottom: 9 }}>Option retenue pour examen</div>
                 <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>{chosen.t}</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, paddingTop: 13, borderTop: "1px solid rgba(247,243,233,.14)", fontSize: 12, lineHeight: 1.55, color: "rgba(247,243,233,.72)" }}>
                   <div>Décideur, horodatage, et l’état exact de la connaissance à cet instant — y compris ce qui restait inconnu.</div>
                   <div>Le résultat effectif sera documenté séparément, sans réécriture rétrospective de la décision.</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 15 }}>
+                  <button
+                    type="button"
+                    onClick={() => primaryAction.mode === "decision" ? setModalOpen(true) : patch({ docOpen: { type: "decision", arbitrageIndex: sel } })}
+                    style={{ border: "1px solid #DE9C74", background: "#DE9C74", color: "#0B1A2A", cursor: "pointer", borderRadius: 4, padding: "9px 16px", fontSize: 12.5, fontFamily: V3_FONT_SANS, fontWeight: 600 }}
+                  >
+                    {primaryAction.label}
+                  </button>
+                  {primaryAction.mode !== "decision" && (
+                    <span style={{ fontSize: 11.5, color: "rgba(247,243,233,.62)" }}>Ouvre un projet de note ; aucune transmission ni décision n’est automatique.</span>
+                  )}
                 </div>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {modalOpen && chosen && (
+        <div role="dialog" aria-modal="true" aria-labelledby="pv3-arbitrage-modal-title" style={{ position: "fixed", inset: 0, zIndex: 260, background: "rgba(11,26,42,.58)", display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+          <div style={{ width: "min(620px,100%)", maxHeight: "calc(100vh - 36px)", overflowY: "auto", background: "#FFFFFF", border: "1px solid rgba(11,26,42,.16)", boxShadow: "0 24px 70px rgba(0,0,0,.32)" }}>
+            <div style={{ padding: "18px 22px", background: "#0B1A2A", color: "#F7F3E9", display: "flex", gap: 16, alignItems: "flex-start" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "#DE9C74", marginBottom: 7 }}>Décision humaine</div>
+                <h2 id="pv3-arbitrage-modal-title" style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 24, lineHeight: 1.25, margin: 0 }}>{a.title}</h2>
+              </div>
+              <button ref={closeButtonRef} type="button" onClick={() => setModalOpen(false)} aria-label="Fermer le modal de décision" style={{ border: "1px solid rgba(247,243,233,.3)", borderRadius: 999, background: "transparent", color: "#F7F3E9", cursor: "pointer", width: 32, height: 32 }}>×</button>
+            </div>
+            <div style={{ padding: "20px 22px 22px" }}>
+              <div style={{ padding: "13px 15px", background: "#F7F3E9", borderLeft: "3px solid #B6522F", fontSize: 13, lineHeight: 1.55 }}>{chosen.t}</div>
+              {a.situationId ? (
+                <>
+                  <label htmlFor="pv3-arbitrage-rationale" style={{ display: "block", marginTop: 18, fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.55)" }}>Justification de la décision (obligatoire)</label>
+                  <textarea id="pv3-arbitrage-rationale" value={rationale} onChange={(event) => setRationale(event.target.value)} rows={4} placeholder="Pourquoi cette option est-elle retenue maintenant ?" style={{ width: "100%", boxSizing: "border-box", marginTop: 8, resize: "vertical", border: "1px solid rgba(11,26,42,.2)", borderRadius: 4, padding: "10px 11px", fontFamily: V3_FONT_SANS, fontSize: 13 }} />
+                  <p style={{ margin: "8px 0 0", fontSize: 11.5, lineHeight: 1.5, color: "rgba(11,26,42,.58)" }}>La décision sera rattachée à la Situation réelle du dossier, avec auteur et horodatage issus de la session.</p>
+                  <button type="button" onClick={confirmDecision} disabled={submitting || !rationale.trim() || !runtime.state} style={{ marginTop: 15, border: 0, borderRadius: 4, background: submitting || !rationale.trim() || !runtime.state ? "rgba(182,82,47,.45)" : "#B6522F", color: "#FFFFFF", cursor: submitting || !rationale.trim() || !runtime.state ? "default" : "pointer", padding: "10px 17px", fontSize: 12.5, fontFamily: V3_FONT_SANS, fontWeight: 600 }}>{submitting ? "Enregistrement…" : "Valider et enregistrer"}</button>
+                  {submitError && <div role="alert" style={{ marginTop: 10, fontSize: 12, color: "#C8452B" }}>{submitError}</div>}
+                </>
+              ) : (
+                <div style={{ marginTop: 18, padding: "13px 15px", border: "1px solid rgba(182,82,47,.25)", background: "rgba(182,82,47,.05)", fontSize: 12.5, lineHeight: 1.6 }}>
+                  Cet arbitrage porte sur un statut de programme, mais le domaine ne possède pas encore d’objet de décision Programme compatible. Aucune décision ne sera fabriquée ni rattachée à une Situation sans lien réel.
+                  <div><button type="button" onClick={() => { setModalOpen(false); patch({ docOpen: { type: "decision", arbitrageIndex: sel } }); }} style={{ marginTop: 11, border: "1px solid #0B1A2A", background: "#0B1A2A", color: "#F7F3E9", cursor: "pointer", borderRadius: 4, padding: "8px 14px", fontSize: 12, fontFamily: V3_FONT_SANS }}>Ouvrir le projet de note</button></div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && <div role="status" aria-live="polite" style={{ position: "fixed", right: 22, bottom: 22, zIndex: 320, maxWidth: 420, padding: "12px 15px", background: "#0B1A2A", color: "#F7F3E9", borderLeft: "3px solid #4E7B5A", boxShadow: "0 12px 36px rgba(0,0,0,.25)", fontSize: 12.5, lineHeight: 1.5 }}>{toast}</div>}
     </div>
   );
 }

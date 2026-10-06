@@ -16,6 +16,7 @@
 // slug générique.
 import { DEMO_STATE } from "./demo-state";
 import type { Initiative, ProductState } from "@/domain/types";
+import { ARB } from "../data/arbitrages";
 import { PROGS } from "../data/programmes";
 
 export const PROGRAMME_ID_BY_TITLE: Record<string, string> = {
@@ -79,17 +80,10 @@ export function getProgrammeSynthesis(fixtureTitle: string, state: ProductState 
 
   const confirmed = initiative.funding.filter((f) => f.status === "confirme").reduce((sum, f) => sum + f.amountFcfa, 0);
 
-  // Décision attendue — la situation ouverte la plus prioritaire parmi
-  // celles rattachées à ce programme, si elle est réellement en file
-  // d'arbitrage (critique/haute, même seuil que /app/etat/arbitrages et
-  // territory-synthesis.ts) ; son responsable devient le décideur. Aucune
-  // échéance structurée n'existe sur Initiative à ce jour dans le domaine
-  // réel — absence honnête plutôt qu'une date inventée (gap documenté).
-  const linkedSituations = state.situations.filter((s) => initiative.situationIds.includes(s.id) && s.status !== "reglee");
-  const priorityRank: Record<string, number> = { critique: 3, haute: 2, moyenne: 1, faible: 0 };
-  const lead = [...linkedSituations].sort((a, b) => priorityRank[b.priority] - priorityRank[a.priority])[0];
-  const leadInQueue = lead && (lead.priority === "critique" || lead.priority === "haute");
-  const decider = lead?.responsibleId ? state.actors.find((a) => a.id === lead.responsibleId) : state.actors.find((a) => a.id === initiative.ownerId);
+  // Une décision attendue ne naît jamais d'un score ou de la seule
+  // priorité d'une situation. Elle existe uniquement lorsqu'un dossier
+  // d'arbitrage humain référence explicitement ce programme.
+  const preparedArbitration = ARB.find((item) => item.programmeTitle === fixtureTitle);
 
   return {
     hasRealMatch: true,
@@ -97,9 +91,9 @@ export function getProgrammeSynthesis(fixtureTitle: string, state: ProductState 
     budgetConfirmedFcfa: confirmed,
     budgetUnchiffre: initiative.budgetStatus === "a_estimer",
     gapMajor: gapMajorFor(initiative),
-    decisionExpected: leadInQueue ? lead!.nextStep : undefined,
-    decisionMaker: leadInQueue ? (decider ? `${decider.name} · ${decider.role.replaceAll("_", " ")}` : "Non assigné") : undefined,
-    deadline: undefined
+    decisionExpected: preparedArbitration?.title,
+    decisionMaker: preparedArbitration?.decider,
+    deadline: preparedArbitration ? `${preparedArbitration.due} · ${preparedArbitration.urgency}` : undefined
   };
 }
 

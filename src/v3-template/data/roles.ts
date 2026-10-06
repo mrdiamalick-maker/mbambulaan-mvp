@@ -76,6 +76,16 @@ export function getSituationPrimaryAction(role: RoleKey) {
   return SITUATION_PRIMARY_ACTIONS[role];
 }
 
+export const ARBITRAGE_PRIMARY_ACTIONS = {
+  ministre: { label: "Valider / Décider", mode: "decision" },
+  programme: { label: "Transmettre", mode: "transmit" },
+  coordination: { label: "Instruire", mode: "instruct" }
+} as const satisfies Record<RoleKey, { label: string; mode: "decision" | "transmit" | "instruct" }>;
+
+export function getArbitragePrimaryAction(role: RoleKey) {
+  return ARBITRAGE_PRIMARY_ACTIONS[role];
+}
+
 export const ROLE_CHIPS: Array<[RoleKey, string]> = [
   ["ministre", "Ministre"],
   ["programme", "Direction de programme"],
