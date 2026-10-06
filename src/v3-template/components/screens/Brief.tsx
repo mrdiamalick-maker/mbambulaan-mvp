@@ -1,12 +1,18 @@
 "use client";
 
 import { useMemo } from "react";
-import { ATTN, BLIND, BRIEF_DEC, BRIEF_PROG, HOT } from "../../data/brief";
+import { ATTN, BLIND, BRIEF_PROG, HOT } from "../../data/brief";
 import { PERIOD } from "../../data/period";
 import type { RoleDef } from "../../data/roles";
 import { LV, V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
 import { TERR } from "../../data/territories";
 import { briefViewBox, geo, project } from "../../lib/geo";
+// etat-v5 checkpoint F.1 — "Décisions attendues" lisait jusqu'ici
+// BRIEF_DEC (data/brief.ts), une fixture figée : rebranchée sur la même
+// logique canonique d'exclusion déjà utilisée par presentation-bridge.ts/
+// programme-bridge.ts/document-bridge.ts (voir lib/brief-bridge.ts).
+import { useDomainRuntime } from "../../lib/domain-runtime";
+import { getPendingBriefDecisions } from "../../lib/brief-bridge";
 import type { AppState } from "../../state";
 import type { ScreenKey } from "../../types";
 
@@ -26,6 +32,8 @@ export function Brief({
   onOpenProgramme: (progId: number) => void;
 }) {
   const P = PERIOD[state.period];
+  const runtime = useDomainRuntime();
+  const pendingDecisions = useMemo(() => getPendingBriefDecisions(runtime.state ?? undefined), [runtime.state]);
 
   const kpis = useMemo(() => P.kpis.map((k, i) => {
     const pts = k.series;
@@ -324,9 +332,16 @@ export function Brief({
           <div style={{ background: "#FFFFFF", border: "1px solid rgba(11,26,42,.12)" }}>
             <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid rgba(11,26,42,.09)", display: "flex", alignItems: "baseline", gap: 10 }}>
               <div style={{ fontFamily: V3_FONT_SERIF, fontSize: 19, flex: 1 }}>Décisions attendues</div>
-              <div style={{ fontFamily: V3_FONT_MONO, fontSize: 12, color: "#B6522F" }}>3 cette semaine</div>
+              <div style={{ fontFamily: V3_FONT_MONO, fontSize: 12, color: "#B6522F" }}>
+                {pendingDecisions.length > 0 ? `${pendingDecisions.length} en attente` : "Aucune en attente"}
+              </div>
             </div>
-            {BRIEF_DEC.map((d, i) => (
+            {pendingDecisions.length === 0 && (
+              <div style={{ padding: "16px 18px", fontSize: 12.5, lineHeight: 1.5, color: "rgba(11,26,42,.6)" }}>
+                Tous les arbitrages préparés ont déjà une décision enregistrée.
+              </div>
+            )}
+            {pendingDecisions.map((d, i) => (
               <button
                 key={i}
                 onClick={() => patch({ screen: "arbitrages" as ScreenKey })}

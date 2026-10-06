@@ -109,8 +109,8 @@ export function formatInfrastructureContext(infrastructures: Infrastructure[]): 
   return infrastructures.map((item) => `${INFRA_TYPE_LABEL[item.type]} ${INFRA_STATE_LABEL[item.status]}`).join(" · ");
 }
 
-function buildSiteInfrastructureNote(siteId: string): string | undefined {
-  return formatInfrastructureContext(DEMO_STATE.infrastructures.filter((item) => item.siteId === siteId));
+function buildSiteInfrastructureNote(state: ProductState, siteId: string): string | undefined {
+  return formatInfrastructureContext(state.infrastructures.filter((item) => item.siteId === siteId));
 }
 
 export interface LandingRowView {
@@ -164,14 +164,18 @@ export interface TerritoryLandingView {
 // nom de territoire sans correspondance réelle — aujourd'hui les 18
 // territoires du gabarit résolvent tous, mais l'appelant ne doit jamais
 // supposer une couverture universelle.
-export function getTerritoryLandingView(name: string): TerritoryLandingView | undefined {
+//
+// state (etat-v5 checkpoint F.1) — accepte désormais l'état canonique du
+// runtime (useDomainRuntime), repli DEMO_STATE pour compatibilité : même
+// principe déjà appliqué à getNationalLandingTotals (checkpoint E).
+export function getTerritoryLandingView(name: string, state: ProductState = DEMO_STATE): TerritoryLandingView | undefined {
   const territoryId = TERRITORY_ID_BY_NAME[name];
   if (!territoryId) return undefined;
-  const activity = buildTerritoryLandingActivity(DEMO_STATE, territoryId);
-  const recentViews = recentLandingsForTerritory(DEMO_STATE, territoryId, 8);
+  const activity = buildTerritoryLandingActivity(state, territoryId);
+  const recentViews = recentLandingsForTerritory(state, territoryId, 8);
   return {
     activity,
-    siteRows: activity.volumeBySite.map((site) => ({ ...site, infrastructureNote: buildSiteInfrastructureNote(site.siteId) })),
+    siteRows: activity.volumeBySite.map((site) => ({ ...site, infrastructureNote: buildSiteInfrastructureNote(state, site.siteId) })),
     recent: recentViews.map(toRowView),
     trendPoints: activity.trend.map((point) => ({
       dateLabel: formatCalendarDate(point.date),
@@ -181,8 +185,8 @@ export function getTerritoryLandingView(name: string): TerritoryLandingView | un
   };
 }
 
-export function getLandingDetail(landingId: string): LandingDetailView | undefined {
-  return buildLandingDetail(DEMO_STATE, landingId);
+export function getLandingDetail(landingId: string, state: ProductState = DEMO_STATE): LandingDetailView | undefined {
+  return buildLandingDetail(state, landingId);
 }
 
 // getNationalLandingTotals (mandat "Intégration /etat V5 + Corrections
@@ -329,8 +333,13 @@ const SITE_TYPE_LABEL: Record<string, string> = { quai: "Quai", marche: "Marché
 // getSiteIntelligenceView — point d'entrée unique consommé par le panneau
 // de détail de site de l'Atlas (PD.3 §10). Retourne undefined si
 // l'identifiant ne résout à aucun Site réel.
-export function getSiteIntelligenceView(siteId: string): SiteIntelligenceView | undefined {
-  const intelligence = buildSiteIntelligence(DEMO_STATE, siteId);
+//
+// state (etat-v5 checkpoint F.1) — même repli DEMO_STATE que
+// getTerritoryLandingView/getLandingDetail ci-dessus, pour la même
+// raison : ne plus geler ce panneau sur l'instantané statique dès qu'un
+// état canonique réel (runtime) est disponible.
+export function getSiteIntelligenceView(siteId: string, state: ProductState = DEMO_STATE): SiteIntelligenceView | undefined {
+  const intelligence = buildSiteIntelligence(state, siteId);
   if (!intelligence) return undefined;
   const { site, territory, activity, recentLandings, infrastructures, attention, territorySituations } = intelligence;
 

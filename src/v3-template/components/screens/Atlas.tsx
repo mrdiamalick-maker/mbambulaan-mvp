@@ -22,6 +22,11 @@ import { trustLabels } from "@/lib/status-tokens";
 // mandat "Intégration /etat V5 + Corrections Produit" §4 — synthèse réelle
 // en tête du détail territoire, voir lib/territory-synthesis.ts.
 import { getTerritorySynthesis } from "../../lib/territory-synthesis";
+// etat-v5 checkpoint F.1 — Atlas lisait jusqu'ici landing-bridge.ts sans
+// jamais transmettre l'état canonique du runtime (seul repli DEMO_STATE),
+// à la différence de Résultats/Portfolio/ProgrammeDetail (checkpoints E/F) :
+// même principe appliqué ici, voir lib/domain-runtime.ts.
+import { useDomainRuntime } from "../../lib/domain-runtime";
 import type { AppState } from "../../state";
 
 type Patch = (p: Partial<AppState>) => void;
@@ -241,6 +246,7 @@ const LINK_PAIRS: Array<[string, string]> = [["Joal-Fadiouth", "Mbour"], ["Mbour
 const ATLAS_TABS: Array<[string, string]> = [["act", "Activité"], ["cap", "Capacités"], ["acteurs", "Acteurs"], ["sit", "Situations"], ["prog", "Programmes"]];
 
 export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patch: Patch; onOpenProgramme: (id: number) => void }) {
+  const runtime = useDomainRuntime();
   const zone = state.atlasZone || "Toutes";
   const inZone = (t: (typeof TERR)[number]) => zone === "Toutes" || t[6] === zone;
   const L = state.layers;
@@ -323,16 +329,22 @@ export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patc
   // (tuiles, carte, bande littorale, autres onglets) reste piloté par les
   // fixtures TD/TERR du gabarit gelé (§11/§12 du mandat : ne remplacer que
   // les blocs que PD.1 couvre réellement).
-  const landingView = useMemo(() => getTerritoryLandingView(t.name), [t.name]);
+  const landingView = useMemo(() => getTerritoryLandingView(t.name, runtime.state ?? undefined), [t.name, runtime.state]);
   // §4 — synthèse réelle (sujet d'attention, enjeu, action, responsable,
   // décision attendue), jamais les fixtures t.reading/t.level ci-dessous.
   const synthesis = useMemo(() => getTerritorySynthesis(t.name), [t.name]);
   const landingDepth = atlasLandingDepthForRole(state.role);
-  const openLanding = useMemo(() => (state.atlasLandingOpen ? getLandingDetail(state.atlasLandingOpen) : undefined), [state.atlasLandingOpen]);
+  const openLanding = useMemo(
+    () => (state.atlasLandingOpen ? getLandingDetail(state.atlasLandingOpen, runtime.state ?? undefined) : undefined),
+    [state.atlasLandingOpen, runtime.state]
+  );
   // PD.3 — panneau de détail de site, mutuellement exclusif avec le
   // panneau de débarquement ci-dessus (state.ts : "un seul panneau de
   // détail actif à la fois").
-  const openSite = useMemo(() => (state.atlasSiteOpen ? getSiteIntelligenceView(state.atlasSiteOpen) : undefined), [state.atlasSiteOpen]);
+  const openSite = useMemo(
+    () => (state.atlasSiteOpen ? getSiteIntelligenceView(state.atlasSiteOpen, runtime.state ?? undefined) : undefined),
+    [state.atlasSiteOpen, runtime.state]
+  );
   const openSiteLanding = (landingId: string) => patch({ atlasLandingOpen: landingId, atlasSiteOpen: null });
   const trend = landingView?.trendPoints ?? [];
   const trendMaxKg = Math.max(1, ...trend.map((p) => p.landedKg));
