@@ -18,6 +18,7 @@ import { DEMO_STATE } from "./demo-state";
 import type { Initiative, ProductState } from "@/domain/types";
 import { ARB } from "../data/arbitrages";
 import { PROGS } from "../data/programmes";
+import { findLatestDecisionForSituation } from "./situations-bridge";
 
 export const PROGRAMME_ID_BY_TITLE: Record<string, string> = {
   "Résilience de la chaîne du froid · Petite-Côte": "init-froid",
@@ -83,7 +84,20 @@ export function getProgrammeSynthesis(fixtureTitle: string, state: ProductState 
   // Une décision attendue ne naît jamais d'un score ou de la seule
   // priorité d'une situation. Elle existe uniquement lorsqu'un dossier
   // d'arbitrage humain référence explicitement ce programme.
-  const preparedArbitration = ARB.find((item) => item.programmeTitle === fixtureTitle);
+  //
+  // etat-v5 checkpoint F — un arbitrage dont la Situation porte déjà une
+  // Decision réelle enregistrée (state.decisions) n'est plus "attendu" :
+  // même doctrine que presentation-bridge.ts (isArbitrageDecided). Le
+  // premier arbitrage préparé pour ce programme qui reste réellement
+  // ouvert est retenu, pas le premier de la liste sans condition —
+  // trouvé en audit F : sans ce filtre, "Résilience de la chaîne du
+  // froid" continuait d'afficher "Mobiliser une capacité froide à Joal"
+  // comme décision attendue après que cette décision ait été enregistrée
+  // (dec-glace-1/2, demo-state.ts), alors que la Présentation et la Note
+  // de décision (checkpoint E) l'excluaient déjà correctement.
+  const preparedArbitration = ARB.find(
+    (item) => item.programmeTitle === fixtureTitle && !(item.situationId && findLatestDecisionForSituation(state, item.situationId))
+  );
 
   return {
     hasRealMatch: true,

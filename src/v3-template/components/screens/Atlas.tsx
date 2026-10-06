@@ -362,7 +362,16 @@ export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patc
             {zone === "Toutes" ? "18 sites de débarquement, un seul objet vivant par territoire" : `${zone} · ${stripList.length} sites suivis`}
           </h1>
         </div>
-        <div style={{ display: "flex", gap: 6, flex: "none", flexWrap: "wrap", maxWidth: 520, justifyContent: "flex-end" }}>
+        {/* maxWidth: "100%" au lieu de 520 (etat-v5 checkpoint F) — même
+            bug que Portfolio.tsx : flex-shrink:0 (flex:"none") empêchait
+            ce groupe de filtres de zone d'être jamais contraint sous sa
+            largeur naturelle (~600px non wrappé) par la ligne qui le
+            contient, donc son propre flexWrap n'avait pas l'occasion de
+            se déclencher à largeur étroite. maxWidth:520 restait lui-même
+            plus large que le viewport à 390px ; 100% borne toujours au
+            conteneur réel, sans rien changer à l'affichage aux largeurs
+            où 520px tenait déjà. */}
+        <div style={{ display: "flex", gap: 6, flex: "none", flexWrap: "wrap", maxWidth: "100%", justifyContent: "flex-end" }}>
           {["Toutes", "Grande-Côte", "Cap-Vert", "Petite-Côte", "Sine-Saloum", "Casamance"].map((z) => {
             const on = zone === z;
             return (

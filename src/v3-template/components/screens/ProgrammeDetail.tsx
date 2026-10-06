@@ -7,6 +7,7 @@ import { TD, TERR } from "../../data/territories";
 // mandat "Intégration /etat V5 + Corrections Produit" §8 — synthèse
 // réelle en tête du détail programme, voir lib/programme-bridge.ts.
 import { getProgrammeSynthesis } from "../../lib/programme-bridge";
+import { useDomainRuntime } from "../../lib/domain-runtime";
 import type { AppState } from "../../state";
 
 type Patch = (p: Partial<AppState>) => void;
@@ -21,6 +22,12 @@ export function ProgrammeDetail({
   onOpenSituation: (id: number) => void;
   onBack: () => void;
 }) {
+  // runtime canonique (etat-v5 checkpoint F) — même principe que
+  // Resultats.tsx/DocumentView.tsx/PresentationView.tsx (checkpoint E) :
+  // la synthèse (écart, décision attendue) doit refléter la session
+  // réelle, décisions déjà enregistrées comprises, pas la seule copie
+  // statique DEMO_STATE.
+  const runtime = useDomainRuntime();
   const p = PROGS.find((x) => x.id === state.progOpen) ?? PROGS[0];
   const tab = state.progTab || "sante";
   const bp = p.budId ? (p.budConf / p.budId) * 100 : 0;
@@ -34,7 +41,7 @@ export function ProgrammeDetail({
   // §8 — écart majeur, décision attendue, décideur, échéance : uniquement
   // s'ils existent réellement (lib/programme-bridge.ts), jamais déduits
   // des gauges fixtures ci-dessous.
-  const synthesis = getProgrammeSynthesis(p.title);
+  const synthesis = getProgrammeSynthesis(p.title, runtime.state ?? undefined);
 
   const gauges = [
     { k: "Avancement", v: p.progress + "%", sub: "déclaré", c: "#DE9C74", pct: p.progress },

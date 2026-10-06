@@ -10,6 +10,7 @@ import { V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
 // source pour le texte narratif du gabarit, jamais pour le financier, le
 // calendrier ou une appréciation de santé.
 import { getProgrammePortfolioMetrics, INITIATIVE_STATUS_LABEL } from "../../lib/programme-bridge";
+import { useDomainRuntime } from "../../lib/domain-runtime";
 import type { AppState } from "../../state";
 
 type Patch = (p: Partial<AppState>) => void;
@@ -21,7 +22,11 @@ function formatM(amountFcfa: number): number {
 }
 
 export function Portfolio({ state, patch, onOpenProgramme }: { state: AppState; patch: Patch; onOpenProgramme: (id: number) => void }) {
-  const metrics = useMemo(() => getProgrammePortfolioMetrics(), []);
+  // runtime canonique (etat-v5 checkpoint F) — même principe que
+  // ProgrammeDetail.tsx : les totaux du portefeuille doivent refléter la
+  // session réelle, pas la seule copie statique DEMO_STATE.
+  const runtime = useDomainRuntime();
+  const metrics = useMemo(() => getProgrammePortfolioMetrics(runtime.state ?? undefined), [runtime.state]);
   const metricsById = useMemo(() => new Map(metrics.map((m) => [m.fixtureId, m])), [metrics]);
 
   const totId = metrics.reduce((a, m) => a + (m.budgetIdentifiedFcfa ?? 0), 0);
@@ -123,7 +128,13 @@ export function Portfolio({ state, patch, onOpenProgramme }: { state: AppState; 
             <p style={{ margin: "8px 0 0", fontSize: 12, color: "rgba(11,26,42,.55)" }}>{unchiffreCount} programme{unchiffreCount > 1 ? "s" : ""} sans montant chiffré, non inclus dans ce total.</p>
           )}
         </div>
-        <div style={{ flex: "none", display: "flex", gap: 1, background: "rgba(11,26,42,.12)", border: "1px solid rgba(11,26,42,.12)", flexWrap: "wrap" }}>
+        {/* maxWidth: "100%" (etat-v5 checkpoint F) — flex-shrink:0 (flex:
+            "none") empêchait ce groupe de 4 tuiles de jamais rétrécir sous
+            sa largeur naturelle (~450px), donc son propre flexWrap
+            n'avait jamais l'occasion de se déclencher à largeur étroite :
+            la ligne débordait la page au lieu de passer les tuiles en
+            grille 2x2. */}
+        <div style={{ flex: "none", display: "flex", gap: 1, background: "rgba(11,26,42,.12)", border: "1px solid rgba(11,26,42,.12)", flexWrap: "wrap", maxWidth: "100%" }}>
           {[{ v: active + "/9", k: "en exécution ou financés", c: "#0B1A2A" }, { v: avg == null ? "—" : avg + "%", k: "avancement moyen (mesuré)", c: "#0B1A2A" }, { v: String(attention), k: "situations critiques liées", c: "#B6522F" }, { v: String(gapCount), k: "en exécution avec situation critique liée", c: "#C8452B" }].map((s) => (
             <div key={s.k} style={{ background: "#FFFFFF", padding: "12px 18px", minWidth: 104 }}>
               <div style={{ fontFamily: V3_FONT_MONO, fontSize: 22, lineHeight: 1, color: s.c }}>{s.v}</div>
@@ -159,7 +170,14 @@ export function Portfolio({ state, patch, onOpenProgramme }: { state: AppState; 
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 20, marginBottom: 20 }}>
-        <div style={{ background: "#FFFFFF", border: "1px solid rgba(11,26,42,.12)" }}>
+        {/* minWidth: 0 (etat-v5 checkpoint F) — même bug qu'ailleurs sur
+            cette branche (voir Resultats.tsx) : sans elle, cet item de
+            grille ne peut jamais rétrécir sous le minWidth:460 du SVG
+            scatter ci-dessous, et force toute la page à déborder au lieu
+            de rester scrollable dans sa propre boîte (overflowX:auto déjà
+            posé sur le conteneur du SVG, juste inopérant sans ce
+            minWidth). */}
+        <div style={{ background: "#FFFFFF", border: "1px solid rgba(11,26,42,.12)", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "16px 20px 6px", flexWrap: "wrap" }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontFamily: V3_FONT_SERIF, fontSize: 20 }}>Cartographie du portefeuille</div>

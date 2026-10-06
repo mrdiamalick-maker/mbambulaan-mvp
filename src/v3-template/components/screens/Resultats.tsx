@@ -167,7 +167,14 @@ export function Resultats({ state, patch }: { state: AppState; patch: Patch }) {
           })}
         </div>
 
-        <div style={{ background: "#FFFFFF" }}>
+        {/* minWidth: 0 (etat-v5 checkpoint F) — sans cette ligne, un item
+            de grille CSS ne rétrécit jamais sous la taille intrinsèque de
+            son contenu, même avec overflow-x:auto sur un descendant (le
+            conteneur du graphique ci-dessous) : à largeur étroite, le
+            graphique (minWidth 500 sur son propre SVG) forçait toute la
+            page à déborder horizontalement au lieu de rester scrollable
+            dans sa propre boîte. */}
+        <div style={{ background: "#FFFFFF", minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 16, padding: "17px 22px 8px", flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontFamily: V3_FONT_SERIF, fontSize: 23, lineHeight: 1.2 }}>{ri0.n}</div>

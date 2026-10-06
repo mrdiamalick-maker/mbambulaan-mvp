@@ -25,11 +25,26 @@ test("la décision attendue d'un programme vient d'un arbitrage préparé, jamai
   const registry = getProgrammeSynthesis("Référentiel progressif des pirogues et immatriculations");
   const capVert = getProgrammeSynthesis("Qualité, immatriculations et flux · Cap-Vert");
 
-  assert.equal(cold.decisionExpected, ARB[0].title);
-  assert.equal(cold.decisionMaker, ARB[0].decider);
-  assert.equal(cold.deadline, `${ARB[0].due} · ${ARB[0].urgency}`);
+  // etat-v5 checkpoint F — ARB[0] (sit-glace) porte déjà une Decision
+  // réelle dans DEMO_STATE (dec-glace-1/2) : getProgrammeSynthesis ne le
+  // présente plus comme "attendu" (voir programme-bridge.ts) et retient
+  // ARB[1], le second arbitrage préparé pour ce même programme, resté
+  // réellement ouvert. Avant ce correctif, ce test pinçait l'ancien
+  // comportement (ARB[0] toujours affiché), devenu incohérent avec la
+  // doctrine déjà appliquée par la Présentation et la Note de décision
+  // (checkpoint E).
+  assert.equal(cold.decisionExpected, ARB[1].title);
+  assert.equal(cold.decisionMaker, ARB[1].decider);
+  assert.equal(cold.deadline, `${ARB[1].due} · ${ARB[1].urgency}`);
   assert.equal(registry.decisionExpected, ARB[2].title);
   assert.equal(capVert.decisionExpected, undefined);
+});
+
+test("une décision déjà enregistrée ne réapparaît plus comme décision attendue d'un programme (checkpoint F)", () => {
+  // DEMO_STATE : ARB[0] (sit-glace) décidé, ARB[1] (sit-mbour) ouvert —
+  // tous deux préparés pour "Résilience de la chaîne du froid".
+  const cold = getProgrammeSynthesis("Résilience de la chaîne du froid · Petite-Côte");
+  assert.notEqual(cold.decisionExpected, ARB[0].title, "un arbitrage déjà décidé ne doit plus être présenté comme une décision de programme attendue");
 });
 
 test("la note de décision reste liée à l'arbitrage actuellement ouvert", () => {
