@@ -20,6 +20,7 @@
 import type {
   Command,
   CollectiveNeed,
+  Decision,
   Finding,
   FindingStatus,
   KnowledgeSourceRef,
@@ -29,13 +30,25 @@ import type {
   Signal,
   Situation
 } from "./types";
-import { findingStatusLabels, findingRejectionReasonLabels, programOpportunityStatusLabels, collectiveNeedStatusLabels, signalDispositionLabels } from "./types";
+import { findingStatusLabels, findingRejectionReasonLabels, programOpportunityStatusLabels, collectiveNeedStatusLabels, signalDispositionLabels, decisionTypeLabels } from "./types";
 import { history, id, timestamp, validateSituation, withAudit } from "./rules";
 
 function requireTerritories(state: ProductState, territoryIds: string[], label: string) {
   if (territoryIds.length === 0) throw new Error(`${label} doit couvrir au moins un territoire.`);
   for (const territoryId of territoryIds) {
     if (!state.territories.some((item) => item.id === territoryId)) throw new Error(`Territoire inconnu : ${territoryId}.`);
+  }
+}
+
+// requireExistingIds (G1) — même discipline que requireTerritories :
+// une relation Site/Situation/Actor déclarée sur une ProgramOpportunity
+// doit résoudre vers un objet réellement présent, jamais un id inventé
+// pour satisfaire une relation (mandat G1, "ne pas fabriquer de Situation
+// factuelle uniquement pour satisfaire une relation").
+function requireExistingIds(ids: string[] | undefined, resolver: (id: string) => boolean, label: string) {
+  if (!ids) return;
+  for (const itemId of ids) {
+    if (!resolver(itemId)) throw new Error(`${label} référence ${itemId}, introuvable.`);
   }
 }
 
@@ -415,18 +428,31 @@ function applyUpdateCollectiveNeedStatus(state: ProductState, command: Extract<C
   return withAudit(next, command.actorId, "collective_need", need.id, command.type, collectiveNeedStatusLabels[command.status]);
 }
 
-// create_program_opportunity (LOT 0.3, TEST F) — un CollectiveNeed
-// qualifié devient une ProgramOpportunity, sans aucun budget obligatoire
-// (mandat §11/§13). Distinct de l'Opportunity existante (matching
-// économique lot ↔ demande) — ne la remplace pas, ne s'y substitue pas.
+// create_program_opportunity (LOT 0.3, TEST F ; étendu G1) — un
+// CollectiveNeed qualifié devient une ProgramOpportunity, sans aucun
+// budget obligatoire (mandat §11/§13). Distinct de l'Opportunity
+// existante (matching économique lot ↔ demande) — ne la remplace pas, ne
+// s'y substitue pas.
+//
+// G1 — collectiveNeedId devient optionnel : une ProgramOpportunity peut
+// désormais naître directement d'un Territory et/ou d'une Situation,
+// sans CollectiveNeed intermédiaire fabriqué pour la seule forme.
+// territoryIds reste systématiquement obligatoire (requireTerritories,
+// inchangé) — c'est le socle commun aux deux voies, jamais optionnel.
 function applyCreateProgramOpportunity(state: ProductState, command: Extract<Command, { type: "create_program_opportunity" }>): ProductState {
-  const need = state.collectiveNeeds.find((item) => item.id === command.collectiveNeedId);
-  if (!need) throw new Error("Besoin collectif introuvable.");
-  if (need.status !== "qualified") throw new Error("Seul un besoin collectif qualifié peut devenir une opportunité de programme.");
+  const need = command.collectiveNeedId ? state.collectiveNeeds.find((item) => item.id === command.collectiveNeedId) : undefined;
+  if (command.collectiveNeedId && !need) throw new Error("Besoin collectif introuvable.");
+  if (need && need.status !== "qualified") throw new Error("Seul un besoin collectif qualifié peut devenir une opportunité de programme.");
   if (!command.problem.trim()) throw new Error("Le problème est obligatoire.");
   if (!command.justification.trim()) throw new Error("La justification est obligatoire.");
   if (!command.potentialBeneficiaries.trim()) throw new Error("Les bénéficiaires potentiels sont obligatoires.");
   requireTerritories(state, command.territoryIds, "Une opportunité de programme");
+  // siteIds/situationIds/involvedActorIds (G1) — relations optionnelles,
+  // mais chacune doit résoudre vers un objet réel quand elle est citée
+  // (même discipline que requireResolvedSourceRefs ci-dessous).
+  requireExistingIds(command.siteIds, (siteId) => state.sites.some((item) => item.id === siteId), "Une opportunité de programme");
+  requireExistingIds(command.situationIds, (situationId) => state.situations.some((item) => item.id === situationId), "Une opportunité de programme");
+  requireExistingIds(command.involvedActorIds, (actorId) => state.actors.some((item) => item.id === actorId), "Une opportunité de programme");
   // evidenceRefs peut légitimement être vide (aucune preuve n'existe pas
   // encore), contrairement à sourceRefs d'un Finding/CollectiveNeed —
   // requireSourceRefs n'est donc pas appliqué ici, seule la résolution
@@ -451,11 +477,16 @@ function applyCreateProgramOpportunity(state: ProductState, command: Extract<Com
 
   const opportunity: ProgramOpportunity = {
     id: id("popp"),
-    collectiveNeedId: need.id,
+    collectiveNeedId: need?.id,
     problem: command.problem.trim(),
     justification: command.justification.trim(),
     territoryIds: command.territoryIds,
+    siteIds: command.siteIds,
+    situationIds: command.situationIds,
+    involvedActorIds: command.involvedActorIds,
+    establishedFacts: command.establishedFacts ?? [],
     potentialBeneficiaries: command.potentialBeneficiaries.trim(),
+    potentialValueHypothesis: command.potentialValueHypothesis?.trim() || undefined,
     evidenceRefs: command.evidenceRefs,
     hypotheses: command.hypotheses,
     knowledgeGaps: command.knowledgeGaps,
@@ -471,9 +502,11 @@ function applyCreateProgramOpportunity(state: ProductState, command: Extract<Com
   const next: ProductState = {
     ...state,
     programOpportunities: [opportunity, ...state.programOpportunities],
-    collectiveNeeds: state.collectiveNeeds.map((item) =>
-      item.id === need.id ? { ...item, status: "converted" as const, history: [history(command.actorId, "Converti en opportunité de programme", opportunity.id), ...item.history] } : item
-    )
+    collectiveNeeds: need
+      ? state.collectiveNeeds.map((item) =>
+          item.id === need.id ? { ...item, status: "converted" as const, history: [history(command.actorId, "Converti en opportunité de programme", opportunity.id), ...item.history] } : item
+        )
+      : state.collectiveNeeds
   };
   return withAudit(next, command.actorId, "program_opportunity", opportunity.id, command.type, opportunity.problem);
 }
@@ -496,6 +529,58 @@ function applyUpdateProgramOpportunityStatus(state: ProductState, command: Extra
   return withAudit(next, command.actorId, "program_opportunity", opportunity.id, command.type, programOpportunityStatusLabels[command.status]);
 }
 
+// arbitrate_program_opportunity (G1) — le palier "Arbitration" réel du
+// mandat : seul chemin qui fait quitter "pending_arbitration" en créant
+// une Decision canonique (même objet de première classe que pour une
+// Situation, cf. applyDecisionCommand, rules.ts — pas une seconde
+// mécanique de décision). Réutilise le vocabulaire DecisionType existant
+// plutôt que d'en créer un second parallèle pour l'arbitrage
+// d'opportunité : "retenir" = constituer_programme (sémantiquement
+// identique — on s'oriente vers la constitution d'un programme),
+// "ecarter" = cloturer_sans_action (sémantiquement identique — on
+// clôture l'instruction sans action). Le chemin historique (statut
+// "qualified" directement convertible via create_initiative, cf.
+// applyInitiativeCommand) reste intact et inchangé : cette commande
+// n'est pas une porte obligatoire, c'est la voie enrichie du mandat G1,
+// pas un remplacement du moteur existant.
+function applyArbitrateProgramOpportunity(state: ProductState, command: Extract<Command, { type: "arbitrate_program_opportunity" }>): ProductState {
+  const opportunity = state.programOpportunities.find((item) => item.id === command.programOpportunityId);
+  if (!opportunity) throw new Error("Opportunité de programme introuvable.");
+  if (opportunity.status !== "pending_arbitration") {
+    throw new Error("Seule une opportunité « à arbitrer » peut faire l'objet d'un arbitrage.");
+  }
+  if (!command.rationale.trim()) throw new Error("La justification de l'arbitrage est obligatoire.");
+  if (command.coordinationId && !state.coordinationSpaces.some((item) => item.id === command.coordinationId)) {
+    throw new Error("Coordination introuvable.");
+  }
+
+  const decisionType = command.outcome === "retenir" ? "constituer_programme" : "cloturer_sans_action";
+  const decision: Decision = {
+    id: id("dec"),
+    programOpportunityId: opportunity.id,
+    type: decisionType,
+    rationale: command.rationale.trim(),
+    decidedByActorId: command.actorId,
+    decidedAt: timestamp(),
+    coordinationId: command.coordinationId
+  };
+
+  const newStatus: ProgramOpportunityStatus = command.outcome === "retenir" ? "designing" : "rejected";
+  const updated: ProgramOpportunity = {
+    ...opportunity,
+    status: newStatus,
+    decisionId: decision.id,
+    history: [history(command.actorId, "Opportunité arbitrée", `${decisionTypeLabels[decisionType]} — ${decision.rationale}`), ...opportunity.history]
+  };
+
+  const next: ProductState = {
+    ...state,
+    decisions: [decision, ...state.decisions],
+    programOpportunities: state.programOpportunities.map((item) => (item.id === opportunity.id ? updated : item))
+  };
+  return withAudit(next, command.actorId, "program_opportunity", opportunity.id, command.type, decisionTypeLabels[decisionType]);
+}
+
 export function applyKnowledgePipelineCommand(
   state: ProductState,
   command: Extract<
@@ -511,6 +596,7 @@ export function applyKnowledgePipelineCommand(
         | "update_collective_need_status"
         | "create_program_opportunity"
         | "update_program_opportunity_status"
+        | "arbitrate_program_opportunity"
         | "dismiss_detection";
     }
   >
@@ -534,6 +620,8 @@ export function applyKnowledgePipelineCommand(
       return applyCreateProgramOpportunity(state, command);
     case "update_program_opportunity_status":
       return applyUpdateProgramOpportunityStatus(state, command);
+    case "arbitrate_program_opportunity":
+      return applyArbitrateProgramOpportunity(state, command);
     case "dismiss_detection":
       return applyDismissDetection(state, command);
   }

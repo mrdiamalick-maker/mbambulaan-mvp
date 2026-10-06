@@ -785,23 +785,50 @@ export interface CollectiveNeed {
   history: HistoryEntry[];
 }
 
-// ProgramOpportunity (LOT 0.3) — un CollectiveNeed suffisamment qualifié
-// pour envisager une intervention structurée de développement. Distinct de
-// l'Opportunity existante (matching économique lot ↔ demande) : ne la
-// remplace pas, ne la généralise pas (mandat §11, contrainte explicite).
+// ProgramOpportunity (LOT 0.3, étendu G1 "Territorial Opportunity") — un
+// CollectiveNeed suffisamment qualifié, OU directement un Territory/une
+// Situation, pour envisager une intervention structurée (programme,
+// projet, partenariat, investissement, action publique, expérimentation
+// — jamais nécessairement un futur Programme). Distinct de l'Opportunity
+// existante (matching économique lot ↔ demande) : ne la remplace pas, ne
+// la généralise pas (mandat §11, contrainte explicite).
+//
+// G1 (mandat "Territory → Situation → Opportunity → Arbitration →
+// Initiative/Result") — cycle cible demandé : identifiée → à qualifier →
+// qualifiée → à arbitrer → retenue → convertie → écartée. Mappage retenu,
+// challengé puis conservé (le besoin est déjà couvert, pas de nouvelle
+// nomenclature) :
+//   identifiée        = detected
+//   à qualifier       = qualifying
+//   qualifiée         = qualified
+//   à arbitrer        = pending_arbitration (NOUVEAU — le seul palier
+//                        réellement manquant : aucun statut existant ne
+//                        représentait "prêt pour une Decision humaine")
+//   retenue           = designing (déjà "retenue puis mise en conception"
+//                        dans son usage réel, cf. create_initiative —
+//                        pas un second statut pour la même réalité)
+//   convertie         = converted_to_program
+//   écartée           = rejected
+// "paused" n'a pas d'équivalent dans le cycle demandé mais reste un état
+// pragmatique légitime (mise en veille) — conservé, pas supprimé.
 export type ProgramOpportunityStatus =
   | "detected"
   | "qualifying"
   | "qualified"
+  | "pending_arbitration"
   | "designing"
   | "converted_to_program"
   | "rejected"
   | "paused";
 
+// Libellés existants volontairement inchangés (mandat G1 : ne pas
+// toucher les écrans déjà câblés dessus) — seul "pending_arbitration" est
+// un libellé réellement nouveau.
 export const programOpportunityStatusLabels: Record<ProgramOpportunityStatus, string> = {
   detected: "Détectée",
   qualifying: "En cours de qualification",
   qualified: "Qualifiée",
+  pending_arbitration: "À arbitrer",
   designing: "En conception",
   converted_to_program: "Convertie en programme",
   rejected: "Rejetée",
@@ -818,11 +845,40 @@ export const programOpportunityMaturityLabels: Record<ProgramOpportunityMaturity
 
 export interface ProgramOpportunity {
   id: string;
-  collectiveNeedId: string;
+  // collectiveNeedId (G1 : désormais optionnel) — une ProgramOpportunity
+  // naissait jusqu'ici exclusivement d'un CollectiveNeed qualifié. La
+  // chaîne cible du mandat G1 (Territory → Situation → Opportunity → ...)
+  // autorise désormais une origine directe Territory/Site/Situation, sans
+  // CollectiveNeed intermédiaire fabriqué uniquement pour satisfaire une
+  // relation. territoryIds (ci-dessous) reste systématiquement obligatoire
+  // dans les deux cas — le socle territorial ne devient jamais optionnel.
+  collectiveNeedId?: string;
   problem: string;
   justification: string;
   territoryIds: string[];
+  // siteIds/situationIds (G1) — relation explicite avec Site/Situation
+  // "lorsque pertinente" (mandat G1) : jamais fabriquée pour satisfaire
+  // une relation absente, donc optionnelle et vide par défaut plutôt
+  // qu'un tableau toujours rempli.
+  siteIds?: string[];
+  situationIds?: string[];
+  // involvedActorIds (G1) — acteurs réellement concernés par
+  // l'instruction (référencent Actor.id réels, jamais un nom inventé).
+  involvedActorIds?: string[];
+  // establishedFacts (G1) — ce qui est un FAIT ÉTABLI (vérifiable dans le
+  // domaine, ex. activité de débarquement réelle), distinct des
+  // hypothèses et inconnues ci-dessous. Texte libre comme
+  // consequences/hypotheses de CollectiveNeed : jamais un chiffre
+  // fabriqué pour paraître précis.
+  establishedFacts: string[];
   potentialBeneficiaries: string;
+  // potentialValueHypothesis (G1) — valeur potentielle attendue. Nommé
+  // explicitement "Hypothesis" pour qu'aucun appelant ne puisse la
+  // confondre avec un Result/Outcome réel (doctrine FAIT ÉTABLI ≠ ... ≠
+  // RÉSULTAT OBSERVÉ) : une estimation chiffrée non sourcée reste une
+  // fabrication interdite, donc ce champ reste un texte qualitatif
+  // explicitement hypothétique, jamais un montant inventé.
+  potentialValueHypothesis?: string;
   evidenceRefs: KnowledgeSourceRef[];
   hypotheses: string[];
   knowledgeGaps: string[];
@@ -831,6 +887,11 @@ export interface ProgramOpportunity {
   possibleIndicators: Array<{ label: string; unit: string }>;
   maturity: ProgramOpportunityMaturity;
   status: ProgramOpportunityStatus;
+  // decisionId (G1) — Decision canonique réelle qui a tranché
+  // l'arbitrage ("retenir" → designing, "ecarter" → rejected). Absent
+  // tant qu'aucune arbitrate_program_opportunity n'a été appliquée :
+  // jamais déduit du seul statut.
+  decisionId?: string;
   createdAt: string;
   history: HistoryEntry[];
 }
@@ -877,7 +938,22 @@ export const decisionTypeLabels: Record<DecisionType, string> = {
 
 export interface Decision {
   id: string;
-  situationId: string;
+  // situationId (G1 : désormais optionnel) — une Decision était jusqu'ici
+  // toujours rattachée à une Situation. G1 ("Territory → Situation →
+  // Opportunity → Arbitration → ...") introduit un second ancrage
+  // possible, programOpportunityId ci-dessous, mutuellement exclusif
+  // (XOR vérifié par applyArbitrateProgramOpportunity, pas par ce type —
+  // même discipline que create_initiative serviceRequestIds/
+  // programOpportunityId). Toute Decision existante/future rattachée à
+  // une Situation continue de fournir situationId exactement comme avant
+  // — aucun appelant Situation n'est affecté par cet élargissement.
+  situationId?: string;
+  // programOpportunityId (G1) — ancrage alternatif pour l'arbitrage d'une
+  // ProgramOpportunity. type reste un DecisionType existant dans ce cas
+  // (constituer_programme = retenir, cloturer_sans_action = écarter) :
+  // même vocabulaire de décision réutilisé, pas une seconde nomenclature
+  // de type parallèle à DecisionType.
+  programOpportunityId?: string;
   type: DecisionType;
   rationale: string;
   decidedByActorId: string;
@@ -1738,10 +1814,24 @@ export type Command =
   | {
       type: "create_program_opportunity";
       actorId: string;
-      collectiveNeedId: string;
+      // collectiveNeedId (G1 : désormais optionnel) — cf. ProgramOpportunity.collectiveNeedId.
+      collectiveNeedId?: string;
       problem: string;
       justification: string;
       territoryIds: string[];
+      // siteIds/situationIds/involvedActorIds/establishedFacts/
+      // potentialValueHypothesis (G1) — cf. les champs homonymes sur
+      // ProgramOpportunity ci-dessus (types.ts).
+      siteIds?: string[];
+      situationIds?: string[];
+      involvedActorIds?: string[];
+      // establishedFacts (G1) — optionnel sur la commande (défaut []
+      // appliqué par applyCreateProgramOpportunity) pour qu'aucun
+      // appelant existant (ProgramOpportunityForm.tsx, tests déjà en
+      // place) n'ait à changer pour continuer à compiler — additif, pas
+      // de migration imposée aux appelants non concernés par G1.
+      establishedFacts?: string[];
+      potentialValueHypothesis?: string;
       potentialBeneficiaries: string;
       evidenceRefs: KnowledgeSourceRef[];
       hypotheses: string[];
@@ -1752,6 +1842,15 @@ export type Command =
       maturity: ProgramOpportunityMaturity;
     }
   | { type: "update_program_opportunity_status"; programOpportunityId: string; actorId: string; status: Exclude<ProgramOpportunityStatus, "detected" | "converted_to_program">; note?: string }
+  // arbitrate_program_opportunity (G1) — le palier "Arbitration" du
+  // mandat : seule commande qui fait réellement progresser une
+  // ProgramOpportunity hors de "pending_arbitration", en créant une
+  // Decision canonique réelle (jamais une simple bascule de statut sans
+  // trace de décision humaine). outcome "retenir" → designing + Decision
+  // type "constituer_programme" ; "ecarter" → rejected + Decision type
+  // "cloturer_sans_action" — réutilise le vocabulaire DecisionType
+  // existant, n'en crée pas un second.
+  | { type: "arbitrate_program_opportunity"; programOpportunityId: string; actorId: string; outcome: "retenir" | "ecarter"; rationale: string; coordinationId?: string }
   // update_initiative_status (P2.5-A, mandat "Programme Lifecycle
   // Foundation") — transition explicite du cycle de vie d'un Programme,
   // toujours un geste humain (jamais de progression automatique, cf.

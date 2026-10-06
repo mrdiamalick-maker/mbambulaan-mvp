@@ -21,6 +21,7 @@ const statusBadgeVariant: Record<ProgramOpportunity["status"], "marine" | "amber
   detected: "marine",
   qualifying: "marine",
   qualified: "amber",
+  pending_arbitration: "amber",
   designing: "amber",
   converted_to_program: "success",
   rejected: "outline",

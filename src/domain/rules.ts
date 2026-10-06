@@ -63,6 +63,10 @@ const KNOWLEDGE_PIPELINE_COMMAND_TYPES = [
   "update_collective_need_status",
   "create_program_opportunity",
   "update_program_opportunity_status",
+  // arbitrate_program_opportunity (G1) — même famille : matérialise une
+  // Decision rattachée à une ProgramOpportunity, jamais un statut de
+  // Situation.
+  "arbitrate_program_opportunity",
   // LOT 8 (mandat "Maritime Intelligence Engine", §5/§31) — même famille
   // que record_finding/update_finding_status : matérialise un Finding,
   // jamais un statut de Situation.
@@ -1060,6 +1064,7 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
     command.type === "update_collective_need_status" ||
     command.type === "create_program_opportunity" ||
     command.type === "update_program_opportunity_status" ||
+    command.type === "arbitrate_program_opportunity" ||
     command.type === "dismiss_detection"
   ) {
     return applyKnowledgePipelineCommand(state, command);

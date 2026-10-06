@@ -138,7 +138,7 @@ function makeCascadeFixture() {
   const citingProgramOpportunity: ProgramOpportunity = {
     id: "prog-cascade-citing", collectiveNeedId: citingCollectiveNeed.id, problem: "Problème public", justification: "Justification publique",
     territoryIds: ["joal"], potentialBeneficiaries: "Filière locale", evidenceRefs: [{ objectType: "situation", objectId: hiddenSituation.id }],
-    hypotheses: [], knowledgeGaps: [], possibleInterventions: [], desiredOutcomes: [], possibleIndicators: [], maturity: "faible",
+    establishedFacts: [], hypotheses: [], knowledgeGaps: [], possibleInterventions: [], desiredOutcomes: [], possibleIndicators: [], maturity: "faible",
     status: "detected", createdAt: new Date().toISOString(), history: []
   };
 
@@ -357,7 +357,11 @@ test("TEST — aucune référence orpheline créée par la projection", () => {
   const commitmentIds = new Set(projected.coordinationSpaces.flatMap((space) => space.commitments.map((c) => c.id)));
   const fieldMissionIds = new Set(projected.fieldMissions.map((item) => item.id));
 
-  for (const decision of projected.decisions) assert.ok(situationIds.has(decision.situationId), `Decision ${decision.id} orpheline`);
+  // situationId optionnel (G1 : une Decision peut être ancrée sur une
+  // ProgramOpportunity) — cette fixture n'en construit aucune, la
+  // vérification reste donc inchangée pour toute Decision réellement
+  // rattachée à une Situation.
+  for (const decision of projected.decisions) if (decision.situationId) assert.ok(situationIds.has(decision.situationId), `Decision ${decision.id} orpheline`);
   for (const space of projected.coordinationSpaces) if (space.situationId) assert.ok(situationIds.has(space.situationId), `CoordinationSpace ${space.id} orphelin`);
   for (const evidence of projected.evidences) {
     if (evidence.situationId) assert.ok(situationIds.has(evidence.situationId), `Evidence ${evidence.id} orpheline (situation)`);

@@ -21,8 +21,17 @@ test("le tenant de démonstration relie les objets sans référence orpheline", 
     validateSituation(situation);
     if (situation.coordinationId) assert.ok(state.coordinationSpaces.some((space) => space.id === situation.coordinationId));
   }
+  // situationId/programOpportunityId (G1) — une Decision est désormais
+  // ancrée sur l'un ou l'autre (jamais aucun des deux, cf.
+  // applyArbitrateProgramOpportunity) : les deux voies sont vérifiées.
+  const programOpportunityIds = new Set(state.programOpportunities.map((item) => item.id));
   for (const decision of state.decisions) {
-    assert.ok(situationIds.has(decision.situationId));
+    if (decision.situationId) {
+      assert.ok(situationIds.has(decision.situationId));
+    } else {
+      assert.ok(decision.programOpportunityId, `Decision ${decision.id} sans situationId doit porter un programOpportunityId`);
+      assert.ok(programOpportunityIds.has(decision.programOpportunityId!), `Decision ${decision.id} référence une opportunité de programme introuvable`);
+    }
     assert.ok(actorIds.has(decision.decidedByActorId));
     if (decision.coordinationId) assert.ok(state.coordinationSpaces.some((space) => space.id === decision.coordinationId));
   }

@@ -192,8 +192,12 @@ function stripHiddenSituationRefs(refs: KnowledgeSourceRef[], hiddenSituationIds
   return refs.filter((ref) => !(ref.objectType === "situation" && hiddenSituationIds.has(ref.objectId)));
 }
 
+// G1 — Decision.situationId est désormais optionnel (une Decision peut
+// aussi être rattachée à une ProgramOpportunity, cf. programOpportunityId,
+// types.ts). Une Decision sans situationId n'est jamais "visible par
+// situation" : elle est donc exclue ici, jamais levée par défaut.
 function projectDecisions(decisions: Decision[], visibleSituationIds: Set<string>): Decision[] {
-  return decisions.filter((item) => visibleSituationIds.has(item.situationId));
+  return decisions.filter((item) => item.situationId !== undefined && visibleSituationIds.has(item.situationId));
 }
 
 // projectCoordinationSpaces — filtre les espaces réellement rattachés à
