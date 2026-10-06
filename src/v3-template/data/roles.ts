@@ -66,6 +66,16 @@ export function getRoleLandingScreen(role: RoleKey): ScreenKey {
   return ROLES[role].main[0];
 }
 
+export const SITUATION_PRIMARY_ACTIONS = {
+  ministre: { label: "Décider", mode: "decision" },
+  programme: { label: "Transmettre", mode: "transmit" },
+  coordination: { label: "Instruire / Qualifier", mode: "qualify" }
+} as const satisfies Record<RoleKey, { label: string; mode: "decision" | "transmit" | "qualify" }>;
+
+export function getSituationPrimaryAction(role: RoleKey) {
+  return SITUATION_PRIMARY_ACTIONS[role];
+}
+
 export const ROLE_CHIPS: Array<[RoleKey, string]> = [
   ["ministre", "Ministre"],
   ["programme", "Direction de programme"],

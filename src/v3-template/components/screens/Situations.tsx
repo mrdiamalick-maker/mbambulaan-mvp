@@ -20,6 +20,7 @@ import {
 } from "../../lib/situations-bridge";
 import { useDomainRuntime } from "../../lib/domain-runtime";
 import { V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
+import { getSituationPrimaryAction } from "../../data/roles";
 import type { AppState } from "../../state";
 
 type Patch = (p: Partial<AppState>) => void;
@@ -40,7 +41,7 @@ function FilterChip({ label, on, dot, dotc, onClick }: { label: string; on: bool
   );
 }
 
-export function Situations({ state, patch }: { state: AppState; patch: Patch }) {
+export function Situations({ state, patch, onOpenFlux }: { state: AppState; patch: Patch; onOpenFlux: () => void }) {
   // PD.5 — runtime V3 (mandat "Operational Knowledge Bridge", §3/§4) :
   // lit le ProductState canonique réel (GET /api/state) au lieu du
   // singleton statique DEMO_STATE ; le gabarit visuel reste identique.
@@ -83,11 +84,11 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
   // moins au Ministère qui arbitre — masqué pour ce rôle plutôt que
   // répété comme un effet dashboard sans usage de décision.
   const showFunnel = state.role !== "ministre";
-  // PD.4 §16 — même profondeur de rôle que l'Atlas (PD.1/PD.3, mandat
-  // "Coordination territoriale: ... real qualification/action
-  // capabilities") : seule la coordination territoriale peut choisir une
-  // décision réelle ; les deux autres rôles lisent la même liste.
-  const canQualify = state.role === "coordination";
+  const primaryAction = getSituationPrimaryAction(state.role);
+  // La perspective guide l'action primaire sans devenir une autorisation
+  // de sécurité : seule la perspective Ministère compose une décision ;
+  // POST /api/actions reste ensuite arbitré par la session serveur réelle.
+  const canDecide = primaryAction.mode === "decision";
 
   useEffect(() => {
     setRationale("");
@@ -270,7 +271,7 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
           </div>
 
           <div style={{ display: "flex", gap: 0, borderBottom: "1px solid rgba(11,26,42,.12)", padding: "0 14px", flexWrap: "wrap" }}>
-            {[["know", "Synthèse"], ["time", "Chronologie"], ["src", "Sources"], ["act", "Action"]].map(([k, label]) => (
+            {[["know", "Résumé"], ["time", "Historique"], ["src", "Sources"], ["act", "Décider"]].map(([k, label]) => (
               <button
                 key={k}
                 onClick={() => patch({ sitTab: k })}
@@ -361,7 +362,9 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
                   <div style={{ flex: "1 1 220px" }}>
                     <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 6 }}>Décision</div>
                     <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
-                      {s.stageBucket >= 4 ? "Un résultat a déjà été consigné." : "Aucune décision enregistrée à ce stade."} Voir l’onglet « Action ».
+                      {s.decisionCount > 0
+                        ? `${s.decisionCount} décision${s.decisionCount > 1 ? "s" : ""} enregistrée${s.decisionCount > 1 ? "s" : ""}${s.latestDecisionLabel ? ` · dernière : ${s.latestDecisionLabel}` : ""}${s.latestDecisionRationale ? ` — ${s.latestDecisionRationale}` : ""}.`
+                        : "Aucune décision enregistrée à ce stade."} Voir l’onglet « Décider ».
                     </div>
                   </div>
                   <div style={{ flex: "1 1 220px" }}>
@@ -422,11 +425,11 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
               <div className="pv3-rise-fast">
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "rgba(11,26,42,.1)", border: "1px solid rgba(11,26,42,.1)", marginBottom: 20 }}>
                   <div style={{ background: "#F7F3E9", padding: "15px 17px" }}>
-                    <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 8 }}>Ce que le système constate</div>
+                    <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 8 }}>Signal analytique — à vérifier</div>
                     <div style={{ fontSize: 13, lineHeight: 1.55 }}>{s.systemNote ?? "Aucune recommandation disponible — territoire non résolu."}</div>
                   </div>
                   <div style={{ background: "#F7F3E9", padding: "15px 17px" }}>
-                    <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#B6522F", marginBottom: 8 }}>Ce que le système suggère</div>
+                    <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#B6522F", marginBottom: 8 }}>Proposition à examiner</div>
                     <div style={{ fontSize: 13, lineHeight: 1.55 }}>{s.systemSuggestion ?? "Aucune suggestion disponible à ce stade."}</div>
                     {s.systemRisks.length > 0 && (
                       <div style={{ fontSize: 11.5, color: "#B6522F", marginTop: 8 }}>{s.systemRisks.join(" · ")}</div>
@@ -436,13 +439,7 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
                 <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 11 }}>
                   Ce que vous décidez — la décision reste humaine et tracée
                 </div>
-                {/* PD.4 §16 — la capacité de qualification réelle (choisir une
-                    Decision) reste réservée à la Coordination territoriale,
-                    seul rôle dont le mandat opérationnel couvre l'action ;
-                    Ministère et Direction de programme lisent la même liste
-                    des décisions réellement possibles (DecisionType, 8
-                    valeurs réelles), sans pouvoir la sélectionner. */}
-                {canQualify ? (
+                {canDecide ? (
                   s.options.map((o, i) => {
                     const on = state.sitChoice?.id === s.id && state.sitChoice?.i === i;
                     return (
@@ -461,7 +458,7 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
                         </span>
                         <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>{o.label}</span>
                         <span style={{ fontSize: 11.5, color: o.suggested ? "#4E7B5A" : "rgba(11,26,42,.5)" }}>
-                          {o.suggested ? "Suggéré par le moteur de coordination" : ""}
+                          {o.suggested ? "Proposition à examiner · moteur de coordination" : ""}
                         </span>
                       </button>
                     );
@@ -471,13 +468,26 @@ export function Situations({ state, patch }: { state: AppState; patch: Patch }) 
                     {s.options.map((o) => (
                       <div key={o.decisionType} style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 16px", marginBottom: 8, border: `1px solid ${o.suggested ? "rgba(78,123,90,.45)" : "rgba(11,26,42,.14)"}` }}>
                         <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500, color: "rgba(11,26,42,.55)" }}>{o.label}</span>
-                        <span style={{ fontSize: 11.5, color: o.suggested ? "#4E7B5A" : "rgba(11,26,42,.4)" }}>{o.suggested ? "Suggéré par le moteur de coordination" : ""}</span>
+                        <span style={{ fontSize: 11.5, color: o.suggested ? "#4E7B5A" : "rgba(11,26,42,.4)" }}>{o.suggested ? "Proposition à examiner" : ""}</span>
                       </div>
                     ))}
-                    <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.5)", marginTop: 4 }}>La qualification (choisir et enregistrer une décision) est réservée à la coordination territoriale.</div>
+                    <div style={{ marginTop: 12, padding: "13px 15px", borderLeft: "2px solid #B6522F", background: "#F7F3E9" }}>
+                      <div style={{ fontSize: 12.5, lineHeight: 1.55, color: "rgba(11,26,42,.68)" }}>
+                        {primaryAction.mode === "transmit"
+                          ? "La Direction prépare le dossier et ouvre un projet de note avant toute transmission humaine."
+                          : "La Coordination instruit les éléments dans le Flux entrant ; elle ne valide pas la décision ministérielle."}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => primaryAction.mode === "transmit" ? patch({ docOpen: { type: "situation", situationId: s.id } }) : onOpenFlux()}
+                        style={{ marginTop: 10, border: "1px solid #0B1A2A", background: "#0B1A2A", color: "#F7F3E9", cursor: "pointer", padding: "8px 14px", fontSize: 12, fontFamily: V3_FONT_SANS, fontWeight: 600, borderRadius: 4 }}
+                      >
+                        {primaryAction.label}
+                      </button>
+                    </div>
                   </>
                 )}
-                {chosenOption && canQualify && (
+                {chosenOption && canDecide && (
                   <div style={{ marginTop: 14, padding: "15px 17px", background: "#0B1A2A", color: "#F7F3E9" }} className="pv3-rise-fast">
                     <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "#DE9C74", marginBottom: 8 }}>Décision à enregistrer</div>
                     <div style={{ fontSize: 13.5, lineHeight: 1.5 }}>{chosenOption.label}</div>

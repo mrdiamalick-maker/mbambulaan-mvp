@@ -82,7 +82,7 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
           <Brief state={state} patch={patch} roleDef={roleDef} onOpenSituation={onOpenSituation} onOpenProgramme={onOpenProgramme} />
         )}
         {state.screen === "atlas" && <Atlas state={state} patch={patch} onOpenProgramme={onOpenProgramme} />}
-        {state.screen === "situations" && <Situations state={state} patch={patch} />}
+        {state.screen === "situations" && <Situations state={state} patch={patch} onOpenFlux={() => navigate("flux")} />}
         {state.screen === "programmes" && state.progView === "portfolio" && (
           <Portfolio state={state} patch={patch} onOpenProgramme={onOpenProgramme} />
         )}

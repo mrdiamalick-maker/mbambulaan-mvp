@@ -198,6 +198,9 @@ export interface SituationDetailView extends SituationRowView {
   sources: SituationSourceRow[];
   maritimeContext: MaritimeContextRow[];
   convergenceNote?: string;
+  decisionCount: number;
+  latestDecisionLabel?: string;
+  latestDecisionRationale?: string;
   systemNote?: string;
   systemSuggestion?: string;
   systemRisks: string[];
@@ -226,6 +229,10 @@ export function getSituationDetail(rowId: number, state: ProductState = DEMO_STA
   const maritime = resolveMaritimeContext(state, situation);
   const convergence = resolveFindingConvergence(state, situation);
   const responsible = situation.responsibleId ? state.actors.find((item) => item.id === situation.responsibleId) : undefined;
+  const decisions = state.decisions
+    .filter((item) => item.situationId === situation.id)
+    .sort((a, b) => b.decidedAt.localeCompare(a.decidedAt));
+  const latestDecision = decisions[0];
 
   return {
     ...row,
@@ -261,6 +268,9 @@ export function getSituationDetail(rowId: number, state: ProductState = DEMO_STA
     convergenceNote: convergence
       ? `Ce constat converge avec ${convergence.findingIds.length - 1} autre${convergence.findingIds.length - 1 > 1 ? "s" : ""} constat${convergence.findingIds.length - 1 > 1 ? "s" : ""} documentaire${convergence.findingIds.length - 1 > 1 ? "s" : ""} — ${convergence.decisionBoundary}`
       : undefined,
+    decisionCount: decisions.length,
+    latestDecisionLabel: latestDecision ? decisionTypeLabels[latestDecision.type] : undefined,
+    latestDecisionRationale: latestDecision?.rationale,
     systemNote: recommendation?.reason,
     systemSuggestion: recommendation ? `${recommendation.firstAction} (${recommendation.objective})` : undefined,
     systemRisks: recommendation?.risks ?? [],
