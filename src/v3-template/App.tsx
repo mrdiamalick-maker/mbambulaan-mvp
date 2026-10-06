@@ -16,7 +16,7 @@ import { Arbitrages } from "./components/screens/Arbitrages";
 import { Flux } from "./components/screens/Flux";
 import { Sources } from "./components/screens/Sources";
 import { PERIOD } from "./data/period";
-import { ROLES } from "./data/roles";
+import { getRoleLandingScreen, ROLES } from "./data/roles";
 import { initialAppState } from "./state";
 import { V3_FONT_SANS } from "./theme";
 import type { PeriodKey, RoleKey, ScreenKey } from "./types";
@@ -53,11 +53,11 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
   }, [patch]);
 
   const onRole = useCallback((role: RoleKey) => {
-    const stillValid = ROLES[role].main.includes(state.screen) || ROLES[role].sec.includes(state.screen);
-    const screen = stillValid ? state.screen : ROLES[role].main[0];
+    const screen = getRoleLandingScreen(role);
     patch({ role, screen });
     syncScreenUrl(screen);
-  }, [patch, state.screen, syncScreenUrl]);
+    if (typeof window !== "undefined") window.scrollTo(0, 0);
+  }, [patch, syncScreenUrl]);
 
   const onOpenSituation = useCallback((sitId: number) => {
     patch({ screen: "situations", sitOpen: sitId });

@@ -62,6 +62,10 @@ export const ROLES: Record<RoleKey, RoleDef> = {
   }
 };
 
+export function getRoleLandingScreen(role: RoleKey): ScreenKey {
+  return ROLES[role].main[0];
+}
+
 export const ROLE_CHIPS: Array<[RoleKey, string]> = [
   ["ministre", "Ministre"],
   ["programme", "Direction de programme"],

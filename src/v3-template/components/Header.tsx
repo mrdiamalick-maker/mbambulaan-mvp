@@ -41,9 +41,9 @@ export function Header({
         <span style={{ fontSize: 12, color: "rgba(11,26,42,.5)", whiteSpace: "nowrap" }}>Territoire, situation, programme…</span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 0, border: "1px solid rgba(11,26,42,.16)", borderRadius: 4, overflow: "hidden", flex: "none" }}>
+      <div role="group" aria-label="Période d’analyse" style={{ display: "flex", alignItems: "center", gap: 0, border: "1px solid rgba(11,26,42,.16)", borderRadius: 4, overflow: "hidden", flex: "none" }}>
         {PERIOD_CHIPS.map(([k, label]) => (
-          <button key={k} onClick={() => onPeriod(k)} style={chipStyle(period === k)}>{label}</button>
+          <button type="button" key={k} onClick={() => onPeriod(k)} aria-pressed={period === k} style={chipStyle(period === k)}>{label}</button>
         ))}
       </div>
       <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.5)", whiteSpace: "nowrap" }}>{periodRange}</div>
@@ -52,9 +52,9 @@ export function Header({
 
       <div style={{ display: "flex", alignItems: "center", gap: 7, flex: "none" }}>
         <span style={{ fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(11,26,42,.42)", whiteSpace: "nowrap" }}>Rôle connecté</span>
-        <div style={{ display: "flex", alignItems: "center", border: "1px solid rgba(11,26,42,.16)", borderRadius: 4, overflow: "hidden" }}>
+        <div role="group" aria-label="Perspective institutionnelle" style={{ display: "flex", alignItems: "center", border: "1px solid rgba(11,26,42,.16)", borderRadius: 4, overflow: "hidden" }}>
           {ROLE_CHIPS.map(([k, label]) => (
-            <button key={k} onClick={() => onRole(k)} style={chipStyle(role === k)}>{label}</button>
+            <button type="button" key={k} onClick={() => onRole(k)} aria-pressed={role === k} style={chipStyle(role === k)}>{label}</button>
           ))}
         </div>
       </div>

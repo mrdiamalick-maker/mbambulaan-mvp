@@ -52,11 +52,13 @@ export function Sidebar({
         </div>
       </div>
 
-      <nav className="pv3-sidebar-nav" style={{ display: "flex", flexDirection: "column", gap: 1, padding: "4px 10px" }}>
+      <nav aria-label="Navigation principale" className="pv3-sidebar-nav" style={{ display: "flex", flexDirection: "column", gap: 1, padding: "4px 10px" }}>
         {navMain.map((item) => (
           <button
+            type="button"
             key={item.key}
             onClick={() => onNavigate(item.key)}
+            aria-current={item.active ? "page" : undefined}
             className={item.active ? undefined : "pv3-nav-idle"}
             style={
               item.active
@@ -86,11 +88,13 @@ export function Sidebar({
       </nav>
 
       <div style={{ margin: "14px 22px 10px", height: 1, background: "rgba(247,243,233,.12)" }} />
-      <nav className="pv3-sidebar-nav" style={{ display: "flex", flexDirection: "column", gap: 1, padding: "0 10px" }}>
+      <nav aria-label="Navigation secondaire" className="pv3-sidebar-nav" style={{ display: "flex", flexDirection: "column", gap: 1, padding: "0 10px" }}>
         {navSec.map((item) => (
           <button
+            type="button"
             key={item.key}
             onClick={() => onNavigate(item.key)}
+            aria-current={item.active ? "page" : undefined}
             className="pv3-nav-sec"
             style={{
               display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",

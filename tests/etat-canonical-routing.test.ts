@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { ROLES } from "../src/v3-template/data/roles";
+import { getRoleLandingScreen, ROLES } from "../src/v3-template/data/roles";
 import { isScreenKey } from "../src/v3-template/types";
 
 const nextConfig = readFileSync(new URL("../next.config.ts", import.meta.url), "utf8");
@@ -48,7 +48,8 @@ test("les deep links V3 n'acceptent que les huit écrans connus", () => {
 });
 
 test("les trois perspectives institutionnelles et leurs priorités de navigation restent présentes", () => {
+  assert.equal(getRoleLandingScreen("ministre"), "brief");
+  assert.equal(getRoleLandingScreen("programme"), "programmes");
+  assert.equal(getRoleLandingScreen("coordination"), "flux");
   assert.equal(ROLES.ministre.main[0], "brief");
-  assert.equal(ROLES.programme.main[0], "programmes");
-  assert.equal(ROLES.coordination.main[0], "flux");
 });
