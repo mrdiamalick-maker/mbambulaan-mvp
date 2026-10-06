@@ -4,6 +4,7 @@
 export interface ArbOption { t: string; cost: string; pro: string; con: string }
 export interface Arbitrage {
   due: string; urgency: string; dueC: string; title: string; meta: string; context: string;
+  territories?: string[];
   // decider (mandat "Intégration /etat V5 + Corrections Produit" §10,
   // point 8 — "le décideur") : le niveau institutionnel qui tranche,
   // jamais un nom de personne fabriqué. Dérivé de la doctrine de rôles du
@@ -18,6 +19,7 @@ export const ARB: Arbitrage[] = [
     due: "J−2", urgency: "avant vendredi", dueC: "#C8452B",
     title: "Mobiliser une capacité froide de remplacement à Joal",
     meta: "Joal-Fadiouth · chaîne du froid · 3 options",
+    territories: ["Joal-Fadiouth"],
     decider: "Ministère, sur préparation de la Coordination territoriale",
     context: "La machine à glace du quai de Joal est déclarée hors service depuis deux jours et une sortie en mer rentre cette nuit. La décision porte sur l’engagement d’une capacité de remplacement avant que la panne ait été techniquement qualifiée.",
     known: ["Panne déclarée par le gestionnaire du quai, horodatée le 7 septembre.", "Deux capacités sur trois restent en service à Mbour, à 28 km.", "Une sortie en mer rentre dans la nuit."],
@@ -33,6 +35,7 @@ export const ARB: Arbitrage[] = [
     due: "J−4", urgency: "cette semaine", dueC: "#D89A4A",
     title: "Autoriser le délestage temporaire Mbour → Popenguine",
     meta: "Petite-Côte · logistique · 3 options",
+    territories: ["Mbour", "Popenguine"],
     decider: "Ministère, sur préparation de la Coordination territoriale",
     context: "La chaîne du froid de Mbour est réduite à une capacité de marge alors qu’elle est aussi le repli désigné de Joal. Popenguine dispose d’une capacité confirmée disponible à 19 km.",
     known: ["Saturation observée au poste de quai de Mbour sur deux jours.", "Capacité disponible confirmée à Popenguine.", "Mbour est le repli désigné pour Joal depuis le 7 septembre."],

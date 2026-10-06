@@ -473,40 +473,6 @@ export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patc
         </div>
 
         <div style={{ background: "#FFFFFF", borderLeft: "1px solid rgba(11,26,42,.12)", minHeight: 660, alignSelf: "stretch" }}>
-          {/* §4 (correction P1 Territoire) — synthèse décisionnelle réelle,
-              toujours en tête, avant les onglets : sujet d'attention
-              principal, enjeu, action en cours, responsable, décision
-              attendue si le dossier est réellement en file d'arbitrage. */}
-          {synthesis && (
-            <div style={{ padding: "14px 20px 16px", borderBottom: "1px solid rgba(11,26,42,.09)", background: "#F7F3E9" }}>
-              <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 8 }}>Synthèse</div>
-              {synthesis.hasAttention ? (
-                <>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.4, flex: 1, minWidth: 180 }}>{synthesis.subject}</div>
-                    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".04em", color: synthesis.activityColor, flex: "none" }}>{synthesis.priorityLabel}</span>
-                  </div>
-                  {synthesis.stake && (
-                    <div style={{ fontSize: 12, color: "rgba(11,26,42,.65)", marginTop: 5, lineHeight: 1.45 }}>{synthesis.stake}</div>
-                  )}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8, marginTop: 10 }}>
-                    <DetailField k="Action en cours" v={synthesis.action || "Non renseignée"} />
-                    <DetailField k="Responsable" v={synthesis.responsible ?? "Non assigné"} />
-                  </div>
-                  {synthesis.decisionExpected && (
-                    <div style={{ marginTop: 8 }}>
-                      <DetailField k="Décision attendue" v={synthesis.decisionExpected} />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div style={{ fontSize: 12.5, color: "rgba(11,26,42,.55)", lineHeight: 1.5 }}>
-                  Aucune situation ouverte ne nécessite d’attention sur ce territoire à ce jour.
-                </div>
-              )}
-            </div>
-          )}
-
           <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid rgba(11,26,42,.09)" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -520,6 +486,28 @@ export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patc
             </div>
             <p style={{ margin: "12px 0 0", fontSize: 12.5, lineHeight: 1.55, color: "rgba(11,26,42,.75)" }}>{t.reading}</p>
           </div>
+
+          {/* §4 (correction P1 Territoire) — la lecture décisionnelle expose
+              explicitement les trois niveaux sans transformer une priorité
+              algorithmique en décision : attention, action, arbitrage humain. */}
+          {synthesis && (
+            <div style={{ padding: "14px 20px 16px", borderBottom: "1px solid rgba(11,26,42,.09)", background: "#F7F3E9" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 9, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", flex: 1 }}>Lecture décisionnelle</div>
+                {synthesis.priorityLabel && <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".04em", color: synthesis.activityColor }}>{synthesis.priorityLabel}</span>}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+                <DetailField k="Attention" v={synthesis.subject ?? "Aucune attention ouverte"} />
+                <DetailField k="Action" v={synthesis.action ?? "Aucune action ouverte"} />
+                <DetailField k="Décision" v={synthesis.decisionExpected ?? "Aucun arbitrage formalisé"} />
+              </div>
+              {synthesis.hasAttention && (
+                <div style={{ marginTop: 9, fontSize: 11.5, lineHeight: 1.45, color: "rgba(11,26,42,.62)" }}>
+                  {synthesis.stake ? `${synthesis.stake} · ` : ""}Responsable : {synthesis.responsible ?? "non assigné"}.
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 1, background: "rgba(11,26,42,.1)", borderBottom: "1px solid rgba(11,26,42,.09)" }}>
             {t.tiles.map((x, i) => (

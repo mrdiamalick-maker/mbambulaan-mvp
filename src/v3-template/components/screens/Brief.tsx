@@ -128,9 +128,12 @@ export function Brief({
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 1, background: "rgba(11,26,42,.12)", border: "1px solid rgba(11,26,42,.12)", marginBottom: 26 }}>
         {kpis.map((k, i) => (
           <button
+            type="button"
             key={k.k}
             onMouseEnter={() => patch({ sigBar: -2 - i })}
-            style={{ border: 0, textAlign: "left", cursor: "default", background: k.active ? "rgba(182,82,47,.05)" : "#FFFFFF", padding: "16px 17px 13px", display: "flex", flexDirection: "column", gap: 9, transition: "background .2s" }}
+            onClick={() => patch({ sigBar: -2 - i })}
+            aria-pressed={k.active}
+            style={{ border: 0, textAlign: "left", cursor: "pointer", background: k.active ? "rgba(182,82,47,.05)" : "#FFFFFF", padding: "16px 17px 13px", display: "flex", flexDirection: "column", gap: 9, transition: "background .2s" }}
           >
             <div style={{ fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", minHeight: 26 }}>{k.k}</div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
