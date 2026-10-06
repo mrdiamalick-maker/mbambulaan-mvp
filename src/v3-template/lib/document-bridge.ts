@@ -15,7 +15,8 @@
 // étiquette "proposition à examiner", jamais comme décision.
 import { DEMO_STATE } from "./demo-state";
 import type { ProductState } from "@/domain/types";
-import { buildSituationHeaderStats, getSituationDetail, type SituationDetailView } from "./situations-bridge";
+import { decisionTypeLabels } from "@/domain/types";
+import { buildSituationHeaderStats, findLatestDecisionForSituation, getSituationDetail, timeLabel, type SituationDetailView } from "./situations-bridge";
 import { getProgrammeSynthesis, type ProgrammeSynthesisView } from "./programme-bridge";
 import { getNationalLandingTotals } from "./landing-bridge";
 import { ARB, type Arbitrage } from "../data/arbitrages";
@@ -39,13 +40,19 @@ export interface GeneratedDocument {
   subtitle?: string;
   generatedAtLabel: string;
   sections: DocumentSection[];
+  // hasCanonicalDecision (etat-v5 checkpoint E) — vrai uniquement pour un
+  // document "decision" dont la section "Décision humaine" reflète déjà
+  // une Decision réelle enregistrée (state.decisions), jamais la note
+  // libre. DocumentView.tsx s'en sert pour ne pas afficher un champ de
+  // saisie qui n'aurait plus aucun effet sur le contenu du document.
+  hasCanonicalDecision?: boolean;
 }
 
 const TODAY_LABEL = () => new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
 
 function syntheseDocument(state: ProductState): GeneratedDocument {
   const header = buildSituationHeaderStats(state);
-  const activity = getNationalLandingTotals();
+  const activity = getNationalLandingTotals(state);
   const openCritical = state.situations
     .filter((s) => s.status !== "reglee" && s.priority === "critique")
     .slice(0, 6);
@@ -160,13 +167,42 @@ function situationDocument(situationId: number, state: ProductState): GeneratedD
   };
 }
 
-function decisionDocument(arbitrageIndex: number, humanNote: string): GeneratedDocument {
+// decisionDocument (etat-v5 checkpoint E) — la décision canonique déjà
+// enregistrée pour la Situation de cet arbitrage (state.decisions, via
+// create_decision depuis Arbitrages.tsx) est TOUJOURS source de vérité
+// dès qu'elle existe : le texte libre humanNote ne sert plus qu'avant
+// toute décision réelle, jamais en concurrence avec elle. Une décision
+// canonique enregistrée ne peut pas être réécrite par une note libre
+// saisie après coup dans ce générateur.
+function decisionDocument(arbitrageIndex: number, humanNote: string, state: ProductState): GeneratedDocument {
   const a: Arbitrage = ARB[arbitrageIndex] ?? ARB[0];
+  const canonicalDecision = a.situationId ? findLatestDecisionForSituation(state, a.situationId) : undefined;
+  const decider = canonicalDecision ? state.actors.find((actor) => actor.id === canonicalDecision.decidedByActorId) : undefined;
+
+  const decisionSection: DocumentSection = canonicalDecision
+    ? {
+        heading: "Décision humaine",
+        kind: "fact",
+        lines: [
+          `Décision enregistrée : ${decisionTypeLabels[canonicalDecision.type]}.`,
+          canonicalDecision.rationale,
+          `${decider ? decider.name : "Décideur non identifié"} — ${timeLabel(canonicalDecision.decidedAt)}.`
+        ]
+      }
+    : {
+        heading: "Décision humaine",
+        kind: humanNote.trim() ? "fact" : "gap",
+        lines: humanNote.trim()
+          ? [humanNote.trim()]
+          : ["Aucune décision enregistrée à ce jour pour cet arbitrage. Ce document présente les options en vue d’une décision, et n’est pas lui-même une décision prise."]
+      };
+
   return {
     typeLabel: "Note de décision",
     title: a.title,
     subtitle: `Échéance ${a.due} — ${a.urgency}`,
     generatedAtLabel: TODAY_LABEL(),
+    hasCanonicalDecision: Boolean(canonicalDecision),
     sections: [
       { heading: "Contexte", kind: "fact", lines: [a.context] },
       { heading: "Faits établis", kind: "fact", lines: a.known },
@@ -174,13 +210,7 @@ function decisionDocument(arbitrageIndex: number, humanNote: string): GeneratedD
       { heading: "Conséquence si rien n’est décidé", kind: "fact", lines: [a.inaction] },
       { heading: "Options (présentées neutrement — aucune n’est une recommandation)", kind: "fact", lines: a.options.map((o) => `${o.t} — ${o.cost}. Résout : ${o.pro} Laisse ouvert : ${o.con}`) },
       { heading: "Décideur", kind: "fact", lines: [a.decider] },
-      {
-        heading: "Décision humaine",
-        kind: humanNote.trim() ? "fact" : "gap",
-        lines: humanNote.trim()
-          ? [humanNote.trim()]
-          : ["Aucune décision enregistrée à ce jour pour cet arbitrage. Ce document présente les options en vue d’une décision, et n’est pas lui-même une décision prise."]
-      }
+      decisionSection
     ]
   };
 }
@@ -197,6 +227,6 @@ export function buildDocument(request: DocumentRequest, humanNote: string, state
     case "situation":
       return situationDocument(request.situationId, state);
     case "decision":
-      return decisionDocument(request.arbitrageIndex, humanNote);
+      return decisionDocument(request.arbitrageIndex, humanNote, state);
   }
 }

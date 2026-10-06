@@ -7,9 +7,9 @@
 // ce lot.
 import { DEMO_STATE } from "./demo-state";
 import type { ProductState } from "@/domain/types";
-import { buildSituationHeaderStats } from "./situations-bridge";
+import { buildSituationHeaderStats, findLatestDecisionForSituation } from "./situations-bridge";
 import { getNationalLandingTotals } from "./landing-bridge";
-import { ARB } from "../data/arbitrages";
+import { ARB, type Arbitrage } from "../data/arbitrages";
 
 export interface PresentationSlide {
   kicker: string;
@@ -17,11 +17,26 @@ export interface PresentationSlide {
   lines: string[];
 }
 
+// isArbitrageDecided (etat-v5 checkpoint E) — un arbitrage sans
+// situationId (ex. ARB[2], arbitrage de portefeuille programme) ne peut
+// aujourd'hui recevoir aucune Decision réelle (voir Arbitrages.tsx : le
+// domaine ne possède pas d'objet de décision Programme compatible), donc
+// reste toujours "en attente" par construction, jamais fabriqué décidé.
+function isArbitrageDecided(state: ProductState, arbitrage: Arbitrage): boolean {
+  return Boolean(arbitrage.situationId && findLatestDecisionForSituation(state, arbitrage.situationId));
+}
+
 export function buildPresentationSlides(state: ProductState = DEMO_STATE): PresentationSlide[] {
   const header = buildSituationHeaderStats(state);
-  const activity = getNationalLandingTotals();
+  const activity = getNationalLandingTotals(state);
   const criticalSituations = state.situations.filter((s) => s.status !== "reglee" && s.priority === "critique").slice(0, 5);
-  const lead = ARB[0];
+  // pendingArbitrages (etat-v5 checkpoint E) — un arbitrage déjà tranché
+  // (Decision réelle enregistrée sur sa Situation) ne doit plus apparaître
+  // comme une décision encore attendue : une proposition système devenue
+  // décision humaine sort de la file d'attente, elle ne reste pas
+  // affichée comme si elle restait à trancher.
+  const pendingArbitrages = ARB.filter((a) => !isArbitrageDecided(state, a));
+  const lead = pendingArbitrages[0];
 
   return [
     {
@@ -46,8 +61,10 @@ export function buildPresentationSlides(state: ProductState = DEMO_STATE): Prese
     },
     {
       kicker: "Décisions attendues",
-      title: `${ARB.length} décision(s) en attente`,
-      lines: ARB.map((a) => `${a.title} — échéance ${a.due} (${a.urgency}) · ${a.decider}.`)
+      title: pendingArbitrages.length > 0 ? `${pendingArbitrages.length} décision(s) en attente` : "Aucune décision en attente",
+      lines: pendingArbitrages.length > 0
+        ? pendingArbitrages.map((a) => `${a.title} — échéance ${a.due} (${a.urgency}) · ${a.decider}.`)
+        : ["Tous les arbitrages préparés ont déjà une décision enregistrée."]
     },
     {
       kicker: "Options / orientation si disponible",

@@ -6,6 +6,7 @@ import { V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
 // mandat "Intégration /etat V5 + Corrections Produit" §9 — premier rang
 // ACTIVITÉ RÉALISÉE de la chaîne causale, voir lib/landing-bridge.ts.
 import { getNationalLandingTotals, formatKg } from "../../lib/landing-bridge";
+import { useDomainRuntime } from "../../lib/domain-runtime";
 import type { AppState } from "../../state";
 
 type Patch = (p: Partial<AppState>) => void;
@@ -16,6 +17,10 @@ const PROG_CHIPS: Array<{ i: number | null; l: string }> = [
 ];
 
 export function Resultats({ state, patch }: { state: AppState; patch: Patch }) {
+  // runtime canonique (etat-v5 checkpoint E) — même principe que
+  // Arbitrages.tsx : l'activité réalisée (lib/landing-bridge.ts) doit
+  // refléter la session réelle, pas la seule copie statique DEMO_STATE.
+  const runtime = useDomainRuntime();
   const per = state.period;
   const idx = state.resInd ?? 0;
   const ri0 = IND[idx];
@@ -74,7 +79,7 @@ export function Resultats({ state, patch }: { state: AppState; patch: Patch }) {
     ? [{ i: 4, lab: "premiers relais mandatés" }, { i: 8, lab: "couverture 18 sites" }]
     : [{ i: Math.max(1, nPts - 8), lab: "mandat relais Cap-Vert" }, { i: nPts - 3, lab: "panne Joal" }];
 
-  const nationalActivity = getNationalLandingTotals();
+  const nationalActivity = getNationalLandingTotals(runtime.state ?? undefined);
 
   const chainCols = ["Résultat", "Changement", "Impact"].map((k) => {
     const items = IND.filter((i) => i.kind === k).map((i) => {
@@ -133,7 +138,13 @@ export function Resultats({ state, patch }: { state: AppState; patch: Patch }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 0, border: "1px solid rgba(11,26,42,.12)", marginBottom: 20, alignItems: "stretch" }}>
         <div style={{ background: "#FFFFFF", borderRight: "1px solid rgba(11,26,42,.12)" }}>
-          <div style={{ padding: "14px 16px 10px", fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)" }}>Indicateurs · résultat, changement, impact</div>
+          {/* etat-v5 checkpoint E — IND/TERR_PERF (data/programmes.ts) sont
+              des séries de gabarit ("Données de démonstration", en-tête du
+              fichier), jamais dérivées du domaine réel comme l'Activité
+              réalisée ci-dessous (lib/landing-bridge.ts) : qualifiées
+              explicitement, pour ne jamais laisser croire à un résultat
+              observé. */}
+          <div style={{ padding: "14px 16px 10px", fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)" }}>Indicateurs · résultat, changement, impact <span style={{ textTransform: "none", letterSpacing: "normal", color: "rgba(11,26,42,.4)" }}>(gabarit)</span></div>
           {IND.map((i, j) => {
             const v = i.nat.filter((x) => x != null);
             const d = v.length > 1 ? Math.round(((v[v.length - 1] as number) - (v[0] as number)) * 10) / 10 : null;
@@ -218,7 +229,7 @@ export function Resultats({ state, patch }: { state: AppState; patch: Patch }) {
         <div style={{ background: "#FFFFFF", border: "1px solid rgba(11,26,42,.12)" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, padding: "16px 20px 12px", borderBottom: "1px solid rgba(11,26,42,.09)" }}>
             <div style={{ fontFamily: V3_FONT_SERIF, fontSize: 20, flex: 1 }}>Comparaison territoriale</div>
-            <div style={{ fontSize: 11, color: "rgba(11,26,42,.5)" }}>Cliquez une barre pour filtrer tout l’écran</div>
+            <div style={{ fontSize: 11, color: "rgba(11,26,42,.5)" }}>Gabarit · cliquez une barre pour filtrer tout l’écran</div>
           </div>
           <div style={{ padding: "16px 20px 18px" }}>
             {barVals.map((b) => {

@@ -13,7 +13,7 @@
 // mêmes données que le reste du Produit (createDemoState, déjà utilisé par
 // l'application réelle), jamais une fixture parallèle inventée pour ce lot.
 import { DEMO_STATE } from "./demo-state";
-import type { Infrastructure } from "@/domain/types";
+import type { Infrastructure, ProductState } from "@/domain/types";
 import {
   buildLandingDetail,
   buildSiteIntelligence,
@@ -191,10 +191,16 @@ export function getLandingDetail(landingId: string): LandingDetailView | undefin
 // buildTerritoryLandingActivity (territory-intelligence.ts), sans filtre
 // de territoire : total national réellement enregistré, pas une donnée
 // supplémentaire inventée pour ce lot.
-export function getNationalLandingTotals(): { landingCount: number; totalLandedKg: number } {
+//
+// state (etat-v5 checkpoint E) — accepte désormais l'état canonique du
+// runtime (useDomainRuntime) quand il est disponible, au lieu de ne lire
+// que l'instantané statique DEMO_STATE : Résultats/Documents/Présentation
+// doivent refléter le domaine réel, pas une copie figée au chargement du
+// module, dès qu'une session authentifiée fournit cet état.
+export function getNationalLandingTotals(state: ProductState = DEMO_STATE): { landingCount: number; totalLandedKg: number } {
   return {
-    landingCount: DEMO_STATE.landings.length,
-    totalLandedKg: DEMO_STATE.landings.reduce((sum, item) => sum + item.totalWeightKg, 0)
+    landingCount: state.landings.length,
+    totalLandedKg: state.landings.reduce((sum, item) => sum + item.totalWeightKg, 0)
   };
 }
 

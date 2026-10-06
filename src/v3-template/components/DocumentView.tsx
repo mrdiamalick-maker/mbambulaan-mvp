@@ -10,9 +10,17 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Printer } from "lucide-react";
 import { buildDocument, type DocumentRequest } from "../lib/document-bridge";
+import { useDomainRuntime } from "../lib/domain-runtime";
 import { V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../theme";
 
 export function DocumentView({ request, onClose }: { request: DocumentRequest; onClose: () => void }) {
+  // runtime canonique (etat-v5 checkpoint E) — mêmes deux routes que
+  // Arbitrages.tsx (GET /api/state, POST /api/actions) : le document
+  // reflète l'état réel de la session dès qu'il est chargé, jamais la
+  // seule copie statique DEMO_STATE (document-bridge.ts garde ce
+  // fallback pour l'état initial le temps du chargement, et pour les
+  // tests domaine).
+  const runtime = useDomainRuntime();
   const [humanNote, setHumanNote] = useState("");
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
@@ -33,7 +41,7 @@ export function DocumentView({ request, onClose }: { request: DocumentRequest; o
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const doc = buildDocument(request, humanNote);
+  const doc = buildDocument(request, humanNote, runtime.state ?? undefined);
   const sectionBg: Record<string, string> = { fact: "#FFFFFF", gap: "#F7F3E9", note: "#FFFFFF" };
   const sectionAccent: Record<string, string> = { fact: "#0B1A2A", gap: "#B6522F", note: "rgba(11,26,42,.4)" };
 
@@ -41,6 +49,11 @@ export function DocumentView({ request, onClose }: { request: DocumentRequest; o
     <div role="dialog" aria-modal="true" aria-label={doc.title} className="pv3-doc-overlay" style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(11,26,42,.55)", display: "flex", justifyContent: "center", overflowY: "auto", padding: "32px 16px" }}>
       <style>{`
         @media print {
+          /* A4 explicite (etat-v5 checkpoint E) — sans cette règle, la
+             taille de page imprimée dépend des réglages d'imprimante/
+             locale du poste, jamais garantie en A4 malgré "PROJET — À
+             VALIDER" annoncé comme tel. */
+          @page { size: A4; margin: 16mm 14mm; }
           body * { visibility: hidden; }
           .pv3-doc-print, .pv3-doc-print * { visibility: visible; }
           .pv3-doc-print { position: absolute; left: 0; top: 0; width: 100%; }
@@ -83,17 +96,31 @@ export function DocumentView({ request, onClose }: { request: DocumentRequest; o
 
           {request.type === "decision" && (
             <div className="pv3-doc-no-print" style={{ marginTop: 22, paddingTop: 16, borderTop: "1px solid rgba(11,26,42,.1)" }}>
-              <label style={{ display: "block", fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 8 }} htmlFor="pv3-doc-human-note">
-                Décision humaine à consigner (facultatif — jamais pré-remplie par Mbàmbulaan)
-              </label>
-              <textarea
-                id="pv3-doc-human-note"
-                value={humanNote}
-                onChange={(event) => setHumanNote(event.target.value)}
-                rows={3}
-                placeholder="Ex. : option retenue, décideur, date, justification…"
-                style={{ width: "100%", boxSizing: "border-box", resize: "vertical", border: "1px solid rgba(11,26,42,.2)", borderRadius: 4, padding: "9px 11px", fontFamily: V3_FONT_SANS, fontSize: 13 }}
-              />
+              {doc.hasCanonicalDecision ? (
+                // hasCanonicalDecision (etat-v5 checkpoint E) — une Decision
+                // réelle est déjà enregistrée pour cette situation (section
+                // "Décision humaine" ci-dessus) : plus de champ de saisie
+                // libre, qui n'aurait plus aucun effet sur le document et
+                // laisserait croire qu'il pourrait réécrire une décision
+                // déjà prise.
+                <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color: "rgba(11,26,42,.55)" }}>
+                  Une décision a déjà été enregistrée pour cette situation (voir « Décision humaine » ci-dessus) : elle fait foi et ne peut pas être remplacée par une note libre dans ce document.
+                </p>
+              ) : (
+                <>
+                  <label style={{ display: "block", fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 8 }} htmlFor="pv3-doc-human-note">
+                    Décision humaine à consigner (facultatif — jamais pré-remplie par Mbàmbulaan)
+                  </label>
+                  <textarea
+                    id="pv3-doc-human-note"
+                    value={humanNote}
+                    onChange={(event) => setHumanNote(event.target.value)}
+                    rows={3}
+                    placeholder="Ex. : option retenue, décideur, date, justification…"
+                    style={{ width: "100%", boxSizing: "border-box", resize: "vertical", border: "1px solid rgba(11,26,42,.2)", borderRadius: 4, padding: "9px 11px", fontFamily: V3_FONT_SANS, fontSize: 13 }}
+                  />
+                </>
+              )}
             </div>
           )}
 

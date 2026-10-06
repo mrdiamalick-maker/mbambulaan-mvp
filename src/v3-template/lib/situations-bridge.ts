@@ -207,7 +207,19 @@ export interface SituationDetailView extends SituationRowView {
   options: SituationOptionView[];
 }
 
-function timeLabel(iso: string): string {
+// findLatestDecisionForSituation (etat-v5 checkpoint E) — même filtre+tri
+// que celui déjà utilisé ci-dessous pour latestDecisionLabel/
+// latestDecisionRationale, extrait en fonction réutilisable pour que
+// document-bridge.ts et presentation-bridge.ts puissent interroger la
+// même décision canonique sans dupliquer le tri ni réimplémenter leur
+// propre notion de "dernière décision".
+export function findLatestDecisionForSituation(state: ProductState, situationId: string): Decision | undefined {
+  return state.decisions
+    .filter((item) => item.situationId === situationId)
+    .sort((a, b) => b.decidedAt.localeCompare(a.decidedAt))[0];
+}
+
+export function timeLabel(iso: string): string {
   const time = new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
   return `${formatCalendarDate(iso.slice(0, 10))} ${time}`;
 }

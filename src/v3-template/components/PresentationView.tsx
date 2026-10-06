@@ -7,10 +7,16 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { buildPresentationSlides } from "../lib/presentation-bridge";
+import { useDomainRuntime } from "../lib/domain-runtime";
 import { V3_FONT_MONO, V3_FONT_SERIF } from "../theme";
 
 export function PresentationView({ onClose }: { onClose: () => void }) {
-  const slides = buildPresentationSlides();
+  // runtime canonique (etat-v5 checkpoint E) — même principe que
+  // DocumentView.tsx/Arbitrages.tsx : la narration reflète la session
+  // réelle (décisions déjà enregistrées comprises), pas la seule copie
+  // statique DEMO_STATE.
+  const runtime = useDomainRuntime();
+  const slides = buildPresentationSlides(runtime.state ?? undefined);
   const [index, setIndex] = useState(0);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
