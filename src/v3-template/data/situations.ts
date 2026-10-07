@@ -61,7 +61,7 @@ export const SITS: Situation[] = [
     timeline: [
       { d: "07 sept. 06:40", t: "Panne déclarée par le gestionnaire du quai", tg: "○", tc: "#0B1A2A", who: "Source déclarative" },
       { d: "07 sept. 09:15", t: "Situation ouverte automatiquement par recoupement avec 2 situations existantes", tg: "◐", tc: "#B6522F", who: "Système" },
-      { d: "08 sept. 11:02", t: "Vérification terrain demandée au poste de quai", tg: "◐", tc: "#B6522F", who: "Coordination · Fatick" },
+      { d: "08 sept. 11:02", t: "Vérification terrain demandée au poste de quai", tg: "◐", tc: "#B6522F", who: "Coordination · Thiès" },
       { d: "09 sept. 07:30", t: "Sortie en mer signalée en cours, retour attendu dans la nuit", tg: "○", tc: "#0B1A2A", who: "Source déclarative" }
     ],
     sources: [
@@ -88,7 +88,7 @@ export const SITS: Situation[] = [
     affected: [{ n: "6", k: "pirogues concernées" }, { n: "1", k: "poste de quai" }, { n: "4", k: "organisations de mareyeurs" }, { n: "1", k: "programme concerné" }],
     timeline: [
       { d: "28 août", t: "Premier écart relevé au poste de quai", tg: "◐", tc: "#B6522F", who: "Relais mandaté" },
-      { d: "02 sept.", t: "Quatrième occurrence · situation requalifiée en récurrence", tg: "●", tc: "#4E7B5A", who: "Coordination · Fatick" },
+      { d: "02 sept.", t: "Quatrième occurrence · situation requalifiée en récurrence", tg: "●", tc: "#4E7B5A", who: "Coordination · Thiès" },
       { d: "06 sept.", t: "Sixième occurrence confirmée, écart moyen 84 minutes", tg: "●", tc: "#4E7B5A", who: "Relais mandaté" }
     ],
     sources: [

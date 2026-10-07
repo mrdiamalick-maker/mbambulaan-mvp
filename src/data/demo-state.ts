@@ -71,7 +71,9 @@ function situation(
 
 export function createDemoState(): ProductState {
   const territoryRows = [
-    ["joal", "Joal-Fadiouth", "Fatick", 14.17, -16.83, "critique"],
+    // Joal-Fadiouth : commune de la région de Thiès, département de Mbour
+    // (correctif G2.1a — le lot G2.1 indiquait à tort "Fatick").
+    ["joal", "Joal-Fadiouth", "Thiès", 14.17, -16.83, "critique"],
     ["mbour", "Mbour", "Thiès", 14.42, -16.97, "vigilance"],
     ["kayar", "Kayar", "Thiès", 14.92, -17.12, "vigilance"],
     ["saint-louis", "Saint-Louis", "Saint-Louis", 16.03, -16.49, "stable"],

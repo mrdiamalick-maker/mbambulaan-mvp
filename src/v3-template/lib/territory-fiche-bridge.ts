@@ -114,8 +114,22 @@ export interface TerritoryFicheView {
   statusTextColor: string;
   synthesis: string;
   updatedLabel: string;
-  isDocumented: boolean;
-  isSpecificEmptyCase: boolean;
+  // Doctrine G2.1a : « absence de cas territorial G2 qualifié ≠ absence de
+  // données ». Deux faits distincts, jamais confondus :
+  // - territoryDataAvailable : le territoire porte des données réelles
+  //   (situations, infrastructures, acteurs, signaux) dans le domaine —
+  //   indépendant de toute instruction G2.
+  // - curatedPriorityCaseAvailable : un cas territorial G2 a réellement été
+  //   qualifié (ProgramOpportunity ou arbitrage préparé référençant ce
+  //   territoire) — jamais fabriqué pour ressembler à la maquette.
+  territoryDataAvailable: boolean;
+  curatedPriorityCaseAvailable: boolean;
+  // Bandeau « Cas territorial prioritaire à documenter » (mandat G2.1 puis
+  // G2.1a) : désigne Saint-Louis comme la démonstration volontaire de ce
+  // cas de figure — un territoire connu, avec des données réelles, mais
+  // sans cas G2 encore retenu. N'implique plus, depuis G2.1a, que les
+  // données réelles du territoire soient masquées sous ce bandeau.
+  isPriorityCaseToDocument: boolean;
   counts: { situations: number; opportunities: number; decisions: number; initiatives: number; results: number };
   confidence: { declared: number; observed: number; verified: number };
   confidenceReadNote: string;
@@ -146,26 +160,32 @@ export function getTerritoryFiche(territoryId: string, state: ProductState = DEM
   const territory = state.territories.find((item) => item.id === territoryId);
   if (!territory) return undefined;
 
-  // Saint-Louis (mandat G2.1 §4) — cas vide spécifique désigné
-  // explicitement par le mandat : "ne pas inventer de cas ; reproduire
-  // exactement l'état vide prévu par le HTML", quelles que soient les
-  // données réelles de ce territoire (le Demo World en porte, comme pour
-  // les 18 territoires — cf. commentaire de getTerritoryList ci-dessus).
-  // Choix produit assumé, pas une divergence silencieuse : ce territoire
-  // précis reste la démonstration volontaire du modèle vide, les 17
-  // autres restent entièrement pilotés par leurs données réelles.
-  const forceEmpty = territoryId === "saint-louis";
-
-  const situations = forceEmpty ? [] : state.situations.filter((item) => item.territoryId === territoryId);
+  // Saint-Louis (mandat G2.1a, correctif de vérité territoriale) — reste la
+  // démonstration volontaire du bandeau « Cas territorial prioritaire à
+  // documenter » (aucun ProgramOpportunity ni arbitrage réel ne le
+  // référence à ce jour, cf. curatedPriorityCaseAvailable ci-dessous), mais
+  // ses données réelles (situations, acteurs, capacités, sources) restent
+  // entièrement affichées, comme pour tout autre territoire — l'absence
+  // d'un cas G2 qualifié ne justifie plus de masquer des données réelles
+  // existantes (le lot G2.1 forçait à tort un état vide complet ici).
+  const situations = state.situations.filter((item) => item.territoryId === territoryId);
   const openSituations = situations.filter(isOpenSituation).sort((a, b) => PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority]);
-  const opportunities = forceEmpty ? [] : getOpportunitiesForTerritory(territoryId, state);
+  const opportunities = getOpportunitiesForTerritory(territoryId, state);
   const decisionsForTerritory = state.decisions.filter((d) => d.situationId && situations.some((s) => s.id === d.situationId));
-  const initiativesForTerritory = forceEmpty ? [] : state.initiatives.filter((item) => item.territoryIds.includes(territoryId));
-  const resultsForTerritory = forceEmpty ? [] : state.results.filter((item) => item.territoryIds.includes(territoryId));
-  const isDocumented = !forceEmpty && (situations.length > 0 || opportunities.length > 0);
-  const isSpecificEmptyCase = forceEmpty;
+  const initiativesForTerritory = state.initiatives.filter((item) => item.territoryIds.includes(territoryId));
+  const resultsForTerritory = state.results.filter((item) => item.territoryIds.includes(territoryId));
 
-  const signalsOfTerritory = forceEmpty ? [] : state.signals.filter((item) => item.territoryId === territoryId);
+  const territoryDataAvailable =
+    situations.length > 0 ||
+    state.infrastructures.some((item) => item.territoryId === territoryId) ||
+    state.actors.some((item) => item.territoryIds.includes(territoryId)) ||
+    state.signals.some((item) => item.territoryId === territoryId);
+  const curatedPriorityCaseAvailable =
+    state.programOpportunities.some((item) => item.territoryIds.includes(territoryId)) ||
+    ARB.some((item) => item.territories?.includes(territory.name));
+  const isPriorityCaseToDocument = territoryId === "saint-louis";
+
+  const signalsOfTerritory = state.signals.filter((item) => item.territoryId === territoryId);
   const confidence = { declared: 0, observed: 0, verified: 0 };
   for (const signal of signalsOfTerritory) {
     if (signal.trust === "declaree") confidence.declared += 1;
@@ -179,7 +199,7 @@ export function getTerritoryFiche(territoryId: string, state: ProductState = DEM
       ? "Information encore majoritairement déclarée, non recoupée."
       : "Information recoupée par plusieurs sources indépendantes.";
 
-  const synthesis = forceEmpty ? undefined : getTerritorySynthesis(territory.name, state);
+  const synthesis = getTerritorySynthesis(territory.name, state);
   const zone = TERR.find((row) => row[0] === territory.name)?.[6];
 
   const retain: TerritoryRetainItem[] = openSituations.slice(0, 2).map((situation) => ({
@@ -195,9 +215,7 @@ export function getTerritoryFiche(territoryId: string, state: ProductState = DEM
   }));
 
   const territoryArbName = territory.name;
-  const pendingArb = forceEmpty
-    ? undefined
-    : ARB.find((item) => (item.territories?.includes(territoryArbName) ?? false) && !(item.situationId && findLatestDecisionForSituation(state, item.situationId)));
+  const pendingArb = ARB.find((item) => (item.territories?.includes(territoryArbName) ?? false) && !(item.situationId && findLatestDecisionForSituation(state, item.situationId)));
   const decisionsAndActions: TerritoryDecisionAction[] = [];
   if (pendingArb) {
     decisionsAndActions.push({
@@ -237,7 +255,7 @@ export function getTerritoryFiche(territoryId: string, state: ProductState = DEM
     });
   }
 
-  const infrastructures = forceEmpty ? [] : state.infrastructures.filter((item) => item.territoryId === territoryId);
+  const infrastructures = state.infrastructures.filter((item) => item.territoryId === territoryId);
   const capacities = infrastructures.map((infra) => ({
     name: infra.name,
     state: INFRA_STATE_LABEL[infra.status],
@@ -246,7 +264,7 @@ export function getTerritoryFiche(territoryId: string, state: ProductState = DEM
     trustLabel: trustLabels[infra.trust]
   }));
 
-  const activityReal = forceEmpty ? { landingCount: 0, totalLandedKg: 0 } : buildTerritoryLandingActivity(state, territoryId);
+  const activityReal = buildTerritoryLandingActivity(state, territoryId);
   const activity = [
     { name: "Signaux reçus · 14 jours", value: String(signalsOfTerritory.length), source: "Calcul système sur signaux reçus", trustGlyph: trustGlyph("observee") },
     { name: "Débarquements relevés", value: `${activityReal.landingCount} horodatés`, source: "Débarquements enregistrés", trustGlyph: trustGlyph("verifiee") },
@@ -281,8 +299,9 @@ export function getTerritoryFiche(territoryId: string, state: ProductState = DEM
         ? `${signalsOfTerritory.length} signal${signalsOfTerritory.length > 1 ? "aux" : ""} déclaratif${signalsOfTerritory.length > 1 ? "s" : ""} reçu${signalsOfTerritory.length > 1 ? "s" : ""} sur 14 jours, non recoupé${signalsOfTerritory.length > 1 ? "s" : ""}. Aucune situation n’est retenue à ce jour.`
         : "Aucun signal reçu sur 14 jours. Aucune situation n’est retenue et aucun diagnostic territorial n’est enregistré.",
     updatedLabel: signalsOfTerritory[0]?.createdAt.slice(0, 10) ?? "aucune",
-    isDocumented,
-    isSpecificEmptyCase,
+    territoryDataAvailable,
+    curatedPriorityCaseAvailable,
+    isPriorityCaseToDocument,
     counts: {
       situations: situations.length,
       opportunities: opportunities.length,
@@ -292,7 +311,7 @@ export function getTerritoryFiche(territoryId: string, state: ProductState = DEM
     },
     confidence,
     confidenceReadNote,
-    actors: (forceEmpty ? [] : state.actors)
+    actors: state.actors
       .filter((item) => item.territoryIds.includes(territoryId))
       .slice(0, 5)
       .map((item) => ({ name: item.name, note: `${ACTOR_ROLE_LABEL[item.role] ?? item.role}${item.verified ? "" : " · non vérifié"}` })),

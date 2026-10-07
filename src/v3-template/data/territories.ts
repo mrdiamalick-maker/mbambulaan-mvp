@@ -17,7 +17,7 @@ export const TERR: TerritoryRow[] = [
   ["Rufisque-Bargny", "Dakar", 14.72, -17.24, "vigilance", 1, "Cap-Vert"],
   ["Popenguine", "Thiès", 14.55, -17.1, "stable", 1, "Petite-Côte"],
   ["Mbour", "Thiès", 14.42, -16.96, "vigilance", 3, "Petite-Côte"],
-  ["Joal-Fadiouth", "Fatick", 14.17, -16.83, "critique", 3, "Petite-Côte"],
+  ["Joal-Fadiouth", "Thiès", 14.17, -16.83, "critique", 3, "Petite-Côte"],
   ["Djiffer", "Fatick", 13.95, -16.75, "stable", 1, "Sine-Saloum"],
   ["Foundiougne", "Fatick", 13.9, -16.47, "stable", 1, "Sine-Saloum"],
   ["Missirah", "Fatick", 13.68, -16.5, "vigilance", 1, "Sine-Saloum"],

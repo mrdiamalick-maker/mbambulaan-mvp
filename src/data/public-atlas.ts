@@ -250,7 +250,7 @@ export const publicTerritories: PublicTerritory[] = [
     slug: "joal-fadiouth",
     name: "Joal-Fadiouth",
     type: "Port",
-    region: "Fatick",
+    region: "Thiès",
     department: "Mbour",
     coordinates: { lat: 14.17, lon: -16.83 },
     mapPosition: [378, 792],

@@ -302,16 +302,16 @@ export function Territoires({
       </div>
       {showNotes && <ConceptionNote>L’en-tête répond à « où en est-on ? » en une lecture : statut, synthèse en deux phrases, niveau de connaissance. La rangée « moteur » garde visibles les objets métier sans les déplier.</ConceptionNote>}
 
-      {F.isSpecificEmptyCase && (
+      {F.isPriorityCaseToDocument && (
         <div style={{ margin: "22px 30px 0", padding: "18px 20px", border: "1px dashed rgba(11,26,42,.3)" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
-            <span style={{ fontSize: 11, color: "#B6522F", fontWeight: 600 }}>Cas spécifique · à documenter</span>
+            <span style={{ fontSize: 11, color: "#B6522F", fontWeight: 600 }}>Cas territorial prioritaire à documenter</span>
           </div>
-          <h2 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 22, margin: "0 0 8px" }}>Emplacement réservé au cas propre à {F.name}</h2>
+          <h2 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 22, margin: "0 0 8px" }}>Aucun cas G2 encore retenu pour {F.name}</h2>
           <p style={{ margin: "0 0 14px", fontSize: 13.5, lineHeight: 1.5, color: "rgba(11,26,42,.7)", maxWidth: "60ch" }}>
-            Aucune donnée n’est saisie tant que le cas n’a pas été documenté avec la coordination territoriale. La fiche se remplira dans la même structure que les territoires déjà documentés.
+            Aucune opportunité ni aucun arbitrage n’a encore été qualifié pour ce territoire avec la coordination territoriale. Les données réelles déjà connues — situations, acteurs, capacités, sources — restent affichées ci-dessous : l’absence de cas G2 qualifié ne signifie pas une absence de données.
           </p>
-          <div style={{ fontSize: 11, color: "rgba(11,26,42,.5)", marginBottom: 8 }}>Champs attendus</div>
+          <div style={{ fontSize: 11, color: "rgba(11,26,42,.5)", marginBottom: 8 }}>Champs attendus pour qualifier un cas</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {SPEC_FIELDS.map((f) => (
               <span key={f} style={{ border: "1px solid rgba(11,26,42,.2)", borderRadius: 4, padding: "6px 10px", fontSize: 12 }}>{f}</span>

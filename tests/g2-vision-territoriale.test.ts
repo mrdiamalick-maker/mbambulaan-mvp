@@ -48,6 +48,28 @@ test("mapping UI des statuts d'opportunité : jamais « Arbitrée » avant une D
   assert.equal(OPPORTUNITY_UI_STEPS[arbitratedRow.uiStepIndex], "Arbitrée");
 });
 
+test("Joal-Fadiouth — région canonique Thiès, cohérente sur toutes les vues qui la consomment (correctif G2.1a)", () => {
+  const state = createDemoState();
+  const withDemo = applyDemoProgramOpportunities(state, "act-coordinateur");
+
+  // Source canonique du domaine (src/data/demo-state.ts) : Joal-Fadiouth
+  // est une commune de la région de Thiès (département de Mbour), jamais
+  // Fatick — erreur introduite par le lot G2.1, corrigée ici à la source.
+  const canonicalJoal = state.territories.find((t) => t.id === "joal")!;
+  assert.equal(canonicalJoal.region, "Thiès");
+
+  // Vue liste (Territoires) — dérivée de data/territories.ts (TERR), une
+  // copie d'affichage distincte du domaine canonique : doit rester
+  // cohérente avec la source canonique, jamais une seconde vérité.
+  const listJoal = getTerritoryList(withDemo).find((t) => t.id === "joal")!;
+  assert.equal(listJoal.region, "Thiès");
+
+  // Vue détail (fiche territoire) — lit territory.region directement
+  // depuis le domaine canonique.
+  const ficheJoal = getTerritoryFiche("joal", withDemo)!;
+  assert.equal(ficheJoal.region, "Thiès");
+});
+
 test("getTerritoryList couvre les 18 sites réels, honnêtement étiquetés (documentée/structure prête/cas à documenter)", () => {
   const state = createDemoState();
   const withDemo = applyDemoProgramOpportunities(state, "act-coordinateur");
@@ -101,7 +123,7 @@ test("getTerritoryFiche(Joal) reflète les Situations/Opportunités/Décisions r
   const fiche = getTerritoryFiche("joal", withDemo)!;
 
   assert.ok(fiche);
-  assert.equal(fiche.isDocumented, true);
+  assert.equal(fiche.curatedPriorityCaseAvailable, true);
   assert.ok(fiche.counts.situations > 0, "Joal doit refléter ses Situations réelles (sit-glace, etc.)");
   // Joal porte sa propre opportunité (écailles/coproduits) ET apparaît
   // honnêtement dans celle de Mbour (coordination inter-sites Mbour ↔
@@ -116,12 +138,38 @@ test("getTerritoryFiche(Joal) reflète les Situations/Opportunités/Décisions r
   assert.ok(fiche.decisionsAndActions.length > 0);
 });
 
-test("saint-louis — cas vide spécifique honnête, jamais un contenu inventé", () => {
+test("saint-louis — « absence de cas territorial G2 qualifié ≠ absence de données » (doctrine G2.1a)", () => {
   const state = createDemoState();
   const fiche = getTerritoryFiche("saint-louis", state)!;
   assert.ok(fiche);
-  assert.equal(fiche.isDocumented, false);
-  assert.equal(fiche.isSpecificEmptyCase, true);
+
+  // Aucun cas G2 n'a été qualifié pour Saint-Louis à ce jour (aucune
+  // ProgramOpportunity ni arbitrage réel ne le référence) : le bandeau
+  // "Cas territorial prioritaire à documenter" reste légitime.
+  assert.equal(fiche.curatedPriorityCaseAvailable, false);
+  assert.equal(fiche.isPriorityCaseToDocument, true);
+
+  // Mais Saint-Louis porte bien des données réelles dans le domaine
+  // (situation "Retour de pirogue retardé", acteurs, débarquements...) :
+  // le lot G2.1 les masquait à tort derrière un état vide forcé. G2.1a
+  // les restitue — jamais fabriquées, jamais masquées.
+  assert.equal(fiche.territoryDataAvailable, true);
+  assert.ok(fiche.counts.situations > 0, "Saint-Louis porte une vraie Situation (sit-saint-louis) — jamais masquée");
+  assert.ok(fiche.actors.length > 0, "les acteurs réels de Saint-Louis restent visibles");
+  // Aucune opportunité n'est fabriquée pour autant : le compteur reflète
+  // honnêtement l'absence réelle de ProgramOpportunity sur ce territoire.
+  assert.equal(fiche.counts.opportunities, 0);
+});
+
+test("un territoire sans aucune donnée réelle (hypothétique) afficherait territoryDataAvailable=false — jamais fabriqué pour ressembler à un cas documenté", () => {
+  const state = createDemoState();
+  // Yoff a de vraies données mais aucun cas G2 qualifié : sert de témoin
+  // que territoryDataAvailable et curatedPriorityCaseAvailable varient
+  // indépendamment l'un de l'autre, jamais couplés par construction.
+  const fiche = getTerritoryFiche("yoff", state)!;
+  assert.equal(fiche.territoryDataAvailable, true);
+  assert.equal(fiche.curatedPriorityCaseAvailable, false);
+  assert.equal(fiche.isPriorityCaseToDocument, false, "seul Saint-Louis porte le bandeau dédié, périmètre inchangé par G2.1a");
 });
 
 test("navigation G2.1 : les écrans territoires/opportunites sont reconnus et la badge Opportunités n'est pas câblée en dur", () => {
