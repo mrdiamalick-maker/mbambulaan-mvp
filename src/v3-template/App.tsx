@@ -4,10 +4,13 @@ import { useCallback, useState } from "react";
 import { DemoBanner } from "./components/DemoBanner";
 import { DocumentView } from "./components/DocumentView";
 import { PresentationView } from "./components/PresentationView";
+import { OpportunityPanel } from "./components/OpportunityPanel";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { Brief } from "./components/screens/Brief";
 import { Atlas } from "./components/screens/Atlas";
+import { Territoires } from "./components/screens/Territoires";
+import { Opportunites } from "./components/screens/Opportunites";
 import { Situations } from "./components/screens/Situations";
 import { Portfolio } from "./components/screens/Portfolio";
 import { ProgrammeDetail } from "./components/screens/ProgrammeDetail";
@@ -19,7 +22,14 @@ import { PERIOD } from "./data/period";
 import { getRoleLandingScreen, ROLES } from "./data/roles";
 import { initialAppState } from "./state";
 import { V3_FONT_SANS } from "./theme";
+import { useDomainRuntime } from "./lib/domain-runtime";
 import type { PeriodKey, RoleKey, ScreenKey } from "./types";
+
+// G2.1 — écrans avec leur propre bandeau (fil d'ariane + actions),
+// distinct du Header rôle/période des écrans V5 conservés (mandat :
+// reproduire exactement le HTML, ne pas réutiliser un en-tête qui n'y
+// figure pas).
+const G2_OWN_HEADER_SCREENS: ScreenKey[] = ["territoires", "opportunites"];
 
 // Racine du template privé V3 — un seul shell (sidebar + header + bandeau
 // démo), un état applicatif plat, un écran affiché à la fois. Reproduit la
@@ -71,17 +81,27 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
     if (typeof window !== "undefined") window.scrollTo(0, 0);
   }, [patch, syncScreenUrl]);
 
+  const hasOwnHeader = G2_OWN_HEADER_SCREENS.includes(state.screen);
+  const runtime = useDomainRuntime();
+  const opportunityBadge = runtime.state ? String(runtime.state.programOpportunities.length) : "";
+
   return (
     <div className="pv3-root pv3-shell" style={{ display: "flex", minHeight: "100vh", fontFamily: V3_FONT_SANS }}>
-      <Sidebar roleDef={roleDef} screen={state.screen} role={state.role} onNavigate={navigate} />
+      <Sidebar roleDef={roleDef} screen={state.screen} role={state.role} onNavigate={navigate} badgeOverrides={{ opportunites: opportunityBadge }} />
       <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <Header period={state.period} role={state.role} periodRange={PERIOD[state.period].range} onPeriod={onPeriod} onRole={onRole} />
-        <DemoBanner roleNote={roleDef.note} />
+        {!hasOwnHeader && (
+          <>
+            <Header period={state.period} role={state.role} periodRange={PERIOD[state.period].range} onPeriod={onPeriod} onRole={onRole} />
+            <DemoBanner roleNote={roleDef.note} />
+          </>
+        )}
 
         {state.screen === "brief" && (
           <Brief state={state} patch={patch} roleDef={roleDef} onOpenSituation={onOpenSituation} onOpenProgramme={onOpenProgramme} />
         )}
         {state.screen === "atlas" && <Atlas state={state} patch={patch} onOpenProgramme={onOpenProgramme} />}
+        {state.screen === "territoires" && <Territoires state={state} patch={patch} />}
+        {state.screen === "opportunites" && <Opportunites state={state} patch={patch} />}
         {state.screen === "situations" && <Situations state={state} patch={patch} onOpenFlux={() => navigate("flux")} />}
         {state.screen === "programmes" && state.progView === "portfolio" && (
           <Portfolio state={state} patch={patch} onOpenProgramme={onOpenProgramme} />
@@ -96,6 +116,7 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
       </main>
       {state.docOpen && <DocumentView request={state.docOpen} onClose={() => patch({ docOpen: null })} />}
       {state.presentOpen && <PresentationView onClose={() => patch({ presentOpen: false })} />}
+      {state.oppOpen && <OpportunityPanel oppId={state.oppOpen} patch={patch} onClose={() => patch({ oppOpen: null })} />}
     </div>
   );
 }

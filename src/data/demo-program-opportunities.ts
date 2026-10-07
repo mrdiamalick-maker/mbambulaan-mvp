@@ -130,12 +130,75 @@ export function createKayarConnectivityOpportunityCommand(actorId: string) {
   };
 }
 
+// MBOUR — coordination des capacités froides de la Petite-Côte (G2.1,
+// mandat "Vision territoriale" §4). Contrairement à Joal/Kayar, un lien
+// réel vers une Situation existe honnêtement ici : sit-mbour (chaîne du
+// froid de Mbour réduite à une capacité de marge, repli désigné pour
+// Joal) porte exactement ce sujet — le citer n'est pas une relation de
+// complaisance, c'est la Situation que cette opportunité prolonge.
+export function createMbourColdCoordinationOpportunityCommand(actorId: string) {
+  return {
+    type: "create_program_opportunity" as const,
+    territoryIds: ["mbour", "joal"],
+    siteIds: ["quai-mbour"],
+    situationIds: ["sit-mbour"],
+    actorId,
+    problem: "Les capacités froides de Mbour, Joal-Fadiouth et Popenguine sont aujourd'hui traitées séparément alors qu'une panne ou une saturation sur l'une affecte les autres.",
+    justification: "Mbour est le repli désigné de Joal-Fadiouth et sa propre marge est réduite à une seule capacité (voir situation sit-mbour) ; une capacité disponible existe à proximité, à Popenguine. Piloter ces sites comme un réseau coordonné plutôt que de traiter chaque tension isolément est une hypothèse qui mérite instruction.",
+    potentialBeneficiaries: "Opérateurs et gestionnaires de chambres froides de Mbour, Joal-Fadiouth et Popenguine, sous réserve de qualification.",
+    involvedActorIds: ["act-prestataire"],
+    establishedFacts: [
+      "Mbour est le repli désigné pour Joal-Fadiouth depuis le 7 septembre (voir situation sit-mbour).",
+      "La chaîne du froid de Mbour est réduite à une seule capacité de marge (voir situation sit-mbour)."
+    ],
+    hypotheses: [
+      "Piloter les capacités froides de Mbour, Joal-Fadiouth et Popenguine comme un réseau coordonné réduirait les ruptures, plutôt que de traiter chaque panne isolément."
+    ],
+    knowledgeGaps: [
+      "Coût réel d'un délestage entre sites.",
+      "Durée prévisible des tensions actuelles — dépend des sorties en mer.",
+      "Règles de priorité entre sites en cas de saturation simultanée."
+    ],
+    potentialValueHypothesis: "Réduction potentielle des ruptures de chaîne du froid sur la Petite-Côte par une coordination inter-sites — ampleur non estimée à ce stade : strictement une hypothèse à qualifier.",
+    evidenceRefs: [
+      { objectType: "territory" as const, objectId: "mbour" },
+      { objectType: "situation" as const, objectId: "sit-mbour" }
+    ],
+    possibleInterventions: [
+      "Cartographier les capacités froides disponibles sur les trois sites",
+      "Définir des règles de priorité et un protocole de délestage inter-sites",
+      "Évaluer le coût et le financement nécessaire"
+    ],
+    desiredOutcomes: [
+      "Un protocole de coordination inter-sites documenté",
+      "Une évaluation du coût et du financement nécessaire",
+      "Une décision argumentée sur la mise en place d'un pilotage coordonné"
+    ],
+    possibleIndicators: [{ label: "Ruptures de chaîne du froid évitées", unit: "événements/mois" }],
+    maturity: "moyenne" as const
+  };
+}
+
 // applyDemoProgramOpportunities — geste explicite (jamais appelé par
-// createDemoState) qui applique les deux commandes ci-dessus sur un
+// createDemoState) qui applique les trois commandes ci-dessus sur un
 // ProductState donné, pour toute démonstration ou test qui veut les
-// exercer en conditions réelles (mêmes validations, même moteur,
-// qu'une création humaine via l'UI).
+// exercer en conditions réelles (mêmes validations, même moteur, qu'une
+// création humaine via l'UI). Mbour est ensuite fait passer à
+// "qualifying" (= UI « En instruction ») : à la différence de Joal/Kayar
+// (hypothèses tout juste identifiées), Mbour s'appuie déjà sur une
+// Situation réelle et documentée (sit-mbour) — même geste humain
+// explicite (update_program_opportunity_status), pas un statut différent
+// inventé pour le distinguer.
 export function applyDemoProgramOpportunities(state: ProductState, actorId: string): ProductState {
   const withJoal = applyCommand(state, createJoalCoproductsOpportunityCommand(actorId));
-  return applyCommand(withJoal, createKayarConnectivityOpportunityCommand(actorId));
+  const withKayar = applyCommand(withJoal, createKayarConnectivityOpportunityCommand(actorId));
+  const withMbour = applyCommand(withKayar, createMbourColdCoordinationOpportunityCommand(actorId));
+  const mbourOpportunity = withMbour.programOpportunities.find((item) => item.territoryIds.includes("mbour"))!;
+  return applyCommand(withMbour, {
+    type: "update_program_opportunity_status",
+    programOpportunityId: mbourOpportunity.id,
+    actorId,
+    status: "qualifying",
+    note: "Instruction engagée : la Situation sit-mbour et la capacité de Popenguine documentent déjà une partie du sujet."
+  });
 }

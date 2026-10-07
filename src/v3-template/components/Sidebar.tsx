@@ -10,23 +10,30 @@ export function Sidebar({
   roleDef,
   screen,
   role,
-  onNavigate
+  onNavigate,
+  badgeOverrides
 }: {
   roleDef: RoleDef;
   screen: AppState["screen"];
   role: AppState["role"];
   onNavigate: (s: ScreenKey) => void;
+  // badgeOverrides (G2.1) — compteur réel calculé depuis le runtime
+  // canonique (ex. nombre réel de ProgramOpportunity), prioritaire sur
+  // MODULES[k].badge quand fourni : évite d'ajouter un paramètre state à
+  // MODULES (gabarit gelé, badges existants déjà des fixtures statiques)
+  // tout en gardant honnête le seul badge réellement calculable ici.
+  badgeOverrides?: Partial<Record<ScreenKey, string>>;
 }) {
   const navMain = roleDef.main.map((k) => ({
     key: k,
     label: MODULES[k].label + (MODULES[k].suffix?.[role] ?? ""),
-    badge: MODULES[k].badge ? MODULES[k].badge(role) : "",
+    badge: badgeOverrides?.[k] ?? (MODULES[k].badge ? MODULES[k].badge(role) : ""),
     active: screen === k
   }));
   const navSec = roleDef.sec.map((k) => ({
     key: k,
     label: MODULES[k].label,
-    badge: MODULES[k].badge ? MODULES[k].badge(role) : "",
+    badge: badgeOverrides?.[k] ?? (MODULES[k].badge ? MODULES[k].badge(role) : ""),
     active: screen === k
   }));
 

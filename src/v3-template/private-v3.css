@@ -124,3 +124,24 @@
     text-align: left !important;
   }
 }
+
+/* G2.1 ("Vision territoriale") — la rangée des compteurs métier de la
+   fiche territoire (Situations/Opportunités/Décisions/Initiatives/
+   Résultats) doit rester sur une seule ligne, y compris sur tablette
+   (bug identifié et corrigé côté maquette source de vérité,
+   Mbambulaan_Etat_G2_Territoires.html). Exception ciblée à la règle
+   générique ci-dessus (ligne ~114) : même spécificité CSS, mais
+   déclarée après elle dans la feuille de style, donc prioritaire en cas
+   d'égalité — repasse cette grille précise à 5 colonnes même sous
+   860px, les tuiles elles-mêmes tronquant leur libellé (ellipsis)
+   plutôt que de déborder. */
+@media (max-width: 860px) {
+  /* Spécificité égale à la règle générique ci-dessus
+     (.pv3-root div[style*="..."], soit classe+attribut+type) pour que
+     l'ordre de déclaration (celle-ci après) la départage réellement :
+     un simple .pv3-root .pv3-territory-counters serait moins spécifique
+     (classe+classe, sans le sélecteur de type) et perdrait. */
+  .pv3-root div.pv3-territory-counters {
+    grid-template-columns: repeat(5, 1fr) !important;
+  }
+}

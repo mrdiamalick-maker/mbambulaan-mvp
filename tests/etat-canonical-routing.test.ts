@@ -39,8 +39,8 @@ test("les anciens deep links État sont redirigés vers leur écran V3 équivale
   }
 });
 
-test("les deep links V3 n'acceptent que les huit écrans connus", () => {
-  for (const screen of ["brief", "atlas", "situations", "arbitrages", "programmes", "resultats", "flux", "sources"]) {
+test("les deep links V3 n'acceptent que les dix écrans connus (G2.1 : + territoires/opportunites)", () => {
+  for (const screen of ["brief", "atlas", "territoires", "opportunites", "situations", "arbitrages", "programmes", "resultats", "flux", "sources"]) {
     assert.equal(isScreenKey(screen), true, `${screen} doit être reconnu`);
   }
   assert.equal(isScreenKey("inconnu"), false);
@@ -48,8 +48,17 @@ test("les deep links V3 n'acceptent que les huit écrans connus", () => {
 });
 
 test("les trois perspectives institutionnelles et leurs priorités de navigation restent présentes", () => {
+  // G2.1 (mandat "Vision territoriale") — navigation primaire désormais
+  // identique pour les 3 rôles (Brief · Territoires · Opportunités ·
+  // Arbitrages · Résultats), reproduite du HTML source de vérité, qui ne
+  // montre aucune variante de navigation par rôle. "programme" atterrit
+  // désormais sur Brief au lieu de Programmes, "coordination" sur Brief
+  // au lieu de Flux entrant — changement de comportement assumé et
+  // documenté (data/roles.ts, rapport G2.1).
   assert.equal(getRoleLandingScreen("ministre"), "brief");
-  assert.equal(getRoleLandingScreen("programme"), "programmes");
-  assert.equal(getRoleLandingScreen("coordination"), "flux");
+  assert.equal(getRoleLandingScreen("programme"), "brief");
+  assert.equal(getRoleLandingScreen("coordination"), "brief");
   assert.equal(ROLES.ministre.main[0], "brief");
+  assert.deepEqual(ROLES.ministre.main, ["brief", "territoires", "opportunites", "arbitrages", "resultats"]);
+  assert.deepEqual(ROLES.ministre.sec, ["situations", "flux", "sources"]);
 });

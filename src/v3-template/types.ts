@@ -5,6 +5,8 @@ export type RoleKey = "ministre" | "programme" | "coordination";
 export type ScreenKey =
   | "brief"
   | "atlas"
+  | "territoires"
+  | "opportunites"
   | "situations"
   | "arbitrages"
   | "programmes"
@@ -15,6 +17,8 @@ export type ScreenKey =
 export const SCREEN_KEYS: readonly ScreenKey[] = [
   "brief",
   "atlas",
+  "territoires",
+  "opportunites",
   "situations",
   "arbitrages",
   "programmes",

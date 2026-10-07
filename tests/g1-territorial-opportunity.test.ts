@@ -185,15 +185,18 @@ test("le Demo World ne contient toujours aucune ProgramOpportunity au chargement
   assert.equal(state.programOpportunities.length, 0);
 });
 
-test("les deux opportunités de démonstration (Joal, Kayar) s'appliquent sans Situation ni CollectiveNeed fabriqué", () => {
+test("les trois opportunités de démonstration (Joal, Kayar, Mbour) s'appliquent sans Situation ni CollectiveNeed fabriqué hors de ce que le domaine permet honnêtement", () => {
   const state = createDemoState();
   const withDemo = applyDemoProgramOpportunities(state, "act-coordinateur");
 
-  assert.equal(withDemo.programOpportunities.length, 2);
-  const joal = withDemo.programOpportunities.find((item) => item.territoryIds.includes("joal"))!;
+  // G2.1 (mandat "Vision territoriale" §4) ajoute Mbour à Joal/Kayar (G1).
+  assert.equal(withDemo.programOpportunities.length, 3);
+  const joal = withDemo.programOpportunities.find((item) => item.territoryIds.includes("joal") && !item.territoryIds.includes("mbour"))!;
   const kayar = withDemo.programOpportunities.find((item) => item.territoryIds.includes("kayar"))!;
+  const mbour = withDemo.programOpportunities.find((item) => item.territoryIds.includes("mbour"))!;
   assert.ok(joal);
   assert.ok(kayar);
+  assert.ok(mbour);
 
   for (const opportunity of [joal, kayar]) {
     assert.equal(opportunity.collectiveNeedId, undefined);
@@ -202,6 +205,13 @@ test("les deux opportunités de démonstration (Joal, Kayar) s'appliquent sans S
     assert.ok(opportunity.knowledgeGaps.length > 0, "les inconnues (volumes/rentabilité/faisabilité) doivent rester explicitement documentées comme à qualifier");
     assert.ok(opportunity.potentialValueHypothesis, "la valeur potentielle doit être présente, explicitement nommée comme hypothèse");
   }
+
+  // Mbour (G2.1) : contrairement à Joal/Kayar, un lien réel vers une
+  // Situation existe honnêtement (sit-mbour porte exactement ce sujet) —
+  // ni fabriqué, ni omis par excès de prudence.
+  assert.equal(mbour.collectiveNeedId, undefined);
+  assert.deepEqual(mbour.situationIds, ["sit-mbour"]);
+  assert.equal(mbour.status, "qualifying", "Mbour s'appuie déjà sur une Situation documentée — instruction engagée, pas seulement repérée");
 
   // Mbàmbulaan n'est jamais présenté comme opérateur télécom/fournisseur
   // de connectivité satellite lui-même (mandat G1, contrainte explicite)
@@ -218,10 +228,12 @@ test("getOpportunities/getOpportunityDetail (bridge) résolvent les relations sa
   const withDemo = applyDemoProgramOpportunities(state, "act-coordinateur");
 
   const rows = getOpportunities(withDemo);
-  assert.equal(rows.length, 2);
-  assert.ok(rows.every((row) => !row.hasDecision), "aucune décision n'a encore été prise pour ces deux opportunités");
+  assert.equal(rows.length, 3);
+  assert.ok(rows.every((row) => !row.hasDecision), "aucune décision n'a encore été prise pour ces opportunités");
 
-  const joalRow = rows.find((row) => row.territoryNames.includes("Joal-Fadiouth"))!;
+  // Mbour (G2.1) cite aussi "Joal-Fadiouth" dans territoryNames — on
+  // isole ici précisément l'opportunité Joal elle-même par son propos.
+  const joalRow = rows.find((row) => row.problem.includes("écailles"))!;
   assert.ok(joalRow);
   const detail = getOpportunityDetail(joalRow.id, withDemo)!;
   assert.ok(detail);

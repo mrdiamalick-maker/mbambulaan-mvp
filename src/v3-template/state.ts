@@ -67,6 +67,20 @@ export interface AppState {
   arbSel: number;
   arbOpt: { id: number; i: number } | null;
 
+  // Territoires / Opportunités (G2.1 — mandat "Vision territoriale")
+  // terrView/terrSel même convention que progView/progOpen (Portfolio ↔
+  // ProgrammeDetail) : un seul écran "territoires", deux vues (liste ↔
+  // fiche), un identifiant réel de territoire (Territory.id), jamais un
+  // index de gabarit.
+  terrView: "list" | "detail";
+  terrSel: string | null;
+  // oppOpen — identifiant réel de ProgramOpportunity dont le panneau est
+  // ouvert ; même discipline que docOpen/presentOpen ci-dessous : une
+  // capability en recouvrement, pas un nouvel écran, accessible depuis la
+  // fiche territoire ET l'écran Opportunités.
+  oppOpen: string | null;
+  oppFilter: "all" | "rep" | "ins";
+
   // Flux
   dossStage: string;
   dossOpen: number;
@@ -130,6 +144,11 @@ export const initialAppState: AppState = {
 
   arbSel: 0,
   arbOpt: null,
+
+  terrView: "list",
+  terrSel: null,
+  oppOpen: null,
+  oppFilter: "all",
 
   // PD.4 — "a_qualifier" est la clé réelle (fluxStage, flux-bridge.ts) ;
   // "review" n'existe plus (3 paliers réels remplacent les 4 du gabarit

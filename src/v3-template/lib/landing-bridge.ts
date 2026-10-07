@@ -82,7 +82,7 @@ export function formatKg(value: number): string {
 // Site.type porte "quai"/"marche" séparément) ; les trois autres libellés
 // sont conservés ici pour rester honnête si le référentiel les
 // instancie un jour, jamais pour laisser un type non traduit.
-const INFRA_TYPE_LABEL: Record<Infrastructure["type"], string> = {
+export const INFRA_TYPE_LABEL: Record<Infrastructure["type"], string> = {
   fabrique_glace: "Glace",
   chambre_froide: "Chambre froide",
   balance: "Balance",
@@ -92,7 +92,7 @@ const INFRA_TYPE_LABEL: Record<Infrastructure["type"], string> = {
   marche: "Marché"
 };
 
-const INFRA_STATE_LABEL: Record<Infrastructure["status"], string> = {
+export const INFRA_STATE_LABEL: Record<Infrastructure["status"], string> = {
   operationnelle: "opérationnelle",
   fragile: "fragile",
   indisponible: "indisponible"
@@ -236,7 +236,7 @@ export function atlasLandingDepthForRole(role: RoleKey): AtlasLandingDepth {
 // vert déjà utilisé pour une capacité froide OK ailleurs dans ce même
 // écran, "fragile"/"indisponible" = les deux teintes d'alerte déjà
 // utilisées par la carte pour vigilance/critique.
-const INFRA_STATUS_COLOR: Record<Infrastructure["status"], string> = {
+export const INFRA_STATUS_COLOR: Record<Infrastructure["status"], string> = {
   operationnelle: "#4E7B5A",
   fragile: "#E0A455",
   indisponible: "#E05A3C"

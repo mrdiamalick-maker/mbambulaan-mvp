@@ -2,10 +2,26 @@ import "server-only";
 
 import postgres from "postgres";
 import { createDemoState } from "@/data/demo-state";
+import { applyDemoProgramOpportunities } from "@/data/demo-program-opportunities";
 import type { MbambulaanEvent } from "@/domain/events";
 import type { Command, ProductState } from "@/domain/types";
 import { applyCommand } from "@/domain/rules";
 import { applyEvent } from "@/runtime/event-engine";
+
+// seedTenantState (G2.1, mandat "Vision territoriale" §4/§7) — le tenant
+// de démonstration réellement servi par l'application inclut désormais
+// les opportunités territoriales de démonstration (Joal, Kayar, Mbour),
+// appliquées via les mêmes commandes qu'un geste humain
+// (create_program_opportunity/update_program_opportunity_status) —
+// jamais un objet construit à la main. createDemoState() elle-même reste
+// pure et n'en contient aucune (doctrine testée, "le Demo World ne
+// contient aucune ProgramOpportunity au chargement",
+// tests/program-opportunity.test.ts TEST D) : seul ce point d'entrée
+// serveur, qui décide ce qu'« être le tenant de démonstration servi »
+// signifie réellement, les ajoute explicitement.
+function seedTenantState(): ProductState {
+  return applyDemoProgramOpportunities(createDemoState(), "act-coordinateur");
+}
 
 declare global {
   var mbambulaanState: ProductState | undefined;
@@ -64,7 +80,7 @@ async function ensureSchema() {
 export async function getState(): Promise<ProductState> {
   const db = database();
   if (!db) {
-    globalThis.mbambulaanState ??= createDemoState();
+    globalThis.mbambulaanState ??= seedTenantState();
     return structuredClone(globalThis.mbambulaanState);
   }
 
@@ -74,7 +90,7 @@ export async function getState(): Promise<ProductState> {
   `;
   if (rows[0]) return rows[0].payload;
 
-  const initial = createDemoState();
+  const initial = seedTenantState();
   const payload = JSON.parse(JSON.stringify(initial)) as never;
   await db`
     insert into mbambulaan_tenant_state (tenant_id, revision, payload)
@@ -127,7 +143,7 @@ export async function dispatch(command: Command, idempotencyKey: string) {
   }
 
   if (command.type === "reset_demo") {
-    const initial = createDemoState();
+    const initial = seedTenantState();
     await saveState(initial);
     return initial;
   }

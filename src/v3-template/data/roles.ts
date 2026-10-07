@@ -12,6 +12,11 @@ export interface ModuleDef {
 export const MODULES: Record<ScreenKey, ModuleDef> = {
   brief: { label: "Brief national", suffix: { programme: "", coordination: "" } },
   atlas: { label: "Atlas territorial" },
+  // territoires/opportunites (G2.1, mandat "Vision territoriale") —
+  // nouvelle navigation primaire, badge réel (nombre d'opportunités de
+  // programme réellement enregistrées), jamais une valeur fixe de gabarit.
+  territoires: { label: "Territoires" },
+  opportunites: { label: "Opportunités", badge: () => "" },
   situations: { label: "Situations", badge: () => "24" },
   arbitrages: { label: "Arbitrages", badge: (r) => (r === "ministre" ? "3" : "") },
   programmes: { label: "Programmes" },
@@ -28,33 +33,40 @@ export interface RoleDef {
   tldr: string;
 }
 
+// G2.1 (mandat "Vision territoriale") — navigation primaire désormais
+// identique pour les 3 rôles : Brief · Territoires · Opportunités ·
+// Arbitrages · Résultats, puis « Vues de travail » (Situations, Flux
+// entrants, Sources connectées). Le HTML source de vérité ne montre
+// aucun sélecteur de rôle ni de variante de navigation par rôle — une
+// seule structure, reproduite à l'identique pour les 3. Changement de
+// comportement assumé et documenté (rapport G2.1) : "programme" atterrit
+// désormais sur Brief au lieu de Programmes, "coordination" sur Brief au
+// lieu de Flux entrant. atlas/programmes restent des écrans valides
+// (aucune capability supprimée, cf. onOpenProgramme) mais ne sont plus
+// des entrées de navigation primaire — le HTML ne les mentionne pas.
+const G2_MAIN: ScreenKey[] = ["brief", "territoires", "opportunites", "arbitrages", "resultats"];
+const G2_SEC: ScreenKey[] = ["situations", "flux", "sources"];
+
 export const ROLES: Record<RoleKey, RoleDef> = {
   ministre: {
-    main: ["brief", "atlas", "situations", "arbitrages", "programmes", "resultats"],
-    sec: ["flux", "sources"],
+    main: G2_MAIN,
+    sec: G2_SEC,
     note: "Supervision nationale · 6 modules, arbitrages activés",
     head: "La Petite-Côte concentre l’attention pour la troisième semaine",
     tldr:
       "Trois foyers actifs, une capacité froide indisponible depuis 48 h, trois décisions attendues avant vendredi. Deux programmes affichent un écart entre avancement déclaré et signaux reçus."
   },
   programme: {
-    main: ["programmes", "resultats", "atlas", "situations", "brief"],
-    // §14 du mandat "Intégration /etat V5 + Corrections Produit" :
-    // "rendre Arbitrages accessible à la Direction de programme" — elle
-    // prépare/instruit les dossiers, le Ministère les tranche ; en
-    // navigation secondaire (comme le Ministère le fait pour flux/
-    // sources), jamais retirée de son périmètre de lecture. L'écran
-    // n'ouvre quant à lui aucune action que l'autorisation serveur
-    // (assertCan, src/server/permissions.ts) n'accorderait déjà.
-    sec: ["arbitrages", "flux", "sources"],
+    main: G2_MAIN,
+    sec: G2_SEC,
     note: "Direction de programme · portefeuille et exécution en premier",
     head: "Deux programmes sur neuf demandent une décision d’exécution",
     tldr:
       "Le portefeuille avance à 51 %. Le volet froid Petite-Côte est bloqué au financement et quatre signaux terrain contredisent le statut « en bonne voie » du référentiel pirogues."
   },
   coordination: {
-    main: ["flux", "situations", "atlas", "programmes", "brief"],
-    sec: ["arbitrages", "sources"],
+    main: G2_MAIN,
+    sec: G2_SEC,
     note: "Coordination territoriale · qualification et terrain en premier",
     head: "11 éléments reçus attendent une qualification",
     tldr:
