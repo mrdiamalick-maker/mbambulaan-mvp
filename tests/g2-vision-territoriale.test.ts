@@ -172,12 +172,16 @@ test("un territoire sans aucune donnée réelle (hypothétique) afficherait terr
   assert.equal(fiche.isPriorityCaseToDocument, false, "seul Saint-Louis porte le bandeau dédié, périmètre inchangé par G2.1a");
 });
 
-test("navigation G2.1 : les écrans territoires/opportunites sont reconnus et la badge Opportunités n'est pas câblée en dur", () => {
+test("navigation : les écrans territoires/opportunites sont reconnus ; Opportunités rejoint la navigation V5 par rôle (ARCHITECTURE RECOVERY R1)", () => {
+  // "territoires" reste une clé d'écran valide (drill-down depuis Atlas,
+  // cf. App.tsx onOpenTerritoire) mais n'est plus en navigation primaire —
+  // la navigation unifiée G2.1/G2.3 n'était pas validée comme évolution
+  // de l'architecture V5 par rôle (ARCHITECTURE RECOVERY R1).
   assert.equal(isScreenKey("territoires"), true);
   assert.equal(isScreenKey("opportunites"), true);
-  assert.ok(ROLES.ministre.main.includes("territoires"));
+  assert.ok(!ROLES.ministre.main.includes("territoires"));
   assert.ok(ROLES.ministre.main.includes("opportunites"));
-  assert.ok(ROLES.ministre.sec.includes("situations"));
+  assert.ok(ROLES.ministre.main.includes("situations"));
   assert.ok(ROLES.ministre.sec.includes("flux"));
   assert.ok(ROLES.ministre.sec.includes("sources"));
 });

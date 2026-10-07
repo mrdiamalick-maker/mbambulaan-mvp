@@ -102,12 +102,15 @@ test("Décision suivante : plus de faux lien de proximité territoriale (correct
   assert.equal(securite.nextDecision, undefined, "aucune relation canonique réelle — jamais un lien de proximité");
 });
 
-test("Navigation G2.3 : Initiatives rejoint le menu principal, libellé renommé, clé d'écran inchangée", () => {
+test("Navigation : clé d'écran 'programmes' inchangée, libellé V5 restauré (ARCHITECTURE RECOVERY R1)", () => {
+  // Le renommage UX "Initiatives" (G2.3) et la navigation unifiée
+  // n'étaient pas des évolutions validées de l'architecture V5 par rôle ;
+  // Recovery R1 restaure le libellé "Programmes" et la structure par rôle.
+  // Initiatives.tsx reste intact sur disque (capability expérimentale non
+  // exposée), cf. App.tsx.
   assert.equal(isScreenKey("programmes"), true);
-  assert.equal(MODULES.programmes.label, "Initiatives");
+  assert.equal(MODULES.programmes.label, "Programmes");
   assert.ok(ROLES.ministre.main.includes("programmes"));
-  const arbIndex = ROLES.ministre.main.indexOf("arbitrages");
-  const initIndex = ROLES.ministre.main.indexOf("programmes");
-  const resIndex = ROLES.ministre.main.indexOf("resultats");
-  assert.ok(arbIndex < initIndex && initIndex < resIndex, "Initiatives doit se trouver entre Arbitrages et Résultats");
+  assert.ok(ROLES.programme.main.includes("programmes"));
+  assert.ok(ROLES.coordination.main.includes("programmes"));
 });

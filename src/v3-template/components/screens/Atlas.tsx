@@ -245,7 +245,7 @@ const ALWAYS_LABELLED = ["Saint-Louis", "Kayar", "Hann", "Mbour", "Joal-Fadiouth
 const LINK_PAIRS: Array<[string, string]> = [["Joal-Fadiouth", "Mbour"], ["Mbour", "Popenguine"]];
 const ATLAS_TABS: Array<[string, string]> = [["act", "Activité"], ["cap", "Capacités"], ["acteurs", "Acteurs"], ["sit", "Situations"], ["prog", "Programmes"]];
 
-export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patch: Patch; onOpenProgramme: (id: number) => void }) {
+export function Atlas({ state, patch, onOpenProgramme, onOpenTerritoire }: { state: AppState; patch: Patch; onOpenProgramme: (id: number) => void; onOpenTerritoire: (territoryName: string) => void }) {
   const runtime = useDomainRuntime();
   const zone = state.atlasZone || "Toutes";
   const inZone = (t: (typeof TERR)[number]) => zone === "Toutes" || t[6] === zone;
@@ -506,6 +506,17 @@ export function Atlas({ state, patch, onOpenProgramme }: { state: AppState; patc
               </div>
             </div>
             <p style={{ margin: "12px 0 0", fontSize: 12.5, lineHeight: 1.55, color: "rgba(11,26,42,.75)" }}>{t.reading}</p>
+            {/* ARCHITECTURE RECOVERY R1 §3 — drill-down vers la fiche
+                territoire G2 (Territoires.tsx), même composant/état que
+                la navigation Territoires elle-même, jamais une copie de la
+                fiche dans Atlas. */}
+            <button
+              type="button"
+              onClick={() => onOpenTerritoire(t.name)}
+              style={{ marginTop: 12, border: "1px solid #0B1A2A", background: "transparent", color: "#0B1A2A", cursor: "pointer", borderRadius: 4, padding: "7px 14px", fontSize: 12, fontWeight: 500, fontFamily: V3_FONT_SANS }}
+            >
+              Voir la fiche territoire détaillée →
+            </button>
           </div>
 
           {/* §4 (correction P1 Territoire) — la lecture décisionnelle expose

@@ -98,10 +98,12 @@ const TRUST_COLOR: Record<string, string> = { "○": "rgba(11,26,42,.55)", "◐"
 export function Territoires({
   state,
   patch,
+  onReturnToAtlas,
   showNotes = false
 }: {
   state: AppState;
   patch: Patch;
+  onReturnToAtlas: () => void;
   showNotes?: boolean;
 }) {
   const runtime = useDomainRuntime();
@@ -122,9 +124,14 @@ export function Territoires({
     window.scrollTo(0, 0);
   };
   const toList = () => {
-    patch({ terrView: "list", terrSel: null });
+    patch({ terrView: "list", terrSel: null, terrFromAtlas: false });
     window.scrollTo(0, 0);
   };
+  // toAtlas (ARCHITECTURE RECOVERY R1 §3) — délègue à onReturnToAtlas
+  // (App.tsx), qui repasse par syncScreenUrl comme toute navigation
+  // inter-écrans : un simple patch({screen:"atlas"}) local laisserait
+  // l'URL ?ecran= désynchronisée de l'écran réellement affiché.
+  const toAtlas = () => onReturnToAtlas();
 
   if (state.terrView === "list" || !state.terrSel) {
     return (
@@ -181,7 +188,18 @@ export function Territoires({
   return (
     <div className="pv3-rise">
       <div style={{ padding: "22px 30px 0", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-        <Breadcrumb parts={[{ label: "Espace État" }, { label: "Territoires", onClick: toList }, { label: F.name }]} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {state.terrFromAtlas && (
+            <button
+              type="button"
+              onClick={toAtlas}
+              style={{ border: 0, background: "transparent", cursor: "pointer", padding: 0, fontSize: 12.5, fontWeight: 600, color: "#B6522F", fontFamily: V3_FONT_SANS, textAlign: "left" }}
+            >
+              ← Retour à l’Atlas
+            </button>
+          )}
+          <Breadcrumb parts={[{ label: "Espace État" }, { label: "Territoires", onClick: toList }, { label: F.name }]} />
+        </div>
         <TopActions noteLabel="Note territoire" onPresent={() => undefined} onNote={() => undefined} />
       </div>
 

@@ -48,17 +48,22 @@ test("les deep links V3 n'acceptent que les dix écrans connus (G2.1 : + territo
 });
 
 test("les trois perspectives institutionnelles et leurs priorités de navigation restent présentes", () => {
-  // G2.1 (mandat "Vision territoriale") — navigation primaire désormais
-  // identique pour les 3 rôles (Brief · Territoires · Opportunités ·
-  // Arbitrages · Résultats), reproduite du HTML source de vérité, qui ne
-  // montre aucune variante de navigation par rôle. "programme" atterrit
-  // désormais sur Brief au lieu de Programmes, "coordination" sur Brief
-  // au lieu de Flux entrant — changement de comportement assumé et
-  // documenté (data/roles.ts, rapport G2.1).
+  // ARCHITECTURE RECOVERY R1 — la navigation unifiée (G2.1/G2.3) n'était
+  // pas une évolution validée de l'architecture V5 par rôle mais un
+  // remplacement non arbitré. Restauration de la structure V5 différenciée
+  // par rôle (identique à main@8721017), avec un seul ajout validé :
+  // "opportunites". "territoires" ne revient pas en navigation primaire —
+  // drill-down uniquement depuis Atlas (cf. App.tsx, onOpenTerritoire).
   assert.equal(getRoleLandingScreen("ministre"), "brief");
-  assert.equal(getRoleLandingScreen("programme"), "brief");
-  assert.equal(getRoleLandingScreen("coordination"), "brief");
-  assert.equal(ROLES.ministre.main[0], "brief");
-  assert.deepEqual(ROLES.ministre.main, ["brief", "territoires", "opportunites", "arbitrages", "programmes", "resultats"]);
-  assert.deepEqual(ROLES.ministre.sec, ["situations", "flux", "sources"]);
+  assert.equal(getRoleLandingScreen("programme"), "programmes");
+  assert.equal(getRoleLandingScreen("coordination"), "flux");
+  assert.deepEqual(ROLES.ministre.main, ["brief", "atlas", "opportunites", "situations", "arbitrages", "programmes", "resultats"]);
+  assert.deepEqual(ROLES.ministre.sec, ["flux", "sources"]);
+  assert.deepEqual(ROLES.programme.main, ["programmes", "opportunites", "resultats", "atlas", "situations", "brief"]);
+  assert.deepEqual(ROLES.programme.sec, ["arbitrages", "flux", "sources"]);
+  assert.deepEqual(ROLES.coordination.main, ["flux", "situations", "atlas", "opportunites", "programmes", "brief"]);
+  assert.deepEqual(ROLES.coordination.sec, ["arbitrages", "sources"]);
+  for (const role of ["ministre", "programme", "coordination"] as const) {
+    assert.ok(!ROLES[role].main.includes("territoires"), `"territoires" ne doit pas revenir en navigation primaire pour ${role}`);
+  }
 });

@@ -12,7 +12,8 @@ import { Atlas } from "./components/screens/Atlas";
 import { Territoires } from "./components/screens/Territoires";
 import { Opportunites } from "./components/screens/Opportunites";
 import { Situations } from "./components/screens/Situations";
-import { Initiatives } from "./components/screens/Initiatives";
+import { Portfolio } from "./components/screens/Portfolio";
+import { ProgrammeDetail } from "./components/screens/ProgrammeDetail";
 import { Resultats } from "./components/screens/Resultats";
 import { Arbitrages } from "./components/screens/Arbitrages";
 import { Flux } from "./components/screens/Flux";
@@ -22,7 +23,13 @@ import { getRoleLandingScreen, ROLES } from "./data/roles";
 import { initialAppState } from "./state";
 import { V3_FONT_SANS } from "./theme";
 import { useDomainRuntime } from "./lib/domain-runtime";
+import { TERRITORY_ID_BY_NAME } from "./lib/landing-bridge";
 import type { PeriodKey, RoleKey, ScreenKey } from "./types";
+
+// ARCHITECTURE RECOVERY R1 — Initiatives.tsx (G2.3) reste une capability
+// expérimentale non exposée : son code n'est pas supprimé, mais
+// "programmes" ne la route plus (restauration de Portfolio/ProgrammeDetail
+// ci-dessous, cf. mandat §4).
 
 // G2.1 — écrans avec leur propre bandeau (fil d'ariane + actions),
 // distinct du Header rôle/période des écrans V5 conservés (mandat :
@@ -80,6 +87,28 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
     if (typeof window !== "undefined") window.scrollTo(0, 0);
   }, [patch, syncScreenUrl]);
 
+  // onOpenTerritoire (ARCHITECTURE RECOVERY R1 §3) — drill-down depuis
+  // Atlas vers la fiche territoire G2 : réutilise le même écran/état que
+  // Territoires.tsx (terrView/terrSel), jamais une copie de la fiche dans
+  // Atlas.tsx. TERRITORY_ID_BY_NAME résout le nom éditorial affiché par
+  // Atlas (data/territories.ts) vers l'identifiant réel de territoire.
+  const onOpenTerritoire = useCallback((territoryName: string) => {
+    const territoryId = TERRITORY_ID_BY_NAME[territoryName] ?? territoryName;
+    patch({ screen: "territoires", terrView: "detail", terrSel: territoryId, terrFromAtlas: true });
+    syncScreenUrl("territoires");
+    if (typeof window !== "undefined") window.scrollTo(0, 0);
+  }, [patch, syncScreenUrl]);
+
+  // onReturnToAtlas — symétrique d'onOpenTerritoire : repasse par
+  // syncScreenUrl (comme toute navigation inter-écrans ici) pour que
+  // l'URL ?ecran= reflète l'écran réellement affiché, jamais seulement
+  // l'état interne.
+  const onReturnToAtlas = useCallback(() => {
+    patch({ screen: "atlas", terrFromAtlas: false });
+    syncScreenUrl("atlas");
+    if (typeof window !== "undefined") window.scrollTo(0, 0);
+  }, [patch, syncScreenUrl]);
+
   const hasOwnHeader = G2_OWN_HEADER_SCREENS.includes(state.screen);
   const runtime = useDomainRuntime();
   const opportunityBadge = runtime.state ? String(runtime.state.programOpportunities.length) : "";
@@ -98,16 +127,21 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
         {state.screen === "brief" && (
           <Brief state={state} patch={patch} roleDef={roleDef} onOpenSituation={onOpenSituation} onOpenProgramme={onOpenProgramme} />
         )}
-        {state.screen === "atlas" && <Atlas state={state} patch={patch} onOpenProgramme={onOpenProgramme} />}
-        {state.screen === "territoires" && <Territoires state={state} patch={patch} />}
+        {state.screen === "atlas" && <Atlas state={state} patch={patch} onOpenProgramme={onOpenProgramme} onOpenTerritoire={onOpenTerritoire} />}
+        {state.screen === "territoires" && <Territoires state={state} patch={patch} onReturnToAtlas={onReturnToAtlas} />}
         {state.screen === "opportunites" && <Opportunites state={state} patch={patch} />}
         {state.screen === "situations" && <Situations state={state} patch={patch} onOpenFlux={() => navigate("flux")} />}
-        {/* G2.3 — "Initiatives" remplace le Portfolio/ProgrammeDetail V5 sur
-            cette entrée de navigation ; progView/progOpen restent inertes
-            (Brief.tsx/Atlas.tsx les posent encore via onOpenProgramme, sans
-            risque : cet écran les ignore et affiche toujours la liste
-            complète, cf. lib/resultats-bridge.ts). */}
-        {state.screen === "programmes" && <Initiatives state={state} patch={patch} />}
+        {/* ARCHITECTURE RECOVERY R1 §4 — retour à la restitution V5 :
+            Portfolio (liste) / ProgrammeDetail (détail), pilotés par
+            progView/progOpen (même convention que terrView/terrSel). Le
+            renommage "Initiatives" (G2.3) n'était pas validé ; Initiatives.tsx
+            reste intact sur disque mais n'est plus routé ici. */}
+        {state.screen === "programmes" && state.progView === "portfolio" && (
+          <Portfolio state={state} patch={patch} onOpenProgramme={onOpenProgramme} />
+        )}
+        {state.screen === "programmes" && state.progView === "detail" && (
+          <ProgrammeDetail state={state} patch={patch} onOpenSituation={onOpenSituation} onBack={() => patch({ progView: "portfolio" })} />
+        )}
         {state.screen === "resultats" && <Resultats state={state} patch={patch} />}
         {state.screen === "arbitrages" && <Arbitrages state={state} patch={patch} />}
         {state.screen === "flux" && <Flux state={state} patch={patch} />}

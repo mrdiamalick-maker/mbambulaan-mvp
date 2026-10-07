@@ -273,15 +273,16 @@ try {
 
   for (const [screen, marker] of [
     ["atlas", "Atlas territorial"],
-    // Situations/Initiatives/Résultats chargent leurs données canoniques
-    // côté client : le premier HTML contient donc leur état de connexion
-    // dédié, puis l'en-tête réel apparaît après hydratation (vérifié
-    // séparément en QA navigateur). Initiatives (G2.3) et Résultats (G2.2)
-    // lisent Initiative/Result réels via la même garde liveState que
-    // Situations, d'où le même marqueur.
+    // Situations/Résultats chargent leurs données canoniques côté client :
+    // le premier HTML contient donc leur état de connexion dédié, puis
+    // l'en-tête réel apparaît après hydratation (vérifié séparément en QA
+    // navigateur). Résultats (G2.2) lit Result réel via la même garde
+    // liveState que Situations, d'où le même marqueur. "programmes"
+    // (ARCHITECTURE RECOVERY R1) route de nouveau vers Portfolio.tsx, qui
+    // n'a pas cette garde — son titre V5 est visible dès le premier HTML.
     ["situations", "Connexion au domaine réel Mbàmbulaan…"],
     ["arbitrages", "Arbitrages"],
-    ["programmes", "Connexion au domaine réel Mbàmbulaan…"],
+    ["programmes", "Portefeuille de programmes"],
     ["resultats", "Connexion au domaine réel Mbàmbulaan…"],
     ["flux", "Flux entrant"]
   ]) {

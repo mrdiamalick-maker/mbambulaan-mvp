@@ -81,6 +81,12 @@ export interface AppState {
   // index de gabarit.
   terrView: "list" | "detail";
   terrSel: string | null;
+  // terrFromAtlas (ARCHITECTURE RECOVERY R1) — vrai uniquement quand la
+  // fiche territoire a été ouverte en drill-down depuis Atlas.tsx (jamais
+  // posé par une navigation directe via la liste Territoires elle-même) :
+  // commande l'affichage de « ← Retour à l'Atlas » plutôt que le fil
+  // d'ariane « Espace État › Territoires » habituel.
+  terrFromAtlas: boolean;
   // oppOpen — identifiant réel de ProgramOpportunity dont le panneau est
   // ouvert ; même discipline que docOpen/presentOpen ci-dessous : une
   // capability en recouvrement, pas un nouvel écran, accessible depuis la
@@ -165,6 +171,7 @@ export const initialAppState: AppState = {
 
   terrView: "list",
   terrSel: null,
+  terrFromAtlas: false,
   oppOpen: null,
   oppFilter: "all",
 
