@@ -59,6 +59,6 @@ test("les trois perspectives institutionnelles et leurs priorités de navigation
   assert.equal(getRoleLandingScreen("programme"), "brief");
   assert.equal(getRoleLandingScreen("coordination"), "brief");
   assert.equal(ROLES.ministre.main[0], "brief");
-  assert.deepEqual(ROLES.ministre.main, ["brief", "territoires", "opportunites", "arbitrages", "resultats"]);
+  assert.deepEqual(ROLES.ministre.main, ["brief", "territoires", "opportunites", "arbitrages", "programmes", "resultats"]);
   assert.deepEqual(ROLES.ministre.sec, ["situations", "flux", "sources"]);
 });

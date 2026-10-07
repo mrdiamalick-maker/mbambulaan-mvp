@@ -141,6 +141,29 @@ export function OpportunityPanel({ oppId, patch, onClose }: { oppId: string; pat
           </PanelSection>
         )}
 
+        {/* G2.3 §3 — "retenue ≠ exécutée" : une opportunité réellement
+            retenue (designing/converted_to_program) n'implique pas
+            qu'une Initiative existe déjà. Le lien n'apparaît QUE si
+            initiativeId est réel (Initiative.programOpportunityId) ;
+            sinon un constat honnête, jamais un programme fabriqué. */}
+        {detail.outcome === "retenue" && (
+          <PanelSection title="Initiative">
+            {detail.initiativeId ? (
+              <button
+                type="button"
+                onClick={() => patch({ screen: "programmes" as AppState["screen"], initiativeFocusId: detail.initiativeId!, oppOpen: null })}
+                style={{ border: "1px solid #0B1A2A", background: "#0B1A2A", color: "#F7F3E9", cursor: "pointer", borderRadius: 4, padding: "9px 16px", fontSize: 13, fontWeight: 500 }}
+              >
+                Voir l’Initiative →
+              </button>
+            ) : (
+              <div style={{ background: paper_a(1), border: "1px solid rgba(11,26,42,.1)", padding: "10px 14px", fontSize: 12.5, lineHeight: 1.5, color: "rgba(11,26,42,.7)" }}>
+                Initiative à structurer — retenue ne signifie pas encore exécutée. Aucune Initiative n’est créée automatiquement.
+              </div>
+            )}
+          </PanelSection>
+        )}
+
         {error && <div style={{ color: "#A63A22", fontSize: 12.5, marginBottom: 10 }}>{error}</div>}
 
         <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>

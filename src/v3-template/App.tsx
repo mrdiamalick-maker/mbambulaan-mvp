@@ -12,8 +12,7 @@ import { Atlas } from "./components/screens/Atlas";
 import { Territoires } from "./components/screens/Territoires";
 import { Opportunites } from "./components/screens/Opportunites";
 import { Situations } from "./components/screens/Situations";
-import { Portfolio } from "./components/screens/Portfolio";
-import { ProgrammeDetail } from "./components/screens/ProgrammeDetail";
+import { Initiatives } from "./components/screens/Initiatives";
 import { Resultats } from "./components/screens/Resultats";
 import { Arbitrages } from "./components/screens/Arbitrages";
 import { Flux } from "./components/screens/Flux";
@@ -103,12 +102,12 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
         {state.screen === "territoires" && <Territoires state={state} patch={patch} />}
         {state.screen === "opportunites" && <Opportunites state={state} patch={patch} />}
         {state.screen === "situations" && <Situations state={state} patch={patch} onOpenFlux={() => navigate("flux")} />}
-        {state.screen === "programmes" && state.progView === "portfolio" && (
-          <Portfolio state={state} patch={patch} onOpenProgramme={onOpenProgramme} />
-        )}
-        {state.screen === "programmes" && state.progView === "detail" && (
-          <ProgrammeDetail state={state} patch={patch} onOpenSituation={onOpenSituation} onBack={() => patch({ progView: "portfolio" })} />
-        )}
+        {/* G2.3 — "Initiatives" remplace le Portfolio/ProgrammeDetail V5 sur
+            cette entrée de navigation ; progView/progOpen restent inertes
+            (Brief.tsx/Atlas.tsx les posent encore via onOpenProgramme, sans
+            risque : cet écran les ignore et affiche toujours la liste
+            complète, cf. lib/resultats-bridge.ts). */}
+        {state.screen === "programmes" && <Initiatives state={state} patch={patch} />}
         {state.screen === "resultats" && <Resultats state={state} patch={patch} />}
         {state.screen === "arbitrages" && <Arbitrages state={state} patch={patch} />}
         {state.screen === "flux" && <Flux state={state} patch={patch} />}

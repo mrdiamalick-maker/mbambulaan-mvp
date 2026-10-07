@@ -45,7 +45,9 @@ export interface AppState {
   ageHover: number | null;
   sitChoice: { id: number; i: number } | null;
 
-  // Programmes
+  // Programmes (gabarit gelé, écran remplacé par Initiatives en G2.3 — ces
+  // champs restent inertes, conservés pour ne pas risquer de régression
+  // sur Brief.tsx/Atlas.tsx qui les posent encore via onOpenProgramme)
   progOpen: number | null;
   progView: "portfolio" | "detail";
   progTab: string;
@@ -53,6 +55,11 @@ export interface AppState {
   budHover: number | null;
   scMode: string;
   scHover: number | null;
+  // initiativeFocusId (G2.3) — identifiant réel d'Initiative (jamais un
+  // index de gabarit) dont la carte doit être mise en évidence/défilée à
+  // l'ouverture de l'écran Initiatives ; même convention que terrSel/
+  // oppOpen (G2.1) : un sélecteur nullable, pas un nouvel écran.
+  initiativeFocusId: string | null;
 
   // Résultats
   resInd: number;
@@ -143,6 +150,7 @@ export const initialAppState: AppState = {
   budHover: null,
   scMode: "risque",
   scHover: null,
+  initiativeFocusId: null,
 
   resInd: 0,
   resTerr: null,

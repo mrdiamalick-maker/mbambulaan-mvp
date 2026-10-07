@@ -19,7 +19,12 @@ export const MODULES: Record<ScreenKey, ModuleDef> = {
   opportunites: { label: "Opportunités", badge: () => "" },
   situations: { label: "Situations", badge: () => "24" },
   arbitrages: { label: "Arbitrages", badge: (r) => (r === "ministre" ? "3" : "") },
-  programmes: { label: "Programmes" },
+  // programmes (G2.3, mandat "Initiatives & continuité du cycle") —
+  // renommage UX uniquement : "Programmes" devient "Initiatives" dans la
+  // navigation. La clé d'écran technique reste "programmes" (jamais
+  // renommée dans ce lot, pour ne pas risquer un refactor de type
+  // domaine) ; seul le libellé visible change.
+  programmes: { label: "Initiatives" },
   resultats: { label: "Résultats" },
   flux: { label: "Flux entrant", badge: (r) => (r === "ministre" ? "" : "11") },
   sources: { label: "Sources connectées" }
@@ -44,7 +49,10 @@ export interface RoleDef {
 // lieu de Flux entrant. atlas/programmes restent des écrans valides
 // (aucune capability supprimée, cf. onOpenProgramme) mais ne sont plus
 // des entrées de navigation primaire — le HTML ne les mentionne pas.
-const G2_MAIN: ScreenKey[] = ["brief", "territoires", "opportunites", "arbitrages", "resultats"];
+// G2.3 — "programmes" (libellé visible "Initiatives", cf. MODULES
+// ci-dessus) rejoint la navigation primaire entre Arbitrages et Résultats :
+// Brief · Territoires · Opportunités · Arbitrages · Initiatives · Résultats.
+const G2_MAIN: ScreenKey[] = ["brief", "territoires", "opportunites", "arbitrages", "programmes", "resultats"];
 const G2_SEC: ScreenKey[] = ["situations", "flux", "sources"];
 
 export const ROLES: Record<RoleKey, RoleDef> = {

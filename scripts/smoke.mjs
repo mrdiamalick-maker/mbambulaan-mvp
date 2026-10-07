@@ -273,14 +273,15 @@ try {
 
   for (const [screen, marker] of [
     ["atlas", "Atlas territorial"],
-    // Situations/Résultats chargent leurs données canoniques côté client :
-    // le premier HTML contient donc leur état de connexion dédié, puis
-    // l'en-tête réel apparaît après hydratation (vérifié séparément en QA
-    // navigateur). Résultats (G2.2) lit désormais Initiative/Result réels
-    // via la même garde liveState que Situations, d'où le même marqueur.
+    // Situations/Initiatives/Résultats chargent leurs données canoniques
+    // côté client : le premier HTML contient donc leur état de connexion
+    // dédié, puis l'en-tête réel apparaît après hydratation (vérifié
+    // séparément en QA navigateur). Initiatives (G2.3) et Résultats (G2.2)
+    // lisent Initiative/Result réels via la même garde liveState que
+    // Situations, d'où le même marqueur.
     ["situations", "Connexion au domaine réel Mbàmbulaan…"],
     ["arbitrages", "Arbitrages"],
-    ["programmes", "Portefeuille de programmes"],
+    ["programmes", "Connexion au domaine réel Mbàmbulaan…"],
     ["resultats", "Connexion au domaine réel Mbàmbulaan…"],
     ["flux", "Flux entrant"]
   ]) {

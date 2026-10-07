@@ -250,7 +250,7 @@ export function Territoires({
                   ["Situations", F.counts.situations, () => patch({ screen: "situations" as AppState["screen"], territoryFilterId: F.id })],
                   ["Opportunités", F.counts.opportunities, () => scrollToAnchor("t-opps")],
                   ["Décisions", F.counts.decisions, () => scrollToAnchor("t-dec")],
-                  ["Initiatives", F.counts.initiatives, () => patch({ screen: "resultats" as AppState["screen"], territoryFilterId: F.id })],
+                  ["Initiatives", F.counts.initiatives, () => patch({ screen: "programmes" as AppState["screen"], territoryFilterId: F.id })],
                   ["Résultats", F.counts.results, () => patch({ screen: "resultats" as AppState["screen"], territoryFilterId: F.id })]
                 ] as Array<[string, number, () => void]>
               ).map(([label, n, go]) => (

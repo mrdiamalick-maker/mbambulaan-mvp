@@ -14,6 +14,7 @@ import type { ProductState } from "@/domain/types";
 import { decisionTypeLabels } from "@/domain/types";
 import { findLatestDecisionForSituation } from "./situations-bridge";
 import { getArbitrageItems } from "./arbitrages-bridge";
+import { getOpportunities } from "./opportunity-bridge";
 
 const STATUS_LABEL: Record<string, string> = {
   cadrage: "En cadrage",
@@ -21,6 +22,24 @@ const STATUS_LABEL: Record<string, string> = {
   execution: "En exécution",
   terminee: "Terminée"
 };
+
+// nextStepLabel (G2.3) — le domaine ne porte aucun champ "prochaine étape"
+// sur Initiative (contrairement à Situation.nextStep) : dérivé du statut
+// réel, jamais un texte libre inventé par dossier. Même discipline que
+// STATUS_LABEL ci-dessus : un vocabulaire fixe et documenté, pas une
+// génération de texte.
+const NEXT_STEP_LABEL: Record<string, string> = {
+  cadrage: "Finaliser le cadrage et sécuriser le financement",
+  financee: "Démarrer l’exécution",
+  execution: "Poursuivre l’exécution jusqu’à la clôture",
+  terminee: "Aucune étape suivante — initiative terminée"
+};
+
+export interface OriginOpportunityView {
+  id: string;
+  problem: string;
+  uiStep: string;
+}
 
 export interface IndicatorGapView {
   label: string;
@@ -48,10 +67,25 @@ export interface NextDecisionView {
 export interface InitiativeResultView {
   id: string;
   title: string;
+  // typeLabel (G2.3 §2) — "programme/projet/pilote/étude/partenariat/
+  // autre si disponible" : Initiative (domain/types.ts) ne porte aucun
+  // champ de type aujourd'hui — jamais déduit/inventé, donc toujours
+  // absent tant que le domaine n'en porte pas un réel.
+  typeLabel?: string;
   territoryIds: string[];
   territoryLabel: string;
   objective: string;
   statusLabel: string;
+  // nextStepLabel — toujours présent (champ minimum du mandat G2.3 §2),
+  // dérivé honnêtement du statut réel (NEXT_STEP_LABEL), jamais un texte
+  // de dossier inventé.
+  nextStepLabel: string;
+  // avancementPct — moyenne de progression baseline→cible sur les
+  // indicateurs réels de l'Initiative ; absent si aucun indicateur chiffré
+  // n'existe (jamais une estimation fabriquée).
+  avancementPct?: number;
+  responsibleLabel?: string;
+  originOpportunity?: OriginOpportunityView;
   decidedLabel?: string;
   observedResults: ObservedResultView[];
   indicatorGaps: IndicatorGapView[];
@@ -81,10 +115,49 @@ function resolveDecidedLabel(state: ProductState, initiative: ProductState["init
   return latest ? `${decisionTypeLabels[latest.type]} · ${latest.decidedAt.slice(0, 10)}` : undefined;
 }
 
+// resolveNextDecision (correctif de dette G2.2, mandat G2.3 §7) — l'ancien
+// filtre ne retenait qu'une simple proximité territoriale (tout arbitrage
+// partageant un territoire avec l'Initiative, sans rapport réel entre les
+// deux objets) : un faux lien, explicitement interdit par le mandat G2.3.
+// Désormais fondé sur une relation canonique réelle uniquement :
+// - le même Situation.id référencé à la fois par l'Initiative
+//   (situationIds) et par l'arbitrage (ARB.situationId) ;
+// - ou la même ProgramOpportunity (initiative.programOpportunityId ===
+//   l'opportunité pending_arbitration de l'item).
+// Absence de relation canonique ⇒ undefined, jamais un lien de proximité.
 function resolveNextDecision(state: ProductState, initiative: ProductState["initiatives"][number]): NextDecisionView | undefined {
   const items = getArbitrageItems(state);
-  const match = items.find((item) => item.territoryId && initiative.territoryIds.includes(item.territoryId));
+  const match = items.find(
+    (item) =>
+      (item.situationId && initiative.situationIds.includes(item.situationId)) ||
+      (item.opportunityId && item.opportunityId === initiative.programOpportunityId)
+  );
   return match ? { title: match.title, territoryId: match.territoryId } : undefined;
+}
+
+// resolveOriginOpportunity (G2.3 §2/§3) — l'opportunité réelle dont cette
+// Initiative est issue, via programOpportunityId (G1) ; absente si
+// l'Initiative n'a pas d'origine opportunité connue (jamais déduite d'une
+// simple proximité territoriale ou thématique).
+function resolveOriginOpportunity(state: ProductState, initiative: ProductState["initiatives"][number]): OriginOpportunityView | undefined {
+  if (!initiative.programOpportunityId) return undefined;
+  const opportunity = getOpportunities(state).find((o) => o.id === initiative.programOpportunityId);
+  return opportunity ? { id: opportunity.id, problem: opportunity.problem, uiStep: opportunity.uiStep } : undefined;
+}
+
+function resolveResponsibleLabel(state: ProductState, initiative: ProductState["initiatives"][number]): string | undefined {
+  const owner = state.actors.find((a) => a.id === initiative.ownerId);
+  return owner ? `${owner.name} · ${owner.role.replaceAll("_", " ")}` : undefined;
+}
+
+function resolveAvancementPct(initiative: ProductState["initiatives"][number]): number | undefined {
+  if (initiative.indicators.length === 0) return undefined;
+  return Math.round(
+    initiative.indicators.reduce((sum, i) => {
+      const span = Math.abs(i.target - i.baseline) || 1;
+      return sum + Math.min(100, Math.max(0, (Math.abs(i.current - i.baseline) / span) * 100));
+    }, 0) / initiative.indicators.length
+  );
 }
 
 function toInitiativeResultView(state: ProductState, initiative: ProductState["initiatives"][number]): InitiativeResultView {
@@ -114,6 +187,10 @@ function toInitiativeResultView(state: ProductState, initiative: ProductState["i
     territoryLabel: territoryLabelOf(state, initiative.territoryIds),
     objective: initiative.objective,
     statusLabel: STATUS_LABEL[initiative.status] ?? initiative.status,
+    nextStepLabel: NEXT_STEP_LABEL[initiative.status] ?? "Prochaine étape non documentée.",
+    avancementPct: resolveAvancementPct(initiative),
+    responsibleLabel: resolveResponsibleLabel(state, initiative),
+    originOpportunity: resolveOriginOpportunity(state, initiative),
     decidedLabel: resolveDecidedLabel(state, initiative),
     observedResults,
     indicatorGaps,
