@@ -14,9 +14,7 @@ import {
   buildSituationHeaderStats,
   buildSituationRows,
   describeDecisionEffect,
-  getSituationDetail,
-  getSituationsAgingView,
-  getSituationsFunnelView
+  getSituationDetail
 } from "../../lib/situations-bridge";
 import { useDomainRuntime } from "../../lib/domain-runtime";
 import { V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
@@ -54,36 +52,30 @@ export function Situations({ state, patch, onOpenFlux }: { state: AppState; patc
   const [submitOk, setSubmitOk] = useState(false);
 
   const situationRows = useMemo(() => (liveState ? buildSituationRows(liveState) : []), [liveState]);
+  // territoryFilterId (G2.2) — filtre partagé posé depuis Territoires.tsx ;
+  // lisible et supprimable ici (chip ci-dessous), jamais une permission.
+  const territoryFilterName = liveState && state.territoryFilterId
+    ? liveState.territories.find((t) => t.id === state.territoryFilterId)?.name
+    : undefined;
   const list = useMemo(
     () =>
       situationRows.filter(
         (s) =>
           (!state.fSev || s.severityLabel === state.fSev) &&
           (!state.fTrust || (state.fTrust === "Déclarée" ? s.trustTier === 0 : s.trustTier === 2)) &&
-          (!state.fStage || s.stageBucket === 1)
+          (!state.fStage || s.stageBucket === 1) &&
+          (!state.territoryFilterId || s.territoryId === state.territoryFilterId)
       ),
-    [situationRows, state.fSev, state.fTrust, state.fStage]
+    [situationRows, state.fSev, state.fTrust, state.fStage, state.territoryFilterId]
   );
 
   const openId = state.sitOpen == null ? (list[0]?.id ?? situationRows[0]?.id ?? 0) : state.sitOpen;
   const s = liveState ? (getSituationDetail(openId, liveState) ?? getSituationDetail(situationRows[0]?.id ?? 0, liveState)) : undefined;
-  const funnel = liveState ? getSituationsFunnelView(liveState) : [];
-  const aging = liveState ? getSituationsAgingView(liveState) : [];
-  const funRead = funnel[state.funHover == null ? 3 : state.funHover];
-  const mxAge = Math.max(1, ...aging.map((a) => a.count));
   const sitTab = state.sitTab || "know";
   const header = liveState ? buildSituationHeaderStats(liveState) : undefined;
 
   const chosenOption = s && state.sitChoice != null && state.sitChoice.id === s.id ? s.options[state.sitChoice.i] : null;
-  const noFilter = !state.fSev && !state.fTrust && !state.fStage;
-  // §5 du mandat "Intégration /etat V5 + Corrections Produit" (correction
-  // P1 Situations) : l'ancienneté (détection de l'escalade) reste
-  // toujours visible, pour tous les rôles — c'est le graphique qui aide
-  // réellement à agir. Le suivi du traitement (entonnoir) est utile à la
-  // Coordination territoriale qui qualifie au jour le jour, beaucoup
-  // moins au Ministère qui arbitre — masqué pour ce rôle plutôt que
-  // répété comme un effet dashboard sans usage de décision.
-  const showFunnel = state.role !== "ministre";
+  const noFilter = !state.fSev && !state.fTrust && !state.fStage && !state.territoryFilterId;
   const primaryAction = getSituationPrimaryAction(state.role);
   // La perspective guide l'action primaire sans devenir une autorisation
   // de sécurité : seule la perspective Ministère compose une décision ;
@@ -150,64 +142,38 @@ export function Situations({ state, patch, onOpenFlux }: { state: AppState; patc
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: showFunnel ? "1.15fr 1fr" : "1fr", gap: 1, background: "rgba(11,26,42,.12)", border: "1px solid rgba(11,26,42,.12)", marginBottom: 18 }}>
-        {showFunnel && (
-          <div style={{ background: "#FFFFFF", padding: "15px 18px" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
-              <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", flex: 1 }}>De l’information reçue à la preuve</div>
-              <div style={{ fontSize: 11.5, color: "#B6522F" }}>{funRead.read}</div>
-            </div>
-            {funnel.map((f, i) => (
-              <div key={f.label} onMouseEnter={() => patch({ funHover: i })} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                <div style={{ width: 150, flex: "none", fontSize: 11.5, color: state.funHover === i ? "#0B1A2A" : "rgba(11,26,42,.7)", fontWeight: state.funHover === i ? 600 : 400 }}>{f.label}</div>
-                <div style={{ flex: 1, height: 16, background: "rgba(11,26,42,.06)", position: "relative" }}>
-                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: f.pctLabel, background: ["#0B1A2A", "#B6522F", "#DE9C74", "#7FB08A"][i], transition: "width .5s cubic-bezier(.4,0,.2,1)" }} />
-                </div>
-                <div style={{ width: 56, flex: "none", textAlign: "right", fontFamily: V3_FONT_MONO, fontSize: 12 }}>{f.count}</div>
-              </div>
-            ))}
-          </div>
-        )}
-        <div style={{ background: "#FFFFFF", padding: "15px 18px" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
-            <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", flex: 1 }}>Ancienneté des situations ouvertes</div>
-            <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.55)" }}>Une situation qui vieillit sans preuve est un risque</div>
-          </div>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 74 }}>
-            {aging.map((a, i) => (
-              <div key={a.label} onMouseEnter={() => patch({ ageHover: i })} style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "100%" }}>
-                <div style={{ fontFamily: V3_FONT_MONO, fontSize: 11, color: state.ageHover === i ? "#0B1A2A" : "rgba(11,26,42,.55)", textAlign: "center", marginBottom: 4 }}>{a.count}</div>
-                <div style={{ height: (a.count / mxAge) * 52 + 4, background: ["#9FB9CE", "#DE9C74", "#D89A4A", "#C8452B", "#8E2F1A"][i], transition: "height .5s,background .2s" }} />
-                <div style={{ fontSize: 9.5, color: "rgba(11,26,42,.5)", textAlign: "center", marginTop: 5 }}>{a.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 14 }}>
         <span style={{ fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginRight: 4 }}>Filtrer</span>
-        <FilterChip label={"Toutes · " + situationRows.length} on={noFilter} onClick={() => patch({ fSev: null, fTrust: null, fStage: null })} />
+        <FilterChip label={"Toutes · " + situationRows.length} on={noFilter} onClick={() => patch({ fSev: null, fTrust: null, fStage: null, territoryFilterId: null })} />
         <FilterChip label="Critique" on={state.fSev === "Critique"} dot dotc="#C8452B" onClick={() => patch({ fSev: state.fSev === "Critique" ? null : "Critique" })} />
         <FilterChip label="Élevé" on={state.fSev === "Élevé"} dot dotc="#D89A4A" onClick={() => patch({ fSev: state.fSev === "Élevé" ? null : "Élevé" })} />
         <FilterChip label="Modéré" on={state.fSev === "Modéré"} dot dotc="#9FB9CE" onClick={() => patch({ fSev: state.fSev === "Modéré" ? null : "Modéré" })} />
         <FilterChip label="Déclarées seulement" on={state.fTrust === "Déclarée"} onClick={() => patch({ fTrust: state.fTrust === "Déclarée" ? null : "Déclarée" })} />
         <FilterChip label="Vérifiées seulement" on={state.fTrust === "Vérifiée"} onClick={() => patch({ fTrust: state.fTrust === "Vérifiée" ? null : "Vérifiée" })} />
         <FilterChip label="À qualifier" on={state.fStage === "aqual"} onClick={() => patch({ fStage: state.fStage === "aqual" ? null : "aqual" })} />
+        {territoryFilterName && (
+          <button
+            type="button"
+            onClick={() => patch({ territoryFilterId: null })}
+            style={{ border: "1px solid #B6522F", background: "rgba(182,82,47,.08)", color: "#B6522F", cursor: "pointer", borderRadius: 999, padding: "5px 10px 5px 12px", fontSize: 11.5, fontFamily: V3_FONT_SANS, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}
+          >
+            Territoire : {territoryFilterName} <span aria-hidden>✕</span>
+          </button>
+        )}
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 11.5, color: "rgba(11,26,42,.55)" }}>
           {list.length} situation{list.length > 1 ? "s" : ""} affichée{list.length > 1 ? "s" : ""} sur {situationRows.length}
         </span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "392px 1fr", gap: 0, border: "1px solid rgba(11,26,42,.12)", alignItems: "start" }}>
-        <div style={{ background: "#FFFFFF", borderRight: "1px solid rgba(11,26,42,.12)", alignSelf: "stretch" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "392px 1fr", gap: 0, border: "1px solid rgba(11,26,42,.12)", alignItems: "start", minWidth: 0 }}>
+        <div style={{ background: "#FFFFFF", borderRight: "1px solid rgba(11,26,42,.12)", alignSelf: "stretch", minWidth: 0 }}>
           {list.map((x) => (
             <button
               key={x.id}
               onClick={() => patch({ sitOpen: x.id })}
               style={{
-                display: "block", width: "100%", textAlign: "left", border: 0, borderBottom: "1px solid rgba(11,26,42,.07)",
+                display: "block", width: "100%", minWidth: 0, boxSizing: "border-box", textAlign: "left", border: 0, borderBottom: "1px solid rgba(11,26,42,.07)",
                 background: x.id === s.id ? "rgba(182,82,47,.07)" : "transparent", cursor: "pointer", padding: "13px 15px",
                 boxShadow: x.id === s.id ? "inset 3px 0 0 #B6522F" : "none", transition: "background .2s"
               }}
@@ -219,7 +185,18 @@ export function Situations({ state, patch, onOpenFlux }: { state: AppState; patc
                 <span style={{ fontSize: 11, color: "rgba(11,26,42,.6)" }}>{x.trustGlyph}</span>
                 <span style={{ fontSize: 10.5, color: "rgba(11,26,42,.5)" }}>{x.trustLabel}</span>
               </div>
-              <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4, marginBottom: 7 }}>{x.title}</div>
+              <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4, marginBottom: 5 }}>{x.title}</div>
+              {/* G2.2 §1 — champs minimum de la rangée : territoire, problème
+                  (titre ci-dessus), confiance (ci-dessus), conséquence,
+                  action suivante, responsable, éventuelle opportunité liée.
+                  Compact et tronqué sur une ligne : le dossier complet reste
+                  dans le détail à droite, jamais dupliqué ici. */}
+              <div style={{ fontSize: 11, color: "rgba(11,26,42,.55)", lineHeight: 1.4, marginBottom: 5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                Conséquence : {x.consequenceSummary}
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(11,26,42,.55)", lineHeight: 1.4, marginBottom: 7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                → {x.nextStep} · Responsable : {x.responsibleLabel ?? "Non assigné"}
+              </div>
               <div style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 11, color: "rgba(11,26,42,.55)" }}>
                 <span>{x.territoryLabel}</span>
                 <span style={{ width: 1, height: 10, background: "rgba(11,26,42,.18)" }} />
@@ -227,6 +204,26 @@ export function Situations({ state, patch, onOpenFlux }: { state: AppState; patc
                 <span style={{ flex: 1 }} />
                 <span style={{ fontFamily: V3_FONT_MONO, color: x.stageBucket >= 4 ? "#4E7B5A" : "rgba(11,26,42,.5)" }}>{x.stageLabel}</span>
               </div>
+              {x.linkedOpportunity && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    patch({ oppOpen: x.linkedOpportunity!.id });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      patch({ oppOpen: x.linkedOpportunity!.id });
+                    }
+                  }}
+                  style={{ marginTop: 7, display: "inline-block", border: "1px solid rgba(182,82,47,.4)", background: "rgba(182,82,47,.06)", color: "#B6522F", cursor: "pointer", borderRadius: 4, padding: "3px 8px", fontSize: 10.5, fontFamily: V3_FONT_SANS, fontWeight: 500 }}
+                >
+                  Opportunité liée →
+                </span>
+              )}
             </button>
           ))}
           {list.length === 0 && (

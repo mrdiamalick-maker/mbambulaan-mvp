@@ -55,9 +55,21 @@ function sinceLabel(state: ProductState, situation: Situation): string {
   return `depuis ${Math.round(days / 30)} mois`;
 }
 
+export interface SituationLinkedOpportunity {
+  id: string;
+  title: string;
+}
+
+// SituationRowView (G2.2, mandat "Simplification des vues") — la liste
+// doit montrer, au minimum, dans la rangée elle-même (pas seulement dans
+// le détail) : territoire, problème/signal, niveau de confiance,
+// conséquence, action suivante, responsable, éventuelle opportunité liée.
+// territoryId (nouveau) permet le filtre territorial partagé
+// (state.territoryFilterId) sans dépendre du libellé affiché.
 export interface SituationRowView {
   id: number;
   realId: string;
+  territoryId: string;
   territoryLabel: string;
   title: string;
   severityLabel: "Critique" | "Élevé" | "Modéré";
@@ -71,6 +83,14 @@ export interface SituationRowView {
   stageLabel: string;
   priority: Situation["priority"];
   isOpen: boolean;
+  nextStep: string;
+  responsibleLabel?: string;
+  // consequenceSummary — mêmes risques réels que l'onglet Synthèse
+  // ("Conséquences / enjeux", recommendation.risks), jamais un texte
+  // fabriqué pour remplir la colonne : repli honnête si le système ne
+  // documente aucun enjeu distinct de la situation elle-même.
+  consequenceSummary: string;
+  linkedOpportunity?: SituationLinkedOpportunity;
 }
 
 function territoryName(state: ProductState, situation: Situation): string {
@@ -80,9 +100,13 @@ function territoryName(state: ProductState, situation: Situation): string {
 function toRowView(state: ProductState, situation: Situation, index: number): SituationRowView {
   const severity = SEVERITY_BY_PRIORITY[situation.priority];
   const stageBucket = situationStageBucket(situation);
+  const responsible = situation.responsibleId ? state.actors.find((item) => item.id === situation.responsibleId) : undefined;
+  const recommendation = situationRecommendation(state, situation);
+  const linkedOpportunityRaw = state.programOpportunities.find((o) => o.situationIds?.includes(situation.id));
   return {
     id: index,
     realId: situation.id,
+    territoryId: situation.territoryId,
     territoryLabel: territoryName(state, situation),
     title: situation.title,
     severityLabel: severity.label,
@@ -95,7 +119,11 @@ function toRowView(state: ProductState, situation: Situation, index: number): Si
     stageBucket,
     stageLabel: STAGE_LABELS[stageBucket],
     priority: situation.priority,
-    isOpen: isOpenSituation(situation)
+    isOpen: isOpenSituation(situation),
+    nextStep: situation.nextStep,
+    responsibleLabel: responsible ? `${responsible.name} · ${responsible.role.replaceAll("_", " ")}` : undefined,
+    consequenceSummary: recommendation && recommendation.risks.length > 0 ? recommendation.risks.join(" · ") : "Aucun enjeu distinct documenté au-delà de la situation elle-même.",
+    linkedOpportunity: linkedOpportunityRaw ? { id: linkedOpportunityRaw.id, title: linkedOpportunityRaw.problem } : undefined
   };
 }
 
@@ -182,15 +210,12 @@ export interface SituationOptionView {
   suggestionReason?: string;
 }
 
+// SituationDetailView étend SituationRowView — responsibleLabel/nextStep
+// y sont désormais hérités directement de la rangée (G2.2, même donnée,
+// calculée une seule fois dans toRowView, jamais dupliquée ici).
 export interface SituationDetailView extends SituationRowView {
   description: string;
   channelLabel?: string;
-  // responsibleLabel (mandat "Intégration /etat V5 + Corrections Produit"
-  // §6, bloc ACTEURS de l'onglet Synthèse) — même résolution que
-  // /app/etat/arbitrages (state.actors.find sur Situation.responsibleId) ;
-  // absent si aucun acteur n'est encore assigné, jamais inventé.
-  responsibleLabel?: string;
-  nextStep: string;
   known: Array<{ label: string; detail: string }>;
   unknown: Array<{ label: string; detail: string }>;
   metrics: SituationMetricView[];
@@ -240,7 +265,6 @@ export function getSituationDetail(rowId: number, state: ProductState = DEMO_STA
   const recommendation = situationRecommendation(state, situation);
   const maritime = resolveMaritimeContext(state, situation);
   const convergence = resolveFindingConvergence(state, situation);
-  const responsible = situation.responsibleId ? state.actors.find((item) => item.id === situation.responsibleId) : undefined;
   const decisions = state.decisions
     .filter((item) => item.situationId === situation.id)
     .sort((a, b) => b.decidedAt.localeCompare(a.decidedAt));
@@ -250,8 +274,6 @@ export function getSituationDetail(rowId: number, state: ProductState = DEMO_STA
     ...row,
     description: situation.description,
     channelLabel: firstSignalChannel,
-    responsibleLabel: responsible ? `${responsible.name} · ${responsible.role.replaceAll("_", " ")}` : undefined,
-    nextStep: situation.nextStep,
     known: buildKnownItems(state, situation),
     unknown: buildUncertainties(state, situation),
     metrics: buildSituationMetrics(state, situation).map((m) => ({ value: String(m.value), label: m.label })),

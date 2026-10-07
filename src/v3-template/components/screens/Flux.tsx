@@ -46,7 +46,12 @@ export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
 
   const fluxRows = liveState ? buildFluxRows(liveState) : [];
   const stage = state.dossStage || "a_qualifier";
-  const filtered = fluxRows.filter((row) => row.stage === stage);
+  // territoryFilterId (G2.2) — filtre partagé posé depuis Territoires.tsx ;
+  // lisible et supprimable ici (chip ci-dessous), jamais une permission.
+  const territoryFilterName = liveState && state.territoryFilterId
+    ? liveState.territories.find((t) => t.id === state.territoryFilterId)?.name
+    : undefined;
+  const filtered = fluxRows.filter((row) => row.stage === stage && (!state.territoryFilterId || row.territoryId === state.territoryFilterId));
   const openId = state.dossOpen ?? filtered[0]?.id ?? fluxRows[0]?.id ?? 0;
   const f = liveState ? (getFluxDetail(openId, liveState) ?? getFluxDetail(fluxRows[0]?.id ?? 0, liveState)) : undefined;
   const stages = liveState ? buildFluxStages(liveState) : [];
@@ -96,6 +101,15 @@ export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
             Tout ce qui arrive dans Mbàmbulaan passe ici avant d’exister ailleurs. Rien n’apparaît dans un tableau de bord, une situation ou un résultat sans avoir été qualifié — ou explicitement écarté, avec un motif.
           </p>
         </div>
+        {territoryFilterName && (
+          <button
+            type="button"
+            onClick={() => patch({ territoryFilterId: null })}
+            style={{ flex: "none", border: "1px solid #B6522F", background: "rgba(182,82,47,.08)", color: "#B6522F", cursor: "pointer", borderRadius: 999, padding: "5px 10px 5px 12px", fontSize: 11.5, fontFamily: V3_FONT_SANS, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 6 }}
+          >
+            Territoire : {territoryFilterName} <span aria-hidden>✕</span>
+          </button>
+        )}
       </div>
 
       {!liveState && (

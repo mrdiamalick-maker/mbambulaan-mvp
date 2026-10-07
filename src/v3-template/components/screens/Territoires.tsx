@@ -247,11 +247,11 @@ export function Territoires({
             <div className="pv3-territory-counters" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 1, background: "rgba(11,26,42,.12)", border: "1px solid rgba(11,26,42,.12)", marginBottom: 8 }}>
               {(
                 [
-                  ["Situations", F.counts.situations, () => patch({ screen: "situations" as AppState["screen"] })],
+                  ["Situations", F.counts.situations, () => patch({ screen: "situations" as AppState["screen"], territoryFilterId: F.id })],
                   ["Opportunités", F.counts.opportunities, () => scrollToAnchor("t-opps")],
                   ["Décisions", F.counts.decisions, () => scrollToAnchor("t-dec")],
-                  ["Initiatives", F.counts.initiatives, () => patch({ screen: "resultats" as AppState["screen"] })],
-                  ["Résultats", F.counts.results, () => patch({ screen: "resultats" as AppState["screen"] })]
+                  ["Initiatives", F.counts.initiatives, () => patch({ screen: "resultats" as AppState["screen"], territoryFilterId: F.id })],
+                  ["Résultats", F.counts.results, () => patch({ screen: "resultats" as AppState["screen"], territoryFilterId: F.id })]
                 ] as Array<[string, number, () => void]>
               ).map(([label, n, go]) => (
                 <button
@@ -325,7 +325,7 @@ export function Territoires({
           n="01"
           title="À retenir"
           right={
-            <button type="button" onClick={() => patch({ screen: "situations" as AppState["screen"] })} style={{ border: 0, background: "transparent", cursor: "pointer", padding: 0, fontSize: 12, color: "#0B1A2A" }}>
+            <button type="button" onClick={() => patch({ screen: "situations" as AppState["screen"], territoryFilterId: F.id })} style={{ border: 0, background: "transparent", cursor: "pointer", padding: 0, fontSize: 12, color: "#0B1A2A" }}>
               Toutes les situations du territoire · {F.counts.situations} →
             </button>
           }
@@ -389,7 +389,7 @@ export function Territoires({
           n="03"
           title="Décisions et actions attendues"
           right={
-            <button type="button" onClick={() => patch({ screen: "arbitrages" as AppState["screen"] })} style={{ border: 0, background: "transparent", cursor: "pointer", padding: 0, fontSize: 12, color: "#0B1A2A" }}>
+            <button type="button" onClick={() => patch({ screen: "arbitrages" as AppState["screen"], territoryFilterId: F.id })} style={{ border: 0, background: "transparent", cursor: "pointer", padding: 0, fontSize: 12, color: "#0B1A2A" }}>
               Voir dans Arbitrages →
             </button>
           }
@@ -422,7 +422,18 @@ export function Territoires({
       </div>
 
       <div id="t-caps" style={{ padding: "26px 30px 0" }}>
-        <SectionHeader n="04" title="Activité et capacités" right={<span style={{ fontSize: 12, color: "rgba(11,26,42,.5)" }}>Ce qui existe, dans quel état, selon qui</span>} />
+        <SectionHeader
+          n="04"
+          title="Activité et capacités"
+          right={
+            <>
+              <span style={{ fontSize: 12, color: "rgba(11,26,42,.5)" }}>Ce qui existe, dans quel état, selon qui</span>
+              <button type="button" onClick={() => patch({ screen: "flux" as AppState["screen"], territoryFilterId: F.id })} style={{ border: 0, background: "transparent", cursor: "pointer", padding: 0, fontSize: 12, color: "#0B1A2A" }}>
+                Flux entrant →
+              </button>
+            </>
+          }
+        />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30 }}>
           <div>
             <div style={{ fontSize: 11, color: "rgba(11,26,42,.5)", marginBottom: 10, textTransform: "uppercase", letterSpacing: ".06em" }}>Infrastructures et capacités</div>
@@ -461,7 +472,7 @@ export function Territoires({
           n="05"
           title="Sources et confiance"
           right={
-            <button type="button" onClick={() => patch({ screen: "sources" as AppState["screen"] })} style={{ border: 0, background: "transparent", cursor: "pointer", padding: 0, fontSize: 12, color: "#0B1A2A" }}>
+            <button type="button" onClick={() => patch({ screen: "sources" as AppState["screen"], territoryFilterId: F.id })} style={{ border: 0, background: "transparent", cursor: "pointer", padding: 0, fontSize: 12, color: "#0B1A2A" }}>
               Sources connectées →
             </button>
           }

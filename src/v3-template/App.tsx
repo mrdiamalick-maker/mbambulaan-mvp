@@ -112,7 +112,7 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
         {state.screen === "resultats" && <Resultats state={state} patch={patch} />}
         {state.screen === "arbitrages" && <Arbitrages state={state} patch={patch} />}
         {state.screen === "flux" && <Flux state={state} patch={patch} />}
-        {state.screen === "sources" && <Sources />}
+        {state.screen === "sources" && <Sources state={state} patch={patch} />}
       </main>
       {state.docOpen && <DocumentView request={state.docOpen} onClose={() => patch({ docOpen: null })} />}
       {state.presentOpen && <PresentationView onClose={() => patch({ presentOpen: false })} />}

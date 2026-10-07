@@ -86,6 +86,16 @@ export interface AppState {
   dossOpen: number;
   dossChoice: { id: number; i: number } | null;
 
+  // territoryFilterId (G2.2, mandat "Simplification des vues") — filtre
+  // territorial partagé entre les vues de travail (Situations, Arbitrages,
+  // Résultats, Flux entrants, Sources connectées), posé par un lien sortant
+  // de Territoires.tsx. Un seul champ, un seul Territory.id réel, jamais un
+  // filtre par écran : l'absence de mécanisme générique (cf. rapport
+  // d'exploration G2.2) était la dette corrigée ici. Purement un état
+  // d'affichage côté client — lisible, supprimable (patch({territoryFilterId: null})),
+  // ne modifie jamais les permissions serveur ni la requête à l'API.
+  territoryFilterId: string | null;
+
   // Documents (mandat "Intégration /etat V5 + Corrections Produit" §11/§12)
   // — un document générable à la fois, ouvert depuis l'écran d'origine
   // (Brief/Programme/Situation/Arbitrage), jamais un nouveau module de
@@ -157,6 +167,8 @@ export const initialAppState: AppState = {
   dossStage: "a_qualifier",
   dossOpen: 0,
   dossChoice: null,
+
+  territoryFilterId: null,
 
   docOpen: null,
   presentOpen: false

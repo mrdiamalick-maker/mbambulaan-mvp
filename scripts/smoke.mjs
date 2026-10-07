@@ -273,13 +273,15 @@ try {
 
   for (const [screen, marker] of [
     ["atlas", "Atlas territorial"],
-    // Situations charge ses données canoniques côté client : le premier
-    // HTML contient donc son état de connexion dédié, puis l'en-tête réel
-    // apparaît après hydratation (vérifié séparément en QA navigateur).
+    // Situations/Résultats chargent leurs données canoniques côté client :
+    // le premier HTML contient donc leur état de connexion dédié, puis
+    // l'en-tête réel apparaît après hydratation (vérifié séparément en QA
+    // navigateur). Résultats (G2.2) lit désormais Initiative/Result réels
+    // via la même garde liveState que Situations, d'où le même marqueur.
     ["situations", "Connexion au domaine réel Mbàmbulaan…"],
     ["arbitrages", "Arbitrages"],
     ["programmes", "Portefeuille de programmes"],
-    ["resultats", "Résultats et redevabilité"],
+    ["resultats", "Connexion au domaine réel Mbàmbulaan…"],
     ["flux", "Flux entrant"]
   ]) {
     const html = await (await expectOk(`/etat?ecran=${screen}`)).text();

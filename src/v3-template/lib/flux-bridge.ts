@@ -69,6 +69,11 @@ export interface FluxRowView {
   channelLabel: string;
   channelColor: string;
   title: string;
+  // territoryId (G2.2) — Territory.id réel quand le territoire a pu être
+  // résolu, pour le filtre territorial partagé (state.territoryFilterId) ;
+  // absent si le territoryHint déclaré ne résout à aucun territoire connu
+  // (jamais déduit/forcé).
+  territoryId?: string;
   territoryLabel: string;
   from: string;
   ageLabel: string;
@@ -92,6 +97,7 @@ function toRowView(state: ProductState, message: IncomingMessage, index: number)
     channelLabel: channelMeta[message.channel].label,
     channelColor: CHANNEL_COLOR[message.channel],
     title: shortTitle(message.body),
+    territoryId: territory?.id,
     territoryLabel: territory ? territory.name : message.territoryHint ? `${message.territoryHint} · non résolu` : "Territoire non précisé",
     from: message.reportedBy,
     ageLabel: ageLabel(fluxAgeHours(referenceAt(state), message)),
