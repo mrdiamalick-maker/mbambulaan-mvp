@@ -53,11 +53,20 @@ test("chaque situation référence un programme existant", () => {
   }
 });
 
-test("chaque signal de réalité de programme référence une situation existante", () => {
-  const sitIds = new Set(SITS.map((s) => s.id));
+// RC1 (audit de fonctionnalité) — ProgRealitySignal.sit (un index
+// positionnel dans buildSituationRows(state), devenu faux pour la quasi-
+// totalité des entrées au fil des lots suivants) a été remplacé par
+// realSituationId (un Situation.id réel et stable, cf. data/programmes.ts).
+// Ce fichier teste délibérément l'intégrité des fixtures isolément du
+// domaine réel (voir l'en-tête) ; la vérification que chaque
+// realSituationId résout bien une Situation réelle vit dans
+// tests/rc1-functional-closure.test.ts, qui a déjà besoin du domaine réel.
+test("chaque signal de réalité de programme sans dossier réel ne porte aucun realSituationId fantôme", () => {
   for (const p of PROGS) {
     for (const r of p.reality) {
-      assert.ok(sitIds.has(r.sit), `programme ${p.id} référence une situation inexistante (${r.sit})`);
+      if (r.realSituationId !== undefined) {
+        assert.ok(r.realSituationId.length > 0, `programme ${p.id} porte un realSituationId vide`);
+      }
     }
   }
 });

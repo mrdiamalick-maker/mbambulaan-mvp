@@ -93,6 +93,18 @@ export interface TerritoryRetainItem {
   due: string;
 }
 
+// TerritoryDecisionAction.cta (RC1, audit de fonctionnalité) — remplace
+// targetOpportunityId?: string, qui restait undefined pour 2 des 3
+// constructions possibles ci-dessous ("Préparer l'arbitrage"/"Voir la
+// situation") : le bouton affichait un libellé d'action réelle sans
+// jamais rien déclencher au clic. "cta" porte désormais une action
+// explicite pour chacun des 3 cas réels, jamais un bouton visible sans
+// effet.
+export type TerritoryDecisionActionCta =
+  | { kind: "opportunity"; opportunityId: string }
+  | { kind: "arbitrages" }
+  | { kind: "situations" };
+
 export interface TerritoryDecisionAction {
   kind: "Décision" | "Action";
   title: string;
@@ -102,7 +114,7 @@ export interface TerritoryDecisionAction {
   dueColor: string;
   meta: string;
   ctaLabel: string;
-  targetOpportunityId?: string;
+  cta: TerritoryDecisionActionCta;
 }
 
 export interface TerritoryFicheView {
@@ -234,7 +246,13 @@ export function getTerritoryFiche(territoryId: string, state: ProductState = DEM
       dueSub: pendingArb.urgency,
       dueColor: LVD.critique,
       meta: pendingArb.meta,
-      ctaLabel: "Préparer l’arbitrage"
+      ctaLabel: "Préparer l’arbitrage",
+      // cta "arbitrages" (RC1) — pendingArb est un arbitrage de portefeuille
+      // situation-anchoré, jamais une ProgramOpportunity : la seule action
+      // réelle et honnête est d'ouvrir Arbitrages (filtré sur ce
+      // territoire), même geste que le lien "Voir dans Arbitrages →"
+      // ci-dessus dans ce même fichier.
+      cta: { kind: "arbitrages" }
     });
   }
   const detectedOpportunity = opportunities.find((item) => item.status === "detected");
@@ -248,7 +266,7 @@ export function getTerritoryFiche(territoryId: string, state: ProductState = DEM
       dueColor: "rgba(11,26,42,.4)",
       meta: `Opportunité repérée · ${detectedOpportunity.missingCount} informations manquantes`,
       ctaLabel: "Ouvrir l’instruction",
-      targetOpportunityId: detectedOpportunity.id
+      cta: { kind: "opportunity", opportunityId: detectedOpportunity.id }
     });
   } else if (synthesis?.action && decisionsAndActions.length < 2) {
     decisionsAndActions.push({
@@ -259,7 +277,13 @@ export function getTerritoryFiche(territoryId: string, state: ProductState = DEM
       dueSub: "",
       dueColor: "rgba(11,26,42,.4)",
       meta: "",
-      ctaLabel: "Voir la situation"
+      ctaLabel: "Voir la situation",
+      // cta "situations" (RC1) — synthesis.action ne résout aucun
+      // Situation.id précis ici (lib/territory-synthesis.ts n'expose que
+      // le texte), donc jamais de deep-link fabriqué : ouvre Situations
+      // filtré sur ce territoire, même geste que les autres liens
+      // territoryFilterId de cette fiche.
+      cta: { kind: "situations" }
     });
   }
 

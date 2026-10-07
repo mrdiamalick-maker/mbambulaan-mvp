@@ -51,7 +51,14 @@ export function OpportunityPanel({ oppId, patch, onClose }: { oppId: string; pat
     }
   };
 
-  const ctaLabel = detail.status === "detected" ? "Ouvrir l’instruction" : detail.status === "qualifying" ? "Transmettre pour qualification" : "Instruction qualifiée";
+  // ctaLabel (RC1, audit de fonctionnalité) — "Instruction qualifiée"
+  // couvrait jusqu'ici indifféremment qualified/pending_arbitration/
+  // designing/converted_to_program/rejected/paused : un dossier réellement
+  // rejeté ou en pause s'affichait comme simplement "qualifié", ce qui
+  // laissait croire l'instruction toujours en cours. detail.statusLabel
+  // (programOpportunityStatusLabels, domain/types.ts) porte déjà le
+  // libellé honnête par statut réel, jamais un texte fabriqué ici.
+  const ctaLabel = detail.status === "detected" ? "Ouvrir l’instruction" : detail.status === "qualifying" ? "Transmettre pour qualification" : detail.statusLabel;
   const ctaDisabled = detail.status !== "detected" && detail.status !== "qualifying";
 
   return (

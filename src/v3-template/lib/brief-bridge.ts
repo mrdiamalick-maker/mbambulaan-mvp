@@ -20,6 +20,8 @@ import type { ProductState } from "@/domain/types";
 import { isOpenSituation } from "@/domain/situation-intelligence";
 import { getArbitrageItems, type ArbitrageItemView } from "./arbitrages-bridge";
 import { getOpportunities } from "./opportunity-bridge";
+import { getProgrammePortfolioMetrics } from "./programme-bridge";
+import { BRIEF_PROG } from "../data/brief";
 
 export interface BriefDecisionView {
   dueN: string;
@@ -164,4 +166,46 @@ export function getBriefTldrLine(summary: BriefSummary): string {
       ? `${summary.opportunitiesInProgressCount} opportunité${plural(summary.opportunitiesInProgressCount, "", "s")} en instruction${summary.notableOpportunity ? ` (dont « ${summary.notableOpportunity.problem} »)` : ""}`
       : "aucune opportunité en instruction";
   return `${territoryPart}. ${decisionPart}, ${opportunityPart}.`;
+}
+
+// getBriefProgrammeRows (RC1, audit de fonctionnalité) — "Programmes à
+// surveiller" affichait jusqu'ici le pourcentage et l'alerte figés de
+// data/brief.ts BRIEF_PROG (gabarit gelé), alors que programme-bridge.ts
+// calcule déjà le même avancement réel pour Portfolio.tsx/ProgrammeDetail.tsx
+// (fixtureId identique) : deux des trois programmes affichaient un
+// pourcentage divergent du runtime (43 % contre 37 % réels, 68 % contre
+// 56 % réels) — exactement la divergence que l'audit RC1 interdit (§5/§7).
+// Mêmes fixtureId/ordre/titres que BRIEF_PROG (aucune redécouverte de
+// contenu), seul le pourcentage et le texte d'écart deviennent réels,
+// avec le même vocabulaire que Portfolio.tsx (criticalLinkedSituationsCount,
+// hasRealMatch), jamais une seconde formulation inventée.
+export interface BriefProgrammeRowView {
+  id: number;
+  title: string;
+  pctLabel: string;
+  // pctWidth — toujours une valeur CSS "%" valide (jamais "—") pour la
+  // barre de progression ; "0%" quand aucun avancement réel n'est mesurable,
+  // distincte de pctLabel qui reste le texte honnête affiché.
+  pctWidth: string;
+  alertLabel: string;
+  alertColor: string;
+}
+
+export function getBriefProgrammeRows(state: ProductState = DEMO_STATE): BriefProgrammeRowView[] {
+  const metrics = getProgrammePortfolioMetrics(state);
+  return BRIEF_PROG.map((p) => {
+    const m = metrics.find((item) => item.fixtureId === p.id);
+    if (!m) {
+      return { id: p.id, title: p.title, pctLabel: "—", pctWidth: "0%", alertLabel: "Correspondance réelle non établie", alertColor: "rgba(11,26,42,.5)" };
+    }
+    const pctLabel = m.avancementPct != null ? `${m.avancementPct}%` : "—";
+    const pctWidth = m.avancementPct != null ? `${m.avancementPct}%` : "0%";
+    const alertLabel = !m.hasRealMatch
+      ? "Correspondance réelle non établie"
+      : m.criticalLinkedSituationsCount >= 1
+        ? `${m.criticalLinkedSituationsCount} situation${m.criticalLinkedSituationsCount > 1 ? "s" : ""} critique/élevée liée${m.criticalLinkedSituationsCount > 1 ? "s" : ""}`
+        : "Aucun écart détecté entre exécution et terrain";
+    const alertColor = !m.hasRealMatch ? "rgba(11,26,42,.5)" : m.criticalLinkedSituationsCount >= 1 ? "#B6522F" : "#4E7B5A";
+    return { id: p.id, title: m.title, pctLabel, pctWidth, alertLabel, alertColor };
+  });
 }

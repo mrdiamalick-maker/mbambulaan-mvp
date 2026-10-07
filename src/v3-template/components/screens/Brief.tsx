@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ATTN, BLIND, BRIEF_PROG, HOT } from "../../data/brief";
+import { ATTN, BLIND, HOT } from "../../data/brief";
 import { PERIOD } from "../../data/period";
 import { LV, V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
 import { TERR } from "../../data/territories";
@@ -11,7 +11,8 @@ import { briefViewBox, geo, project } from "../../lib/geo";
 // logique canonique d'exclusion déjà utilisée par presentation-bridge.ts/
 // programme-bridge.ts/document-bridge.ts (voir lib/brief-bridge.ts).
 import { useDomainRuntime } from "../../lib/domain-runtime";
-import { getPendingBriefDecisions, getBriefSummary, getBriefHeroLine, getBriefTldrLine } from "../../lib/brief-bridge";
+import { getPendingBriefDecisions, getBriefSummary, getBriefHeroLine, getBriefTldrLine, getBriefProgrammeRows } from "../../lib/brief-bridge";
+import { buildSituationRows } from "../../lib/situations-bridge";
 import type { AppState } from "../../state";
 import type { ScreenKey } from "../../types";
 
@@ -40,6 +41,21 @@ export function Brief({
   const briefSummary = useMemo(() => getBriefSummary(runtime.state ?? undefined), [runtime.state]);
   const heroLine = useMemo(() => getBriefHeroLine(briefSummary), [briefSummary]);
   const tldrLine = useMemo(() => getBriefTldrLine(briefSummary), [briefSummary]);
+  // briefProgrammeRows (RC1, audit de fonctionnalité) — "Programmes à
+  // surveiller" affichait un pourcentage figé (data/brief.ts BRIEF_PROG)
+  // divergent du runtime réel pour 2 des 3 programmes ; désormais la même
+  // métrique que Portfolio.tsx/ProgrammeDetail.tsx (programme-bridge.ts).
+  const briefProgrammeRows = useMemo(() => getBriefProgrammeRows(runtime.state ?? undefined), [runtime.state]);
+  // situationRowIdByRealId (RC1, audit de fonctionnalité) — ATTN.action
+  // référence un Situation.id réel stable ; buildSituationRows trie par
+  // ancienneté et n'expose qu'une position courante (même convention que
+  // Situations.tsx), jamais stable d'un chargement à l'autre. Résolu une
+  // seule fois ici plutôt que recalculé à chaque clic.
+  const situationRowIdByRealId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of buildSituationRows(runtime.state ?? undefined)) map.set(row.realId, row.id);
+    return map;
+  }, [runtime.state]);
 
   // liveKpis (G2.4) — les tuiles "Capacités froides fragiles" et
   // "Avancement du portefeuille" (gabarit figé, data/period.ts) sont
@@ -318,6 +334,8 @@ export function Brief({
           </div>
           {ATTN.map((a, i) => {
             const open = state.attnOpen === i;
+            const action = a.action;
+            const situationRowId = action.kind === "situation" ? situationRowIdByRealId.get(action.realSituationId) : undefined;
             return (
               <div key={i} style={{ borderBottom: "1px solid rgba(11,26,42,.07)", background: open ? "rgba(182,82,47,.04)" : "transparent", transition: "background .2s" }}>
                 <button
@@ -358,12 +376,25 @@ export function Brief({
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
-                      <button
-                        onClick={() => onOpenSituation(a.sit)}
-                        style={{ border: "1px solid #0B1A2A", background: "#0B1A2A", color: "#F7F3E9", cursor: "pointer", padding: "8px 15px", fontSize: 12, fontFamily: V3_FONT_SANS, fontWeight: 500, borderRadius: 4 }}
-                      >
-                        Ouvrir la situation
-                      </button>
+                      {action.kind === "situation" && situationRowId != null && (
+                        <button
+                          onClick={() => onOpenSituation(situationRowId)}
+                          style={{ border: "1px solid #0B1A2A", background: "#0B1A2A", color: "#F7F3E9", cursor: "pointer", padding: "8px 15px", fontSize: 12, fontFamily: V3_FONT_SANS, fontWeight: 500, borderRadius: 4 }}
+                        >
+                          Ouvrir la situation
+                        </button>
+                      )}
+                      {action.kind === "programme" && (
+                        <button
+                          onClick={() => onOpenProgramme(action.programmeId)}
+                          style={{ border: "1px solid #0B1A2A", background: "#0B1A2A", color: "#F7F3E9", cursor: "pointer", padding: "8px 15px", fontSize: 12, fontFamily: V3_FONT_SANS, fontWeight: 500, borderRadius: 4 }}
+                        >
+                          Ouvrir le programme
+                        </button>
+                      )}
+                      {(action.kind === "none" || (action.kind === "situation" && situationRowId == null)) && (
+                        <span style={{ fontSize: 11.5, color: "rgba(11,26,42,.5)", fontStyle: "italic" }}>Aucun dossier réel rattaché à ce constat.</span>
+                      )}
                       <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.55)" }}>{a.next}</div>
                     </div>
                   </div>
@@ -411,7 +442,7 @@ export function Brief({
               <div style={{ fontFamily: V3_FONT_SERIF, fontSize: 19 }}>Programmes à surveiller</div>
               <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.52)", marginTop: 3 }}>Écart entre trajectoire administrative et signaux de terrain</div>
             </div>
-            {BRIEF_PROG.map((p) => (
+            {briefProgrammeRows.map((p) => (
               <button
                 key={p.id}
                 onClick={() => onOpenProgramme(p.id)}
@@ -420,13 +451,13 @@ export function Brief({
               >
                 <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
                   <div style={{ flex: 1, fontSize: 13, fontWeight: 500, lineHeight: 1.35 }}>{p.title}</div>
-                  <div style={{ fontFamily: V3_FONT_MONO, fontSize: 12.5 }}>{p.pct}</div>
+                  <div style={{ fontFamily: V3_FONT_MONO, fontSize: 12.5 }}>{p.pctLabel}</div>
                 </div>
                 <div style={{ height: 4, background: "rgba(11,26,42,.1)", margin: "9px 0 8px", position: "relative", overflow: "hidden" }}>
-                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: p.pct, background: "#0B1A2A", transition: "width .5s cubic-bezier(.4,0,.2,1)" }} />
+                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: p.pctWidth, background: "#0B1A2A", transition: "width .5s cubic-bezier(.4,0,.2,1)" }} />
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: p.alertC }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: p.alertC, flex: "none" }} />{p.alert}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: p.alertColor }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: p.alertColor, flex: "none" }} />{p.alertLabel}
                 </div>
               </button>
             ))}

@@ -7,6 +7,7 @@ import { TD, TERR } from "../../data/territories";
 // mandat "Intégration /etat V5 + Corrections Produit" §8 — synthèse
 // réelle en tête du détail programme, voir lib/programme-bridge.ts.
 import { getProgrammeSynthesis } from "../../lib/programme-bridge";
+import { buildSituationRows } from "../../lib/situations-bridge";
 import { useDomainRuntime } from "../../lib/domain-runtime";
 import type { AppState } from "../../state";
 
@@ -42,6 +43,15 @@ export function ProgrammeDetail({
   // s'ils existent réellement (lib/programme-bridge.ts), jamais déduits
   // des gauges fixtures ci-dessous.
   const synthesis = getProgrammeSynthesis(p.title, runtime.state ?? undefined);
+  // situationRowIdByRealId (RC1, audit de fonctionnalité) — p.reality[].
+  // realSituationId référence un Situation.id réel stable ; résolu à la
+  // position courante de buildSituationRows (même convention que
+  // Brief.tsx), jamais un index figé qui dérive avec le Demo World.
+  const situationRowIdByRealId = (() => {
+    const map = new Map<string, number>();
+    for (const row of buildSituationRows(runtime.state ?? undefined)) map.set(row.realId, row.id);
+    return map;
+  })();
 
   const gauges = [
     { k: "Avancement", v: p.progress + "%", sub: "déclaré", c: "#DE9C74", pct: p.progress },
@@ -329,21 +339,31 @@ export function ProgrammeDetail({
                 <div style={{ fontFamily: V3_FONT_SERIF, fontSize: 20 }}>Signaux de réalité</div>
                 <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.55)", marginTop: 4, lineHeight: 1.5 }}>Ce qui remonte des territoires et de l’écosystème maritime, indépendamment du programme.</div>
               </div>
-              {p.reality.map((r, i) => (
-                <button
-                  key={i}
-                  onClick={() => onOpenSituation(r.sit)}
-                  className="pv3-row-hover-05"
-                  style={{ display: "flex", gap: 12, alignItems: "flex-start", width: "100%", textAlign: "left", border: 0, borderBottom: "1px solid rgba(11,26,42,.07)", background: "transparent", cursor: "pointer", padding: "13px 20px" }}
-                >
-                  <span style={{ width: 3, alignSelf: "stretch", background: r.c, flex: "none" }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4 }}>{r.t}</div>
-                    <div style={{ fontSize: 11, color: "rgba(11,26,42,.55)", marginTop: 4 }}>{r.k}</div>
-                  </div>
-                  <span style={{ fontSize: 11, color: "rgba(11,26,42,.4)", flex: "none" }}>ouvrir →</span>
-                </button>
-              ))}
+              {p.reality.map((r, i) => {
+                const situationRowId = r.realSituationId ? situationRowIdByRealId.get(r.realSituationId) : undefined;
+                // RC1 (audit de fonctionnalité) — "ouvrir →" n'apparaît que
+                // si un Situation.id réel est résolu ; sinon ligne
+                // informative seule, jamais un bouton pointant ailleurs.
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={situationRowId != null ? () => onOpenSituation(situationRowId) : undefined}
+                    disabled={situationRowId == null}
+                    className={situationRowId != null ? "pv3-row-hover-05" : undefined}
+                    style={{ display: "flex", gap: 12, alignItems: "flex-start", width: "100%", textAlign: "left", border: 0, borderBottom: "1px solid rgba(11,26,42,.07)", background: "transparent", cursor: situationRowId != null ? "pointer" : "default", padding: "13px 20px" }}
+                  >
+                    <span style={{ width: 3, alignSelf: "stretch", background: r.c, flex: "none" }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4 }}>{r.t}</div>
+                      <div style={{ fontSize: 11, color: "rgba(11,26,42,.55)", marginTop: 4 }}>{r.k}</div>
+                    </div>
+                    <span style={{ fontSize: 11, color: "rgba(11,26,42,.4)", flex: "none", fontStyle: situationRowId == null ? "italic" : "normal" }}>
+                      {situationRowId != null ? "ouvrir →" : "aucun dossier réel rattaché"}
+                    </span>
+                  </button>
+                );
+              })}
               {p.reality.length === 0 && (
                 <div style={{ padding: 20, fontSize: 12.5, lineHeight: 1.55, color: "rgba(11,26,42,.65)" }}>
                   Aucun signal de terrain n’est rattaché à ce programme sur la période. Sur un programme en exécution, cette absence mérite d’être interrogée autant qu’un signal.

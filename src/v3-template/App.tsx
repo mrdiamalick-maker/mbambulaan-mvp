@@ -24,6 +24,9 @@ import { initialAppState } from "./state";
 import { V3_FONT_SANS } from "./theme";
 import { useDomainRuntime } from "./lib/domain-runtime";
 import { TERRITORY_ID_BY_NAME } from "./lib/landing-bridge";
+import { getArbitrageItems } from "./lib/arbitrages-bridge";
+import { buildSituationHeaderStats } from "./lib/situations-bridge";
+import { buildFluxStages } from "./lib/flux-bridge";
 import type { PeriodKey, RoleKey, ScreenKey } from "./types";
 
 // ARCHITECTURE RECOVERY R1 — Initiatives.tsx (G2.3) reste une capability
@@ -112,10 +115,28 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
   const hasOwnHeader = G2_OWN_HEADER_SCREENS.includes(state.screen);
   const runtime = useDomainRuntime();
   const opportunityBadge = runtime.state ? String(runtime.state.programOpportunities.length) : "";
+  // arbitragesBadge/situationsBadge/fluxBadge (RC1, audit de fonctionnalité,
+  // §5 "Cohérence nationale") — MODULES[k].badge (data/roles.ts) portait
+  // jusqu'ici des valeurs figées ("3"/"24"/"11") devenues fausses face au
+  // Demo World réel (vérifié : 2 arbitrages réellement en attente, 25
+  // situations réellement ouvertes, 4 éléments de flux réellement à
+  // qualifier). Même mécanisme que badgeOverrides.opportunites ci-dessous
+  // (déjà réel depuis G2.1), même conditionnalité par rôle que les
+  // fixtures qu'ils remplacent (arbitrages affiché seulement pour
+  // "ministre", flux seulement pour les autres rôles).
+  const arbitragesBadge = runtime.state && state.role === "ministre" ? String(getArbitrageItems(runtime.state).length) : "";
+  const situationsBadge = runtime.state ? String(buildSituationHeaderStats(runtime.state).openCount) : "";
+  const fluxBadge = runtime.state && state.role !== "ministre" ? String(buildFluxStages(runtime.state).find((s) => s.key === "a_qualifier")?.count ?? 0) : "";
 
   return (
     <div className="pv3-root pv3-shell" style={{ display: "flex", minHeight: "100vh", fontFamily: V3_FONT_SANS }}>
-      <Sidebar roleDef={roleDef} screen={state.screen} role={state.role} onNavigate={navigate} badgeOverrides={{ opportunites: opportunityBadge }} />
+      <Sidebar
+        roleDef={roleDef}
+        screen={state.screen}
+        role={state.role}
+        onNavigate={navigate}
+        badgeOverrides={{ opportunites: opportunityBadge, arbitrages: arbitragesBadge, situations: situationsBadge, flux: fluxBadge }}
+      />
       <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         {!hasOwnHeader && (
           <>

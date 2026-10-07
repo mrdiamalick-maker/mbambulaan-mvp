@@ -45,7 +45,17 @@ function Breadcrumb({ parts }: { parts: Array<{ label: string; onClick?: () => v
   );
 }
 
-function TopActions({ noteLabel, onPresent, onNote }: { noteLabel: string; onPresent: () => void; onNote: () => void }) {
+// TopActions (RC1, audit de fonctionnalité) — ne porte plus que
+// "Présentation" (mode présentation réel, national, déjà utilisé par
+// Brief.tsx : patch({presentOpen:true})). Le bouton "Générer une note"/
+// "Note territoire" déclenchait jusqu'ici onPresent/onNote={() => undefined}
+// — aucune des deux actions n'existait réellement (document-bridge.ts ne
+// porte aucun DocumentRequest de type "territoire") : un CTA visible sans
+// action réelle, exactement ce que le mandat RC1 interdit. Construire un
+// générateur de note territoriale serait une fonctionnalité nouvelle, hors
+// périmètre RC1 ("aucune nouvelle feature majeure") : retiré plutôt que
+// simulé.
+function TopActions({ onPresent }: { onPresent: () => void }) {
   return (
     <div style={{ display: "flex", gap: 10, flex: "none" }}>
       <button
@@ -54,13 +64,6 @@ function TopActions({ noteLabel, onPresent, onNote }: { noteLabel: string; onPre
         style={{ border: "1px solid rgba(11,26,42,.22)", background: "#fff", color: "#0B1A2A", cursor: "pointer", borderRadius: 4, padding: "9px 16px", fontSize: 12.5, fontFamily: V3_FONT_SANS, fontWeight: 500 }}
       >
         Présentation
-      </button>
-      <button
-        type="button"
-        onClick={onNote}
-        style={{ border: "1px solid #B6522F", background: "#B6522F", color: "#F7F3E9", cursor: "pointer", borderRadius: 4, padding: "9px 16px", fontSize: 12.5, fontFamily: V3_FONT_SANS, fontWeight: 500 }}
-      >
-        {noteLabel}
       </button>
     </div>
   );
@@ -138,7 +141,7 @@ export function Territoires({
       <div className="pv3-rise">
         <div style={{ padding: "22px 30px 12px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
           <Breadcrumb parts={[{ label: "Espace État" }, { label: "Territoires" }]} />
-          <TopActions noteLabel="Générer une note" onPresent={() => undefined} onNote={() => undefined} />
+          <TopActions onPresent={() => patch({ presentOpen: true })} />
         </div>
         <DemoBannerSimple rightLabel={`Situation au ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}`} />
 
@@ -200,7 +203,7 @@ export function Territoires({
           )}
           <Breadcrumb parts={[{ label: "Espace État" }, { label: "Territoires", onClick: toList }, { label: F.name }]} />
         </div>
-        <TopActions noteLabel="Note territoire" onPresent={() => undefined} onNote={() => undefined} />
+        <TopActions onPresent={() => patch({ presentOpen: true })} />
       </div>
 
       <div style={{ padding: "16px 30px 0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", borderBottom: "1px solid rgba(11,26,42,.1)" }}>
@@ -494,7 +497,11 @@ export function Territoires({
               </div>
               <button
                 type="button"
-                onClick={() => d.targetOpportunityId && patch({ oppOpen: d.targetOpportunityId })}
+                onClick={() => {
+                  if (d.cta.kind === "opportunity") patch({ oppOpen: d.cta.opportunityId });
+                  else if (d.cta.kind === "arbitrages") patch({ screen: "arbitrages" as AppState["screen"], territoryFilterId: F.id });
+                  else patch({ screen: "situations" as AppState["screen"], territoryFilterId: F.id });
+                }}
                 style={{ flex: "none", border: "1px solid #0B1A2A", background: "#0B1A2A", color: "#F7F3E9", cursor: "pointer", borderRadius: 4, padding: "9px 16px", fontSize: 12.5, fontWeight: 500 }}
               >
                 {d.ctaLabel}

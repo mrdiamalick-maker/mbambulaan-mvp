@@ -45,9 +45,11 @@ export interface AppState {
   ageHover: number | null;
   sitChoice: { id: number; i: number } | null;
 
-  // Programmes (gabarit gelé, écran remplacé par Initiatives en G2.3 — ces
-  // champs restent inertes, conservés pour ne pas risquer de régression
-  // sur Brief.tsx/Atlas.tsx qui les posent encore via onOpenProgramme)
+  // Programmes — pilotent Portfolio.tsx (progView "portfolio") /
+  // ProgrammeDetail.tsx (progView "detail"), restaurés comme routage V5
+  // par ARCHITECTURE RECOVERY R1 (le remplacement par Initiatives en
+  // G2.3 n'était pas validé) ; posés par Brief.tsx/Atlas.tsx via
+  // onOpenProgramme, réellement actifs, jamais inertes.
   progOpen: number | null;
   progView: "portfolio" | "detail";
   progTab: string;

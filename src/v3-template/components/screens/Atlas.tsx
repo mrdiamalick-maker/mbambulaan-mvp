@@ -734,7 +734,16 @@ export function Atlas({ state, patch, onOpenProgramme, onOpenTerritoire }: { sta
                   <button key={p.id} onClick={() => onOpenProgramme(p.id)} className="pv3-row-hover-05" style={{ display: "block", width: "100%", textAlign: "left", border: "1px solid rgba(11,26,42,.1)", background: "transparent", cursor: "pointer", padding: "12px 14px", marginBottom: 9 }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
                       <div style={{ flex: 1, fontSize: 13, fontWeight: 500, lineHeight: 1.35 }}>{p.title}</div>
-                      <div style={{ fontFamily: V3_FONT_MONO, fontSize: 12 }}>{p.pct}</div>
+                      {/* RC1 (audit de fonctionnalité, Trust Audit) — p.pct
+                          vient de PROGS[].progress, l'avancement administratif
+                          DÉCLARÉ par la direction de programme (toujours
+                          qualifié ainsi dans ProgrammeDetail.tsx/document-
+                          bridge.ts) — jamais le même nombre que l'avancement
+                          réel mesuré (programme-bridge.ts avancementPct, cf.
+                          Portfolio.tsx). Ce libellé manquait ici seul : sans
+                          lui, le chiffre pouvait être lu comme la mesure
+                          réelle alors qu'il s'agit d'un déclaratif. */}
+                      <div style={{ fontFamily: V3_FONT_MONO, fontSize: 12 }}>{p.pct} <span style={{ fontFamily: V3_FONT_SANS, fontSize: 9.5, color: "rgba(11,26,42,.45)" }}>déclaré</span></div>
                     </div>
                     <div style={{ height: 4, background: "rgba(11,26,42,.1)", margin: "9px 0 8px", position: "relative" }}>
                       <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: p.pct, background: "#0B1A2A", transition: "width .5s" }} />

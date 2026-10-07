@@ -3,7 +3,17 @@
 
 export interface ProgMilestone { t: string; d: string; st: "done" | "now" | "late" | "todo" }
 export interface ProgIndicator { n: string; base: number; cur: number; tgt: number; u: string; inv?: boolean }
-export interface ProgRealitySignal { t: string; k: string; c: string; sit: number }
+// ProgRealitySignal.sit (RC1, audit de fonctionnalité) — était un index
+// positionnel dans buildSituationRows(state), devenu faux pour la quasi-
+// totalité des entrées au fil de l'ajout de situations réelles par les
+// lots suivants (ex. sit:0 pointait vers Cap Skirring au lieu de la panne
+// de glace de Joal annoncée par le texte). Remplacé par realSituationId,
+// un Situation.id réel et stable, résolu à la position courante au
+// moment du clic (ProgrammeDetail.tsx) — jamais un index figé. Absent
+// quand aucune Situation réelle du Demo World ne soutient le constat :
+// le bouton "Ouvrir la situation" est alors retiré plutôt que de pointer
+// ailleurs (cf. audit complet, un realSituationId par entrée ci-dessous).
+export interface ProgRealitySignal { t: string; k: string; c: string; realSituationId?: string }
 export interface ProgIntel { t: string; k: string; c: string }
 export interface ProgPartner { o: string; r: string; c: string; e: string; ec: string; ev: string; act: string; due: string }
 export interface ProgCapacity { r: string; need: number; have: number }
@@ -45,9 +55,9 @@ export const PROGS: Programme[] = [
     milestones: [{ t: "Diagnostic territorial", d: "14 juin", st: "done" }, { t: "Cadrage technique", d: "02 août", st: "done" }, { t: "Instruction du financement", d: "29 juil.", st: "late" }, { t: "Démarrage travaux", d: "15 nov.", st: "todo" }],
     inds: [{ n: "Lots orientés vers une capacité froide disponible", base: 34, cur: 58, tgt: 85, u: "%" }, { n: "Temps moyen de remise en service", base: 72, cur: 41, tgt: 24, u: " h", inv: true }],
     reality: [
-      { t: "Machine à glace indisponible au quai de Joal", k: "Signal critique · 2 jours · non qualifié", c: "#C8452B", sit: 0 },
-      { t: "Capacité froide de Mbour réduite à une marge unique", k: "Signal élevé · 5 jours · observé", c: "#D89A4A", sit: 2 },
-      { t: "Aucun relais mandaté à Kayar pour confirmer les signaux", k: "Angle mort · structurel", c: "#B6522F", sit: 4 }
+      { t: "Machine à glace indisponible au quai de Joal", k: "Signal critique · 2 jours · non qualifié", c: "#C8452B", realSituationId: "sit-glace" },
+      { t: "Capacité froide de Mbour réduite à une marge unique", k: "Signal élevé · 5 jours · observé", c: "#D89A4A", realSituationId: "sit-mbour" },
+      { t: "Aucun relais mandaté à Kayar pour confirmer les signaux", k: "Angle mort · structurel", c: "#B6522F" }
     ],
     intel: [
       { t: "Instruction du financement sans réponse depuis 6 semaines", k: "Dépendance · Direction du budget", c: "#C8452B" },
@@ -70,11 +80,15 @@ export const PROGS: Programme[] = [
     next: "Revue territoriale · 30 sept.",
     milestones: [{ t: "Cadrage", d: "12 mai", st: "done" }, { t: "Déploiement 4 sites", d: "30 juil.", st: "done" }, { t: "Revue territoriale", d: "30 sept.", st: "now" }, { t: "Extension littoral", d: "15 janv.", st: "todo" }],
     inds: [{ n: "Pirogues avec immatriculation vérifiée", base: 18, cur: 43, tgt: 75, u: "%" }, { n: "Dossiers incomplets requalifiés", base: 0, cur: 36, tgt: 120, u: " dossiers" }],
+    // RC1 (audit de fonctionnalité) — "Aucun signal reçu de Rufisque-Bargny
+    // depuis 4 semaines" retiré : sit-rufisque (demo-state.ts) est une
+    // Situation réelle et ouverte pour ce territoire, le constat
+    // contredisait donc directement le runtime (mandat Partie 7, "Trust
+    // Audit" : corriger les incohérences réelles).
     reality: [
-      { t: "Retard du prestataire de saisie sur Mbour", k: "Signal modéré · 8 jours · observé", c: "#D89A4A", sit: 3 },
-      { t: "Lectures de balance incohérentes à Hann", k: "Signal modéré · 6 jours · observé", c: "#9FB9CE", sit: 5 },
-      { t: "Indicateur « dossiers requalifiés » stagnant depuis 3 semaines", k: "Écart réel / déclaré", c: "#B6522F", sit: 3 },
-      { t: "Aucun signal reçu de Rufisque-Bargny depuis 4 semaines", k: "Angle mort · à vérifier", c: "#B6522F", sit: 3 }
+      { t: "Retard du prestataire de saisie sur Mbour", k: "Signal modéré · 8 jours · observé", c: "#D89A4A" },
+      { t: "Lectures de balance incohérentes à Hann", k: "Signal modéré · 6 jours · observé", c: "#9FB9CE" },
+      { t: "Indicateur « dossiers requalifiés » stagnant depuis 3 semaines", k: "Écart réel / déclaré", c: "#B6522F" }
     ],
     intel: [
       { t: "Jalons administratifs tenus alors qu’un indicateur stagne", k: "Statut « en bonne voie » à requalifier", c: "#B6522F" },
@@ -97,7 +111,7 @@ export const PROGS: Programme[] = [
     next: "Consolidation · 15 oct.",
     milestones: [{ t: "Cadrage", d: "04 févr.", st: "done" }, { t: "Relais de quai mandatés", d: "18 avr.", st: "done" }, { t: "Référentiel partagé", d: "30 juin", st: "done" }, { t: "Consolidation", d: "15 oct.", st: "now" }],
     inds: [{ n: "Situations closes avec confirmation", base: 21, cur: 43, tgt: 80, u: "%" }, { n: "Délai médian de qualification", base: 74, cur: 44, tgt: 20, u: " min", inv: true }],
-    reality: [{ t: "Lectures de balance incohérentes à Hann", k: "Signal modéré · traité par recalibrage", c: "#9FB9CE", sit: 5 }],
+    reality: [{ t: "Lectures de balance incohérentes à Hann", k: "Signal modéré · traité par recalibrage", c: "#9FB9CE" }],
     intel: [{ t: "Aucun écart détecté entre exécution et signaux reçus", k: "Trajectoire cohérente", c: "#4E7B5A" }],
     partners: [
       { o: "Ville de Dakar", r: "Maître d’ouvrage local", c: "F. Gueye", e: "Engagé", ec: "#4E7B5A", ev: "4 postes de quai équipés", act: "Aucune action en attente", due: "—" },
@@ -115,9 +129,12 @@ export const PROGS: Programme[] = [
     next: "Volet froid à instruire",
     milestones: [{ t: "Cadrage", d: "20 mars", st: "done" }, { t: "2 relais opérationnels", d: "10 juin", st: "done" }, { t: "Volet froid", d: "30 sept.", st: "now" }, { t: "Marchés régionaux", d: "28 févr.", st: "todo" }],
     inds: [{ n: "Situations closes avec confirmation", base: 30, cur: 64, tgt: 80, u: "%" }, { n: "Sites avec relais opérationnel", base: 1, cur: 2, tgt: 3, u: " sites" }],
+    // RC1 (audit de fonctionnalité) — "Aucun signal reçu d'Elinkine sur la
+    // période" retiré : sit-elinkine-retour (demo-state.ts) est une
+    // Situation réelle pour ce territoire, le constat contredisait donc
+    // le runtime (même correctif que Rufisque ci-dessus).
     reality: [
-      { t: "Chambre froide de Cap Skirring fragile depuis 6 semaines", k: "Signal modéré · jamais recoupé", c: "#B6522F", sit: 7 },
-      { t: "Aucun signal reçu d’Elinkine sur la période", k: "Angle mort · 0 signal", c: "#B6522F", sit: 7 }
+      { t: "Chambre froide de Cap Skirring fragile depuis 6 semaines", k: "Signal modéré · jamais recoupé", c: "#B6522F", realSituationId: "sit-cap-skirring" }
     ],
     intel: [{ t: "Programme en exécution sans financement confirmé", k: "159 M identifiés, 0 confirmé", c: "#C8452B" }],
     partners: [
@@ -137,8 +154,8 @@ export const PROGS: Programme[] = [
     milestones: [{ t: "Cadrage", d: "08 avr.", st: "done" }, { t: "Protocole d’annonce", d: "20 sept.", st: "now" }, { t: "Relais mandatés", d: "30 oct.", st: "todo" }, { t: "Extension littoral", d: "31 mars", st: "todo" }],
     inds: [{ n: "Alertes qualifiées en moins de 15 minutes", base: 22, cur: 46, tgt: 80, u: "%" }, { n: "Quais avec relais mandaté", base: 1, cur: 3, tgt: 8, u: " quais" }],
     reality: [
-      { t: "Retour de pirogue retardé non confirmable à Kayar", k: "Signal élevé · aucune source secondaire", c: "#D89A4A", sit: 4 },
-      { t: "Écart d’heures de retour récurrent à Joal", k: "Signal élevé · vérifié 6 fois", c: "#D89A4A", sit: 1 }
+      { t: "Retour de pirogue retardé non confirmable à Kayar", k: "Signal élevé · aucune source secondaire", c: "#D89A4A" },
+      { t: "Écart d’heures de retour récurrent à Joal", k: "Signal élevé · vérifié 6 fois", c: "#D89A4A" }
     ],
     intel: [{ t: "Le protocole d’annonce conditionne deux situations ouvertes", k: "Jalon du 20 septembre critique", c: "#D89A4A" }],
     partners: [
@@ -157,7 +174,7 @@ export const PROGS: Programme[] = [
     next: "Démarrage des travaux · 10 oct.",
     milestones: [{ t: "Cadrage", d: "15 janv.", st: "done" }, { t: "Financement confirmé", d: "30 juin", st: "done" }, { t: "Travaux", d: "10 oct.", st: "now" }, { t: "Exploitation", d: "30 avr.", st: "todo" }],
     inds: [{ n: "Situations closes avec confirmation", base: 24, cur: 50, tgt: 80, u: "%" }, { n: "Délai médian de qualification", base: 74, cur: 41, tgt: 20, u: " min", inv: true }],
-    reality: [{ t: "Capacité froide de Mbour sous tension", k: "Signal élevé · 5 jours", c: "#D89A4A", sit: 2 }],
+    reality: [{ t: "Capacité froide de Mbour sous tension", k: "Signal élevé · 5 jours", c: "#D89A4A", realSituationId: "sit-mbour" }],
     intel: [{ t: "Le chantier porte sur le site actuellement sous tension", k: "Séquencement à confirmer", c: "#D89A4A" }],
     partners: [
       { o: "Direction du budget", r: "Financeur", c: "S. Diallo", e: "Engagé", ec: "#4E7B5A", ev: "135 M confirmés le 30 juin", act: "Aucune action en attente", due: "—" },
@@ -175,7 +192,7 @@ export const PROGS: Programme[] = [
     next: "Étude de regroupement · 12 oct.",
     milestones: [{ t: "Diagnostic", d: "20 févr.", st: "done" }, { t: "Cadrage", d: "30 mai", st: "done" }, { t: "Étude logistique", d: "12 oct.", st: "now" }, { t: "Mise en œuvre", d: "15 févr.", st: "todo" }],
     inds: [{ n: "Situations closes avec confirmation", base: 27, cur: 57, tgt: 80, u: "%" }, { n: "Sites avec relais opérationnel", base: 1, cur: 2, tgt: 3, u: " sites" }],
-    reality: [{ t: "Missirah sans capacité froide recensée", k: "Structurel · à intégrer au cadrage", c: "#9FB9CE", sit: 6 }],
+    reality: [{ t: "Missirah sans capacité froide recensée", k: "Structurel · à intégrer au cadrage", c: "#9FB9CE" }],
     intel: [{ t: "Balance de Djiffer recalibrée : précédent réutilisable", k: "Apprentissage transférable à Hann", c: "#4E7B5A" }],
     partners: [{ o: "Conseil départemental de Foundiougne", r: "Maître d’ouvrage local", c: "M. Cissé", e: "Engagé", ec: "#4E7B5A", ev: "Étude cofinancée à 30 %", act: "Aucune action en attente", due: "—" }],
     cap: [{ r: "Direction de programme", need: 1, have: 1 }, { r: "Expert logistique", need: 1, have: 1 }, { r: "Coordination territoriale", need: 3, have: 2 }],
@@ -191,8 +208,8 @@ export const PROGS: Programme[] = [
     milestones: [{ t: "Diagnostic", d: "10 mai", st: "done" }, { t: "Cadrage", d: "05 oct.", st: "now" }, { t: "Relais", d: "30 nov.", st: "todo" }, { t: "Suivi", d: "31 mars", st: "todo" }],
     inds: [{ n: "Situations closes avec confirmation", base: 18, cur: 36, tgt: 80, u: "%" }, { n: "Délai médian de qualification", base: 74, cur: 47, tgt: 20, u: " min", inv: true }],
     reality: [
-      { t: "Absence de capacité froide à Fass Boye", k: "Signal élevé · vérifié", c: "#D89A4A", sit: 6 },
-      { t: "Aucun relais mandaté sur les 4 sites du programme", k: "Angle mort · structurel", c: "#B6522F", sit: 4 }
+      { t: "Absence de capacité froide à Fass Boye", k: "Signal élevé · vérifié", c: "#D89A4A" },
+      { t: "Aucun relais mandaté sur les 4 sites du programme", k: "Angle mort · structurel", c: "#B6522F" }
     ],
     intel: [{ t: "Cadrage décalé de 3 semaines faute de disponibilité des organisations", k: "Jalon glissant", c: "#D89A4A" }],
     partners: [{ o: "Organisations de pêcheurs · Grande-Côte", r: "Partie prenante", c: "H. Ndiaye", e: "À convaincre", ec: "#D89A4A", ev: "Deux réunions reportées", act: "Atelier de cadrage", due: "05 oct." }],
