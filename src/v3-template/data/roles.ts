@@ -34,8 +34,6 @@ export interface RoleDef {
   main: ScreenKey[];
   sec: ScreenKey[];
   note: string;
-  head: string;
-  tldr: string;
 }
 
 // ARCHITECTURE RECOVERY R1 — la navigation unifiée G2.1/G2.3 (une même
@@ -51,26 +49,17 @@ export const ROLES: Record<RoleKey, RoleDef> = {
   ministre: {
     main: ["brief", "atlas", "opportunites", "situations", "arbitrages", "programmes", "resultats"],
     sec: ["flux", "sources"],
-    note: "Supervision nationale · 7 modules, arbitrages activés",
-    head: "La Petite-Côte concentre l’attention pour la troisième semaine",
-    tldr:
-      "Trois foyers actifs, une capacité froide indisponible depuis 48 h, trois décisions attendues avant vendredi. Deux programmes affichent un écart entre avancement déclaré et signaux reçus."
+    note: "Supervision nationale · 7 modules, arbitrages activés"
   },
   programme: {
     main: ["programmes", "opportunites", "resultats", "atlas", "situations", "brief"],
     sec: ["arbitrages", "flux", "sources"],
-    note: "Direction de programme · portefeuille et exécution en premier",
-    head: "Deux programmes sur neuf demandent une décision d’exécution",
-    tldr:
-      "Le portefeuille avance à 51 %. Le volet froid Petite-Côte est bloqué au financement et quatre signaux terrain contredisent le statut « en bonne voie » du référentiel pirogues."
+    note: "Direction de programme · portefeuille et exécution en premier"
   },
   coordination: {
     main: ["flux", "situations", "atlas", "opportunites", "programmes", "brief"],
     sec: ["arbitrages", "sources"],
-    note: "Coordination territoriale · qualification et terrain en premier",
-    head: "11 éléments reçus attendent une qualification",
-    tldr:
-      "Sept éléments sont qualifiables immédiatement, quatre demandent un recoupement terrain. Deux situations ouvertes n’ont pas de relais de quai mandaté pour confirmer."
+    note: "Coordination territoriale · qualification et terrain en premier"
   }
 };
 

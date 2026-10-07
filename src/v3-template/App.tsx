@@ -125,7 +125,7 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
         )}
 
         {state.screen === "brief" && (
-          <Brief state={state} patch={patch} roleDef={roleDef} onOpenSituation={onOpenSituation} onOpenProgramme={onOpenProgramme} />
+          <Brief state={state} patch={patch} onOpenSituation={onOpenSituation} onOpenProgramme={onOpenProgramme} />
         )}
         {state.screen === "atlas" && <Atlas state={state} patch={patch} onOpenProgramme={onOpenProgramme} onOpenTerritoire={onOpenTerritoire} />}
         {state.screen === "territoires" && <Territoires state={state} patch={patch} onReturnToAtlas={onReturnToAtlas} />}

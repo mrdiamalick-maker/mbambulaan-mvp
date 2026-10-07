@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import { ATTN, BLIND, BRIEF_PROG, HOT } from "../../data/brief";
 import { PERIOD } from "../../data/period";
-import type { RoleDef } from "../../data/roles";
 import { LV, V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
 import { TERR } from "../../data/territories";
 import { briefViewBox, geo, project } from "../../lib/geo";
@@ -12,7 +11,7 @@ import { briefViewBox, geo, project } from "../../lib/geo";
 // logique canonique d'exclusion déjà utilisée par presentation-bridge.ts/
 // programme-bridge.ts/document-bridge.ts (voir lib/brief-bridge.ts).
 import { useDomainRuntime } from "../../lib/domain-runtime";
-import { getPendingBriefDecisions } from "../../lib/brief-bridge";
+import { getPendingBriefDecisions, getBriefSummary, getBriefHeroLine, getBriefTldrLine } from "../../lib/brief-bridge";
 import type { AppState } from "../../state";
 import type { ScreenKey } from "../../types";
 
@@ -23,19 +22,65 @@ const SEV = [
 ] as const;
 
 export function Brief({
-  state, patch, roleDef, onOpenSituation, onOpenProgramme
+  state, patch, onOpenSituation, onOpenProgramme
 }: {
   state: AppState;
   patch: (p: Partial<AppState>) => void;
-  roleDef: RoleDef;
   onOpenSituation: (sitId: number) => void;
   onOpenProgramme: (progId: number) => void;
 }) {
   const P = PERIOD[state.period];
   const runtime = useDomainRuntime();
   const pendingDecisions = useMemo(() => getPendingBriefDecisions(runtime.state ?? undefined), [runtime.state]);
+  // briefSummary/heroLine/tldrLine (G2.4, "Brief Data Alignment") — le hero
+  // et la "Lecture en 20 secondes" étaient un texte figé par rôle
+  // (data/roles.ts RoleDef.head/tldr), pouvant contredire silencieusement
+  // l'état réel. Remplacés par une synthèse honnête du domaine courant,
+  // jamais une recommandation algorithmique (lib/brief-bridge.ts).
+  const briefSummary = useMemo(() => getBriefSummary(runtime.state ?? undefined), [runtime.state]);
+  const heroLine = useMemo(() => getBriefHeroLine(briefSummary), [briefSummary]);
+  const tldrLine = useMemo(() => getBriefTldrLine(briefSummary), [briefSummary]);
 
-  const kpis = useMemo(() => P.kpis.map((k, i) => {
+  // liveKpis (G2.4) — les tuiles "Capacités froides fragiles" et
+  // "Avancement du portefeuille" (gabarit figé, data/period.ts) sont
+  // remplacées par deux métriques réellement calculables aujourd'hui
+  // (mandat Partie B, KPI : "favoriser signaux, situations ouvertes,
+  // opportunités, arbitrages en attente, programmes, résultats observés").
+  // Aucune tendance historique n'existe pour un compte instantané : la
+  // sparkline reste volontairement plate (series à deux points identiques)
+  // plutôt qu'une évolution inventée ("Ne pas inventer de tendances").
+  const liveKpis = useMemo(() => {
+    const v1 = String(briefSummary.opportunitiesInProgressCount);
+    const v2 = String(briefSummary.pendingArbitrationsCount);
+    return [
+      {
+        k: "Opportunités en instruction",
+        v: v1,
+        delta: "Mesure instantanée",
+        good: false,
+        note: `${briefSummary.opportunitiesQualifiedCount} qualifiée${briefSummary.opportunitiesQualifiedCount > 1 ? "s" : ""}, prête${briefSummary.opportunitiesQualifiedCount > 1 ? "s" : ""} pour arbitrage`,
+        series: [briefSummary.opportunitiesInProgressCount, briefSummary.opportunitiesInProgressCount],
+        read:
+          briefSummary.opportunitiesInProgressCount > 0
+            ? `${briefSummary.opportunitiesInProgressCount} opportunité${briefSummary.opportunitiesInProgressCount > 1 ? "s" : ""} réelle${briefSummary.opportunitiesInProgressCount > 1 ? "s" : ""} en instruction aujourd’hui${briefSummary.notableOpportunity ? `, dont « ${briefSummary.notableOpportunity.problem} »` : ""}.`
+            : "Aucune opportunité en instruction aujourd’hui."
+      },
+      {
+        k: "Arbitrages en attente",
+        v: v2,
+        delta: "Mesure instantanée",
+        good: false,
+        note: "Prêts pour décision ministérielle",
+        series: [briefSummary.pendingArbitrationsCount, briefSummary.pendingArbitrationsCount],
+        read:
+          briefSummary.pendingArbitrationsCount > 0
+            ? `${briefSummary.pendingArbitrationsCount} arbitrage${briefSummary.pendingArbitrationsCount > 1 ? "s" : ""} réellement en attente de décision — même décompte que « Décisions attendues » ci-contre.`
+            : "Aucun arbitrage en attente de décision aujourd’hui."
+      }
+    ];
+  }, [briefSummary]);
+
+  const kpis = useMemo(() => P.kpis.map((k, i) => (i === 3 ? liveKpis[0] : i === 4 ? liveKpis[1] : k)).map((k, i) => {
     const pts = k.series;
     const mx = Math.max(...pts), mn = Math.min(...pts);
     const sp = pts.length - 1;
@@ -48,7 +93,7 @@ export function Brief({
       lastX: 120, lastY: xy[xy.length - 1][1],
       active: state.sigBar === -2 - i
     };
-  }), [P, state.sigBar]);
+  }), [P, state.sigBar, liveKpis]);
 
   const sevOff = state.sevOff;
   const bars = P.bars;
@@ -102,7 +147,7 @@ export function Brief({
             Brief national · mercredi 9 septembre 2026
           </div>
           <h1 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 41, lineHeight: 1.1, margin: "0 0 13px", maxWidth: "22ch" }}>
-            {roleDef.head}
+            {heroLine}
           </h1>
           <p style={{ margin: 0, fontFamily: V3_FONT_SERIF, fontSize: 17.5, lineHeight: 1.55, color: "rgba(11,26,42,.78)", maxWidth: "60ch" }}>
             {P.synthesis}
@@ -129,7 +174,7 @@ export function Brief({
           <div style={{ fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 8 }}>
             Lecture en 20 secondes
           </div>
-          <div style={{ fontSize: 12.5, lineHeight: 1.5, color: "rgba(11,26,42,.8)" }}>{roleDef.tldr}</div>
+          <div style={{ fontSize: 12.5, lineHeight: 1.5, color: "rgba(11,26,42,.8)" }}>{tldrLine}</div>
         </div>
       </div>
 

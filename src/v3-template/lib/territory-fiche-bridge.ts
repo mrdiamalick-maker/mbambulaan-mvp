@@ -25,6 +25,7 @@ import { buildTerritoryLandingActivity } from "@/domain/territory-intelligence";
 import { ARB } from "../data/arbitrages";
 import { TERR } from "../data/territories";
 import { LVD, LVT } from "../theme";
+import { getTerritorialCasebook, type TerritorialCaseView } from "./territorial-casebook";
 
 const ACTIVITY_LABEL: Record<GlyphTag, string> = { critique: "Sous tension", vigilance: "Vigilance", stable: "Stable" };
 const PRIORITY_RANK: Record<Situation["priority"], number> = { critique: 3, haute: 2, moyenne: 1, faible: 0 };
@@ -130,6 +131,13 @@ export interface TerritoryFicheView {
   // sans cas G2 encore retenu. N'implique plus, depuis G2.1a, que les
   // données réelles du territoire soient masquées sous ce bandeau.
   isPriorityCaseToDocument: boolean;
+  // casebook (G2.4, mandat "Territorial Casebook") — au maximum 1 ou 2 cas
+  // significatifs, chacun explicitement qualifié Documenté/À qualifier/À
+  // documenter (jamais mélangés, jamais une hypothèse affichée comme fait
+  // établi). Tableau vide = territoire honnêtement "à documenter" au
+  // niveau du casebook (ex. Saint-Louis), indépendamment de
+  // territoryDataAvailable ci-dessus.
+  casebook: TerritorialCaseView[];
   counts: { situations: number; opportunities: number; decisions: number; initiatives: number; results: number };
   confidence: { declared: number; observed: number; verified: number };
   confidenceReadNote: string;
@@ -302,6 +310,7 @@ export function getTerritoryFiche(territoryId: string, state: ProductState = DEM
     territoryDataAvailable,
     curatedPriorityCaseAvailable,
     isPriorityCaseToDocument,
+    casebook: getTerritorialCasebook(territoryId, state),
     counts: {
       situations: situations.length,
       opportunities: opportunities.length,

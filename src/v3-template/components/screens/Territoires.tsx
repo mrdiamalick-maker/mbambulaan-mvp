@@ -338,6 +338,72 @@ export function Territoires({
         </div>
       )}
 
+      {/* Cas territoriaux significatifs (G2.4, "Territorial Casebook") — au
+          maximum 1 ou 2 cas réels par territoire (lib/territorial-casebook.ts),
+          chacun explicitement qualifié. Bordure pointillée = hypothèse (même
+          convention que la section 02 "Opportunités" ci-dessous) ; bordure
+          pleine = fait soutenu par le domaine (même convention que "À
+          retenir"). Jamais affiché pour un territoire sans cas qualifié
+          (Saint-Louis), déjà couvert par le bandeau ci-dessus. */}
+      {F.casebook.length > 0 && (
+        <div style={{ margin: "22px 30px 0" }}>
+          <div style={{ fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase", color: "#B6522F", fontWeight: 600, marginBottom: 10 }}>
+            Cas territoriaux significatifs
+          </div>
+          {F.casebook.map((c) => {
+            const accent = c.qualification === "documente" ? "#4E7B5A" : c.qualification === "a_qualifier" ? "#B6522F" : "rgba(11,26,42,.45)";
+            return (
+              <div
+                key={c.id}
+                style={{
+                  border: c.qualification === "a_qualifier" ? "1px dashed rgba(11,26,42,.45)" : "1px solid rgba(11,26,42,.15)",
+                  background: "#fff",
+                  padding: "16px 20px",
+                  marginBottom: 12
+                }}
+              >
+                <span style={{ display: "inline-block", border: `1px solid ${accent}`, color: accent, borderRadius: 3, padding: "2px 8px", fontSize: 10.5, fontWeight: 600, marginBottom: 8 }}>
+                  {c.qualificationLabel}
+                </span>
+                <div style={{ fontSize: 15.5, fontWeight: 600, lineHeight: 1.3, marginBottom: 6 }}>{c.title}</div>
+                <p style={{ margin: "0 0 10px", fontSize: 12.5, lineHeight: 1.5, color: "rgba(11,26,42,.75)" }}>{c.summary}</p>
+                {c.qualification === "a_qualifier" && c.potentialValueHypothesis && (
+                  <div style={{ fontSize: 12, lineHeight: 1.5, color: "rgba(11,26,42,.7)", marginBottom: 8 }}>
+                    <strong>Hypothèse de valeur · </strong>{c.potentialValueHypothesis}
+                  </div>
+                )}
+                {c.qualification === "a_qualifier" && c.knowledgeGaps && c.knowledgeGaps.length > 0 && (
+                  <div style={{ fontSize: 11.5, color: "#B6522F", marginBottom: 8 }}>Manque pour qualifier · {c.knowledgeGaps.length}</div>
+                )}
+                {c.sources && c.sources.length > 0 && (
+                  <div style={{ fontSize: 11, color: "rgba(11,26,42,.5)", marginBottom: 8 }}>Source · {c.sources[0]}</div>
+                )}
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {c.linkedOpportunityId && (
+                    <button
+                      type="button"
+                      onClick={() => patch({ oppOpen: c.linkedOpportunityId })}
+                      style={{ border: "1px solid rgba(11,26,42,.25)", background: "#fff", color: "#0B1A2A", cursor: "pointer", borderRadius: 4, padding: "7px 14px", fontSize: 12, fontWeight: 500 }}
+                    >
+                      Voir l’opportunité
+                    </button>
+                  )}
+                  {c.linkedInitiativeId && (
+                    <button
+                      type="button"
+                      onClick={() => patch({ screen: "programmes" as AppState["screen"], territoryFilterId: F.id })}
+                      style={{ border: "1px solid rgba(11,26,42,.25)", background: "#fff", color: "#0B1A2A", cursor: "pointer", borderRadius: 4, padding: "7px 14px", fontSize: 12, fontWeight: 500 }}
+                    >
+                      Voir les programmes
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div id="t-retain" style={{ padding: "26px 30px 0" }}>
         <SectionHeader
           n="01"
