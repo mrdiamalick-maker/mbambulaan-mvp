@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getArbitrageItems } from "../../lib/arbitrages-bridge";
+import { getArbitrageItems, getDecidedArbitrages } from "../../lib/arbitrages-bridge";
 import { getArbitragePrimaryAction } from "../../data/roles";
 import { buildDecisionCommand } from "../../lib/situations-bridge";
 import { useDomainRuntime } from "../../lib/domain-runtime";
@@ -10,7 +10,17 @@ import type { AppState } from "../../state";
 
 type Patch = (p: Partial<AppState>) => void;
 
-export function Arbitrages({ state, patch }: { state: AppState; patch: Patch }) {
+export function Arbitrages({
+  state,
+  patch,
+  onOpenSituation,
+  onOpenProgramme
+}: {
+  state: AppState;
+  patch: Patch;
+  onOpenSituation: (id: number) => void;
+  onOpenProgramme: (id: number) => void;
+}) {
   const runtime = useDomainRuntime();
   const liveState = runtime.state;
 
@@ -21,6 +31,10 @@ export function Arbitrages({ state, patch }: { state: AppState; patch: Patch }) 
   // territorial partagé, posé depuis Territoires.tsx, lisible et
   // supprimable, jamais une permission.
   const allItems = liveState ? getArbitrageItems(liveState) : [];
+  // decidedItems (B3, section "Déjà rendus · consultables") — symétrique
+  // réel de allItems (arbitrages-bridge.ts, getDecidedArbitrages), jamais
+  // une liste fabriquée pour imiter le référentiel Claude Design.
+  const decidedItems = liveState ? getDecidedArbitrages(liveState) : [];
   const territoryFilterName = liveState && state.territoryFilterId
     ? liveState.territories.find((t) => t.id === state.territoryFilterId)?.name
     : undefined;
@@ -143,6 +157,13 @@ export function Arbitrages({ state, patch }: { state: AppState; patch: Patch }) 
         </div>
       )}
 
+      {items.length > 0 && (
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, marginBottom: 14, flexWrap: "wrap", fontSize: 12.5 }}>
+          <span>{items.length} arbitrage{items.length > 1 ? "s" : ""} attend{items.length > 1 ? "ent" : ""} une décision</span>
+          <span style={{ color: "rgba(11,26,42,.55)" }}>Perspective {state.role === "ministre" ? "Ministre" : state.role === "programme" ? "Direction de programme" : "Coordination territoriale"} · action : {primaryAction.label}</span>
+        </div>
+      )}
+
       {items.length === 0 ? (
         <div style={{ border: "1px solid rgba(11,26,42,.12)", background: "#FFFFFF", padding: "26px 24px", fontSize: 13, lineHeight: 1.6, color: "rgba(11,26,42,.65)" }}>
           {territoryFilterName
@@ -170,11 +191,38 @@ export function Arbitrages({ state, patch }: { state: AppState; patch: Patch }) 
                 </div>
                 <div style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.4 }}>{x.title}</div>
                 <div style={{ fontSize: 11, color: "rgba(11,26,42,.55)", marginTop: 7 }}>{x.metaLabel}</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                  {(x.kind === "opportunity" ? Boolean(x.opportunityId) : Boolean(x.situationId)) ? (
+                    <span style={{ border: "1px solid rgba(11,26,42,.18)", borderRadius: 999, padding: "2px 8px", fontSize: 10, color: "rgba(11,26,42,.6)" }}>Rattaché à une situation</span>
+                  ) : (
+                    <span style={{ border: "1px solid rgba(182,82,47,.3)", background: "rgba(182,82,47,.06)", borderRadius: 999, padding: "2px 8px", fontSize: 10, color: "#B6522F" }}>sans objet de décision compatible</span>
+                  )}
+                </div>
               </button>
             ))}
-            <div style={{ padding: "16px 17px", fontSize: 11.5, lineHeight: 1.55, color: "rgba(11,26,42,.55)", background: "rgba(11,26,42,.03)" }}>
-              Les arbitrages déjà rendus restent consultables avec l’état de connaissance du jour de la décision.
-            </div>
+            {/* Déjà rendus · consultables (B3) — décidés réels
+                (arbitrages-bridge.ts, getDecidedArbitrages), jamais une
+                phrase générique : chaque entrée ouvre la vraie situation. */}
+            <div style={{ padding: "14px 17px 8px", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", background: "rgba(11,26,42,.03)" }}>Déjà rendus · consultables</div>
+            {decidedItems.length > 0 ? (
+              decidedItems.map((d) => (
+                <button
+                  type="button"
+                  key={d.key}
+                  onClick={() => onOpenSituation(d.situationRowId)}
+                  className="pv3-row-hover-04"
+                  style={{ display: "block", width: "100%", textAlign: "left", border: 0, background: "rgba(11,26,42,.03)", cursor: "pointer", padding: "9px 17px 14px" }}
+                >
+                  <div style={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1.4 }}>{d.title}</div>
+                  <div style={{ fontSize: 11, color: "rgba(11,26,42,.55)", marginTop: 4 }}>{d.decisionTypeLabel} · {d.decidedAtLabel} · {d.decider}</div>
+                  <div style={{ fontSize: 11, color: "#B6522F", marginTop: 4 }}>Voir la situation →</div>
+                </button>
+              ))
+            ) : (
+              <div style={{ padding: "0 17px 16px", fontSize: 11.5, lineHeight: 1.55, color: "rgba(11,26,42,.55)", background: "rgba(11,26,42,.03)" }}>
+                Aucun arbitrage n’a encore été rendu.
+              </div>
+            )}
           </div>
 
           <div style={{ background: "#FFFFFF", alignSelf: "stretch" }}>
@@ -297,6 +345,50 @@ export function Arbitrages({ state, patch }: { state: AppState; patch: Patch }) 
                 </div>
               )}
             </div>
+
+            {/* Dossier · relations enregistrées dans le domaine (B3) —
+                a.related (arbitrages-bridge.ts) : uniquement des liens
+                réellement résolus (Situation/Programme), jamais un lien
+                fabriqué par seule proximité territoriale ou textuelle. */}
+            {(a.related.situationRowId != null || a.related.programmeFixtureId != null || a.related.opportunityId != null) && (
+              <div style={{ padding: "20px 24px 26px", borderTop: "1px solid rgba(11,26,42,.1)" }}>
+                <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 14 }}>Dossier · relations enregistrées dans le domaine</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 18 }}>
+                  {a.related.situationRowId != null && (
+                    <div>
+                      <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 6 }}>Situation</div>
+                      <button type="button" onClick={() => onOpenSituation(a.related.situationRowId!)} style={{ border: 0, background: "transparent", color: "#B6522F", cursor: "pointer", padding: 0, font: "inherit", fontSize: 13, fontWeight: 500, textAlign: "left" }}>
+                        {a.related.situationTitle ?? "Ouvrir la situation"}
+                      </button>
+                    </div>
+                  )}
+                  {a.territoryId && (
+                    <div>
+                      <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 6 }}>Territoire</div>
+                      <button type="button" onClick={() => patch({ screen: "territoires", terrView: "detail", terrSel: a.territoryId, terrFromAtlas: false })} style={{ border: 0, background: "transparent", color: "#B6522F", cursor: "pointer", padding: 0, font: "inherit", fontSize: 13, fontWeight: 500, textAlign: "left" }}>
+                        {a.territoryLabel} — fiche territoire
+                      </button>
+                    </div>
+                  )}
+                  {a.related.programmeFixtureId != null && (
+                    <div>
+                      <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 6 }}>Programmes</div>
+                      <button type="button" onClick={() => onOpenProgramme(a.related.programmeFixtureId!)} style={{ border: 0, background: "transparent", color: "#B6522F", cursor: "pointer", padding: 0, font: "inherit", fontSize: 13, fontWeight: 500, textAlign: "left" }}>
+                        {a.related.programmeTitle ?? "Ouvrir le programme"}
+                      </button>
+                    </div>
+                  )}
+                  {a.related.opportunityId != null && (
+                    <div>
+                      <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 6 }}>Opportunité</div>
+                      <button type="button" onClick={() => patch({ oppOpen: a.related.opportunityId! })} style={{ border: 0, background: "transparent", color: "#B6522F", cursor: "pointer", padding: 0, font: "inherit", fontSize: 13, fontWeight: 500, textAlign: "left" }}>
+                        {a.related.opportunityTitle ?? "Ouvrir l’opportunité"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

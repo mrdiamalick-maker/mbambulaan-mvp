@@ -328,7 +328,7 @@ export function Portfolio({ state, patch, onOpenProgramme }: { state: AppState; 
                   </>
                 )}
               </div>
-              <div style={{ width: 96, flex: "none", fontSize: 11, color: "rgba(11,26,42,.45)" }}>non documenté</div>
+              <div style={{ width: 96, flex: "none", fontSize: 11, color: "rgba(11,26,42,.45)" }}>non suivi</div>
               <div style={{ width: 150, flex: "none", display: "flex", alignItems: "center", gap: 7 }}>
                 {Array.from({ length: Math.min(4, m.criticalLinkedSituationsCount) }).map((_, i) => <span key={i} style={{ width: 8, height: 8, borderRadius: 2, background: "#B6522F", flex: "none" }} />)}
                 <span style={{ fontSize: 11, color: sigC }}>{m.openLinkedSituationsCount === 0 ? "aucune" : `${m.openLinkedSituationsCount} ouverte${m.openLinkedSituationsCount > 1 ? "s" : ""}`}</span>

@@ -27,6 +27,8 @@ import {
 import { deriveDatasetReferenceAt } from "@/domain/signal-crossing";
 import { channelMeta } from "@/lib/status-tokens";
 import { formatCalendarDate } from "./landing-bridge";
+import { isOpenSituation } from "@/domain/situation-intelligence";
+import { ACTOR_ROLE_LABEL } from "./territory-fiche-bridge";
 
 // Couleurs de canal — reprises verbatim de la palette déjà utilisée par
 // le gabarit Flux fixture (rust/ardoise/brun déjà présents dans
@@ -176,6 +178,63 @@ export function buildFluxStages(state: ProductState = DEMO_STATE): FluxStageTile
     { key: "qualifie", label: "Qualifié", count: counts.qualifie, def: "Converti en Signal réel.", color: "#4E7B5A" },
     { key: "ecarte", label: "Écarté", count: counts.ecarte, def: "Écarté avec motif — consultable, jamais supprimé.", color: "rgba(11,26,42,.4)" }
   ];
+}
+
+export interface FluxSourceSummaryItem {
+  territoryId: string;
+  territoryLabel: string;
+  channelLabel: string;
+  count: number;
+}
+
+// getFluxSourceSummary (B3, intégration "D'où vient l'information") —
+// simple agrégation des FluxRowView déjà exposées (territoire résolu +
+// canal), jamais une deuxième lecture du domaine : un message dont le
+// territoire n'a pas pu être résolu (territoryHint non reconnu) n'est pas
+// compté ici plutôt que rattaché à un territoire deviné. Trié par
+// ancienneté du message le plus récent du groupe, comme le reste de
+// l'écran ("plus ancien en premier" pour la liste, mais l'origine la plus
+// récente en tête ici — cohérent avec le référentiel Claude Design B3).
+export function getFluxSourceSummary(state: ProductState = DEMO_STATE): FluxSourceSummaryItem[] {
+  const rows = buildFluxRows(state);
+  const byKey = new Map<string, FluxSourceSummaryItem>();
+  for (const row of rows) {
+    if (!row.territoryId) continue;
+    const key = `${row.territoryId}::${row.channelLabel}`;
+    const existing = byKey.get(key);
+    if (existing) existing.count += 1;
+    else byKey.set(key, { territoryId: row.territoryId, territoryLabel: row.territoryLabel, channelLabel: row.channelLabel, count: 1 });
+  }
+  return Array.from(byKey.values());
+}
+
+export interface FluxTerritoryContextActor {
+  name: string;
+  roleLabel: string;
+}
+
+export interface FluxTerritoryContext {
+  territoryLabel: string;
+  actors: FluxTerritoryContextActor[];
+  openSituationsCount: number;
+}
+
+// getFluxTerritoryContext (B3, section "Territoire et acteurs") — mêmes
+// filtres que territory-fiche-bridge.ts (acteurs/situations rattachés au
+// territoire par territoryIds/territoryId réels), jamais une deuxième
+// logique de résolution territoriale. La doctrine d'honnêteté du
+// référentiel Claude Design B3 s'applique explicitement ici : ces acteurs
+// et situations relèvent de la seule proximité territoriale avec le
+// message, jamais d'un lien métier enregistré tant que le message n'est
+// pas qualifié (cf. Flux.tsx, note affichée sous cette section).
+export function getFluxTerritoryContext(territoryId: string, state: ProductState = DEMO_STATE): FluxTerritoryContext | undefined {
+  const territory = state.territories.find((item) => item.id === territoryId);
+  if (!territory) return undefined;
+  const actors = state.actors
+    .filter((item) => item.territoryIds.includes(territoryId))
+    .map((item) => ({ name: item.name, roleLabel: ACTOR_ROLE_LABEL[item.role] ?? item.role }));
+  const openSituationsCount = state.situations.filter((item) => item.territoryId === territoryId && isOpenSituation(item)).length;
+  return { territoryLabel: territory.name, actors, openSituationsCount };
 }
 
 // --- PD.5 — exécution réelle (mandat "Operational Knowledge Bridge", §4) --

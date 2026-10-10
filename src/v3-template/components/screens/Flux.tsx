@@ -19,17 +19,20 @@ import {
   buildFluxRows,
   buildFluxStages,
   getFluxDetail,
+  getFluxSourceSummary,
+  getFluxTerritoryContext,
   incomingMessageDismissReasonLabels,
   signalCategoryLabels
 } from "../../lib/flux-bridge";
 import { useDomainRuntime } from "../../lib/domain-runtime";
 import { V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../../theme";
 import type { AppState } from "../../state";
+import type { RoleKey } from "../../types";
 import type { IncomingMessageDismissReason, Signal } from "@/domain/types";
 
 type Patch = (p: Partial<AppState>) => void;
 
-export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
+export function Flux({ state, patch, onRole }: { state: AppState; patch: Patch; onRole: (role: RoleKey) => void }) {
   // PD.5 — runtime V3 (mandat "Operational Knowledge Bridge", §3/§4) :
   // lit le ProductState canonique réel (GET /api/state) plutôt que le
   // singleton statique DEMO_STATE. La session réelle est établie par
@@ -60,6 +63,12 @@ export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
   // territoriale peut réellement qualifier (convertir/écarter) un
   // élément du flux.
   const canQualify = state.role === "coordination";
+  // sourceSummary/territoryContext (B3, intégration "D'où vient
+  // l'information" + "Territoire et acteurs") — agrégations pures des
+  // mêmes FluxRowView/domaine déjà lus ci-dessus, jamais une deuxième
+  // lecture du domaine (flux-bridge.ts).
+  const sourceSummary = liveState ? getFluxSourceSummary(liveState) : [];
+  const territoryContext = liveState && f?.territoryId ? getFluxTerritoryContext(f.territoryId, liveState) : undefined;
 
   // Choix (catégorie/motif) et retour de soumission réinitialisés à
   // chaque changement d'action choisie — jamais un état résiduel d'une
@@ -120,25 +129,52 @@ export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
 
       {liveState && (
       <>
-      <div style={{ display: "flex", gap: 0, border: "1px solid rgba(11,26,42,.12)", background: "#FFFFFF", marginBottom: 20, flexWrap: "wrap" }}>
-        {stages.map((st) => (
-          <button
-            key={st.key}
-            onClick={() => patch({ dossStage: st.key, dossOpen: fluxRows.find((row) => row.stage === st.key)?.id ?? 0, dossChoice: null })}
-            style={{
-              flex: 1, minWidth: 160, border: 0, borderRight: "1px solid rgba(11,26,42,.1)",
-              background: stage === st.key ? "rgba(182,82,47,.06)" : "transparent", cursor: "pointer",
-              padding: "15px 18px", textAlign: "left", transition: "background .2s"
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
-              <div style={{ fontFamily: V3_FONT_MONO, fontSize: 26, lineHeight: 1, color: st.color }}>{st.count}</div>
-              <div style={{ fontSize: 12.5, fontWeight: stage === st.key ? 600 : 400, color: stage === st.key ? "#0B1A2A" : "rgba(11,26,42,.6)" }}>{st.label}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "2.3fr 1fr", gap: 20, marginBottom: 20, alignItems: "stretch" }}>
+        <div style={{ display: "flex", gap: 0, border: "1px solid rgba(11,26,42,.12)", background: "#FFFFFF", flexWrap: "wrap" }}>
+          {stages.map((st) => (
+            <button
+              key={st.key}
+              onClick={() => patch({ dossStage: st.key, dossOpen: fluxRows.find((row) => row.stage === st.key)?.id ?? 0, dossChoice: null })}
+              style={{
+                flex: 1, minWidth: 160, border: 0, borderRight: "1px solid rgba(11,26,42,.1)",
+                background: stage === st.key ? "rgba(182,82,47,.06)" : "transparent", cursor: "pointer",
+                padding: "15px 18px", textAlign: "left", transition: "background .2s"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
+                <div style={{ fontFamily: V3_FONT_MONO, fontSize: 26, lineHeight: 1, color: st.color }}>{st.count}</div>
+                <div style={{ fontSize: 12.5, fontWeight: stage === st.key ? 600 : 400, color: stage === st.key ? "#0B1A2A" : "rgba(11,26,42,.6)" }}>{st.label}</div>
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(11,26,42,.55)", marginTop: 8, lineHeight: 1.4 }}>{st.def}</div>
+              <div style={{ height: 3, background: stage === st.key ? "#B6522F" : "rgba(11,26,42,.1)", marginTop: 11, transition: "background .2s" }} />
+            </button>
+          ))}
+        </div>
+
+        {/* D'où vient l'information (B3) — résumé réel territoire/canal,
+            jamais une carte ou un comptage fabriqué : sourceSummary ne
+            liste que les messages dont le territoire a pu être résolu
+            (flux-bridge.ts, getFluxSourceSummary). */}
+        <div style={{ background: "#0B1A2A", color: "#F7F3E9", padding: "16px 18px 18px", display: "flex", flexDirection: "column" }}>
+          <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(247,243,233,.6)", marginBottom: 12 }}>D’où vient l’information</div>
+          {sourceSummary.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 9, marginBottom: 12 }}>
+              {sourceSummary.map((s) => (
+                <div key={`${s.territoryId}-${s.channelLabel}`} style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 12.5 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#B6522F", flex: "none" }} />
+                  <span style={{ flex: 1 }}>{s.territoryLabel}</span>
+                  <span style={{ color: "rgba(247,243,233,.6)", fontSize: 11 }}>{s.channelLabel}</span>
+                  <span style={{ fontFamily: V3_FONT_MONO, fontSize: 11, color: "rgba(247,243,233,.75)" }}>{s.count}</span>
+                </div>
+              ))}
             </div>
-            <div style={{ fontSize: 11, color: "rgba(11,26,42,.55)", marginTop: 8, lineHeight: 1.4 }}>{st.def}</div>
-            <div style={{ height: 3, background: stage === st.key ? "#B6522F" : "rgba(11,26,42,.1)", marginTop: 11, transition: "background .2s" }} />
-          </button>
-        ))}
+          ) : (
+            <div style={{ fontSize: 12, color: "rgba(247,243,233,.6)", marginBottom: 12 }}>Aucun territoire résolu sur les messages reçus.</div>
+          )}
+          <div style={{ marginTop: "auto", fontSize: 11, lineHeight: 1.5, color: "rgba(247,243,233,.55)" }}>
+            {fluxRows.length} message{fluxRows.length > 1 ? "s" : ""} réel{fluxRows.length > 1 ? "s" : ""} du Demo World. Cliquez un élément pour filtrer. Aucun flux opérationnel en continu dans cet aperçu.
+          </div>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "400px 1fr", gap: 0, border: "1px solid rgba(11,26,42,.12)", alignItems: "start" }}>
@@ -312,7 +348,10 @@ export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
                   </>
                 ) : f.actions.length > 0 ? (
                   <div style={{ fontSize: 12.5, lineHeight: 1.6, color: "rgba(11,26,42,.6)", borderLeft: "2px solid rgba(11,26,42,.15)", paddingLeft: 13, maxWidth: "74ch" }}>
-                    La qualification (convertir en signal ou écarter) est réservée à la coordination territoriale.
+                    <p style={{ margin: "0 0 11px" }}>La qualification (convertir en signal ou écarter) est réservée à la coordination territoriale.</p>
+                    <button type="button" onClick={() => onRole("coordination")} style={{ border: "1px solid #0B1A2A", background: "#0B1A2A", color: "#F7F3E9", cursor: "pointer", borderRadius: 4, padding: "8px 14px", fontSize: 12, fontFamily: V3_FONT_SANS, fontWeight: 500 }}>
+                      Voir en perspective Coordination
+                    </button>
                   </div>
                 ) : (
                   <div style={{ fontSize: 12.5, lineHeight: 1.6, color: "rgba(11,26,42,.6)", borderLeft: "2px solid rgba(11,26,42,.15)", paddingLeft: 13, maxWidth: "74ch" }}>
@@ -320,6 +359,48 @@ export function Flux({ state, patch }: { state: AppState; patch: Patch }) {
                   </div>
                 )}
               </div>
+
+              {/* Territoire et acteurs (B3) — doctrine d'honnêteté du
+                  référentiel Claude Design B3 : acteurs/situations du
+                  territoire affichés par proximité territoriale seule,
+                  jamais présentés comme un lien métier enregistré avec ce
+                  message précis tant qu'il n'est pas qualifié. */}
+              {territoryContext && (
+                <div style={{ borderTop: "1px solid rgba(11,26,42,.1)", padding: "18px 24px 24px" }}>
+                  <div style={{ fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 14 }}>Territoire et acteurs</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                    <div>
+                      <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 8 }}>Territoire</div>
+                      <button type="button" onClick={() => patch({ screen: "territoires", terrView: "detail", terrSel: f.territoryId, terrFromAtlas: false })} style={{ border: 0, background: "transparent", color: "#B6522F", cursor: "pointer", padding: 0, font: "inherit", fontSize: 13, fontWeight: 500 }}>
+                        {territoryContext.territoryLabel} — fiche territoire →
+                      </button>
+                      {territoryContext.actors.length > 0 && (
+                        <div style={{ marginTop: 12 }}>
+                          <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 7 }}>Acteurs connus sur le territoire</div>
+                          {territoryContext.actors.map((actor, i) => (
+                            <div key={i} style={{ fontSize: 12.5, lineHeight: 1.6 }}>{actor.name} · {actor.roleLabel}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 8 }}>Déclarant</div>
+                      <div style={{ fontSize: 13, marginBottom: 12 }}>{f.from}</div>
+                      <div style={{ fontSize: 9.5, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 7 }}>Situations ouvertes sur le territoire</div>
+                      {territoryContext.openSituationsCount > 0 ? (
+                        <button type="button" onClick={() => patch({ screen: "situations", territoryFilterId: f.territoryId })} style={{ border: 0, background: "transparent", color: "#B6522F", cursor: "pointer", padding: 0, font: "inherit", fontSize: 13, fontWeight: 500 }}>
+                          {territoryContext.openSituationsCount} situation{territoryContext.openSituationsCount > 1 ? "s" : ""} — voir →
+                        </button>
+                      ) : (
+                        <div style={{ fontSize: 13, color: "rgba(11,26,42,.5)" }}>Aucune</div>
+                      )}
+                    </div>
+                  </div>
+                  <p style={{ margin: "16px 0 0", fontSize: 11, lineHeight: 1.55, color: "rgba(11,26,42,.5)" }}>
+                    Les acteurs et situations du territoire relèvent de la proximité territoriale — aucun lien enregistré avec ce message tant qu’il n’est pas qualifié.
+                  </p>
+                </div>
+              )}
             </>
           ) : (
             <div style={{ padding: "30px 24px", fontSize: 12.5, color: "rgba(11,26,42,.6)" }}>Aucun élément à afficher.</div>

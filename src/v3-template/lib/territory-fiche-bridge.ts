@@ -165,7 +165,7 @@ export interface TerritoryFicheView {
   unknowns: string[];
 }
 
-const ACTOR_ROLE_LABEL: Record<string, string> = {
+export const ACTOR_ROLE_LABEL: Record<string, string> = {
   capitaine: "Capitaine",
   mareyeur: "Mareyeur",
   gestionnaire_organisation: "Gestionnaire d'organisation",

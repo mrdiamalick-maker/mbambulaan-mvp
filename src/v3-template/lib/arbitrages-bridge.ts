@@ -14,9 +14,13 @@
 //    situation-anchoré dispatche déjà create_decision.
 import { DEMO_STATE } from "./demo-state";
 import type { DecisionType, ProductState } from "@/domain/types";
+import { decisionTypeLabels } from "@/domain/types";
 import { ARB, type Arbitrage } from "../data/arbitrages";
-import { findLatestDecisionForSituation } from "./situations-bridge";
+import { PROGS } from "../data/programmes";
+import { buildSituationRows, findLatestDecisionForSituation } from "./situations-bridge";
+import { formatCalendarDate } from "./landing-bridge";
 import { getOpportunityDetail } from "./opportunity-bridge";
+import { getProgrammeFixtureIdForInitiative } from "./programme-bridge";
 
 export interface ArbitrageOptionView {
   label: string;
@@ -54,6 +58,20 @@ export interface ArbitrageItemView {
   arbIndex?: number;
   situationId?: string;
   opportunityId?: string;
+  // related (B3, section "Dossier · relations enregistrées dans le
+  // domaine") — uniquement des identifiants réellement résolus depuis le
+  // domaine (Situation.id réel, Initiative appariée à un PROGS via
+  // getProgrammeFixtureIdForInitiative, ProgramOpportunity référençant la
+  // même Situation) : un champ absent n'affiche aucun lien plutôt qu'un
+  // lien fabriqué.
+  related: {
+    situationRowId?: number;
+    situationTitle?: string;
+    programmeFixtureId?: number;
+    programmeTitle?: string;
+    opportunityId?: string;
+    opportunityTitle?: string;
+  };
 }
 
 // Décideur institutionnel — même libellé que la convention déjà posée par
@@ -75,6 +93,30 @@ function arbOptionsView(a: Arbitrage): ArbitrageOptionView[] {
   return a.options.map((o) => ({ label: o.t, cost: o.cost, pro: o.pro, con: o.con, decisionType: o.decisionType }));
 }
 
+// resolveRelated (B3, "Dossier · relations enregistrées dans le domaine")
+// — pour une Situation réelle donnée : sa ligne réelle (buildSituationRows,
+// même convention que Brief.tsx/ProgrammeDetail.tsx/Territoires.tsx,
+// jamais un index figé), l'Initiative qui la cite réellement dans
+// situationIds (appariée à un PROGS via getProgrammeFixtureIdForInitiative,
+// même résolveur que la Correction B), et la ProgramOpportunity réelle qui
+// la cite dans situationIds. Chaque relation reste absente si non
+// résolue — jamais devinée depuis le seul territoire ou titre.
+function resolveRelated(state: ProductState, situationId?: string): ArbitrageItemView["related"] {
+  if (!situationId) return {};
+  const situationRow = buildSituationRows(state).find((row) => row.realId === situationId);
+  const initiative = state.initiatives.find((item) => item.situationIds.includes(situationId));
+  const programmeFixtureId = initiative ? getProgrammeFixtureIdForInitiative(initiative.id) : undefined;
+  const opportunity = state.programOpportunities.find((item) => item.situationIds?.includes(situationId));
+  return {
+    situationRowId: situationRow?.id,
+    situationTitle: situationRow?.title,
+    programmeFixtureId,
+    programmeTitle: programmeFixtureId != null ? PROGS.find((p) => p.id === programmeFixtureId)?.title : undefined,
+    opportunityId: opportunity?.id,
+    opportunityTitle: opportunity?.problem
+  };
+}
+
 function toSituationItem(state: ProductState, a: Arbitrage, arbIndex: number): ArbitrageItemView {
   const territory = situationTerritory(state, a.situationId);
   return {
@@ -94,7 +136,8 @@ function toSituationItem(state: ProductState, a: Arbitrage, arbIndex: number): A
     inaction: a.inaction,
     options: arbOptionsView(a),
     arbIndex,
-    situationId: a.situationId
+    situationId: a.situationId,
+    related: resolveRelated(state, a.situationId)
   };
 }
 
@@ -128,7 +171,13 @@ function toOpportunityItem(state: ProductState, opportunityId: string): Arbitrag
       { label: "Retenir l’opportunité", cost: "ouvre une instruction de programme", pro: "Autorise la suite de l’instruction à partir des faits établis et engage le passage vers une Initiative réelle.", con: "Engage une instruction plus poussée sur une hypothèse encore à qualifier complètement." },
       { label: "Écarter l’opportunité", cost: "referme la piste", pro: "Referme une piste dont les conditions ne sont pas réunies aujourd’hui.", con: "Peut écarter une opportunité réelle si de nouveaux éléments apparaissent plus tard." }
     ],
-    opportunityId
+    opportunityId,
+    related: {
+      situationRowId: detail.situationIds[0] ? buildSituationRows(state).find((row) => row.realId === detail.situationIds[0])?.id : undefined,
+      situationTitle: detail.situationTitles[0],
+      programmeFixtureId: detail.programmeFixtureId,
+      programmeTitle: detail.programmeFixtureId != null ? PROGS.find((p) => p.id === detail.programmeFixtureId)?.title : undefined
+    }
   };
 }
 
@@ -147,4 +196,42 @@ export function getArbitrageItems(state: ProductState = DEMO_STATE): ArbitrageIt
     .filter((item): item is ArbitrageItemView => Boolean(item));
 
   return [...situationItems, ...opportunityItems];
+}
+
+export interface DecidedArbitrageView {
+  key: string;
+  title: string;
+  situationRowId: number;
+  decidedAtLabel: string;
+  decisionTypeLabel: string;
+  decider: string;
+}
+
+// getDecidedArbitrages (B3, section "Déjà rendus · consultables") —
+// symétrique de getArbitrageItems : les ARB situation-anchorés qui ONT
+// une Decision réelle enregistrée (findLatestDecisionForSituation),
+// jamais une deuxième liste de décisions. situationRowId résolu via
+// buildSituationRows (même convention que partout ailleurs) pour que
+// "Voir la situation →" ouvre réellement le bon dossier. decider résolu
+// depuis Decision.decidedByActorId (qui a réellement décidé), jamais le
+// champ ARB.decider (qui décrit qui DOIT décider avant la décision).
+export function getDecidedArbitrages(state: ProductState = DEMO_STATE): DecidedArbitrageView[] {
+  const situationRows = buildSituationRows(state);
+  const decided = ARB.map((a, index) => ({ a, index })).filter(({ a }) => a.situationId && findLatestDecisionForSituation(state, a.situationId));
+  return decided
+    .map(({ a, index }) => {
+      const decision = findLatestDecisionForSituation(state, a.situationId!)!;
+      const row = situationRows.find((item) => item.realId === a.situationId);
+      if (!row) return undefined;
+      const actor = state.actors.find((item) => item.id === decision.decidedByActorId);
+      return {
+        key: `decided-${index}`,
+        title: a.title,
+        situationRowId: row.id,
+        decidedAtLabel: `${formatCalendarDate(decision.decidedAt.slice(0, 10))} ${decision.decidedAt.slice(0, 4)}`,
+        decisionTypeLabel: decisionTypeLabels[decision.type],
+        decider: actor?.name ?? a.decider
+      };
+    })
+    .filter((item): item is DecidedArbitrageView => Boolean(item));
 }
