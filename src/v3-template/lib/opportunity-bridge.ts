@@ -11,6 +11,7 @@ import { DEMO_STATE } from "./demo-state";
 import type { Decision, ProductState, ProgramOpportunity, ProgramOpportunityStatus } from "@/domain/types";
 import { decisionTypeLabels, programOpportunityStatusLabels } from "@/domain/types";
 import { TERR } from "../data/territories";
+import { getProgrammeFixtureIdForInitiative } from "./programme-bridge";
 
 // --- G2.1 ("Vision territoriale") — mapping UI explicite ----------------
 //
@@ -156,6 +157,15 @@ export interface OpportunityDetailView extends OpportunityRowView {
   // existante, cf. applyInitiativeCommand) : jamais fabriqué si aucune
   // Initiative ne cite cette opportunité.
   initiativeId?: string;
+  // programmeFixtureId (Correction B, fix/etat-ux-b1b2-regressions) —
+  // fixtureId PROGS (data/programmes.ts) réellement apparié à
+  // initiativeId via getProgrammeFixtureIdForInitiative
+  // (programme-bridge.ts, même table PROGRAMME_ID_BY_TITLE que Portfolio/
+  // ProgrammeDetail) : seul identifiant que comprend la navigation
+  // programme déjà fonctionnelle (onOpenProgramme/progOpen). undefined
+  // tant qu'aucune correspondance vérifiée n'existe — jamais un lien
+  // "Programme lié" sans programme réel à ouvrir.
+  programmeFixtureId?: number;
 }
 
 export function getOpportunityDetail(id: string, state: ProductState = DEMO_STATE): OpportunityDetailView | undefined {
@@ -181,6 +191,7 @@ export function getOpportunityDetail(id: string, state: ProductState = DEMO_STAT
     desiredOutcomes: opportunity.desiredOutcomes,
     hasDecision: Boolean(decision),
     decision: decision ? { label: decisionTypeLabels[decision.type], rationale: decision.rationale, decidedAt: decision.decidedAt } : undefined,
-    initiativeId: initiative?.id
+    initiativeId: initiative?.id,
+    programmeFixtureId: initiative ? getProgrammeFixtureIdForInitiative(initiative.id) : undefined
   };
 }
