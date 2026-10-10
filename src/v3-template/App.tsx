@@ -166,8 +166,8 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
           <ProgrammeDetail state={state} patch={patch} onOpenSituation={onOpenSituation} onBack={() => patch({ progView: "portfolio" })} />
         )}
         {state.screen === "resultats" && <Resultats state={state} patch={patch} />}
-        {state.screen === "arbitrages" && <Arbitrages state={state} patch={patch} />}
-        {state.screen === "flux" && <Flux state={state} patch={patch} />}
+        {state.screen === "arbitrages" && <Arbitrages state={state} patch={patch} onOpenSituation={onOpenSituation} onOpenProgramme={onOpenProgramme} />}
+        {state.screen === "flux" && <Flux state={state} patch={patch} onRole={onRole} />}
         {state.screen === "sources" && <Sources state={state} patch={patch} />}
       </main>
       {state.docOpen && <DocumentView request={state.docOpen} onClose={() => patch({ docOpen: null })} />}
