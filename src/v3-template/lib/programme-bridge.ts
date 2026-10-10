@@ -32,6 +32,22 @@ export const PROGRAMME_ID_BY_TITLE: Record<string, string> = {
   "Équipement de géolocalisation pour pirogues volontaires": "init-lompoul-balises"
 };
 
+// getProgrammeFixtureIdForInitiative (Correction B,
+// fix/etat-ux-b1b2-regressions) — inverse de PROGRAMME_ID_BY_TITLE : réel
+// Initiative.id -> fixtureId PROGS (data/programmes.ts), seul identifiant
+// que comprend la navigation déjà fonctionnelle vers ProgrammeDetail
+// (App.tsx, onOpenProgramme/progOpen/progView). Nécessaire car
+// Opportunites.tsx/OpportunityPanel.tsx ne connaissaient jusqu'ici que
+// l'Initiative.id réel (opportunity-bridge.ts), jamais le fixtureId —
+// d'où un lien "Programme lié" qui posait initiativeFocusId (lu
+// uniquement par Initiatives.tsx, non routé depuis Architecture Recovery
+// R1) sans jamais ouvrir le programme réel. undefined si l'Initiative
+// réelle n'a pas de correspondance PROGS vérifiée (jamais un fixtureId
+// deviné).
+export function getProgrammeFixtureIdForInitiative(initiativeId: string): number | undefined {
+  return PROGS.find((p) => PROGRAMME_ID_BY_TITLE[p.title] === initiativeId)?.id;
+}
+
 export interface ProgrammeSynthesisView {
   hasRealMatch: boolean;
   budgetIdentifiedFcfa?: number;

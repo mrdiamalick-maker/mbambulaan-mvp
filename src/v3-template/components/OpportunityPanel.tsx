@@ -17,7 +17,17 @@ import { getOpportunityDetail, OPPORTUNITY_UI_STEPS } from "../lib/opportunity-b
 // ne vivrait que dans le state React (doctrine domain-runtime.ts).
 // Au-delà de "Qualifiée", l'arbitrage réel se fait sur Arbitrages (lien),
 // pas depuis ce panneau (mandat : ne pas refondre Arbitrages).
-export function OpportunityPanel({ oppId, patch, onClose }: { oppId: string; patch: (p: Partial<AppState>) => void; onClose: () => void }) {
+export function OpportunityPanel({
+  oppId,
+  patch,
+  onClose,
+  onOpenProgramme
+}: {
+  oppId: string;
+  patch: (p: Partial<AppState>) => void;
+  onClose: () => void;
+  onOpenProgramme: (progId: number) => void;
+}) {
   const runtime = useDomainRuntime();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,17 +179,32 @@ export function OpportunityPanel({ oppId, patch, onClose }: { oppId: string; pat
             retenue (designing/converted_to_program) n'implique pas
             qu'une Initiative existe déjà. Le lien n'apparaît QUE si
             initiativeId est réel (Initiative.programOpportunityId) ;
-            sinon un constat honnête, jamais un programme fabriqué. */}
+            sinon un constat honnête, jamais un programme fabriqué.
+            Correction B (fix/etat-ux-b1b2-regressions) — initiativeId
+            seul ne suffisait pas : screen:"programmes" route vers
+            Portfolio/ProgrammeDetail depuis Architecture Recovery R1, qui
+            ne lisent jamais initiativeFocusId (seul Initiatives.tsx, non
+            routé, le lit) — le clic atterrissait sur le Portfolio
+            générique sans l'Initiative visée. programmeFixtureId est
+            l'identifiant réel que comprend onOpenProgramme ; sans lui, le
+            constat honnête reste affiché plutôt qu'un bouton mort. */}
         {detail.outcome === "retenue" && (
           <PanelSection title="Initiative">
-            {detail.initiativeId ? (
+            {detail.programmeFixtureId != null ? (
               <button
                 type="button"
-                onClick={() => patch({ screen: "programmes" as AppState["screen"], initiativeFocusId: detail.initiativeId!, oppOpen: null })}
+                onClick={() => {
+                  onOpenProgramme(detail.programmeFixtureId!);
+                  patch({ oppOpen: null });
+                }}
                 style={{ border: "1px solid #0B1A2A", background: "#0B1A2A", color: "#F7F3E9", cursor: "pointer", borderRadius: 4, padding: "9px 16px", fontSize: 13, fontWeight: 500 }}
               >
                 Voir l’Initiative →
               </button>
+            ) : detail.initiativeId ? (
+              <div style={{ background: paper_a(1), border: "1px solid rgba(11,26,42,.1)", padding: "10px 14px", fontSize: 12.5, lineHeight: 1.5, color: "rgba(11,26,42,.7)" }}>
+                Initiative réelle enregistrée, mais non reliée au portefeuille de programmes affiché ici.
+              </div>
             ) : (
               <div style={{ background: paper_a(1), border: "1px solid rgba(11,26,42,.1)", padding: "10px 14px", fontSize: 12.5, lineHeight: 1.5, color: "rgba(11,26,42,.7)" }}>
                 Initiative à structurer — retenue ne signifie pas encore exécutée. Aucune Initiative n’est créée automatiquement.

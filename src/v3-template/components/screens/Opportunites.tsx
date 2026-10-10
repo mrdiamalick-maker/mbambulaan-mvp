@@ -51,7 +51,15 @@ function DetailColumn({ title, items, empty }: { title: string; items: string[];
   );
 }
 
-export function Opportunites({ state, patch }: { state: AppState; patch: Patch }) {
+export function Opportunites({
+  state,
+  patch,
+  onOpenProgramme
+}: {
+  state: AppState;
+  patch: Patch;
+  onOpenProgramme: (progId: number) => void;
+}) {
   const runtime = useDomainRuntime();
   const liveState = runtime.state ?? undefined;
   const all = useMemo(() => getOpportunities(liveState), [liveState]);
@@ -174,7 +182,19 @@ export function Opportunites({ state, patch }: { state: AppState; patch: Patch }
                   {detail.territoryIds.map((territoryId, index) => <button key={territoryId} type="button" className="pv3-outline-action" onClick={() => openTerritory(territoryId)}>Territoire · {detail.territoryNames[index] ?? territoryId} →</button>)}
                   {detail.situationIds.map((situationId, index) => <button key={situationId} type="button" className="pv3-outline-action" onClick={() => openSituation(situationId)}>Situation · {detail.situationTitles[index] ?? situationId} →</button>)}
                   {detail.decision && <button type="button" className="pv3-outline-action" onClick={() => patch({ screen: "arbitrages" })}>Décision · {detail.decision.label} →</button>}
-                  {detail.initiativeId && <button type="button" className="pv3-outline-action" onClick={() => patch({ screen: "programmes", initiativeFocusId: detail.initiativeId! })}>Programme lié →</button>}
+                  {/* Correction B (fix/etat-ux-b1b2-regressions) — detail.initiativeId
+                      seul ne suffisait pas : screen:"programmes" route vers
+                      Portfolio/ProgrammeDetail depuis Architecture Recovery R1, qui ne
+                      lisent jamais initiativeFocusId (seul Initiatives.tsx, non routé,
+                      le lit) — le clic atterrissait sur le Portfolio générique sans le
+                      programme visé. programmeFixtureId est l'identifiant réel que
+                      comprend onOpenProgramme ; le lien n'apparaît pas sans lui plutôt
+                      que de promettre un programme qu'il ne peut pas ouvrir. */}
+                  {detail.programmeFixtureId != null && (
+                    <button type="button" className="pv3-outline-action" onClick={() => onOpenProgramme(detail.programmeFixtureId!)}>
+                      Programme lié →
+                    </button>
+                  )}
                 </div>
                 {(detail.siteNames.length > 0 || detail.involvedActorNames.length > 0) && <div style={{ marginTop: 12, fontSize: 11.5, lineHeight: 1.5, color: "rgba(11,26,42,.55)" }}>{detail.siteNames.length > 0 ? `Sites · ${detail.siteNames.join(", ")}` : ""}{detail.siteNames.length > 0 && detail.involvedActorNames.length > 0 ? " · " : ""}{detail.involvedActorNames.length > 0 ? `Acteurs · ${detail.involvedActorNames.join(", ")}` : ""}</div>}
               </div>

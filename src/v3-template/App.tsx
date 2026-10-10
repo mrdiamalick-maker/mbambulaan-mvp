@@ -152,7 +152,7 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
         )}
         {state.screen === "atlas" && <Atlas state={state} patch={patch} onOpenProgramme={onOpenProgramme} onOpenTerritoire={onOpenTerritoire} />}
         {state.screen === "territoires" && <Territoires state={state} patch={patch} onReturnToAtlas={onReturnToAtlas} />}
-        {state.screen === "opportunites" && <Opportunites state={state} patch={patch} />}
+        {state.screen === "opportunites" && <Opportunites state={state} patch={patch} onOpenProgramme={onOpenProgramme} />}
         {state.screen === "situations" && <Situations state={state} patch={patch} onOpenFlux={() => navigate("flux")} />}
         {/* ARCHITECTURE RECOVERY R1 §4 — retour à la restitution V5 :
             Portfolio (liste) / ProgrammeDetail (détail), pilotés par
@@ -172,7 +172,7 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
       </main>
       {state.docOpen && <DocumentView request={state.docOpen} onClose={() => patch({ docOpen: null })} />}
       {state.presentOpen && <PresentationView onClose={() => patch({ presentOpen: false })} />}
-      {state.oppOpen && <OpportunityPanel oppId={state.oppOpen} patch={patch} onClose={() => patch({ oppOpen: null })} />}
+      {state.oppOpen && <OpportunityPanel oppId={state.oppOpen} patch={patch} onClose={() => patch({ oppOpen: null })} onOpenProgramme={onOpenProgramme} />}
     </div>
   );
 }

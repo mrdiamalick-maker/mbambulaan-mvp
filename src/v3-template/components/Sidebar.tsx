@@ -7,9 +7,6 @@ import type { AppState } from "../state";
 import { V3_FONT_MONO, V3_FONT_SANS } from "../theme";
 import type { RoleKey, ScreenKey } from "../types";
 
-const PRIMARY_SCREENS: ScreenKey[] = ["brief", "territoires", "opportunites", "arbitrages", "resultats"];
-const WORK_SCREENS: ScreenKey[] = ["atlas", "programmes", "situations", "flux", "sources"];
-
 const LABELS: Partial<Record<ScreenKey, string>> = {
   brief: "Brief",
   atlas: "Atlas · jumeau maritime",
@@ -78,14 +75,21 @@ function Navigation({
 
   return (
     <>
+      {/* Correction A (fix/etat-ux-b1b2-regressions) — la navigation
+          dérive à nouveau de roleDef.main/.sec (ROLES, data/roles.ts) au
+          lieu de deux listes d'écrans fixes : UX-R1 affichait la même
+          navigation pour les 3 rôles, annulant silencieusement la
+          priorisation par rôle (Architecture Recovery R1) sans toucher au
+          style B1/B2 (icônes, kicker, drawer mobile, qui restent
+          inchangés). */}
       <nav aria-label="Navigation principale" className="pv3-sidebar-nav">
-        {nav(PRIMARY_SCREENS)}
+        {nav(roleDef.main)}
       </nav>
 
       <div className="pv3-nav-separator" />
       <div className="pv3-nav-kicker">Vues de travail</div>
       <nav aria-label="Vues de travail" className="pv3-sidebar-nav pv3-sidebar-nav-secondary">
-        {nav(WORK_SCREENS)}
+        {nav(roleDef.sec)}
       </nav>
 
       <div className="pv3-sidebar-footer">
