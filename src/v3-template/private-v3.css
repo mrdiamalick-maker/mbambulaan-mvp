@@ -214,6 +214,11 @@
   .pv3-workspace-header { top: 62px; }
 }
 
+@media (max-width: 860px) {
+  .pv3-root div.pv3-b2-master-detail { grid-template-columns: 1fr !important; }
+  .pv3-b2-master-list { border-right: 0 !important; border-bottom: 1px solid rgba(11, 26, 42, 0.13); }
+}
+
 @media (max-width: 720px) {
   .pv3-workspace-header { position: relative; top: auto; align-items: flex-start; flex-direction: column; gap: 10px; padding: 14px 18px; }
   .pv3-header-tools { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
@@ -225,6 +230,9 @@
   .pv3-opp-panel { width: 100vw !important; }
   .pv3-opportunity-row { grid-template-columns: 1fr !important; gap: 12px !important; }
   .pv3-opportunity-row > div:last-child { justify-content: flex-start !important; }
+  .pv3-root div.pv3-b2-pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .pv3-root div.pv3-b2-step-track { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .pv3-root div.pv3-b2-detail-columns { grid-template-columns: 1fr !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {

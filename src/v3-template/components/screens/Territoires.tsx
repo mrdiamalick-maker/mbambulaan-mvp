@@ -6,6 +6,7 @@ import { V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF, paper_a } from "../../theme"
 import { useDomainRuntime } from "../../lib/domain-runtime";
 import { getTerritoryList, getTerritoryFiche, type TerritoryDecisionAction } from "../../lib/territory-fiche-bridge";
 import { OPPORTUNITY_UI_STEPS } from "../../lib/opportunity-bridge";
+import { buildSituationRows } from "../../lib/situations-bridge";
 import { SPEC_FIELDS } from "../../data/territory-spec";
 
 type Patch = (p: Partial<AppState>) => void;
@@ -120,6 +121,7 @@ export function Territoires({
   const liveState = runtime.state ?? undefined;
 
   const territoryRows = useMemo(() => getTerritoryList(liveState), [liveState]);
+  const situationRows = useMemo(() => buildSituationRows(liveState), [liveState]);
   const zones = useMemo(
     () =>
       ZONE_ORDER.map((zone) => ({
@@ -142,6 +144,12 @@ export function Territoires({
   // inter-écrans : un simple patch({screen:"atlas"}) local laisserait
   // l'URL ?ecran= désynchronisée de l'écran réellement affiché.
   const toAtlas = () => onReturnToAtlas();
+  const openSituation = (realId: string) => {
+    const row = situationRows.find((item) => item.realId === realId);
+    if (!row) return;
+    patch({ screen: "situations", sitOpen: row.id, territoryFilterId: null });
+    window.scrollTo(0, 0);
+  };
 
   if (state.terrView === "list" || !state.terrSel) {
     return (
@@ -240,6 +248,9 @@ export function Territoires({
               {F.name}
             </button>
           )}
+          <select aria-label="Choisir un autre territoire" value={state.terrSel} onChange={(event) => go(event.target.value)} style={{ border: "1px solid rgba(11,26,42,.18)", background: "#fff", color: "#0B1A2A", padding: "7px 30px 7px 10px", fontSize: 12, fontFamily: V3_FONT_SANS, cursor: "pointer" }}>
+            {territoryRows.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+          </select>
         </div>
         <div style={{ display: "flex", gap: 16, fontSize: 12.5, color: "rgba(11,26,42,.6)", overflowX: "auto" }}>
           {SECTION_ANCHORS.map(([id, label]) => (
@@ -428,7 +439,7 @@ export function Territoires({
           <EmptyBox>{F.emptyRetainNote}</EmptyBox>
         ) : (
           F.retain.map((r, i) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 18, padding: "16px 0", borderBottom: i < F.retain.length - 1 ? "1px solid rgba(11,26,42,.08)" : undefined }}>
+            <button type="button" key={r.realId} onClick={() => openSituation(r.realId)} className="pv3-row-hover-04" style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 18, width: "100%", padding: "16px 0", border: 0, borderBottom: i < F.retain.length - 1 ? "1px solid rgba(11,26,42,.08)" : undefined, background: "transparent", color: "#0B1A2A", textAlign: "left", cursor: "pointer", fontFamily: V3_FONT_SANS }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, marginBottom: 6 }}>
                   <span style={{ color: r.severityColor, fontWeight: 600 }}>{r.severityLabel}</span>
@@ -442,7 +453,8 @@ export function Territoires({
                 <Field label="Responsable" value={r.owner} bold />
                 <Field label="Échéance" value={r.due} />
               </div>
-            </div>
+              <span style={{ gridColumn: "1 / -1", fontSize: 11, color: "#B6522F", textAlign: "right" }}>Ouvrir la situation →</span>
+            </button>
           ))
         )}
         {showNotes && <ConceptionNote>Deux situations au plus. Le reste vit dans la vue de travail Situations, ouverte déjà filtrée. Chaque situation dit la conséquence, l’action en cours et qui en répond.</ConceptionNote>}

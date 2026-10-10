@@ -22,6 +22,7 @@ import { getSituationPrimaryAction } from "../../data/roles";
 import type { AppState } from "../../state";
 
 type Patch = (p: Partial<AppState>) => void;
+type SituationScope = "open" | "closed" | "all";
 
 function FilterChip({ label, on, dot, dotc, onClick }: { label: string; on: boolean; dot?: boolean; dotc?: string; onClick: () => void }) {
   return (
@@ -50,6 +51,7 @@ export function Situations({ state, patch, onOpenFlux }: { state: AppState; patc
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitOk, setSubmitOk] = useState(false);
+  const [scope, setScope] = useState<SituationScope>("open");
 
   const situationRows = useMemo(() => (liveState ? buildSituationRows(liveState) : []), [liveState]);
   // territoryFilterId (G2.2) — filtre partagé posé depuis Territoires.tsx ;
@@ -61,15 +63,16 @@ export function Situations({ state, patch, onOpenFlux }: { state: AppState; patc
     () =>
       situationRows.filter(
         (s) =>
-          (!state.fSev || s.severityLabel === state.fSev) &&
+          (scope === "all" || (scope === "open" ? s.isOpen : !s.isOpen)) &&
+          (!state.fSev || (state.fSev === "Faible" ? s.priority === "faible" : state.fSev === "Modéré" ? s.priority === "moyenne" : s.severityLabel === state.fSev)) &&
           (!state.fTrust || (state.fTrust === "Déclarée" ? s.trustTier === 0 : s.trustTier === 2)) &&
           (!state.fStage || s.stageBucket === 1) &&
           (!state.territoryFilterId || s.territoryId === state.territoryFilterId)
       ),
-    [situationRows, state.fSev, state.fTrust, state.fStage, state.territoryFilterId]
+    [situationRows, scope, state.fSev, state.fTrust, state.fStage, state.territoryFilterId]
   );
 
-  const openId = state.sitOpen == null ? (list[0]?.id ?? situationRows[0]?.id ?? 0) : state.sitOpen;
+  const openId = state.sitOpen != null && list.some((item) => item.id === state.sitOpen) ? state.sitOpen : (list[0]?.id ?? situationRows[0]?.id ?? 0);
   const s = liveState ? (getSituationDetail(openId, liveState) ?? getSituationDetail(situationRows[0]?.id ?? 0, liveState)) : undefined;
   const sitTab = state.sitTab || "know";
   const header = liveState ? buildSituationHeaderStats(liveState) : undefined;
@@ -142,12 +145,26 @@ export function Situations({ state, patch, onOpenFlux }: { state: AppState; patc
         </div>
       </div>
 
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+        <div role="group" style={{ display: "inline-flex", border: "1px solid rgba(11,26,42,.17)" }} aria-label="État des situations">
+          {([[
+            "open", "Ouvertes"
+          ], ["closed", "Réglées"], ["all", "Toutes"]] as Array<[SituationScope, string]>).map(([key, label]) => (
+            <button key={key} type="button" aria-pressed={scope === key} onClick={() => setScope(key)} style={{ border: 0, borderRight: key === "all" ? 0 : "1px solid rgba(11,26,42,.12)", background: scope === key ? "#0B1A2A" : "#fff", color: scope === key ? "#F7F3E9" : "#0B1A2A", padding: "7px 13px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <span style={{ fontSize: 11.5, color: "rgba(11,26,42,.55)" }}>{list.length} situation{list.length === 1 ? "" : "s"} affichée{list.length === 1 ? "" : "s"} sur {situationRows.length}</span>
+      </div>
+
       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 14 }}>
         <span style={{ fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginRight: 4 }}>Filtrer</span>
-        <FilterChip label={"Toutes · " + situationRows.length} on={noFilter} onClick={() => patch({ fSev: null, fTrust: null, fStage: null, territoryFilterId: null })} />
+        <FilterChip label="Toutes priorités" on={noFilter} onClick={() => patch({ fSev: null, fTrust: null, fStage: null, territoryFilterId: null })} />
         <FilterChip label="Critique" on={state.fSev === "Critique"} dot dotc="#C8452B" onClick={() => patch({ fSev: state.fSev === "Critique" ? null : "Critique" })} />
-        <FilterChip label="Élevé" on={state.fSev === "Élevé"} dot dotc="#D89A4A" onClick={() => patch({ fSev: state.fSev === "Élevé" ? null : "Élevé" })} />
-        <FilterChip label="Modéré" on={state.fSev === "Modéré"} dot dotc="#9FB9CE" onClick={() => patch({ fSev: state.fSev === "Modéré" ? null : "Modéré" })} />
+        <FilterChip label="Élevée" on={state.fSev === "Élevé"} dot dotc="#D89A4A" onClick={() => patch({ fSev: state.fSev === "Élevé" ? null : "Élevé" })} />
+        <FilterChip label="Modérée" on={state.fSev === "Modéré"} dot dotc="#9FB9CE" onClick={() => patch({ fSev: state.fSev === "Modéré" ? null : "Modéré" })} />
+        <FilterChip label="Faible" on={state.fSev === "Faible"} dot dotc="#B8C5CE" onClick={() => patch({ fSev: state.fSev === "Faible" ? null : "Faible" })} />
         <FilterChip label="Déclarées seulement" on={state.fTrust === "Déclarée"} onClick={() => patch({ fTrust: state.fTrust === "Déclarée" ? null : "Déclarée" })} />
         <FilterChip label="Vérifiées seulement" on={state.fTrust === "Vérifiée"} onClick={() => patch({ fTrust: state.fTrust === "Vérifiée" ? null : "Vérifiée" })} />
         <FilterChip label="À qualifier" on={state.fStage === "aqual"} onClick={() => patch({ fStage: state.fStage === "aqual" ? null : "aqual" })} />
@@ -160,13 +177,9 @@ export function Situations({ state, patch, onOpenFlux }: { state: AppState; patc
             Territoire : {territoryFilterName} <span aria-hidden>✕</span>
           </button>
         )}
-        <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 11.5, color: "rgba(11,26,42,.55)" }}>
-          {list.length} situation{list.length > 1 ? "s" : ""} affichée{list.length > 1 ? "s" : ""} sur {situationRows.length}
-        </span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "392px 1fr", gap: 0, border: "1px solid rgba(11,26,42,.12)", alignItems: "start", minWidth: 0 }}>
+      <div className="pv3-b2-master-detail" style={{ display: "grid", gridTemplateColumns: "392px 1fr", gap: 0, border: "1px solid rgba(11,26,42,.12)", alignItems: "start", minWidth: 0 }}>
         <div style={{ background: "#FFFFFF", borderRight: "1px solid rgba(11,26,42,.12)", alignSelf: "stretch", minWidth: 0 }}>
           {list.map((x) => (
             <button
@@ -204,26 +217,7 @@ export function Situations({ state, patch, onOpenFlux }: { state: AppState; patc
                 <span style={{ flex: 1 }} />
                 <span style={{ fontFamily: V3_FONT_MONO, color: x.stageBucket >= 4 ? "#4E7B5A" : "rgba(11,26,42,.5)" }}>{x.stageLabel}</span>
               </div>
-              {x.linkedOpportunity && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    patch({ oppOpen: x.linkedOpportunity!.id });
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      patch({ oppOpen: x.linkedOpportunity!.id });
-                    }
-                  }}
-                  style={{ marginTop: 7, display: "inline-block", border: "1px solid rgba(182,82,47,.4)", background: "rgba(182,82,47,.06)", color: "#B6522F", cursor: "pointer", borderRadius: 4, padding: "3px 8px", fontSize: 10.5, fontFamily: V3_FONT_SANS, fontWeight: 500 }}
-                >
-                  Opportunité liée →
-                </span>
-              )}
+              {x.linkedOpportunity && <span style={{ marginTop: 7, display: "inline-block", border: "1px solid rgba(182,82,47,.4)", background: "rgba(182,82,47,.06)", color: "#B6522F", borderRadius: 4, padding: "3px 8px", fontSize: 10.5, fontFamily: V3_FONT_SANS, fontWeight: 500 }}>Opportunité liée</span>}
             </button>
           ))}
           {list.length === 0 && (
@@ -239,7 +233,8 @@ export function Situations({ state, patch, onOpenFlux }: { state: AppState; patc
               <span style={{ display: "flex", alignItems: "center", gap: 7, border: `1px solid ${s.severityColor}`, borderRadius: 999, padding: "3px 10px", fontSize: 11, color: "#F7F3E9" }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.severityColor }} />{s.severityLabel}
               </span>
-              <span style={{ fontSize: 11.5, color: "rgba(247,243,233,.6)" }}>{s.territoryLabel} · {s.since}{s.channelLabel ? ` · reçu via ${s.channelLabel}` : ""}</span>
+              <button type="button" onClick={() => patch({ screen: "territoires", terrView: "detail", terrSel: s.territoryId, terrFromAtlas: false })} style={{ border: 0, borderBottom: "1px solid rgba(247,243,233,.35)", background: "transparent", color: "rgba(247,243,233,.82)", padding: 0, font: "inherit", fontSize: 11.5, cursor: "pointer" }}>{s.territoryLabel} →</button>
+              <span style={{ fontSize: 11.5, color: "rgba(247,243,233,.6)" }}>{s.since}{s.channelLabel ? ` · reçu via ${s.channelLabel}` : ""}</span>
             </div>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
               <h2 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 27, lineHeight: 1.2, margin: "0 0 12px", maxWidth: "34ch", flex: 1 }}>{s.title}</h2>
@@ -525,6 +520,14 @@ export function Situations({ state, patch, onOpenFlux }: { state: AppState; patc
                 )}
               </div>
             )}
+          </div>
+          <div style={{ borderTop: "1px solid rgba(11,26,42,.1)", padding: "14px 24px 18px" }}>
+            <div style={{ fontSize: 10, letterSpacing: ".11em", textTransform: "uppercase", color: "rgba(11,26,42,.45)", marginBottom: 9 }}>Objets métier liés</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button type="button" className="pv3-outline-action" onClick={() => patch({ screen: "territoires", terrView: "detail", terrSel: s.territoryId, terrFromAtlas: false })}>Territoire · {s.territoryLabel} →</button>
+              {s.linkedOpportunity && <button type="button" className="pv3-outline-action" onClick={() => patch({ oppOpen: s.linkedOpportunity!.id })}>Opportunité · {s.linkedOpportunity.title} →</button>}
+              {s.decisionCount > 0 && <button type="button" className="pv3-outline-action" onClick={() => patch({ screen: "arbitrages" })}>Arbitrages · {s.decisionCount} →</button>}
+            </div>
           </div>
         </div>
       </div>
