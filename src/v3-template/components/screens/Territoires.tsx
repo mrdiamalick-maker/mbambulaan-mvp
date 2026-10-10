@@ -55,13 +55,20 @@ function Breadcrumb({ parts }: { parts: Array<{ label: string; onClick?: () => v
 // générateur de note territoriale serait une fonctionnalité nouvelle, hors
 // périmètre RC1 ("aucune nouvelle feature majeure") : retiré plutôt que
 // simulé.
-function TopActions({ onPresent }: { onPresent: () => void }) {
+function TopActions({ onPresent, onAtlas }: { onPresent: () => void; onAtlas: () => void }) {
   return (
     <div style={{ display: "flex", gap: 10, flex: "none" }}>
       <button
         type="button"
+        onClick={onAtlas}
+        style={{ border: "1px solid #0B1A2A", background: "#0B1A2A", color: "#F7F3E9", cursor: "pointer", borderRadius: 0, padding: "9px 16px", fontSize: 12, fontFamily: V3_FONT_SANS, fontWeight: 600 }}
+      >
+        Atlas maritime
+      </button>
+      <button
+        type="button"
         onClick={onPresent}
-        style={{ border: "1px solid rgba(11,26,42,.22)", background: "#fff", color: "#0B1A2A", cursor: "pointer", borderRadius: 4, padding: "9px 16px", fontSize: 12.5, fontFamily: V3_FONT_SANS, fontWeight: 500 }}
+        style={{ border: "1px solid rgba(11,26,42,.22)", background: "#fff", color: "#0B1A2A", cursor: "pointer", borderRadius: 0, padding: "9px 16px", fontSize: 12, fontFamily: V3_FONT_SANS, fontWeight: 600 }}
       >
         Présentation
       </button>
@@ -138,25 +145,25 @@ export function Territoires({
 
   if (state.terrView === "list" || !state.terrSel) {
     return (
-      <div className="pv3-rise">
+      <div className="pv3-rise pv3-territories-screen">
         <div style={{ padding: "22px 30px 12px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
           <Breadcrumb parts={[{ label: "Espace État" }, { label: "Territoires" }]} />
-          <TopActions onPresent={() => patch({ presentOpen: true })} />
+          <TopActions onPresent={() => patch({ presentOpen: true })} onAtlas={toAtlas} />
         </div>
         <DemoBannerSimple rightLabel={`Situation au ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}`} />
 
-        <div style={{ padding: "26px 30px 60px" }}>
+        <div className="pv3-content-frame" style={{ padding: "clamp(30px,4vw,52px) clamp(20px,3vw,42px) 72px" }}>
           <div style={{ fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "#B6522F", marginBottom: 8 }}>Territoires</div>
-          <h1 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 36, margin: "0 0 14px" }}>Le littoral, du nord au sud — {territoryRows.length} sites suivis</h1>
-          <p style={{ margin: "0 0 20px", fontFamily: V3_FONT_SERIF, fontSize: 16, lineHeight: 1.55, color: "rgba(11,26,42,.78)", maxWidth: "70ch" }}>
+          <h1 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 620, fontSize: "clamp(30px,4vw,48px)", lineHeight: 1.05, letterSpacing: "-.035em", margin: "0 0 14px", maxWidth: 900 }}>Le littoral, du nord au sud — {territoryRows.length} sites suivis</h1>
+          <p style={{ margin: "0 0 26px", fontFamily: V3_FONT_SERIF, fontSize: 15.5, lineHeight: 1.62, color: "rgba(11,26,42,.72)", maxWidth: "72ch" }}>
             Chaque site a sa fiche. Les fiches documentées montrent ce qui se passe et ce qu’il faut décider ; les autres gardent la même structure, vide tant que l’information manque.
           </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,360px),1fr))", gap: "0 42px" }}>
             {zones.map((zone) => (
               <div key={zone.name} style={{ marginBottom: 28 }}>
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", borderBottom: "1px solid rgba(11,26,42,.15)", paddingBottom: 8, marginBottom: 4 }}>
-                  <div style={{ fontFamily: V3_FONT_SERIF, fontSize: 18 }}>{zone.name}</div>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", borderTop: "2px solid #0B1A2A", paddingTop: 10, paddingBottom: 5, marginBottom: 4 }}>
+                  <div style={{ fontFamily: V3_FONT_SERIF, fontSize: 17, fontWeight: 650 }}>{zone.name}</div>
                   <div style={{ fontSize: 11.5, color: "rgba(11,26,42,.5)" }}>{zone.sites.length} sites</div>
                 </div>
                 {zone.sites.map((site) => (
@@ -189,7 +196,7 @@ export function Territoires({
   const tabs = ["joal", "kayar", "mbour", "saint-louis"];
 
   return (
-    <div className="pv3-rise">
+    <div className="pv3-rise pv3-territories-screen">
       <div style={{ padding: "22px 30px 0", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {state.terrFromAtlas && (
@@ -203,7 +210,7 @@ export function Territoires({
           )}
           <Breadcrumb parts={[{ label: "Espace État" }, { label: "Territoires", onClick: toList }, { label: F.name }]} />
         </div>
-        <TopActions onPresent={() => patch({ presentOpen: true })} />
+        <TopActions onPresent={() => patch({ presentOpen: true })} onAtlas={toAtlas} />
       </div>
 
       <div style={{ padding: "16px 30px 0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", borderBottom: "1px solid rgba(11,26,42,.1)" }}>
@@ -245,7 +252,7 @@ export function Territoires({
 
       <DemoBannerSimple rightLabel={`Situation au ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}`} />
 
-      <div style={{ padding: "26px 30px 0" }}>
+      <div className="pv3-content-frame" style={{ padding: "clamp(28px,4vw,48px) clamp(20px,3vw,42px) 0" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, marginBottom: 10 }}>
           <span style={{ color: F.statusColor, fontSize: 15 }}>●</span>
           <span style={{ color: F.statusTextColor, fontWeight: 600 }}>{F.statusLabel}</span>
@@ -261,8 +268,8 @@ export function Territoires({
 
         <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 22, alignItems: "start" }}>
           <div>
-            <h1 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 38, margin: "0 0 13px" }}>{F.name}</h1>
-            <p style={{ margin: "0 0 18px", fontFamily: V3_FONT_SERIF, fontSize: 16.5, lineHeight: 1.55, color: "rgba(11,26,42,.78)" }}>{F.synthesis}</p>
+            <h1 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 650, fontSize: "clamp(38px,5vw,60px)", lineHeight: .98, letterSpacing: "-.045em", margin: "0 0 16px" }}>{F.name}</h1>
+            <p style={{ margin: "0 0 20px", fontFamily: V3_FONT_SERIF, fontSize: 16, lineHeight: 1.62, color: "rgba(11,26,42,.72)", maxWidth: "66ch" }}>{F.synthesis}</p>
 
             <div style={{ fontSize: 11, color: "rgba(11,26,42,.5)", marginBottom: 8 }}>Dans le moteur Mbàmbulaan</div>
             <div className="pv3-territory-counters" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 1, background: "rgba(11,26,42,.12)", border: "1px solid rgba(11,26,42,.12)", marginBottom: 8 }}>
@@ -324,7 +331,7 @@ export function Territoires({
       {showNotes && <ConceptionNote>L’en-tête répond à « où en est-on ? » en une lecture : statut, synthèse en deux phrases, niveau de connaissance. La rangée « moteur » garde visibles les objets métier sans les déplier.</ConceptionNote>}
 
       {F.isPriorityCaseToDocument && (
-        <div style={{ margin: "22px 30px 0", padding: "18px 20px", border: "1px dashed rgba(11,26,42,.3)" }}>
+        <div className="pv3-content-frame" style={{ margin: "22px auto 0", padding: "18px clamp(20px,3vw,42px)", border: "1px dashed rgba(11,26,42,.3)" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
             <span style={{ fontSize: 11, color: "#B6522F", fontWeight: 600 }}>Cas territorial prioritaire à documenter</span>
           </div>
@@ -349,7 +356,7 @@ export function Territoires({
           retenir"). Jamais affiché pour un territoire sans cas qualifié
           (Saint-Louis), déjà couvert par le bandeau ci-dessus. */}
       {F.casebook.length > 0 && (
-        <div style={{ margin: "22px 30px 0" }}>
+        <div className="pv3-content-frame" style={{ margin: "22px auto 0", padding: "0 clamp(20px,3vw,42px)" }}>
           <div style={{ fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase", color: "#B6522F", fontWeight: 600, marginBottom: 10 }}>
             Cas territoriaux significatifs
           </div>
@@ -407,7 +414,7 @@ export function Territoires({
         </div>
       )}
 
-      <div id="t-retain" style={{ padding: "26px 30px 0" }}>
+      <div id="t-retain" className="pv3-content-frame" style={{ padding: "34px clamp(20px,3vw,42px) 0" }}>
         <SectionHeader
           n="01"
           title="À retenir"
@@ -441,7 +448,7 @@ export function Territoires({
         {showNotes && <ConceptionNote>Deux situations au plus. Le reste vit dans la vue de travail Situations, ouverte déjà filtrée. Chaque situation dit la conséquence, l’action en cours et qui en répond.</ConceptionNote>}
       </div>
 
-      <div id="t-opps" style={{ padding: "26px 30px 0" }}>
+      <div id="t-opps" className="pv3-content-frame" style={{ padding: "34px clamp(20px,3vw,42px) 0" }}>
         <SectionHeader n="02" title="Opportunités" right={<span style={{ fontSize: 12, color: "rgba(11,26,42,.5)" }}>Pistes à instruire — ce ne sont pas des faits établis</span>} />
         {F.opportunities.length === 0 ? (
           <EmptyBox>Aucune opportunité repérée. Une piste apparaîtra ici dès qu’elle sera signalée et rattachée au territoire — avec son statut d’instruction et ce qui manque pour la qualifier.</EmptyBox>
@@ -471,7 +478,7 @@ export function Territoires({
         {showNotes && <ConceptionNote>Les opportunités ont une forme distincte (contour pointillé, étiquette « Hypothèse ») pour ne jamais être lues comme des faits. Tout chiffre non instruit est affiché « à qualifier ».</ConceptionNote>}
       </div>
 
-      <div id="t-dec" style={{ padding: "26px 30px 0" }}>
+      <div id="t-dec" className="pv3-content-frame" style={{ padding: "34px clamp(20px,3vw,42px) 0" }}>
         <SectionHeader
           n="03"
           title="Décisions et actions attendues"
@@ -512,7 +519,7 @@ export function Territoires({
         {showNotes && <ConceptionNote>Seulement ce qui demande un geste : décider, relancer, ouvrir. L’échéance est le premier élément lu.</ConceptionNote>}
       </div>
 
-      <div id="t-caps" style={{ padding: "26px 30px 0" }}>
+      <div id="t-caps" className="pv3-content-frame" style={{ padding: "34px clamp(20px,3vw,42px) 0" }}>
         <SectionHeader
           n="04"
           title="Activité et capacités"
@@ -558,7 +565,7 @@ export function Territoires({
         {showNotes && <ConceptionNote>Pas de tuiles KPI : chaque ligne dit ce qui existe, son état et qui l’affirme. « Non suivi » est une réponse légitime.</ConceptionNote>}
       </div>
 
-      <div id="t-src" style={{ padding: "26px 30px 50px" }}>
+      <div id="t-src" className="pv3-content-frame" style={{ padding: "34px clamp(20px,3vw,42px) 72px" }}>
         <SectionHeader
           n="05"
           title="Sources et confiance"
@@ -604,7 +611,7 @@ function SectionHeader({ n, title, right }: { n: string; title: string; right?: 
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: 10, paddingBottom: 12, borderBottom: "1px solid rgba(11,26,42,.12)", marginBottom: 16, flexWrap: "wrap" }}>
       <span style={{ fontFamily: V3_FONT_MONO, fontSize: 11, color: "rgba(11,26,42,.4)" }}>{n}</span>
-      <span style={{ fontFamily: V3_FONT_SERIF, fontSize: 21, flex: 1 }}>{title}</span>
+      <span style={{ fontFamily: V3_FONT_SERIF, fontSize: 21, fontWeight: 650, flex: 1 }}>{title}</span>
       {right}
     </div>
   );
@@ -635,4 +642,3 @@ function OppSteps({ index }: { index: number }) {
     </div>
   );
 }
-

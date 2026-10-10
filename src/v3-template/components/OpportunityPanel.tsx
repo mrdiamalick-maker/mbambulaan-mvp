@@ -70,17 +70,17 @@ export function OpportunityPanel({ oppId, patch, onClose }: { oppId: string; pat
         aria-label={`Opportunité · ${detail.territoryNames[0] ?? ""}`}
         style={{
           position: "relative", width: "min(560px,92vw)", maxWidth: "100vw", height: "100vh", overflowY: "auto",
-          background: "#fff", boxShadow: "-8px 0 30px rgba(11,26,42,.2)", padding: "24px 26px 40px", fontFamily: V3_FONT_SANS
+          background: "#fff", boxShadow: "-8px 0 30px rgba(11,26,42,.2)", padding: "26px clamp(20px,4vw,30px) 42px", fontFamily: V3_FONT_SANS
         }}
         className="pv3-opp-panel"
       >
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: "rgba(11,26,42,.5)" }}>Opportunité · {detail.territoryNames.join(", ")}</div>
-          <button type="button" onClick={onClose} aria-label="Fermer" style={{ border: 0, background: "transparent", cursor: "pointer", fontSize: 20, lineHeight: 1, color: "rgba(11,26,42,.5)" }}>×</button>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, paddingBottom: 14, borderBottom: "1px solid rgba(11,26,42,.12)", marginBottom: 20 }}>
+          <div style={{ fontSize: 10.5, letterSpacing: ".1em", textTransform: "uppercase", color: "#B6522F", fontWeight: 700 }}>Opportunité · {detail.territoryNames.join(", ")}</div>
+          <button type="button" onClick={onClose} aria-label="Fermer" style={{ border: "1px solid rgba(11,26,42,.18)", width: 32, height: 32, background: "#fff", cursor: "pointer", fontSize: 20, lineHeight: 1, color: "rgba(11,26,42,.65)" }}>×</button>
         </div>
 
-        <h2 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 400, fontSize: 24, margin: "0 0 6px" }}>{detail.problem}</h2>
-        <div style={{ fontSize: 12.5, color: "rgba(11,26,42,.55)", marginBottom: 16 }}>{detail.subLabel}</div>
+        <h2 style={{ fontFamily: V3_FONT_SERIF, fontWeight: 650, fontSize: 28, lineHeight: 1.12, letterSpacing: "-.025em", margin: "0 0 8px" }}>{detail.problem}</h2>
+        <div style={{ fontSize: 12.5, lineHeight: 1.45, color: "rgba(11,26,42,.55)", marginBottom: 20 }}>{detail.subLabel}</div>
 
         <div style={{ display: "flex", gap: 2, marginBottom: 18 }}>
           {OPPORTUNITY_UI_STEPS.map((step, i) => (
@@ -91,7 +91,7 @@ export function OpportunityPanel({ oppId, patch, onClose }: { oppId: string; pat
           ))}
         </div>
 
-        <div style={{ border: "1px solid #B6522F", background: "rgba(182,82,47,.05)", padding: "10px 14px", fontSize: 12.5, lineHeight: 1.5, marginBottom: 18 }}>
+        <div style={{ border: "1px dashed #B6522F", background: "rgba(182,82,47,.045)", padding: "11px 14px", fontSize: 12.5, lineHeight: 1.5, marginBottom: 22 }}>
           <strong style={{ color: "#B6522F" }}>Hypothèse à instruire.</strong> Faisabilité, volumes, emplois et rentabilité ne sont pas établis. Ils restent « à qualifier » jusqu’à instruction.
         </div>
 
@@ -121,6 +121,23 @@ export function OpportunityPanel({ oppId, patch, onClose }: { oppId: string; pat
                 <span style={{ fontSize: 13, color: "rgba(11,26,42,.8)" }}>{g}</span>
               </div>
             ))}
+          </PanelSection>
+        )}
+
+        {(detail.territoryIds.length > 0 || detail.situationTitles.length > 0 || detail.siteNames.length > 0) && (
+          <PanelSection title="Objets liés">
+            {detail.territoryIds.map((territoryId, index) => (
+              <button
+                key={territoryId}
+                type="button"
+                onClick={() => patch({ screen: "territoires", terrView: "detail", terrSel: territoryId, terrFromAtlas: false, oppOpen: null })}
+                style={{ display: "block", width: "100%", textAlign: "left", border: "1px solid rgba(11,26,42,.16)", background: "#fff", color: "#0B1A2A", cursor: "pointer", padding: "9px 11px", marginBottom: 6, fontSize: 12.5, fontWeight: 600 }}
+              >
+                Territoire · {detail.territoryNames[index] ?? territoryId} →
+              </button>
+            ))}
+            {detail.siteNames.map((site) => <div key={site} style={{ fontSize: 12, color: "rgba(11,26,42,.62)", padding: "4px 0" }}>Site · {site}</div>)}
+            {detail.situationTitles.map((situation) => <div key={situation} style={{ fontSize: 12, color: "rgba(11,26,42,.62)", padding: "4px 0" }}>Situation · {situation}</div>)}
           </PanelSection>
         )}
 
@@ -179,7 +196,7 @@ export function OpportunityPanel({ oppId, patch, onClose }: { oppId: string; pat
             onClick={() => patch({ screen: "arbitrages" as AppState["screen"], oppOpen: null })}
             style={{ border: "1px solid rgba(11,26,42,.25)", background: "#fff", color: "#0B1A2A", cursor: "pointer", borderRadius: 4, padding: "10px 16px", fontSize: 13, fontWeight: 500 }}
           >
-            Rattacher à un arbitrage
+            Voir dans Arbitrages
           </button>
           <button
             type="button"
@@ -200,9 +217,9 @@ export function OpportunityPanel({ oppId, patch, onClose }: { oppId: string; pat
 
 function PanelSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 18 }}>
-      <div style={{ fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", marginBottom: 8 }}>{title}</div>
+    <section style={{ marginBottom: 22 }}>
+      <div style={{ fontSize: 10, letterSpacing: ".11em", textTransform: "uppercase", color: "rgba(11,26,42,.5)", fontWeight: 650, marginBottom: 9 }}>{title}</div>
       {children}
-    </div>
+    </section>
   );
 }

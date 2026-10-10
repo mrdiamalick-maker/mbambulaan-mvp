@@ -1,135 +1,165 @@
 "use client";
 
-import { MODULES } from "../data/roles";
-import type { AppState } from "../state";
-import { V3_FONT_MONO, V3_FONT_SANS, V3_FONT_SERIF } from "../theme";
+import { useEffect, useState } from "react";
+import { MODULES, ROLE_CHIPS } from "../data/roles";
 import type { RoleDef } from "../data/roles";
-import type { ScreenKey } from "../types";
+import type { AppState } from "../state";
+import { V3_FONT_MONO, V3_FONT_SANS } from "../theme";
+import type { RoleKey, ScreenKey } from "../types";
 
-export function Sidebar({
-  roleDef,
-  screen,
-  role,
-  onNavigate,
-  badgeOverrides
-}: {
+const PRIMARY_SCREENS: ScreenKey[] = ["brief", "territoires", "opportunites", "arbitrages", "resultats"];
+const WORK_SCREENS: ScreenKey[] = ["atlas", "programmes", "situations", "flux", "sources"];
+
+const LABELS: Partial<Record<ScreenKey, string>> = {
+  brief: "Brief",
+  atlas: "Atlas · jumeau maritime",
+  flux: "Flux entrants"
+};
+
+interface SidebarProps {
   roleDef: RoleDef;
   screen: AppState["screen"];
   role: AppState["role"];
-  onNavigate: (s: ScreenKey) => void;
-  // badgeOverrides (G2.1) — compteur réel calculé depuis le runtime
-  // canonique (ex. nombre réel de ProgramOpportunity), prioritaire sur
-  // MODULES[k].badge quand fourni : évite d'ajouter un paramètre state à
-  // MODULES (gabarit gelé, badges existants déjà des fixtures statiques)
-  // tout en gardant honnête le seul badge réellement calculable ici.
+  onNavigate: (screen: ScreenKey) => void;
+  onRole: (role: RoleKey) => void;
   badgeOverrides?: Partial<Record<ScreenKey, string>>;
-}) {
-  const navMain = roleDef.main.map((k) => ({
-    key: k,
-    label: MODULES[k].label + (MODULES[k].suffix?.[role] ?? ""),
-    badge: badgeOverrides?.[k] ?? (MODULES[k].badge ? MODULES[k].badge(role) : ""),
-    active: screen === k
-  }));
-  const navSec = roleDef.sec.map((k) => ({
-    key: k,
-    label: MODULES[k].label,
-    badge: badgeOverrides?.[k] ?? (MODULES[k].badge ? MODULES[k].badge(role) : ""),
-    active: screen === k
-  }));
+}
+
+interface NavigationProps extends SidebarProps {
+  selectId: string;
+}
+
+function Brand() {
+  return (
+    <div className="pv3-brand">
+      <svg viewBox="0 0 28 28" aria-hidden="true">
+        <path d="M2 11 Q7 5 14 11 T26 11" fill="none" stroke="#B6522F" strokeWidth={2.1} strokeLinecap="round" />
+        <path d="M2 18 Q7 12 14 18 T26 18" fill="none" stroke="#F7F3E9" strokeWidth={2.1} strokeLinecap="round" opacity={0.85} />
+      </svg>
+      <div>
+        <div className="pv3-brand-name">Mbàmbulaan</div>
+        <div className="pv3-brand-subtitle">Espace État · accès réservé</div>
+      </div>
+    </div>
+  );
+}
+
+function Navigation({
+  screen,
+  role,
+  roleDef,
+  onNavigate,
+  onRole,
+  badgeOverrides,
+  selectId
+}: NavigationProps) {
+  const items = (screens: ScreenKey[]) =>
+    screens.map((key) => ({
+      key,
+      label: LABELS[key] ?? MODULES[key].label,
+      badge: badgeOverrides?.[key] ?? (MODULES[key].badge ? MODULES[key].badge(role) : ""),
+      active: screen === key
+    }));
+
+  const nav = (screens: ScreenKey[]) =>
+    items(screens).map((item) => (
+      <button
+        type="button"
+        key={item.key}
+        onClick={() => onNavigate(item.key)}
+        aria-current={item.active ? "page" : undefined}
+        className={`pv3-nav-item${item.active ? " is-active" : ""}`}
+      >
+        <span className="pv3-nav-dot" aria-hidden="true" />
+        <span>{item.label}</span>
+        {item.badge && <span className="pv3-nav-badge" style={{ fontFamily: V3_FONT_MONO }}>{item.badge}</span>}
+      </button>
+    ));
 
   return (
-    <aside
-      className="pv3-sidebar"
-      style={{
-        width: 246, flex: "none", background: "#0B1A2A", color: "#F7F3E9",
-        display: "flex", flexDirection: "column", position: "sticky", top: 0,
-        alignSelf: "flex-start", height: "100vh", overflowY: "auto"
-      }}
-    >
-      <div style={{ padding: "24px 22px 18px", display: "flex", gap: 11, alignItems: "center" }}>
-        <svg viewBox="0 0 28 28" style={{ width: 25, height: 25, flex: "none" }}>
-          <path d="M2 11 Q7 5 14 11 T26 11" fill="none" stroke="#B6522F" strokeWidth={2.1} strokeLinecap="round" />
-          <path d="M2 18 Q7 12 14 18 T26 18" fill="none" stroke="#F7F3E9" strokeWidth={2.1} strokeLinecap="round" opacity={0.85} />
-        </svg>
-        <div>
-          <div style={{ fontFamily: V3_FONT_SERIF, fontSize: 19.5, lineHeight: 1 }}>Mbàmbulaan</div>
-          <div style={{ fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", color: "rgba(247,243,233,.5)", marginTop: 4 }}>
-            Environnement opérationnel
-          </div>
-        </div>
-      </div>
-
-      <nav aria-label="Navigation principale" className="pv3-sidebar-nav" style={{ display: "flex", flexDirection: "column", gap: 1, padding: "4px 10px" }}>
-        {navMain.map((item) => (
-          <button
-            type="button"
-            key={item.key}
-            onClick={() => onNavigate(item.key)}
-            aria-current={item.active ? "page" : undefined}
-            className={item.active ? undefined : "pv3-nav-idle"}
-            style={
-              item.active
-                ? {
-                    display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
-                    border: 0, cursor: "pointer", padding: "10px 12px", borderRadius: 5,
-                    background: "rgba(182,82,47,.22)", color: "#F7F3E9", fontFamily: V3_FONT_SANS,
-                    fontSize: 13, fontWeight: 600, boxShadow: "inset 2px 0 0 #B6522F"
-                  }
-                : {
-                    display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
-                    border: 0, cursor: "pointer", padding: "10px 12px", borderRadius: 5,
-                    background: "transparent", color: "rgba(247,243,233,.7)", fontFamily: V3_FONT_SANS,
-                    fontSize: 13, fontWeight: 500, transition: "background .18s"
-                  }
-            }
-          >
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: item.active ? "#DE7A50" : "rgba(247,243,233,.26)", flex: "none" }} />
-            <span style={{ flex: 1 }}>{item.label}</span>
-            {item.badge && (
-              <span style={{ fontFamily: V3_FONT_MONO, fontSize: 10.5, background: item.active ? "#B6522F" : "rgba(247,243,233,.14)", color: item.active ? "#F7F3E9" : "rgba(247,243,233,.8)", borderRadius: 9, padding: "1px 6px" }}>
-                {item.badge}
-              </span>
-            )}
-          </button>
-        ))}
+    <>
+      <nav aria-label="Navigation principale" className="pv3-sidebar-nav">
+        {nav(PRIMARY_SCREENS)}
       </nav>
 
-      <div style={{ margin: "14px 22px 10px", height: 1, background: "rgba(247,243,233,.12)" }} />
-      <nav aria-label="Navigation secondaire" className="pv3-sidebar-nav" style={{ display: "flex", flexDirection: "column", gap: 1, padding: "0 10px" }}>
-        {navSec.map((item) => (
-          <button
-            type="button"
-            key={item.key}
-            onClick={() => onNavigate(item.key)}
-            aria-current={item.active ? "page" : undefined}
-            className="pv3-nav-sec"
-            style={{
-              display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
-              border: 0, cursor: "pointer", padding: "9px 12px", borderRadius: 5,
-              background: item.active ? "rgba(247,243,233,.1)" : "transparent",
-              color: "rgba(247,243,233,.62)", fontSize: 12.5, fontWeight: 500
-            }}
-          >
-            <span style={{ flex: 1 }}>{item.label}</span>
-            {item.badge && (
-              <span style={{ fontFamily: V3_FONT_MONO, fontSize: 10.5, background: "rgba(247,243,233,.14)", color: "rgba(247,243,233,.8)", borderRadius: 9, padding: "1px 6px" }}>
-                {item.badge}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="pv3-nav-separator" />
+      <div className="pv3-nav-kicker">Vues de travail</div>
+      <nav aria-label="Vues de travail" className="pv3-sidebar-nav pv3-sidebar-nav-secondary">
+        {nav(WORK_SCREENS)}
       </nav>
 
-      <div style={{ marginTop: "auto", padding: "18px 22px", borderTop: "1px solid rgba(247,243,233,.12)" }}>
-        <div style={{ fontSize: 9.5, letterSpacing: ".16em", textTransform: "uppercase", color: "rgba(247,243,233,.5)", marginBottom: 10 }}>
-          Niveau de connaissance
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 11.5, color: "rgba(247,243,233,.78)" }}>
-          <div style={{ display: "flex", gap: 9, alignItems: "center" }}><span style={{ color: "#F7F3E9", fontSize: 13 }}>○</span>Déclarée — non recoupée</div>
-          <div style={{ display: "flex", gap: 9, alignItems: "center" }}><span style={{ color: "#E6A27A", fontSize: 13 }}>◐</span>Observée — relevée sur site</div>
-          <div style={{ display: "flex", gap: 9, alignItems: "center" }}><span style={{ color: "#8FCB9B", fontSize: 13 }}>●</span>Vérifiée — confirmée</div>
+      <div className="pv3-sidebar-footer">
+        <label className="pv3-role-label" htmlFor={selectId}>Perspective institutionnelle</label>
+        <select
+          id={selectId}
+          value={role}
+          onChange={(event) => onRole(event.target.value as RoleKey)}
+          className="pv3-role-select"
+        >
+          {ROLE_CHIPS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+        </select>
+        <div className="pv3-role-note">{roleDef.note}</div>
+
+        <div className="pv3-knowledge-title">Niveau de connaissance</div>
+        <div className="pv3-knowledge-list">
+          <span><b>○</b> Déclarée — non recoupée</span>
+          <span><b className="is-observed">◐</b> Observée — relevée sur site</span>
+          <span><b className="is-verified">●</b> Vérifiée — confirmée</span>
         </div>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export function Sidebar(props: SidebarProps) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [mobileOpen]);
+  const navigate = (screen: ScreenKey) => {
+    props.onNavigate(screen);
+    setMobileOpen(false);
+  };
+  const chooseRole = (role: RoleKey) => {
+    props.onRole(role);
+    setMobileOpen(false);
+  };
+  const contentProps = { ...props, onNavigate: navigate, onRole: chooseRole };
+
+  return (
+    <>
+      <aside className="pv3-sidebar pv3-sidebar-desktop" style={{ fontFamily: V3_FONT_SANS }}>
+        <Brand />
+        <Navigation {...contentProps} selectId="pv3-role-desktop" />
+      </aside>
+
+      <div className="pv3-mobilebar" style={{ fontFamily: V3_FONT_SANS }}>
+        <Brand />
+        <button
+          type="button"
+          className="pv3-menu-button"
+          aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen((open) => !open)}
+        >
+          {mobileOpen ? "×" : "Menu"}
+        </button>
+      </div>
+
+      {mobileOpen && (
+        <div className="pv3-drawer-layer">
+          <button type="button" className="pv3-drawer-backdrop" aria-label="Fermer le menu" onClick={() => setMobileOpen(false)} />
+          <aside className="pv3-sidebar pv3-sidebar-drawer" aria-label="Menu mobile" style={{ fontFamily: V3_FONT_SANS }}>
+            <Brand />
+            <Navigation {...contentProps} selectId="pv3-role-mobile" />
+          </aside>
+        </div>
+      )}
+    </>
   );
 }
