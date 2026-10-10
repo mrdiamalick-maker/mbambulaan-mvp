@@ -63,6 +63,7 @@ function uiOutcome(status: ProgramOpportunityStatus): OpportunityOutcome {
 
 export interface OpportunityRowView {
   id: string;
+  createdAt: string;
   problem: string;
   subLabel: string;
   statusLabel: string;
@@ -96,6 +97,7 @@ function toRowView(state: ProductState, opportunity: ProgramOpportunity): Opport
   const names = territoryNames(state, opportunity.territoryIds);
   return {
     id: opportunity.id,
+    createdAt: opportunity.createdAt,
     problem: opportunity.problem,
     // subLabel (G2.1) — pas de champ de tagline dédié sur
     // ProgramOpportunity (G1) ; potentialBeneficiaries est le champ réel
@@ -135,6 +137,7 @@ export function getOpportunitiesForTerritory(territoryId: string, state: Product
 export interface OpportunityDetailView extends OpportunityRowView {
   justification: string;
   siteNames: string[];
+  situationIds: string[];
   situationTitles: string[];
   involvedActorNames: string[];
   establishedFacts: string[];
@@ -166,6 +169,7 @@ export function getOpportunityDetail(id: string, state: ProductState = DEMO_STAT
     ...toRowView(state, opportunity),
     justification: opportunity.justification,
     siteNames: (opportunity.siteIds ?? []).map((siteId) => state.sites.find((item) => item.id === siteId)?.name ?? siteId),
+    situationIds: opportunity.situationIds ?? [],
     situationTitles: (opportunity.situationIds ?? []).map((situationId) => state.situations.find((item) => item.id === situationId)?.title ?? situationId),
     involvedActorNames: (opportunity.involvedActorIds ?? []).map((actorId) => state.actors.find((item) => item.id === actorId)?.name ?? actorId),
     establishedFacts: opportunity.establishedFacts,

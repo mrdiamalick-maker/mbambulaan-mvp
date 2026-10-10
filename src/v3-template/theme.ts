@@ -8,11 +8,13 @@
 // script du prototype (mêmes couleurs hexadécimales / rgba, mêmes familles
 // de police) — ce ne sont pas des approximations de palette.
 
-// @font-face déclarées dans fonts.css, avec les fichiers .woff2 exacts du
-// standalone (voir ce fichier pour le pourquoi).
-export const V3_FONT_SERIF = "Newsreader, ui-serif, Georgia, serif";
-export const V3_FONT_SANS = "'IBM Plex Sans', system-ui, sans-serif";
-export const V3_FONT_MONO = "'IBM Plex Mono', ui-monospace, monospace";
+// UX-R1 — le nouveau Claude Design emploie Instrument Sans pour toute la
+// surface institutionnelle. Les alias historiques restent exportés afin de
+// ne pas réécrire les composants métier, mais pointent désormais tous vers
+// la famille exacte embarquée dans la référence HTML.
+export const V3_FONT_SERIF = "'Instrument Sans', system-ui, sans-serif";
+export const V3_FONT_SANS = "'Instrument Sans', system-ui, sans-serif";
+export const V3_FONT_MONO = "'Instrument Sans', system-ui, sans-serif";
 
 export const ink = "#0B1A2A"; // marine — fond sidebar / bandeaux sombres, texte principal
 export const paper = "#F7F3E9"; // papier — fond de page

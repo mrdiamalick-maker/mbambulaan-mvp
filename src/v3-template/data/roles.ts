@@ -10,8 +10,8 @@ export interface ModuleDef {
 }
 
 export const MODULES: Record<ScreenKey, ModuleDef> = {
-  brief: { label: "Brief national", suffix: { programme: "", coordination: "" } },
-  atlas: { label: "Atlas territorial" },
+  brief: { label: "Brief", suffix: { programme: "", coordination: "" } },
+  atlas: { label: "Atlas / Jumeau maritime" },
   // territoires/opportunites (G2.1, mandat "Vision territoriale") —
   // nouvelle navigation primaire, badge réel (nombre d'opportunités de
   // programme réellement enregistrées), jamais une valeur fixe de gabarit.
@@ -26,7 +26,7 @@ export const MODULES: Record<ScreenKey, ModuleDef> = {
   // vers Portfolio/ProgrammeDetail.
   programmes: { label: "Programmes" },
   resultats: { label: "Résultats" },
-  flux: { label: "Flux entrant", badge: (r) => (r === "ministre" ? "" : "11") },
+  flux: { label: "Flux entrants", badge: (r) => (r === "ministre" ? "" : "11") },
   sources: { label: "Sources connectées" }
 };
 
@@ -36,15 +36,10 @@ export interface RoleDef {
   note: string;
 }
 
-// ARCHITECTURE RECOVERY R1 — la navigation unifiée G2.1/G2.3 (une même
-// structure Brief · Territoires · Opportunités · Arbitrages · Initiatives ·
-// Résultats pour les 3 rôles) n'était pas une évolution de l'architecture
-// V5 par rôle mais un remplacement non arbitré. Restauration de la
-// structure V5 différenciée par rôle (identique à main@8721017), avec un
-// seul ajout validé : "opportunites" (nouvelle capability officielle,
-// cf. mandat Recovery R1 §5). "territoires" ne revient pas en navigation
-// primaire — Territoires.tsx reste accessible uniquement en drill-down
-// depuis Atlas (cf. App.tsx, onOpenTerritoire).
+// Les tableaux par rôle restent la source de l'écran d'atterrissage et du
+// contexte institutionnel. UX-R1 présente toutefois une navigation commune
+// dans Sidebar afin que chaque capacité RC1 reste directement accessible,
+// sans modifier les permissions ni les commandes métier propres aux rôles.
 export const ROLES: Record<RoleKey, RoleDef> = {
   ministre: {
     main: ["brief", "atlas", "opportunites", "situations", "arbitrages", "programmes", "resultats"],

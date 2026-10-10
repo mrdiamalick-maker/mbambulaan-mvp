@@ -1,55 +1,30 @@
-/* Feuille de style du template privé V3 — isolée de brand.css / des autres
-   feuilles existantes (§14 du mandat). Polices : voir fonts.css (mêmes
-   fichiers .woff2 octet pour octet que le standalone). Le reste : classes
-   utilitaires pour les états hover que le prototype exprimait via un
-   attribut style-hover (non disponible en style inline React), et
-   l'adaptation responsive (§18). */
-
+/* UX-R1 — surface institutionnelle isolée. Les couleurs, rythmes et le
+   comportement responsive reprennent le HTML Claude Design fourni ; les
+   composants métier sous-jacents restent ceux de RC1. */
 .pv3-root {
   --pv3-ink: #0b1a2a;
   --pv3-paper: #f7f3e9;
-  background: var(--pv3-paper);
+  --pv3-rust: #b6522f;
+  --pv3-green: #4e7b5a;
+  background: #fff;
   color: var(--pv3-ink);
-  /* Le layout racine (src/app/layout.tsx) charge Tailwind pour tout le
-     site, dont le Preflight (`html{line-height:1.5}`), qui traverse cette
-     route comme toutes les autres. Le standalone n'a aucun reset de ce
-     genre : ses textes sans line-height explicite gardent le "normal" du
-     navigateur, plus court. Sans cette ligne, chaque libellé/légende sans
-     line-height inline hérite du 1.5 de Tailwind — écart mesuré et
-     corrigé lors de la vérification côte à côte (§7 : correction de
-     fidélité, pas de redesign) : jusqu'à +25px sur certains blocs et
-     +106px de hauteur de page cumulée sur le Brief à lui seul.
-     Les éléments qui fixent leur propre line-height (h1, paragraphes...)
-     ne sont pas affectés : une valeur inline reste prioritaire sur
-     l'héritage. */
   line-height: normal;
+  font-variant-numeric: tabular-nums;
 }
 
-.pv3-root * {
-  box-sizing: border-box;
-}
-
-/* src/app/brand.css (chargé pour tout le site par le layout racine) pose
-   `h1,h2,h3{letter-spacing:-.035em}` sans scoping — une deuxième fuite
-   globale du même genre que le line-height ci-dessus. Sur un h2 à 26px,
-   ça condense le texte d'environ 0,9px/caractère : mesuré, ça suffisait à
-   faire tenir sur une ligne un titre d'arbitrage que le standalone (sans
-   ce tracking) casse sur deux — un vrai "wrong line break" (§7). Les
-   titres de ce template ne fixent pas leur propre letter-spacing (comme
-   dans le standalone) : ils doivent hériter le "normal" du navigateur.
-   Chaque h1/h2/h3 fixe déjà sa propre font-family en style inline, donc
-   la font-family de brand.css n'a jamais eu prise ; seul letter-spacing
-   avait besoin de ce correctif. */
+.pv3-root * { box-sizing: border-box; }
 .pv3-root h1,
 .pv3-root h2,
-.pv3-root h3 {
-  letter-spacing: normal;
-}
+.pv3-root h3 { letter-spacing: normal; }
+.pv3-root button,
+.pv3-root select { font: inherit; }
+.pv3-root button:focus-visible,
+.pv3-root select:focus-visible,
+.pv3-root a:focus-visible { outline: 2px solid #de7a50; outline-offset: 2px; }
 
 @keyframes pv3-pulse {
   0% { transform: scale(1); opacity: 0.5; }
-  75% { transform: scale(3.2); opacity: 0; }
-  100% { transform: scale(3.2); opacity: 0; }
+  75%, 100% { transform: scale(3.2); opacity: 0; }
 }
 @keyframes pv3-rise {
   from { opacity: 0; transform: translateY(9px); }
@@ -58,90 +33,210 @@
 .pv3-rise { animation: pv3-rise 0.4s ease-out; }
 .pv3-rise-fast { animation: pv3-rise 0.28s ease-out; }
 
-/* Nav item — état "idle" de la sidebar */
-.pv3-nav-idle:hover { background: rgba(247, 243, 233, 0.07); color: #f7f3e9; }
-.pv3-nav-sec:hover { background: rgba(247, 243, 233, 0.07); color: #f7f3e9; }
+.pv3-sidebar {
+  width: 248px;
+  flex: none;
+  background: var(--pv3-ink);
+  color: var(--pv3-paper);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.pv3-sidebar-desktop {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+}
+.pv3-brand {
+  padding: 24px 22px 20px;
+  display: flex;
+  gap: 11px;
+  align-items: center;
+}
+.pv3-brand svg { width: 25px; height: 25px; flex: none; }
+.pv3-brand-name { font-size: 19px; line-height: 1; font-weight: 600; letter-spacing: -0.02em; }
+.pv3-brand-subtitle {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(247, 243, 233, 0.5);
+  margin-top: 5px;
+  white-space: nowrap;
+}
+.pv3-sidebar-nav { display: flex; flex-direction: column; gap: 1px; padding: 2px 10px; }
+.pv3-nav-item {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 39px;
+  text-align: left;
+  border: 0;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  padding: 9px 10px;
+  background: transparent;
+  color: rgba(247, 243, 233, 0.69);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.pv3-nav-item:hover { background: rgba(247, 243, 233, 0.07); color: #fff; }
+.pv3-nav-item.is-active {
+  border-left-color: var(--pv3-rust);
+  background: rgba(182, 82, 47, 0.2);
+  color: #fff;
+  font-weight: 650;
+}
+.pv3-nav-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(247, 243, 233, 0.26); }
+.pv3-nav-item.is-active .pv3-nav-dot { background: #de7a50; }
+.pv3-nav-badge {
+  min-width: 19px;
+  border-radius: 999px;
+  padding: 2px 6px;
+  background: rgba(247, 243, 233, 0.13);
+  color: rgba(247, 243, 233, 0.86);
+  font-size: 10px;
+  text-align: center;
+}
+.pv3-nav-item.is-active .pv3-nav-badge { background: var(--pv3-rust); color: #fff; }
+.pv3-nav-separator { height: 1px; margin: 15px 22px 13px; background: rgba(247, 243, 233, 0.12); }
+.pv3-nav-kicker,
+.pv3-role-label,
+.pv3-knowledge-title {
+  color: rgba(247, 243, 233, 0.45);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.pv3-nav-kicker { padding: 0 22px 7px; }
+.pv3-sidebar-nav-secondary .pv3-nav-item { min-height: 35px; padding-block: 7px; font-size: 12px; }
+.pv3-sidebar-footer { margin-top: auto; padding: 17px 22px 20px; border-top: 1px solid rgba(247, 243, 233, 0.12); }
+.pv3-role-label { display: block; margin-bottom: 8px; }
+.pv3-role-select {
+  width: 100%;
+  border: 1px solid rgba(247, 243, 233, 0.2);
+  border-radius: 0;
+  background: rgba(247, 243, 233, 0.08);
+  color: #fff;
+  padding: 7px 8px;
+  font-size: 11.5px;
+}
+.pv3-role-select option { color: var(--pv3-ink); }
+.pv3-role-note { color: rgba(247, 243, 233, 0.48); font-size: 10px; line-height: 1.35; margin-top: 7px; }
+.pv3-knowledge-title { margin: 17px 0 9px; }
+.pv3-knowledge-list { display: flex; flex-direction: column; gap: 7px; color: rgba(247, 243, 233, 0.76); font-size: 10.5px; }
+.pv3-knowledge-list b { color: #fff; font-size: 12px; margin-right: 6px; }
+.pv3-knowledge-list .is-observed { color: #e6a27a; }
+.pv3-knowledge-list .is-verified { color: #8fcb9b; }
 
-/* Lignes de listes cliquables (brief decisions/programmes, portefeuille…) */
+.pv3-mobilebar,
+.pv3-drawer-layer { display: none; }
+.pv3-main { background: #fff; }
+.pv3-content-frame { width: 100%; max-width: 1200px; margin-left: auto; margin-right: auto; }
+
+.pv3-workspace-header {
+  min-height: 64px;
+  flex: none;
+  border-bottom: 1px solid rgba(11, 26, 42, 0.11);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 12px clamp(20px, 3vw, 42px);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(10px);
+}
+.pv3-header-breadcrumb { display: flex; align-items: center; gap: 8px; color: rgba(11, 26, 42, 0.52); font-size: 12.5px; white-space: nowrap; }
+.pv3-header-breadcrumb strong { color: var(--pv3-ink); font-weight: 650; }
+.pv3-header-tools { display: flex; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; }
+.pv3-period-group { display: flex; border: 1px solid rgba(11, 26, 42, 0.16); }
+.pv3-period-group button {
+  border: 0;
+  border-right: 1px solid rgba(11, 26, 42, 0.12);
+  background: #fff;
+  color: rgba(11, 26, 42, 0.62);
+  padding: 7px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pv3-period-group button:last-child { border-right: 0; }
+.pv3-period-group button.is-active { background: var(--pv3-ink); color: var(--pv3-paper); }
+.pv3-period-range { color: rgba(11, 26, 42, 0.46); font-size: 10.5px; white-space: nowrap; }
+.pv3-outline-action {
+  border: 1px solid rgba(11, 26, 42, 0.24);
+  border-radius: 0;
+  background: #fff;
+  color: var(--pv3-ink);
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pv3-outline-action:hover { border-color: var(--pv3-ink); }
+
+.pv3-nav-idle:hover,
+.pv3-nav-sec:hover { background: rgba(247, 243, 233, 0.07); color: #f7f3e9; }
 .pv3-row-hover-06:hover { background: rgba(182, 82, 47, 0.06); }
 .pv3-row-hover-05:hover { background: rgba(182, 82, 47, 0.05); }
 .pv3-row-hover-04:hover { background: rgba(182, 82, 47, 0.04); }
 .pv3-row-hover-dark:hover { background: rgba(247, 243, 233, 0.06); }
-
 .pv3-border-hover-dark:hover { border-color: #0b1a2a !important; }
-
-.pv3-scrollbar-thin {
-  scrollbar-width: thin;
-}
-
-/* svg text rendering, matches prototype defaults */
+.pv3-scrollbar-thin { scrollbar-width: thin; }
 .pv3-root svg text { user-select: none; }
 
-/* ---------------------------------------------------------------------
-   Responsive adaptation (§18 du mandat).
-   Le standalone source de vérité n'a AUCUNE intention responsive sous
-   1360px (shell racine en `min-width:1360px` fixe, aucune media query,
-   aucune nav mobile) : c'est une console opérationnelle pensée pour un
-   poste de travail. §18 exige pourtant zéro débordement horizontal
-   jusqu'à 390px. Ces deux exigences sont contradictoires en dessous de
-   1360px ; la liberté d'implémentation laissée par §20 est utilisée ici
-   pour combler ce vide plutôt que pour improviser un empilement
-   générique — la grille éditoriale, la typographie et les couleurs
-   restent celles du design, seule la mise en page se réorganise.
-   Documenté comme écart assumé dans le rapport de clôture. --------- */
-@media (max-width: 860px) {
-  .pv3-shell {
-    flex-direction: column;
+@media (max-width: 1099px) {
+  .pv3-shell { flex-direction: column; }
+  .pv3-sidebar-desktop { display: none; }
+  .pv3-mobilebar {
+    height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--pv3-ink);
+    color: var(--pv3-paper);
+    position: sticky;
+    top: 0;
+    z-index: 70;
   }
-  .pv3-sidebar {
-    width: 100% !important;
-    height: auto !important;
-    position: relative !important;
-    top: auto !important;
-  }
-  .pv3-sidebar-nav {
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-  }
-  .pv3-sidebar-nav button {
-    width: auto !important;
-  }
-  /* Toute grille éditoriale (deux, trois, quatre, cinq colonnes) repasse
-     en une seule colonne : la lecture reste dans le même ordre que sur
-     desktop, simplement empilée plutôt que juxtaposée. Le sélecteur
-     cible l'attribut style rendu par React — inutile de toucher aux
-     ~25 grilles une par une dans chaque écran. */
-  .pv3-root div[style*="grid-template-columns"] {
-    grid-template-columns: 1fr !important;
-  }
-  .pv3-situation-stats {
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 12px !important;
-  }
-  .pv3-situation-stats > div {
-    flex: 1 1 120px;
-    text-align: left !important;
-  }
+  .pv3-mobilebar .pv3-brand { padding: 15px 20px; }
+  .pv3-menu-button { border: 1px solid rgba(247, 243, 233, 0.25); background: transparent; color: #fff; margin-right: 18px; padding: 7px 11px; font-size: 11px; cursor: pointer; }
+  .pv3-drawer-layer { display: block; position: fixed; inset: 0; z-index: 80; }
+  .pv3-drawer-backdrop { position: absolute; inset: 0; width: 100%; border: 0; background: rgba(11, 26, 42, 0.5); }
+  .pv3-sidebar-drawer { position: absolute; inset: 0 auto 0 0; height: 100%; max-width: min(320px, 88vw); box-shadow: 12px 0 34px rgba(11, 26, 42, 0.3); }
+  .pv3-workspace-header { top: 62px; }
 }
 
-/* G2.1 ("Vision territoriale") — la rangée des compteurs métier de la
-   fiche territoire (Situations/Opportunités/Décisions/Initiatives/
-   Résultats) doit rester sur une seule ligne, y compris sur tablette
-   (bug identifié et corrigé côté maquette source de vérité,
-   Mbambulaan_Etat_G2_Territoires.html). Exception ciblée à la règle
-   générique ci-dessus (ligne ~114) : même spécificité CSS, mais
-   déclarée après elle dans la feuille de style, donc prioritaire en cas
-   d'égalité — repasse cette grille précise à 5 colonnes même sous
-   860px, les tuiles elles-mêmes tronquant leur libellé (ellipsis)
-   plutôt que de déborder. */
 @media (max-width: 860px) {
-  /* Spécificité égale à la règle générique ci-dessus
-     (.pv3-root div[style*="..."], soit classe+attribut+type) pour que
-     l'ordre de déclaration (celle-ci après) la départage réellement :
-     un simple .pv3-root .pv3-territory-counters serait moins spécifique
-     (classe+classe, sans le sélecteur de type) et perdrait. */
-  .pv3-root div.pv3-territory-counters {
-    grid-template-columns: repeat(5, 1fr) !important;
-  }
+  .pv3-root div.pv3-b2-master-detail { grid-template-columns: 1fr !important; }
+  .pv3-b2-master-list { border-right: 0 !important; border-bottom: 1px solid rgba(11, 26, 42, 0.13); }
+}
+
+@media (max-width: 720px) {
+  .pv3-workspace-header { position: relative; top: auto; align-items: flex-start; flex-direction: column; gap: 10px; padding: 14px 18px; }
+  .pv3-header-tools { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+  .pv3-period-range { display: none; }
+  .pv3-root div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+  .pv3-root div.pv3-territory-counters { grid-template-columns: repeat(5, 1fr) !important; overflow-x: auto; }
+  .pv3-situation-stats { width: 100%; flex-wrap: wrap; gap: 12px !important; }
+  .pv3-situation-stats > div { flex: 1 1 120px; text-align: left !important; }
+  .pv3-opp-panel { width: 100vw !important; }
+  .pv3-opportunity-row { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .pv3-opportunity-row > div:last-child { justify-content: flex-start !important; }
+  .pv3-root div.pv3-b2-pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .pv3-root div.pv3-b2-step-track { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .pv3-root div.pv3-b2-detail-columns { grid-template-columns: 1fr !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pv3-rise,
+  .pv3-rise-fast { animation: none; }
+  .pv3-root * { scroll-behavior: auto !important; }
 }

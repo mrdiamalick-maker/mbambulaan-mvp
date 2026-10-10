@@ -40,11 +40,10 @@ import type { PeriodKey, RoleKey, ScreenKey } from "./types";
 // figure pas).
 const G2_OWN_HEADER_SCREENS: ScreenKey[] = ["territoires", "opportunites"];
 
-// Racine du template privé V3 — un seul shell (sidebar + header + bandeau
-// démo), un état applicatif plat, un écran affiché à la fois. Reproduit la
-// mécanique du standalone : le rôle connecté change l'ordre des écrans
-// disponibles (donc l'écran d'atterrissage) et la voix du Brief, sans
-// jamais changer d'implémentation technique (§4/§17 du mandat).
+// Racine de l'espace État — un seul shell, un état applicatif plat et un
+// écran affiché à la fois. La navigation UX-R1 expose les mêmes capacités
+// pour chaque perspective ; le rôle conserve son écran d'atterrissage, la
+// voix du Brief et surtout les responsabilités métier réelles.
 export function PrivateV3App({ initialScreen = initialAppState.screen }: { initialScreen?: ScreenKey }) {
   const [state, setState] = useState(() => ({ ...initialAppState, screen: initialScreen }));
   const patch = useCallback((p: Partial<typeof initialAppState>) => {
@@ -62,7 +61,9 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
   }, []);
 
   const navigate = useCallback((screen: ScreenKey) => {
-    patch({ screen });
+    if (screen === "territoires") patch({ screen, terrView: "list", terrSel: null, terrFromAtlas: false });
+    else if (screen === "programmes") patch({ screen, progView: "portfolio" });
+    else patch({ screen });
     syncScreenUrl(screen);
     if (typeof window !== "undefined") window.scrollTo(0, 0);
   }, [patch, syncScreenUrl]);
@@ -135,12 +136,13 @@ export function PrivateV3App({ initialScreen = initialAppState.screen }: { initi
         screen={state.screen}
         role={state.role}
         onNavigate={navigate}
+        onRole={onRole}
         badgeOverrides={{ opportunites: opportunityBadge, arbitrages: arbitragesBadge, situations: situationsBadge, flux: fluxBadge }}
       />
-      <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+      <main className="pv3-main" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         {!hasOwnHeader && (
           <>
-            <Header period={state.period} role={state.role} periodRange={PERIOD[state.period].range} onPeriod={onPeriod} onRole={onRole} />
+            <Header screen={state.screen} period={state.period} periodRange={PERIOD[state.period].range} onPeriod={onPeriod} onPresent={() => patch({ presentOpen: true })} />
             <DemoBanner roleNote={roleDef.note} />
           </>
         )}

@@ -82,6 +82,7 @@ export function getTerritoryList(state: ProductState = DEMO_STATE): TerritoryLis
 }
 
 export interface TerritoryRetainItem {
+  realId: string;
   severityLabel: string;
   severityColor: string;
   trustGlyph: string;
@@ -223,6 +224,7 @@ export function getTerritoryFiche(territoryId: string, state: ProductState = DEM
   const zone = TERR.find((row) => row[0] === territory.name)?.[6];
 
   const retain: TerritoryRetainItem[] = openSituations.slice(0, 2).map((situation) => ({
+    realId: situation.id,
     severityLabel: priorityLabels[situation.priority],
     severityColor: LVT[situation.priority === "critique" ? "critique" : situation.priority === "haute" ? "vigilance" : "stable"],
     trustGlyph: trustGlyph(situation.trust),
