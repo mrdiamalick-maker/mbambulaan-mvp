@@ -27,6 +27,7 @@ import { applyActorNetworkCommand } from "./actor-network";
 import { applyInitiativeLifecycleCommand } from "./initiative-lifecycle";
 import { applyActorRelationshipCommand } from "./actor-relationship";
 import { applyProgrammeMobilizationCommand } from "./programme-mobilization";
+import { applyReceiveChannelMessage, applySendChannelMessage } from "./channel-interaction";
 
 // Le moteur de rapprochement Lot ↔ ServiceRequest (§5.11) ne concerne que
 // les intentions d'approvisionnement : une demande de formation ou de
@@ -113,6 +114,8 @@ const transitions: Record<
     | "update_organization_verification"
     | "create_programme_organization_engagement"
     | "update_programme_organization_engagement_status"
+    | "receive_channel_message"
+    | "send_channel_message"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -976,6 +979,16 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   if (command.type === "create_programme_organization_engagement" || command.type === "update_programme_organization_engagement_status") {
     return applyProgrammeMobilizationCommand(state, command);
   }
+  // receive_channel_message/send_channel_message (Sprint Terrain T01) —
+  // délégué à channel-interaction.ts, même discipline que les autres
+  // domaines fonctionnels ci-dessus : le cycle de vie d'une conversation
+  // de canal est distinct de celui d'un Signal/IncomingMessage.
+  if (command.type === "receive_channel_message") {
+    return applyReceiveChannelMessage(state, command);
+  }
+  if (command.type === "send_channel_message") {
+    return applySendChannelMessage(state, command);
+  }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
   }
@@ -1212,6 +1225,8 @@ export type WorkflowAction = Exclude<
   | "update_organization_verification"
   | "create_programme_organization_engagement"
   | "update_programme_organization_engagement_status"
+  | "receive_channel_message"
+  | "send_channel_message"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {

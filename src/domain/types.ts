@@ -39,11 +39,21 @@ export type SituationStatus =
   | "resultat"
   | "reglee";
 
+// organizationId optionnel (Sprint Terrain T01, intégration WhatsApp) —
+// un Actor onboardé depuis un canal de message (téléphone inconnu) n'a
+// réellement aucune organisation à ce stade : inventer une affiliation
+// serait fabriquer une donnée, la laisser vide est le seul choix honnête.
+// Tous les appelants existants lisaient déjà organizationId via
+// `.find(item => item.id === actor.organizationId)` (OrganizationWorkspace,
+// ProductShell, access-projection…), qui se comporte déjà correctement
+// (aucune correspondance) quand la valeur ne pointe vers aucune
+// Organization réelle — élargir le type à `string | undefined` ne change
+// aucun comportement d'exécution existant.
 export interface Actor {
   id: string;
   name: string;
   role: Role;
-  organizationId: string;
+  organizationId?: string;
   territoryIds: string[];
   phone: string;
   verified: boolean;
@@ -584,6 +594,92 @@ export interface IncomingMessage {
   dismissedAt?: string;
   dismissedByActorId?: string;
   duplicateOfSignalId?: string;
+}
+
+// --- Sprint Terrain T01 — intégration WhatsApp-first ----------------------
+//
+// Doctrine : IncomingMessage (ci-dessus) reste le pipeline de qualification
+// humaine existant ("Flux entrant", /etat) — un message brut sans acteur
+// résolu, qualifié ou écarté par un coordinateur. Conversation/
+// TerrainInteraction ci-dessous répondent à un besoin différent et ne le
+// remplacent ni ne le réutilisent : un numéro de téléphone identifie
+// automatiquement (ou onboarde) un Actor réel AVANT toute qualification
+// humaine — jamais une seconde logique de qualification, un palier qui
+// précède le premier. channel reste volontairement distinct de
+// Signal["channel"] (qui décrit la provenance d'un Signal déjà qualifié,
+// pas un canal de conversation en direct) : InteractionChannel n'existe
+// que pour ce palier, pensé dès le départ pour s'étendre à
+// sms/telephone sans toucher au domaine (mandat Sprint T01).
+export type InteractionChannel = "whatsapp" | "sms" | "telephone";
+
+// ConversationStatus — machine à états minimale de l'onboarding
+// conversationnel (mandat Sprint T01 §4, "pas d'IA de classification") :
+// chaque transition consomme une réponse déterministe (numéro de choix ou
+// correspondance exacte), jamais une interprétation de texte libre.
+export type ConversationStatus =
+  | "onboarding_prenom"
+  | "onboarding_role"
+  | "onboarding_site"
+  | "actif";
+
+export interface ConversationMessage {
+  id: string;
+  direction: "inbound" | "outbound";
+  body: string;
+  occurredAt: string;
+}
+
+export interface Conversation {
+  id: string;
+  channel: InteractionChannel;
+  // channelAddress — identifiant stable côté canal (numéro E.164 pour
+  // whatsapp/sms/telephone aujourd'hui), jamais réutilisé comme identité
+  // métier : actorId ci-dessous reste la seule référence Actor réelle une
+  // fois l'onboarding terminé.
+  channelAddress: string;
+  actorId?: string;
+  status: ConversationStatus;
+  // pendingPrenom/pendingRole — réponses déjà collectées pendant
+  // l'onboarding, avant que l'Actor réel n'existe ; jamais lues une fois
+  // status === "actif" (purgées à la création de l'Actor).
+  pendingPrenom?: string;
+  pendingRole?: Role;
+  startedAt: string;
+  lastMessageAt: string;
+  // messages — historique brut de la conversation (mandat §8), y compris
+  // les échanges d'onboarding : distinct de TerrainInteraction ci-dessous,
+  // qui ne porte que les messages réels post-onboarding (mandat §6,
+  // "après onboarding, chaque message reçu crée une interaction terrain").
+  messages: ConversationMessage[];
+}
+
+// TerrainInteractionType — un seul littéral pour ce sprint (mandat §6,
+// "type = unclassified"), délibérément un type dédié (pas un `string`
+// nu) pour que le sprint suivant (classification) étende cette union
+// sans toucher aux appelants déjà corrects.
+export type TerrainInteractionType = "non_classifie";
+
+export interface TerrainInteraction {
+  id: string;
+  conversationId: string;
+  actorId: string;
+  channel: InteractionChannel;
+  rawContent: string;
+  occurredAt: string;
+  // territoryId — résolu depuis le premier territoire connu de l'Actor
+  // (Actor.territoryIds[0]) au moment du message, jamais déduit du
+  // contenu du message lui-même (mandat §6, "si connu").
+  territoryId?: string;
+  // status réutilise le vocabulaire de confiance déjà établi
+  // (VerificationStatus : déclarée/documentée/vérifiée) plutôt qu'une
+  // nouvelle échelle — chaque interaction entre à "declaree" (mandat §6,
+  // "status = declared") et ne progresse pas automatiquement.
+  status: VerificationStatus;
+  type: TerrainInteractionType;
+  // externalMessageId — identifiant du message côté canal (ex. WhatsApp
+  // message id), utilisé pour la clé d'idempotence du webhook ; absent
+  // pour un canal qui n'en fournit pas.
+  externalMessageId?: string;
 }
 
 export interface Situation {
@@ -1596,6 +1692,11 @@ export interface ProductState {
   subscriptions: Subscription[];
   notifications: Notification[];
   audit: AuditEntry[];
+  // conversations/terrainInteractions (Sprint Terrain T01) — additifs,
+  // même discipline que fieldMissions/observations : jamais embarqués
+  // dans Actor, une provenance et un cycle de vie propres.
+  conversations: Conversation[];
+  terrainInteractions: TerrainInteraction[];
 }
 
 export type Command =
@@ -2049,6 +2150,19 @@ export type Command =
   // contacted → engaged/declined) vérifiée par le domaine
   // (programme-mobilization.ts), pas par ce type.
   | { type: "update_programme_organization_engagement_status"; actorId: string; engagementId: string; status: Exclude<ProgrammeOrganizationEngagementStatus, "considered">; note?: string }
+  // receive_channel_message/send_channel_message (Sprint Terrain T01) —
+  // volontairement SANS actorId : un message entrant sur un canal
+  // n'émane pas (encore) d'un Actor identifié — c'est précisément ce que
+  // la commande résout. CommandInput (ci-dessous) exclut donc ces deux
+  // commandes de /api/actions (qui exige une session humaine) ; elles ne
+  // sont dispatchées que depuis le webhook de canal (server-only, jamais
+  // un geste utilisateur authentifié), via server/repository.ts::dispatch
+  // directement. occurredAt vient du canal (horodatage du message tel
+  // que fourni par l'émetteur), jamais recalculé côté serveur, pour que
+  // l'idempotence (externalMessageId) et l'ordre restent fidèles à
+  // l'émetteur.
+  | { type: "receive_channel_message"; channel: InteractionChannel; channelAddress: string; rawContent: string; occurredAt: string; externalMessageId?: string }
+  | { type: "send_channel_message"; channel: InteractionChannel; channelAddress: string; body: string; occurredAt: string }
   | { type: "reset_demo"; actorId: string };
 
 export type CommandInput = Command extends infer Item

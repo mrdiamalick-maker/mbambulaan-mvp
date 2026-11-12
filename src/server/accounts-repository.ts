@@ -169,7 +169,13 @@ async function ensureDemoAccount() {
     build("acc-demo-operateur", "operateur@mbambulaan.sn", "operateur", "act-operateur", "Compte de démonstration — Opérateur"),
     build("acc-demo-mareyeur", "mareyeur@mbambulaan.sn", "mareyeur", "act-mareyeur", "Compte de démonstration — Mareyeur"),
     build("acc-demo-transformateur", "transformateur@mbambulaan.sn", "transformateur", "act-transform", "Compte de démonstration — Transformateur"),
-    build("acc-demo-prestataire", "prestataire@mbambulaan.sn", "prestataire", "act-prestataire", "Compte de démonstration — Prestataire")
+    build("acc-demo-prestataire", "prestataire@mbambulaan.sn", "prestataire", "act-prestataire", "Compte de démonstration — Prestataire"),
+    // Sprint Terrain T01 (intégration WhatsApp) — administrateur manquait
+    // à l'appel alors que act-admin (Ndeye Mbaye) existe déjà dans le
+    // Demo World et que /app/terrain lui réserve une vue dédiée
+    // (TerrainSupervisorView) : sans ce compte, cette vue n'était
+    // démontrable par personne.
+    build("acc-demo-administrateur", "administrateur@mbambulaan.sn", "administrateur", "act-admin", "Compte de démonstration — Administrateur")
   );
 }
 
