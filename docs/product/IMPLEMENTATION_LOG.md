@@ -15,7 +15,7 @@ Complete for the scope defined in CURRENT_SPRINT.md §1-§14. All 12 required te
 
 ### Final commit SHA
 
-`<filled in the follow-up commit on this branch — see `git log -1 -- docs/product/IMPLEMENTATION_LOG.md` or the repository's history for the exact SHA>`
+`a5175413872fdc4ea8886d8fdb4ba469696db707`
 
 ### Files created / modified
 
