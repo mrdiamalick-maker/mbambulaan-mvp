@@ -134,7 +134,7 @@ Three distinct claims, kept separate per §15's explicit instruction:
 
 ### Final commit SHA
 
-`<filled in the follow-up commit on this branch — see the commit that updates this exact line, or `git log` on `product/whatsapp-revenue-mvp`>`
+`b4290acb30c4d77f0a7858bc16ba74fcb6013f23`
 
 ### Files created / modified
 
