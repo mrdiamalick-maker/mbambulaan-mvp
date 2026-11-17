@@ -674,38 +674,115 @@ export const terrainInteractionMessageTypeLabels: Record<TerrainInteractionMessa
   autre: "Autre"
 };
 
-// TerrainInteractionProcessingStatus — mandat §6/§10 : distincte de
+// TerrainInteractionProcessingStatus — mandat T02 §5/§11 : distincte de
 // evidenceStatus (fiabilité de l'affirmation) et de intent (classification
-// métier, hors périmètre T01). "media_en_attente" signale à l'opérateur
-// qu'un contenu est arrivé mais n'est pas encore exploitable (pas de
-// transcription/vision en T01) — jamais "recue" pour un contenu non
-// textuel, pour ne jamais laisser croire qu'il a été traité.
-export type TerrainInteractionProcessingStatus = "recue" | "media_en_attente";
+// métier). T01 avait "recue"/"media_en_attente" (le pipeline IA
+// n'existait pas encore) ; T02 construit réellement ce pipeline, donc ces
+// deux statuts n'avaient plus de sens (un contenu reçu n'est jamais "fini"
+// tant qu'aucune interprétation n'a été tentée, texte compris). Remplacés
+// par le cycle réel : en_attente_traitement (créée, IA pas encore passée)
+// → traitee (une interprétation structurée valide existe) OU
+// echec_traitement (le pipeline a échoué à une étape — transcription,
+// vision, JSON invalide, timeout — mandat §11, "jamais perdre
+// l'interaction d'origine, toujours un état explicite + retry possible").
+export type TerrainInteractionProcessingStatus = "en_attente_traitement" | "traitee" | "echec_traitement";
 
 export const terrainInteractionProcessingStatusLabels: Record<TerrainInteractionProcessingStatus, string> = {
-  recue: "Reçue",
-  media_en_attente: "Média en attente (T02)"
+  en_attente_traitement: "En attente de traitement IA",
+  traitee: "Traitée",
+  echec_traitement: "Échec de traitement (à revoir)"
 };
 
-// TerrainInteractionIntent — mandat §6 : "intent = UNCLASSIFIED pour T01".
-// Une seule valeur existe volontairement : SIGNAL/NEED/OBSERVATION/
-// CAPACITY (mandat PRODUCT_BASELINE §5) ne sont PAS implémentés ici — le
-// type reste à une seule valeur plutôt que préparer une union à 5 branches
-// qu'aucune commande de ce sprint ne produit encore (mandat "ne pas
-// construire le moteur de classification maintenant").
-export type TerrainInteractionIntent = "non_classifie";
+// TerrainInteractionIntent — mandat PRODUCT_BASELINE §5 / CURRENT_SPRINT
+// T02 §5-§6. Cinq valeurs, jamais plus : les 4 intentions métier déclarées
+// par le mandat (SIGNAL/NEED/OBSERVATION/CAPACITY → signal/besoin/
+// observation/capacite, vocabulaire français pour rester cohérent avec le
+// reste du domaine) + non_classifie (UNCLASSIFIED), utilisé tant qu'aucune
+// interprétation n'existe encore ET quand l'IA elle-même ne peut pas
+// décider sans deviner (mandat §6, "never force one of the four business
+// intents").
+export type TerrainInteractionIntent = "signal" | "besoin" | "observation" | "capacite" | "non_classifie";
 
-// TerrainInteraction — mandat §6. "actor/contact reference" est réalisé
-// par conversationId (toujours présent, dès le premier message, même
-// avant la création d'un Actor réel) + actorId optionnel (renseigné une
-// fois l'onboarding complet) — jamais un Actor fabriqué à moitié rempli
-// pour satisfaire ce champ plus tôt. evidenceStatus réutilise
-// VerificationStatus (déjà la grammaire "declaree/documentee/verifiee"
-// partagée par Organization/ActorRelationship, voir commentaire plus haut)
-// plutôt qu'un nouvel enum DECLARED/OBSERVED/VERIFIED : "declaree" porte
-// exactement le sens du mandat §6 ("evidenceStatus = DECLARED par
-// défaut") ; documenté ici comme mapping délibéré, pas une substitution
-// silencieuse.
+export const terrainInteractionIntentLabels: Record<TerrainInteractionIntent, string> = {
+  signal: "Signal",
+  besoin: "Besoin",
+  observation: "Observation",
+  capacite: "Capacité",
+  non_classifie: "Non classé"
+};
+
+// InterpretationConfidence — mandat §5, "confidence or equivalent bounded
+// score/category". Catégorie bornée plutôt qu'un score numérique continu :
+// ni la fixture déterministe (T02, aucun fournisseur réel disponible dans
+// cet environnement) ni un futur vrai modèle ne peuvent honnêtement
+// prétendre à une précision numérique fine — une catégorie explicable
+// (mandat §7, doctrine de confiance) évite de fabriquer une fausse
+// précision.
+export type InterpretationConfidence = "haute" | "moyenne" | "faible";
+
+export const interpretationConfidenceLabels: Record<InterpretationConfidence, string> = {
+  haute: "Haute",
+  moyenne: "Moyenne",
+  faible: "Faible"
+};
+
+// TerrainInterpretation — mandat §5 : "extend TerrainInteraction or
+// introduce one tightly-linked interpretation object. Avoid duplicate
+// source-of-truth objects." Choix retenu : un objet imbriqué (jamais un
+// tableau ProductState séparé) — il n'existe que lié 1:1 à l'interaction
+// qui l'a produit, aucun cycle de vie propre. TerrainInteraction.intent
+// reste une projection TOUJOURS synchronisée par les mêmes commandes qui
+// touchent `interpretation.intent` (apply_terrain_interpretation,
+// correct_terrain_interpretation) — practique pour filtrer/afficher sans
+// descendre dans l'objet imbriqué, jamais une second vérité indépendante.
+export interface TerrainInterpretation {
+  intent: TerrainInteractionIntent;
+  summary: string;
+  language?: string;
+  subject?: string;
+  territoryId?: string;
+  siteId?: string;
+  quantity?: number;
+  unit?: string;
+  timeWindow?: string;
+  confidence: InterpretationConfidence;
+  needsHumanReview: boolean;
+  interpretedAt: string;
+  // Correction humaine (mandat §8, "human correction must remain
+  // auditable") — jamais une réécriture silencieuse : l'intention/les
+  // champs corrigés remplacent ceux de l'IA, mais la trace de la
+  // correction (qui, quand, depuis quelle intention) reste visible.
+  correctedByActorId?: string;
+  correctedAt?: string;
+  correctedFromIntent?: TerrainInteractionIntent;
+  correctionNote?: string;
+}
+
+// MediaReference — mandat §10 : référence durable au média fournisseur,
+// jamais le binaire lui-même dans le payload JSONB du tenant ("avoid
+// persisting binary media in the tenant JSON payload if architecture
+// makes that unsafe/heavy" — un blob JSONB partagé par tout le state
+// produit est exactement ce cas). Seule la métadonnée nécessaire pour re-
+// télécharger le média via l'API fournisseur au moment du traitement est
+// conservée.
+export interface MediaReference {
+  provider: "whatsapp";
+  mediaId: string;
+  mimeType?: string;
+  sha256?: string;
+}
+
+// TerrainInteraction — mandat T01 §6 + T02 §5. "actor/contact reference"
+// est réalisé par conversationId (toujours présent, dès le premier
+// message, même avant la création d'un Actor réel) + actorId optionnel
+// (renseigné une fois l'onboarding complet) — jamais un Actor fabriqué à
+// moitié rempli pour satisfaire ce champ plus tôt. evidenceStatus
+// réutilise VerificationStatus (déjà la grammaire "declaree/documentee/
+// verifiee" partagée par Organization/ActorRelationship, voir commentaire
+// plus haut) plutôt qu'un nouvel enum DECLARED/OBSERVED/VERIFIED ;
+// documenté ici comme mapping délibéré. Mandat §9 (T02) : le traitement
+// IA ne fait jamais progresser evidenceStatus — seul un geste humain
+// explicite le pourrait, et aucun n'existe encore pour ce chemin.
 export interface TerrainInteraction {
   id: string;
   // Identifiant du message côté fournisseur (ex. wamid WhatsApp) —
@@ -716,22 +793,38 @@ export interface TerrainInteraction {
   actorId?: string;
   channel: InteractionChannel;
   messageType: TerrainInteractionMessageType;
-  // Contenu brut tel que reçu pour "texte" ; repère factuel non fabriqué
-  // pour les autres types (mandat §10) — jamais une transcription.
+  // Contenu brut tel que reçu pour "texte" ; légende de caption réelle
+  // (mandat §4.3) pour image/document quand fournie, sinon un repère
+  // factuel non fabriqué (mandat §10) — jamais une transcription inventée.
   rawContent: string;
   receivedAt: string;
   territoryId?: string;
   evidenceStatus: VerificationStatus;
   processingStatus: TerrainInteractionProcessingStatus;
   intent: TerrainInteractionIntent;
-  // rawProviderEvent (mandat §4, "raw provider event retained for
+  // rawProviderEvent (mandat §4 T01, "raw provider event retained for
   // debugging/audit") — le message fournisseur isolé (jamais l'enveloppe
   // webhook entière avec d'autres contacts/messages), jamais journalisé en
-  // clair côté serveur (mandat §11) : conservé uniquement dans l'état
+  // clair côté serveur (mandat §11 T01) : conservé uniquement dans l'état
   // produit, visible seulement par un opérateur authentifié qui ouvre ce
   // dossier précis. Optionnel : un canal de test/fixture peut ne pas en
   // fournir.
   rawProviderEvent?: unknown;
+  // mediaRef (mandat T02 §10) — référence durable, jamais le binaire.
+  mediaRef?: MediaReference;
+  // transcription (mandat §4.2) — préservée séparément de interpretation :
+  // c'est un ARTEFACT du traitement (ce que l'audio dit réellement),
+  // distinct de l'INTERPRÉTATION qui en est dérivée.
+  transcription?: { text: string; language?: string };
+  // imageAnalysis (mandat §4.3) — même distinction : la description brute
+  // produite par la vision, séparée de l'interprétation terrain qui la
+  // combine avec une éventuelle légende.
+  imageAnalysis?: { description: string; confidence: InterpretationConfidence };
+  interpretation?: TerrainInterpretation;
+  // processingFailureReason (mandat §11) — raison explicite d'un
+  // echec_traitement, jamais un message générique qui masquerait la cause
+  // réelle (transcription/vision/JSON invalide/timeout).
+  processingFailureReason?: string;
 }
 
 export interface Situation {
@@ -2222,8 +2315,42 @@ export type Command =
       receivedAt: string;
       externalMessageId?: string;
       rawProviderEvent?: unknown;
+      mediaRef?: MediaReference;
     }
-  | { type: "send_channel_message"; channel: InteractionChannel; channelAddress: string; body: string; sentAt: string };
+  | { type: "send_channel_message"; channel: InteractionChannel; channelAddress: string; body: string; sentAt: string }
+  // apply_terrain_interpretation (Sprint T02) — même discipline que
+  // receive_channel_message : SANS actorId, webhook uniquement (le
+  // pipeline IA tourne côté pont de canal, pas dans une session humaine).
+  // "echec" ne retire jamais l'interaction d'origine (mandat §11) : seul
+  // processingStatus/processingFailureReason change.
+  | {
+      type: "apply_terrain_interpretation";
+      interactionId: string;
+      outcome: "succes" | "echec";
+      transcription?: { text: string; language?: string };
+      imageAnalysis?: { description: string; confidence: InterpretationConfidence };
+      interpretation?: Omit<TerrainInterpretation, "interpretedAt">;
+      failureReason?: string;
+    }
+  // correct_terrain_interpretation (Sprint T02, mandat §8) — AVEC
+  // actorId : geste humain d'un opérateur autorisé (jamais le pont
+  // webhook), donc soumis au même contrôle de permissions que toute autre
+  // commande (permissions.ts). "Confirmer" = appeler cette commande sans
+  // changer aucun champ et markForReview=false ; "marquer à revoir" =
+  // markForReview=true sans autre changement.
+  | {
+      type: "correct_terrain_interpretation";
+      actorId: string;
+      interactionId: string;
+      intent?: TerrainInteractionIntent;
+      subject?: string;
+      territoryId?: string;
+      quantity?: number;
+      unit?: string;
+      timeWindow?: string;
+      note?: string;
+      markForReview?: boolean;
+    };
 
 export type CommandInput = Command extends infer Item
   ? Item extends { actorId: string }

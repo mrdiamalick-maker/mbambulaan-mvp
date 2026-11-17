@@ -27,7 +27,7 @@ import { applyActorNetworkCommand } from "./actor-network";
 import { applyInitiativeLifecycleCommand } from "./initiative-lifecycle";
 import { applyActorRelationshipCommand } from "./actor-relationship";
 import { applyProgrammeMobilizationCommand } from "./programme-mobilization";
-import { applyReceiveChannelMessage, applySendChannelMessage } from "./channel-interaction";
+import { applyCorrectTerrainInterpretation, applyReceiveChannelMessage, applySendChannelMessage, applyTerrainInterpretation } from "./channel-interaction";
 
 // Le moteur de rapprochement Lot ↔ ServiceRequest (§5.11) ne concerne que
 // les intentions d'approvisionnement : une demande de formation ou de
@@ -116,6 +116,8 @@ const transitions: Record<
     | "update_programme_organization_engagement_status"
     | "receive_channel_message"
     | "send_channel_message"
+    | "apply_terrain_interpretation"
+    | "correct_terrain_interpretation"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -989,6 +991,12 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   if (command.type === "send_channel_message") {
     return applySendChannelMessage(state, command);
   }
+  if (command.type === "apply_terrain_interpretation") {
+    return applyTerrainInterpretation(state, command);
+  }
+  if (command.type === "correct_terrain_interpretation") {
+    return applyCorrectTerrainInterpretation(state, command);
+  }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
   }
@@ -1227,6 +1235,8 @@ export type WorkflowAction = Exclude<
   | "update_programme_organization_engagement_status"
   | "receive_channel_message"
   | "send_channel_message"
+  | "apply_terrain_interpretation"
+  | "correct_terrain_interpretation"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {

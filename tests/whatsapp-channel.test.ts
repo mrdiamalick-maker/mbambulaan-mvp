@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import test from "node:test";
-import { GRAPH_API_VERSION, parseWhatsappInboundMessages, verifyWhatsappSignature, verifyWhatsappWebhookChallenge, whatsappAdapter } from "../src/channels/whatsapp";
+import {
+  GRAPH_API_VERSION,
+  downloadWhatsappMedia,
+  parseWhatsappInboundMessages,
+  verifyWhatsappSignature,
+  verifyWhatsappWebhookChallenge,
+  whatsappAdapter
+} from "../src/channels/whatsapp";
 
 const ORIGINAL_APP_SECRET = process.env.WHATSAPP_APP_SECRET;
 const ORIGINAL_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
@@ -119,6 +126,116 @@ test("parseWhatsappInboundMessages — message incomplet (id/from/timestamp/type
 test("parseWhatsappInboundMessages — payload vide ou sans messages ne produit aucun message fabriqué", () => {
   assert.deepEqual(parseWhatsappInboundMessages({}), []);
   assert.deepEqual(parseWhatsappInboundMessages({ entry: [{ changes: [{ value: {} }] }] }), []);
+});
+
+test("parseWhatsappInboundMessages — mediaRef (T02 §10) : métadonnée durable capturée, jamais de binaire", () => {
+  const payload = {
+    entry: [
+      {
+        changes: [
+          {
+            value: {
+              messages: [
+                {
+                  id: "wamid.audio",
+                  from: "221771234567",
+                  timestamp: "1700000100",
+                  type: "audio",
+                  audio: { id: "media-123", mime_type: "audio/ogg", sha256: "abc123" }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  };
+  const [message] = parseWhatsappInboundMessages(payload);
+  assert.deepEqual(message.mediaRef, { provider: "whatsapp", mediaId: "media-123", mimeType: "audio/ogg", sha256: "abc123" });
+  assert.equal(message.hasCaption, false);
+});
+
+test("parseWhatsappInboundMessages — une légende réelle (image.caption) devient rawContent, jamais le repère factuel (mandat §4.3)", () => {
+  const payload = {
+    entry: [
+      {
+        changes: [
+          {
+            value: {
+              messages: [
+                {
+                  id: "wamid.image",
+                  from: "221771234567",
+                  timestamp: "1700000100",
+                  type: "image",
+                  image: { id: "media-456", mime_type: "image/jpeg", caption: "Machine à glace cassée au quai" }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  };
+  const [message] = parseWhatsappInboundMessages(payload);
+  assert.equal(message.rawContent, "Machine à glace cassée au quai");
+  assert.equal(message.hasCaption, true);
+  assert.equal(message.mediaRef?.mediaId, "media-456");
+});
+
+test("parseWhatsappInboundMessages — image sans légende retombe sur le repère factuel, hasCaption=false", () => {
+  const payload = {
+    entry: [{ changes: [{ value: { messages: [{ id: "w1", from: "221771234567", timestamp: "1700000100", type: "image", image: { id: "m1" } }] } }] }]
+  };
+  const [message] = parseWhatsappInboundMessages(payload);
+  assert.equal(message.hasCaption, false);
+  assert.match(message.rawContent, /Message WhatsApp de type/);
+});
+
+const ORIGINAL_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+test.after(() => {
+  if (ORIGINAL_ACCESS_TOKEN === undefined) delete process.env.WHATSAPP_ACCESS_TOKEN;
+  else process.env.WHATSAPP_ACCESS_TOKEN = ORIGINAL_ACCESS_TOKEN;
+});
+
+test("downloadWhatsappMedia — échoue explicitement sans configuration, ne stocke jamais de secret/URL au-delà de l'appel", async () => {
+  delete process.env.WHATSAPP_ACCESS_TOKEN;
+  await assert.rejects(() => downloadWhatsappMedia("media-123"), /non configurée/);
+});
+
+test("downloadWhatsappMedia — contrat : deux appels Graph API (métadonnées puis fichier), octets renvoyés", async () => {
+  process.env.WHATSAPP_ACCESS_TOKEN = "token-de-test";
+  const calls: string[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (url: string) => {
+    calls.push(url);
+    if (url.includes("graph.facebook.com")) {
+      return new Response(JSON.stringify({ url: "https://signed.example/media-123", mime_type: "image/jpeg", sha256: "deadbeef" }), { status: 200 });
+    }
+    return new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+  }) as typeof fetch;
+  try {
+    const result = await downloadWhatsappMedia("media-123");
+    assert.equal(result.mimeType, "image/jpeg");
+    assert.equal(result.sha256, "deadbeef");
+    assert.deepEqual([...result.data], [1, 2, 3]);
+    assert.equal(calls.length, 2, "métadonnées puis téléchargement : exactement deux appels");
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.WHATSAPP_ACCESS_TOKEN;
+  }
+});
+
+test("downloadWhatsappMedia — un échec à l'étape métadonnées ou téléchargement devient une erreur explicite (mandat §10/§11), jamais un média vide fabriqué", async () => {
+  process.env.WHATSAPP_ACCESS_TOKEN = "token-de-test";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response(null, { status: 404 })) as typeof fetch;
+  try {
+    await assert.rejects(() => downloadWhatsappMedia("media-inconnu"), /refusées/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.WHATSAPP_ACCESS_TOKEN;
+  }
 });
 
 test("whatsappAdapter.sendText — contrat : échoue explicitement sans configuration, appelle Graph API correctement quand configurée", async () => {

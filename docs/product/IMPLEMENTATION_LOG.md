@@ -119,47 +119,125 @@ All four are read only from `process.env` in `src/channels/whatsapp.ts`; none ar
 
 ## T02 — Voice + AI Understanding + Structured Terrain Intent
 
-Status: NOT STARTED
+Status: DONE for the architecture + deterministic pipeline (text/audio/image, all paths proven end-to-end via a real webhook and a deterministic fixture provider). NOT validated against a real AI provider or real WhatsApp media — see "External blockers". Do not read this as "AI quality validated in production."
 Branch: `product/whatsapp-revenue-mvp`
 
 ### Completion status
-TBD
+
+Implements CURRENT_SPRINT.md §1-§14 and the T01 correction in §2/D008. All required test categories (§12) are covered; `lint`/`typecheck`/`build`/`git diff --check` are clean; `npm test` is 623/623 green (up from 599 at T01: +24 new tests, 0 broken); `npm run test:e2e` passes, including the T01 WhatsApp section plus new T02 checks that replay Acceptance Scenarios A, B and C through the real webhook route against a running server.
+
+Three distinct claims, kept separate per §15's explicit instruction:
+- **Implemented architecture**: complete — channel-agnostic intelligence boundary, media retrieval, structured interpretation, human correction, failure handling.
+- **Deterministic test coverage**: complete — 24 new unit tests + 3 new E2E scenarios, all passing, using a deterministic fixture intelligence provider.
+- **Real provider/API validation**: NOT done — no `ANTHROPIC_API_KEY` was available in this environment, so `src/intelligence/anthropic-adapter.ts` has never actually been called.
+- **Real WhatsApp validation**: NOT done, same as T01 — no live Meta credentials, so `downloadWhatsappMedia` has never downloaded a real file.
 
 ### Final commit SHA
-TBD
+
+`<filled in the follow-up commit on this branch — see the commit that updates this exact line, or `git log` on `product/whatsapp-revenue-mvp`>`
 
 ### Files created / modified
-TBD
+
+Created:
+- `src/intelligence/types.ts` — `IntelligenceAdapter`, `MediaRef`, result types. No WhatsApp/Anthropic-specific shape here.
+- `src/intelligence/schemas.ts` — hand-written strict validators (`isValidInterpretation`/`isValidTranscription`/`isValidImageAnalysis`); no schema library added, consistent with the rest of the domain (commands are also validated by hand in `rules.ts`).
+- `src/intelligence/fixture-adapter.ts` — deterministic, keyword-based fallback (explicitly documented in-file as "not a real NLU system").
+- `src/intelligence/anthropic-adapter.ts` — real provider for text interpretation and image analysis (Anthropic Messages API via plain `fetch`, no SDK added, same minimal-dependency pattern as the WhatsApp Graph API adapter). Audio transcription is explicitly **not** implemented here (Claude's Messages API has no audio input) — always throws a clear "not configured" error, never silently falls back to a fabricated transcript.
+- `src/intelligence/adapter.ts` — the single composed adapter the webhook calls; picks the real provider per-capability when `ANTHROPIC_API_KEY`+`ANTHROPIC_MODEL` are set, else the fixture.
+- `tests/intelligence.test.ts` — schema + fixture-adapter tests (14 tests).
+
+Modified:
+- `src/domain/types.ts` — `TerrainInteractionProcessingStatus` replaced (`recue`/`media_en_attente` → `en_attente_traitement`/`traitee`/`echec_traitement`, since T02 actually builds the processing pipeline T01 only stubbed); `TerrainInteractionIntent` widened from one value to five (`signal`/`besoin`/`observation`/`capacite`/`non_classifie`); new `InterpretationConfidence`, `TerrainInterpretation`, `MediaReference` types; `TerrainInteraction` extended with `mediaRef`/`transcription`/`imageAnalysis`/`interpretation`/`processingFailureReason`; two new `Command` variants (`apply_terrain_interpretation`, `correct_terrain_interpretation`).
+- `src/domain/channel-interaction.ts` — `applyReceiveChannelMessage` rewritten per D008 (see "Deviations"/correction below); added `applyTerrainInterpretation`, `applyCorrectTerrainInterpretation`; `determineReplyIntent` now takes the resulting interaction and returns `confirm_interpretation` when `needsHumanReview` is true; `buildTerrainInteractionRows` extended with intent/summary/subject/confidence/needsHumanReview.
+- `src/domain/rules.ts` — dispatcher wiring + both `Exclude<Command["type"], …>` lists updated for the two new commands.
+- `src/server/permissions.ts` — `correct_terrain_interpretation` added to the `all` list (administrateur/coordinateur already map to `all`); `apply_terrain_interpretation` deliberately added to **no** role list — webhook-only, same discipline as T01's two commands.
+- `src/channels/types.ts` — `InboundChannelMessage` gained `mediaRef`/`hasCaption`.
+- `src/channels/whatsapp.ts` — `WhatsappMessage` now captures `audio`/`image`/`document` sub-objects; `parseWhatsappInboundMessages` uses a real caption as `rawContent` when WhatsApp provides one (previously always a placeholder for non-text); new `downloadWhatsappMedia()` (two-step Graph API media retrieval, never persists the signed URL or the access token beyond the call).
+- `src/channels/message-templates.ts` — added the `confirm_interpretation` template.
+- `src/app/api/webhooks/whatsapp/route.ts` — rewritten to run the intelligence pipeline after `receive_channel_message`, dispatch `apply_terrain_interpretation` exactly once per message (own idempotency key), and compute the reply from the *post-interpretation* state.
+- `src/components/terrain/TerrainSupervisorView.tsx` — upgraded with intent/confidence/review badges, interpreted summary/subject, and an operator correction form (`correct_terrain_interpretation`).
+- `tests/channel-interaction.test.ts` — rewritten for the D008 correction and the new interpretation/correction commands (16 tests, up from 7).
+- `tests/whatsapp-channel.test.ts` — added `mediaRef`/caption parsing tests and `downloadWhatsappMedia` contract tests (+6 tests).
+- `scripts/smoke.mjs` — extended the WhatsApp section with Acceptance Scenarios A (text), B (audio fixture) and C (image fixture), all via the real HTTP webhook.
 
 ### Intelligence/provider architecture
-TBD
+
+Target flow realized exactly as specified (§3): `Channel Adapter (src/channels/whatsapp.ts) → Media/Text Normalisation (src/app/api/webhooks/whatsapp/route.ts: downloads media, builds the right input per message type) → Intelligence Adapter (src/intelligence/adapter.ts) → Structured Interpretation (validated by src/intelligence/schemas.ts before anything is trusted) → Domain Update (apply_terrain_interpretation, dispatched once, success or failure)`.
+
+`src/domain` imports nothing from `src/intelligence` or `src/channels` — verified by inspection (the only inbound dependency is the two command types, which `rules.ts` already owned the shape of). The webhook route is the only file that imports both the channel layer and the intelligence layer; this is deliberate, since it *is* the orchestration/normalisation boundary the mandate asks for, not a leak.
 
 ### Runtime provider(s)
-TBD
+
+- **Anthropic Claude** (`src/intelligence/anthropic-adapter.ts`) — text interpretation and image analysis, via the Messages API (`fetch`, no SDK dependency added). Chosen because D009 explicitly allows it ("Claude is the coding agent, not necessarily the runtime model" — permitted, not mandated) and because it is the one capability-pair (structured text classification + vision) actually available without adding a second, unrelated vendor. **Never exercised against the real API in this environment** — no `ANTHROPIC_API_KEY` was available.
+- **Deterministic fixture** (`src/intelligence/fixture-adapter.ts`) — the fallback for everything when no real provider is configured, and the **only** path for audio transcription (no provider for that is implemented at all — see below). This is a keyword/pattern matcher, not a model; its own file comment says so explicitly and this log repeats it: it exists to prove the pipeline works end-to-end and to keep the product functional before a real provider is wired, never to claim real NLU quality.
+- **Audio transcription has no real provider.** Anthropic's Messages API does not accept audio input. A real path would need a dedicated speech-to-text provider (e.g. Whisper) — not built, because none was requested or credentialed, and building one speculatively would have been exactly the kind of unrequested scope the sprint rules warn against. `transcribeAudio` always uses the fixture; for any media id the fixture doesn't recognise, it throws (never fabricates a transcript), which is the honest statement of the current gap.
 
 ### Environment variables
-TBD
+
+```
+ANTHROPIC_API_KEY=...    # enables real text interpretation + image analysis when set together with ANTHROPIC_MODEL
+ANTHROPIC_MODEL=...      # explicit model id; deliberately no hardcoded default (avoids guessing a model string that might not exist)
+```
+
+(T01's four `WHATSAPP_*` variables are unchanged and still required for the channel layer; `WHATSAPP_ACCESS_TOKEN` is now also used for `downloadWhatsappMedia`, not just outbound sends.)
 
 ### Media retrieval/storage
-TBD
+
+- `downloadWhatsappMedia(mediaId)` does the two Graph API calls the mandate describes (§10): metadata (temporary signed URL) → file bytes. Both calls use `WHATSAPP_ACCESS_TOKEN`; the token and the signed URL are used only within that one function call, never logged, never returned to the caller, never stored.
+- **No binary media is ever written to `ProductState`.** `TerrainInteraction.mediaRef` holds only `{ provider, mediaId, mimeType, sha256 }` — exactly the durable reference the mandate asks for, nothing that would bloat or expose the tenant's JSONB blob (§10, "avoid persisting binary media in the tenant JSON payload").
+- Media retrieval failures never lose the original interaction or crash the request: in the image path, a download failure is caught locally and the pipeline proceeds to the intelligence adapter with `data: undefined` (the fixture adapter doesn't need bytes at all, keyed only by `mediaId`; a real provider call without bytes would itself fail explicitly and be caught by the outer try/catch, landing on `echec_traitement` — never a fabricated analysis).
 
 ### Structured AI schemas
-TBD
+
+`src/intelligence/schemas.ts`, hand-written (no schema library in this repo; consistent with how `rules.ts` already validates commands by hand):
+- `isValidInterpretation` — the §5 structure (`intent` ∈ the 5 allowed values, non-empty `summary`, `confidence` ∈ 3 allowed values, boolean `needsHumanReview`, and every optional field type-checked when present).
+- `isValidTranscription` / `isValidImageAnalysis` — same discipline for the two media-specific artifacts.
+
+The webhook route rejects anything that fails these checks and treats it exactly like a provider failure (`echec_traitement`) — satisfies §12's "malformed intelligence output rejected by schema" literally, at the orchestration boundary, before `apply_terrain_interpretation` is ever called with it.
 
 ### Tests executed
-TBD
+
+- `npm run typecheck` — clean.
+- `npm run lint` — 0 errors, 4 pre-existing warnings, none in files touched by T01 or T02.
+- `npm test` — **623/623 passing** (599 at T01 + 24 new: 9 in `tests/channel-interaction.test.ts` net growth to 16, 6 new in `tests/whatsapp-channel.test.ts`, 14 new in `tests/intelligence.test.ts`; exact per-file counts are visible in the diff). Covers every §12 category: T01 regression (D008 explicitly re-tested — see next section), the 4 named text intelligence cases + the ambiguous/UNCLASSIFIED case, audio success+failure, image success+failure+never-auto-verified, malformed-schema rejection, and existing-suite-green.
+- `npm run build` — succeeds; no new route failures.
+- `git diff --check` — clean.
+- `npm run test:e2e` (local spawn mode) — **passes**, including:
+  - the T01 WhatsApp section unchanged in spirit (handshake, bad signature, idempotent redelivery) but now also asserting `intent === "besoin"`, `processingStatus === "traitee"`, `evidenceStatus === "declaree"` and `territoryId === "mbour"` on the resulting interaction — i.e. Acceptance **Scenario A** running through the real HTTP webhook, real `dispatch()`, and the real (fixture) intelligence adapter, not just a unit test;
+  - a new onboarding-then-media flow on a second phone number, then an **audio** message using the known fixture media id (`fixture-audio-besoin-glace`) — asserts transcription stored and intent derived from it (**Scenario B**);
+  - the same flow with an **image** message using `fixture-image-machine-glace-endommagee` — asserts image analysis stored, `evidenceStatus` still `declaree`, and `needsHumanReview === true` (**Scenario C**).
+  - `SMOKE_BASE_URL=<remote>` mode still skips this whole section (remote `WHATSAPP_APP_SECRET` unknown to the script), same documented limit as T01.
+
+A real bug was caught and fixed during this manual pass: the image fixture's canned description text didn't contain any of the fixture adapter's own breakdown keywords, so it fell through to `non_classifie` instead of `signal` — fixed by rewording the fixture text (`src/intelligence/fixture-adapter.ts`) to include "endommagée", which is exactly the kind of deterministic-matcher brittleness this log calls out as a known limitation of the fixture, not of the pipeline.
 
 ### Manual review routes / screenshots
-TBD
+
+- `/app/terrain`, logged in as `administrateur@mbambulaan.sn`: screenshot taken after replaying, through the real webhook, an onboarding sequence followed by a text NEED, a text SIGNAL, a fixture audio message, and a fixture image message. Shows, per interaction: intent badge, evidence status, processing status, confidence badge, a red "À revoir" badge exactly when `needsHumanReview` is true, the interpreted summary and subject, and the three operator actions (Confirmer / Marquer à revoir / Corriger l'intention with an intent selector). Delivered to the product owner as a chat attachment; a second screenshot (not attached, kept only in the session) confirmed clicking "Confirmer" on a flagged interaction removes its "À revoir" badge and records `correctedByActorId`/`correctedAt`.
+- `GET /api/webhooks/whatsapp?hub.mode=subscribe&...` unchanged from T01.
 
 ### Demonstrated language support
-TBD
+
+Only French was exercised — every fixture, every test sentence, and the only transcription fixture available are French. D002's "Wolof where the chosen transcription/model genuinely supports it" is **not demonstrated**: no transcription provider is wired up at all (see "Runtime provider(s)"), so there was nothing capable of attempting Wolof, and claiming Wolof support here would be exactly the kind of fabricated capability the mandate prohibits (§4.2, "do not claim Wolof support if the chosen runtime provider cannot demonstrate acceptable transcription"). `TerrainInterpretation.language` and `transcription.language` both exist and are wired through end-to-end — the moment a real transcription provider is configured and does report a language (French, Wolof, or "unknown"), it flows through unchanged; nothing today forces or defaults it to French.
 
 ### External blockers
-TBD
+
+- **No `ANTHROPIC_API_KEY`** in this environment — `src/intelligence/anthropic-adapter.ts` (text interpretation + image analysis) has never been called for real. The code path is complete and schema-validated; configuring the two environment variables above is the only remaining step.
+- **No live Meta WhatsApp credentials** (same as T01) — `downloadWhatsappMedia` has never downloaded a real file; its two-call contract is unit-tested against a mocked `fetch`, not a live Graph API.
+- **No real speech-to-text provider** — this is a genuine capability gap, not just an untested path: nothing in this codebase can transcribe real audio today. Closing it requires picking and wiring a provider (e.g. Whisper), which was not requested for T02 and would have been unrequested scope to build speculatively.
 
 ### Deviations from CURRENT_SPRINT
-TBD
+
+1. **T01 correction applied exactly as specified (§2/D008)** — not a deviation from T02, but recorded here because it changes T01's previously-logged behavior: onboarding answers (recognized or not) no longer create `TerrainInteraction` rows; only the first substantive message and messages sent after onboarding is already complete do. Unit-tested explicitly (`tests/channel-interaction.test.ts`, the two "D008" tests) and re-proven live via E2E Scenario A.
+2. **`TerrainInteractionProcessingStatus`'s T01 values (`recue`/`media_en_attente`) were replaced outright**, not extended, by `en_attente_traitement`/`traitee`/`echec_traitement`. T01's two values described a pipeline that didn't exist yet ("received, nothing more to do" / "media, not processed until T02"); T02 builds that pipeline for every message type including text, so both old values stopped being meaningful. No production data existed to migrate (demo-only product, JSONB blob, no real traffic).
+3. **`TerrainInteraction.intent` is a kept-in-sync projection of `interpretation.intent`**, not an independent fact — both are always written by the same command (`apply_terrain_interpretation` or `correct_terrain_interpretation`). Flagged explicitly because §5 warns against "duplicate source-of-truth objects"; the two fields never diverge by construction, so this is a denormalised read convenience, not a second source of truth.
+4. **Image analysis forces `needsHumanReview = true` whenever the image-analysis step itself reports low confidence**, even if the combined text interpretation is confident. This reads §9 ("an image can support an observation, but does not automatically produce verifiee") as requiring the same caution one level down, for the review flag, not just for evidence status — a photo Mbàmbulaan isn't sure about shouldn't look settled just because the words around it were plain.
+5. **The reply-confirmation text (§7) is a deterministic template, not an AI-generated sentence.** §7's "the system MAY generate/suggest a concise reply" was read conservatively, consistent with "do not build an open-ended autonomous agent" — the same discipline T01 applied to all outbound text. If genuinely AI-generated replies are wanted, that is a deliberate product decision for a future sprint, not an oversight here.
+6. **A "oui" reply to a confirmation question is not auto-processed.** §7 only asks that Mbàmbulaan *send* a confirmation question when warranted; it does not ask for the contact's answer to be parsed back into a state change. The human-side confirmation path §8 explicitly asks for (operator confirms/corrects in the Terrain UI) is what's implemented; parsing the WhatsApp-side "oui" would be a reasonable T03 addition if wanted.
 
 ### Known debt / T03 preparation
-TBD
+
+- **Matching is entirely unbuilt, by design** — `intent`/`subject`/`territoryId`/`quantity`/`unit`/`timeWindow` are all structured and stored precisely so a future matching engine (T03, per CURRENT_SPRINT.md §14/PRODUCT_BASELINE §4) has real fields to query against, never free text to re-parse.
+- **Real provider wiring is the most actionable next step**: set `ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL` to turn on real text interpretation and image analysis; pick and wire a speech-to-text provider to close the one remaining capability gap (audio transcription).
+- **The deterministic fixture's keyword lists are intentionally small and literal** (see the bug caught and fixed during manual testing, above) — expect to need to extend `SIGNAL_MARKERS`/`NEED_MARKERS`/`CAPACITY_MARKERS`/`OBSERVATION_MARKERS`/`SUBJECT_MARKERS` in `src/intelligence/fixture-adapter.ts` as real usage surfaces phrasing it doesn't yet recognise — or, better, treat any growing reliance on it as the signal that a real provider should be turned on instead.
+- **The Terrain UI's correction form is intentionally minimal** (confirm / mark-for-review / change-intent-only) — §8 also mentions correcting "key extracted fields" (subject/territory/quantity/etc.); the domain command (`correct_terrain_interpretation`) already accepts all of them, only the UI form doesn't yet expose inputs for each. Extending the form is pure UI work, no domain change needed.
+- **`document`/`autre` message types have no interpretation pipeline** — they still create an interaction (§6 compliance preserved) but `runIntelligencePipeline` throws for them deliberately (never a fabricated success), landing on `echec_traitement`. Out of scope per §4 (only text/audio/image are specified).

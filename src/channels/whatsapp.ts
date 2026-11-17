@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import type { TerrainInteractionMessageType } from "@/domain/types";
+import type { MediaReference, TerrainInteractionMessageType } from "@/domain/types";
 import type { ChannelAdapter, InboundChannelMessage } from "./types";
 
 // Seul fichier du dépôt qui connaît la forme des payloads WhatsApp
@@ -29,12 +29,22 @@ export function verifyWhatsappWebhookChallenge(mode: string | null, token: strin
   return mode === "subscribe" && !!token && token === process.env.WHATSAPP_VERIFY_TOKEN;
 }
 
+interface WhatsappMedia {
+  id?: string;
+  mime_type?: string;
+  sha256?: string;
+  caption?: string;
+}
+
 interface WhatsappMessage {
   id?: string;
   from?: string;
   timestamp?: string;
   type?: string;
   text?: { body?: string };
+  audio?: WhatsappMedia;
+  image?: WhatsappMedia;
+  document?: WhatsappMedia;
 }
 
 export interface WhatsappWebhookPayload {
@@ -59,14 +69,20 @@ const MESSAGE_TYPE_MAP: Record<string, TerrainInteractionMessageType> = {
 };
 
 function describeNonText(waType: string): string {
-  return `[Message WhatsApp de type « ${waType} » reçu — contenu non traité en T01, voir T02]`;
+  return `[Message WhatsApp de type « ${waType} » reçu — en attente de traitement IA]`;
+}
+
+function mediaFor(message: WhatsappMessage): WhatsappMedia | undefined {
+  return message.audio ?? message.image ?? message.document;
 }
 
 // parseWhatsappInboundMessages — mandat §10 : ne doit jamais planter sur
 // audio/image/média non supporté. Un message sans id/from/timestamp
 // exploitable est ignoré (jamais fabriqué), le reste de la liste continue
 // d'être traité (mandat, un message imparfait ne doit pas faire échouer
-// tout le lot).
+// tout le lot). Mandat T02 §4.3 : une légende réelle (image/document
+// caption) devient le rawContent — c'est du contenu réel, jamais un
+// repère fabriqué — sinon repli sur le repère factuel.
 export function parseWhatsappInboundMessages(payload: WhatsappWebhookPayload): InboundChannelMessage[] {
   const messages: InboundChannelMessage[] = [];
   for (const entry of payload.entry ?? []) {
@@ -75,8 +91,12 @@ export function parseWhatsappInboundMessages(payload: WhatsappWebhookPayload): I
         if (!message.id || !message.from || !message.timestamp || !message.type) continue;
         const waType = message.type;
         const messageType = MESSAGE_TYPE_MAP[waType] ?? "autre";
-        const rawContent = messageType === "texte" ? (message.text?.body ?? "") : describeNonText(waType);
+        const media = mediaFor(message);
+        const hasCaption = messageType !== "texte" && !!media?.caption?.trim();
+        const rawContent = messageType === "texte" ? (message.text?.body ?? "") : hasCaption ? media!.caption!.trim() : describeNonText(waType);
         if (messageType === "texte" && !rawContent) continue;
+        const mediaRef: MediaReference | undefined =
+          media?.id && messageType !== "texte" ? { provider: "whatsapp", mediaId: media.id, mimeType: media.mime_type, sha256: media.sha256 } : undefined;
         messages.push({
           channel: "whatsapp",
           channelAddress: message.from,
@@ -84,12 +104,43 @@ export function parseWhatsappInboundMessages(payload: WhatsappWebhookPayload): I
           rawContent,
           externalMessageId: message.id,
           occurredAt: new Date(Number(message.timestamp) * 1000).toISOString(),
-          rawProviderEvent: message
+          rawProviderEvent: message,
+          mediaRef,
+          hasCaption
         });
       }
     }
   }
   return messages;
+}
+
+export interface DownloadedWhatsappMedia {
+  data: Buffer;
+  mimeType: string;
+  sha256?: string;
+}
+
+// downloadWhatsappMedia — mandat T02 §10, "extend the WhatsApp adapter to
+// retrieve media safely when configured". Deux appels Graph API : d'abord
+// les métadonnées (URL temporaire signée), puis le téléchargement effectif
+// — jamais l'URL signée elle-même conservée au-delà de cet appel (mandat
+// §10/§11, "no long-lived provider secrets in logs/state"). Échoue
+// explicitement à chaque étape, jamais un média silencieusement vide.
+export async function downloadWhatsappMedia(mediaId: string): Promise<DownloadedWhatsappMedia> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  if (!token) throw new Error("WhatsApp Cloud API non configurée (WHATSAPP_ACCESS_TOKEN manquant) — téléchargement du média impossible.");
+
+  const metaResponse = await fetch(`https://graph.facebook.com/${GRAPH_API_VERSION}/${mediaId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!metaResponse.ok) throw new Error(`Métadonnées du média WhatsApp refusées par Graph API (HTTP ${metaResponse.status}).`);
+  const meta = (await metaResponse.json()) as { url?: string; mime_type?: string; sha256?: string };
+  if (!meta.url) throw new Error("Métadonnées du média WhatsApp reçues sans URL de téléchargement.");
+
+  const fileResponse = await fetch(meta.url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!fileResponse.ok) throw new Error(`Téléchargement du média WhatsApp refusé par Graph API (HTTP ${fileResponse.status}).`);
+  const arrayBuffer = await fileResponse.arrayBuffer();
+  return { data: Buffer.from(arrayBuffer), mimeType: meta.mime_type ?? "application/octet-stream", sha256: meta.sha256 };
 }
 
 // whatsappAdapter — mandat §4 : envoi sortant texte via Graph API. Échoue

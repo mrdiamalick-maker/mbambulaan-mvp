@@ -8,7 +8,7 @@ import {
   matchRoleChoice,
   matchTerritoryChoice
 } from "../src/domain/channel-interaction";
-import type { ProductState, TerrainInteractionMessageType } from "../src/domain/types";
+import type { ProductState, TerrainInteractionMessageType, TerrainInterpretation } from "../src/domain/types";
 
 const PHONE = "221771234567";
 const NOW = "2026-11-17T09:00:00.000Z";
@@ -31,6 +31,24 @@ function receive(
   });
 }
 
+function onboard(state: ProductState, name: string, roleChoice: string, territoryAnswer: string) {
+  let next = receive(state, "Bonjour", NOW, "onb-1");
+  next = receive(next, name, NOW, "onb-2");
+  next = receive(next, roleChoice, NOW, "onb-3");
+  next = receive(next, territoryAnswer, NOW, "onb-4");
+  return next;
+}
+
+const SUCCESSFUL_INTERPRETATION: Omit<TerrainInterpretation, "interpretedAt"> = {
+  intent: "besoin",
+  summary: "Besoin de glace à Mbour aujourd'hui.",
+  subject: "glace",
+  territoryId: "mbour",
+  timeWindow: "aujourd'hui",
+  confidence: "moyenne",
+  needsHumanReview: false
+};
+
 test("matchRoleChoice/matchTerritoryChoice — correspondance déterministe (numéro ou nom exact), jamais une interprétation libre", () => {
   assert.equal(matchRoleChoice("1"), "capitaine");
   assert.equal(matchRoleChoice("2"), "mareyeur");
@@ -45,116 +63,263 @@ test("matchRoleChoice/matchTerritoryChoice — correspondance déterministe (num
   assert.equal(matchTerritoryChoice("quelque part vers Mbour", territories), undefined, "aucune correspondance approximative");
 });
 
-test("scénario d'acceptation (mandat §13) : le tout premier message (contenu réel, pas une réponse) est préservé avec DECLARED, et déclenche l'onboarding", () => {
+// --- D008 / T02 §2 : correction du comportement T01 -----------------------
+
+test("D008 : le tout premier message substantiel est préservé comme interaction, AVANT tout Actor, et déclenche l'onboarding", () => {
   let state = createDemoState();
   const actorsBefore = state.actors.length;
 
   state = receive(state, "J'ai besoin de glace aujourd'hui à Mbour.", NOW, "wamid.1");
 
-  // Une conversation minimale existe immédiatement (mandat §5, "minimal
-  // pending actor/contact record") — sans qu'aucun Actor n'ait été fabriqué.
   const conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
   assert.ok(conversation, "un contact inconnu doit créer une conversation minimale dès le premier message");
   assert.equal(state.actors.length, actorsBefore, "aucun Actor ne doit être fabriqué avant d'avoir un prénom/rôle/site réels");
 
-  // Le message original est préservé tel quel, en interaction DECLARED,
-  // same tour — jamais consommé comme réponse à une question qui n'a pas
-  // encore été posée.
-  assert.equal(state.terrainInteractions.length, 1);
+  assert.equal(state.terrainInteractions.length, 1, "le message initial substantiel doit créer exactement une interaction");
   const interaction = state.terrainInteractions[0];
   assert.equal(interaction.rawContent, "J'ai besoin de glace aujourd'hui à Mbour.");
   assert.equal(interaction.evidenceStatus, "declaree");
-  assert.equal(interaction.intent, "non_classifie");
-  assert.equal(interaction.processingStatus, "recue");
-  assert.equal(interaction.channel, "whatsapp");
-  assert.equal(interaction.externalMessageId, "wamid.1");
+  assert.equal(interaction.intent, "non_classifie", "aucune interprétation n'existe encore à ce stade");
+  assert.equal(interaction.processingStatus, "en_attente_traitement");
   assert.equal(interaction.actorId, undefined, "pas encore d'Actor réel à référencer");
-  assert.equal(interaction.conversationId, conversation.id, "la conversation sert de référence de contact dès le premier message");
+  assert.equal(interaction.conversationId, conversation.id);
 
-  // Le profil étant incomplet, Mbàmbulaan doit maintenant poser la première
-  // question d'onboarding (mandat §13, étape 7).
   assert.equal(conversation.onboardingStage, "prenom_demande");
   assert.deepEqual(determineReplyIntent(conversation), { kind: "ask_prenom" });
 });
 
-test("onboarding progressif complet : chaque réponse fait aussi sa propre interaction, puis un Actor réel est créé", () => {
+test("D008 : les réponses d'onboarding (prénom/rôle/site) — reconnues ou non — ne créent JAMAIS d'interaction terrain, seulement l'historique de conversation", () => {
   let state = createDemoState();
   const actorsBefore = state.actors.length;
-
   state = receive(state, "J'ai besoin de glace aujourd'hui à Mbour.", NOW, "wamid.1");
+  assert.equal(state.terrainInteractions.length, 1);
+
   state = receive(state, "Khady", NOW, "wamid.2");
   let conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
   assert.equal(conversation.onboardingStage, "role_demande");
   assert.equal(conversation.pendingName, "Khady");
-  assert.deepEqual(determineReplyIntent(conversation), { kind: "ask_role" });
+  assert.equal(state.terrainInteractions.length, 1, "la réponse 'prénom' ne doit pas créer d'interaction");
 
-  // Réponse non reconnue : le stade ne progresse pas, la même question sera
-  // reposée — mais le message brut reste quand même préservé en interaction.
+  // Réponse non reconnue : le stade ne progresse pas, et elle non plus ne
+  // crée jamais d'interaction (mandat §2, "profile-completion chatter").
   state = receive(state, "je ne sais pas", NOW, "wamid.x");
   conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
-  assert.equal(conversation.onboardingStage, "role_demande", "une réponse non reconnue ne doit jamais faire progresser l'onboarding");
+  assert.equal(conversation.onboardingStage, "role_demande");
+  assert.equal(state.terrainInteractions.length, 1);
 
   state = receive(state, "2", NOW, "wamid.3"); // mareyeur
   conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
   assert.equal(conversation.onboardingStage, "site_demande");
-  assert.equal(conversation.pendingRole, "mareyeur");
+  assert.equal(state.terrainInteractions.length, 1, "la réponse 'rôle' ne doit pas créer d'interaction");
 
   state = receive(state, "Mbour", NOW, "wamid.4");
   conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
   assert.equal(conversation.onboardingStage, "complet");
-  assert.equal(conversation.pendingName, undefined, "les champs transitoires doivent être purgés une fois l'Actor créé");
-  assert.equal(conversation.pendingRole, undefined);
-  assert.equal(state.actors.length, actorsBefore + 1);
+  assert.equal(state.actors.length, actorsBefore + 1, "l'Actor réel doit maintenant exister");
+  assert.equal(
+    state.terrainInteractions.length,
+    1,
+    "le message qui COMPLÈTE l'onboarding (la réponse 'site') ne crée pas non plus d'interaction — seul le message SUIVANT recommencera à en créer"
+  );
 
+  // L'historique complet de conversation, lui, n'a rien perdu (mandat §2,
+  // "do not delete conversation history").
+  assert.deepEqual(conversation.messages.map((m) => m.body), [
+    "J'ai besoin de glace aujourd'hui à Mbour.",
+    "Khady",
+    "je ne sais pas",
+    "2",
+    "Mbour"
+  ]);
+});
+
+test("D008 : une fois l'onboarding complet, les messages substantiels suivants recréent normalement des interactions", () => {
+  let state = onboard(createDemoState(), "Awa", "2", "Mbour");
+  const conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
+  const actorId = conversation.actorId!;
+  assert.equal(state.terrainInteractions.length, 1, "seul le message initial a créé une interaction jusqu'ici");
+
+  state = receive(state, "Deuxième message réel, bien après l'onboarding.", "2026-11-18T08:00:00.000Z", "wamid.5");
+  assert.equal(state.terrainInteractions.length, 2);
+  const lastInteraction = state.terrainInteractions.at(-1)!;
+  assert.equal(lastInteraction.actorId, actorId);
+  assert.equal(lastInteraction.processingStatus, "en_attente_traitement");
+  assert.equal(state.conversations.length, 1, "un même numéro ne doit jamais créer une seconde conversation");
+});
+
+test("onboarding : Actor créé sans organisation fabriquée, jamais vérifié automatiquement", () => {
+  const state = onboard(createDemoState(), "Khady", "2", "Mbour");
+  const conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
   const actor = state.actors.find((item) => item.id === conversation.actorId)!;
-  assert.ok(actor, "l'Actor référencé par la conversation doit exister réellement");
   assert.equal(actor.name, "Khady");
   assert.equal(actor.role, "mareyeur");
   assert.equal(actor.phone, PHONE);
   assert.deepEqual(actor.territoryIds, ["mbour"]);
-  assert.equal(actor.verified, false, "un Actor auto-onboardé n'est jamais vérifié automatiquement");
-  assert.equal(actor.organizationId, undefined, "aucune organisation fabriquée pour un Actor onboardé par canal");
-
-  // Chaque message accepté (y compris les réponses d'onboarding et la
-  // réponse non reconnue) a produit sa propre TerrainInteraction — mandat
-  // §6, "every accepted inbound text must result in a traceable terrain
-  // interaction", sans exception pour les tours d'onboarding.
-  assert.equal(state.terrainInteractions.length, 5);
-  const lastInteraction = state.terrainInteractions.at(-1)!;
-  assert.equal(lastInteraction.rawContent, "Mbour");
-  assert.equal(lastInteraction.actorId, actor.id, "le message qui complète l'onboarding référence déjà le nouvel Actor");
-  assert.equal(lastInteraction.territoryId, "mbour");
-  assert.deepEqual(determineReplyIntent(conversation), { kind: "ack" });
+  assert.equal(actor.verified, false);
+  assert.equal(actor.organizationId, undefined);
 });
 
-test("un numéro déjà onboardé n'est jamais ré-onboardé : les messages suivants restent attribués au même Actor", () => {
-  let state = createDemoState();
-  state = receive(state, "Bonjour", NOW, "w1");
-  state = receive(state, "Awa", NOW, "w2");
-  state = receive(state, "3", NOW, "w3"); // transformateur
-  state = receive(state, "Mbour", NOW, "w4");
-  const conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
-  const actorId = conversation.actorId;
+// --- Pipeline d'interprétation (apply_terrain_interpretation) -------------
 
-  state = receive(state, "Deuxième message réel, bien après l'onboarding.", "2026-11-18T08:00:00.000Z", "w5");
-  assert.equal(state.conversations.length, 1, "un même numéro ne doit jamais créer une seconde conversation");
-  const lastInteraction = state.terrainInteractions.at(-1)!;
-  assert.equal(lastInteraction.actorId, actorId);
-  assert.equal(lastInteraction.processingStatus, "recue");
+test("apply_terrain_interpretation (succès) : applique l'interprétation, synchronise intent, ne régresse jamais evidenceStatus", () => {
+  let state = createDemoState();
+  state = receive(state, "J'ai besoin de glace aujourd'hui à Mbour.", NOW, "wamid.1");
+  const interaction = state.terrainInteractions[0];
+
+  state = applyCommand(state, {
+    type: "apply_terrain_interpretation",
+    interactionId: interaction.id,
+    outcome: "succes",
+    interpretation: SUCCESSFUL_INTERPRETATION
+  });
+
+  const updated = state.terrainInteractions.find((item) => item.id === interaction.id)!;
+  assert.equal(updated.processingStatus, "traitee");
+  assert.equal(updated.intent, "besoin", "TerrainInteraction.intent doit rester synchronisé avec interpretation.intent");
+  assert.equal(updated.territoryId, "mbour", "un territoire résolu par l'IA doit être appliqué si aucun n'était déjà connu");
+  assert.equal(updated.evidenceStatus, "declaree", "le traitement IA ne doit jamais faire progresser evidenceStatus (mandat §9)");
+  assert.ok(updated.interpretation);
+  assert.equal(updated.interpretation!.summary, SUCCESSFUL_INTERPRETATION.summary);
+  assert.ok(updated.interpretation!.interpretedAt);
 });
 
-test("média non textuel (audio/image) : ne plante jamais, produit une interaction media_en_attente sans contenu fabriqué", () => {
+test("apply_terrain_interpretation (échec) : préserve l'interaction d'origine, jamais perdue, état explicite + retraitable", () => {
   let state = createDemoState();
-  state = receive(state, "Bonjour", NOW, "w1");
-  state = receive(state, "Moussa", NOW, "w2");
-  state = receive(state, "1", NOW, "w3"); // capitaine
-  state = receive(state, "Mbour", NOW, "w4");
+  state = receive(state, "J'ai besoin de glace aujourd'hui à Mbour.", NOW, "wamid.1");
+  const interaction = state.terrainInteractions[0];
 
-  state = receive(state, "[Message WhatsApp de type « audio » reçu — contenu non traité en T01, voir T02]", "2026-11-18T09:00:00.000Z", "w5", "audio");
-  const audioInteraction = state.terrainInteractions.at(-1)!;
-  assert.equal(audioInteraction.messageType, "audio");
-  assert.equal(audioInteraction.processingStatus, "media_en_attente", "un contenu non textuel ne doit jamais être marqué 'recue'");
-  assert.equal(audioInteraction.evidenceStatus, "declaree");
+  state = applyCommand(state, {
+    type: "apply_terrain_interpretation",
+    interactionId: interaction.id,
+    outcome: "echec",
+    failureReason: "Timeout du fournisseur IA."
+  });
+
+  const updated = state.terrainInteractions.find((item) => item.id === interaction.id)!;
+  assert.equal(updated.processingStatus, "echec_traitement");
+  assert.equal(updated.processingFailureReason, "Timeout du fournisseur IA.");
+  assert.equal(updated.rawContent, "J'ai besoin de glace aujourd'hui à Mbour.", "le contenu original ne doit jamais être perdu par un échec");
+  assert.equal(updated.intent, "non_classifie");
+});
+
+test("apply_terrain_interpretation échoue explicitement pour une interaction introuvable", () => {
+  const state = createDemoState();
+  assert.throws(() =>
+    applyCommand(state, { type: "apply_terrain_interpretation", interactionId: "ti-inexistante", outcome: "echec", failureReason: "x" })
+  );
+});
+
+test("un message audio/image produit une interaction avec le bon messageType, en_attente_traitement, jamais de plantage", () => {
+  let state = createDemoState();
+  state = receive(state, "[Message WhatsApp de type « audio » reçu — en attente de traitement IA]", NOW, "wamid.audio", "audio");
+  const interaction = state.terrainInteractions[0];
+  assert.equal(interaction.messageType, "audio");
+  assert.equal(interaction.processingStatus, "en_attente_traitement");
+  assert.equal(interaction.evidenceStatus, "declaree");
+});
+
+// --- Correction humaine (correct_terrain_interpretation, mandat §8) -------
+
+test("correct_terrain_interpretation : confirmer sans rien changer conserve l'intention, trace l'opérateur, lève needsHumanReview", () => {
+  let state = createDemoState();
+  state = receive(state, "J'ai besoin de glace aujourd'hui à Mbour.", NOW, "wamid.1");
+  const interaction = state.terrainInteractions[0];
+  state = applyCommand(state, {
+    type: "apply_terrain_interpretation",
+    interactionId: interaction.id,
+    outcome: "succes",
+    interpretation: { ...SUCCESSFUL_INTERPRETATION, needsHumanReview: true }
+  });
+
+  state = applyCommand(state, {
+    type: "correct_terrain_interpretation",
+    actorId: "act-admin",
+    interactionId: interaction.id,
+    markForReview: false
+  });
+
+  const updated = state.terrainInteractions.find((item) => item.id === interaction.id)!;
+  assert.equal(updated.intent, "besoin", "confirmer ne doit pas changer l'intention");
+  assert.equal(updated.interpretation!.needsHumanReview, false);
+  assert.equal(updated.interpretation!.correctedByActorId, "act-admin");
+  assert.ok(updated.interpretation!.correctedAt);
+  assert.equal(updated.interpretation!.correctedFromIntent, undefined, "confirmer sans changer l'intention ne doit pas remplir correctedFromIntent");
+});
+
+test("correct_terrain_interpretation : corriger l'intention trace l'intention IA d'origine (auditable), jamais une réécriture muette", () => {
+  let state = createDemoState();
+  state = receive(state, "La machine à glace du quai est en panne.", NOW, "wamid.1");
+  const interaction = state.terrainInteractions[0];
+  state = applyCommand(state, {
+    type: "apply_terrain_interpretation",
+    interactionId: interaction.id,
+    outcome: "succes",
+    interpretation: { intent: "non_classifie", summary: "Ambigu.", confidence: "faible", needsHumanReview: true }
+  });
+
+  state = applyCommand(state, {
+    type: "correct_terrain_interpretation",
+    actorId: "act-admin",
+    interactionId: interaction.id,
+    intent: "signal",
+    note: "Corrigé : c'est bien une panne.",
+    markForReview: false
+  });
+
+  const updated = state.terrainInteractions.find((item) => item.id === interaction.id)!;
+  assert.equal(updated.intent, "signal");
+  assert.equal(updated.interpretation!.correctedFromIntent, "non_classifie");
+  assert.equal(updated.interpretation!.correctionNote, "Corrigé : c'est bien une panne.");
+});
+
+test("correct_terrain_interpretation échoue si aucune interprétation n'existe encore à corriger", () => {
+  let state = createDemoState();
+  state = receive(state, "J'ai besoin de glace aujourd'hui à Mbour.", NOW, "wamid.1");
+  const interaction = state.terrainInteractions[0];
+  assert.throws(() =>
+    applyCommand(state, { type: "correct_terrain_interpretation", actorId: "act-admin", interactionId: interaction.id, markForReview: true })
+  );
+});
+
+// --- determineReplyIntent / confirmation (mandat §7) ----------------------
+
+test("determineReplyIntent : propose une confirmation uniquement quand needsHumanReview est vrai, jamais pendant l'onboarding", () => {
+  let state = createDemoState();
+  state = receive(state, "J'ai besoin de glace aujourd'hui à Mbour.", NOW, "wamid.1");
+  let interaction = state.terrainInteractions[0];
+  let conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
+
+  // Pendant l'onboarding, la priorité reste déterministe (mandat §7,
+  // "onboarding still has deterministic priority") — jamais une
+  // confirmation d'interprétation avant que l'onboarding ne soit fini.
+  state = applyCommand(state, {
+    type: "apply_terrain_interpretation",
+    interactionId: interaction.id,
+    outcome: "succes",
+    interpretation: { ...SUCCESSFUL_INTERPRETATION, needsHumanReview: true }
+  });
+  interaction = state.terrainInteractions[0];
+  conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
+  assert.deepEqual(determineReplyIntent(conversation, interaction, state.territories), { kind: "ask_prenom" });
+
+  state = onboard(createDemoState(), "Khady", "2", "Mbour");
+  conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
+  state = receive(state, "J'ai besoin de glace aujourd'hui à Mbour.", "2026-11-18T08:00:00.000Z", "wamid.need");
+  interaction = state.terrainInteractions.at(-1)!;
+  state = applyCommand(state, {
+    type: "apply_terrain_interpretation",
+    interactionId: interaction.id,
+    outcome: "succes",
+    interpretation: { ...SUCCESSFUL_INTERPRETATION, needsHumanReview: true }
+  });
+  interaction = state.terrainInteractions.find((item) => item.id === interaction.id)!;
+  conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
+  const reply = determineReplyIntent(conversation, interaction, state.territories);
+  assert.equal(reply.kind, "confirm_interpretation");
+
+  // Faible confiance → pas de confirmation demandée, ack générique.
+  const confidentInteraction = { ...interaction, interpretation: { ...interaction.interpretation!, needsHumanReview: false } };
+  assert.deepEqual(determineReplyIntent(conversation, confidentInteraction, state.territories), { kind: "ack" });
 });
 
 test("send_channel_message refuse d'écrire dans une conversation qui n'existe pas (jamais une conversation fabriquée côté envoi)", () => {
@@ -170,33 +335,17 @@ test("send_channel_message refuse d'écrire dans une conversation qui n'existe p
   );
 });
 
-test("l'historique de conversation conserve tous les messages, entrants et sortants", () => {
-  let state = createDemoState();
-  state = receive(state, "Bonjour", NOW, "w1");
-  let conversation = state.conversations.find((c) => c.channelAddress === PHONE)!;
-  assert.equal(conversation.messages.length, 1);
-  assert.equal(conversation.messages[0].direction, "inbound");
-
-  const next = applyCommand(state, {
-    type: "send_channel_message",
-    channel: "whatsapp",
-    channelAddress: PHONE,
-    body: "Bienvenue sur Mbàmbulaan. Quel est votre prénom ?",
-    sentAt: "2026-11-17T09:00:05.000Z"
+test("buildTerrainInteractionRows — projection triée, plus récent en premier, avec libellés réels et champs d'interprétation", () => {
+  let state = onboard(createDemoState(), "Awa", "2", "Mbour");
+  state = receive(state, "Premier message réel.", "2026-11-17T10:00:00.000Z", "wamid.a");
+  const first = state.terrainInteractions.at(-1)!;
+  state = applyCommand(state, {
+    type: "apply_terrain_interpretation",
+    interactionId: first.id,
+    outcome: "succes",
+    interpretation: SUCCESSFUL_INTERPRETATION
   });
-  conversation = next.conversations.find((c) => c.channelAddress === PHONE)!;
-  assert.equal(conversation.messages.length, 2);
-  assert.equal(conversation.messages.at(-1)!.direction, "outbound");
-});
-
-test("buildTerrainInteractionRows — projection triée, plus récent en premier, avec libellés réels", () => {
-  let state = createDemoState();
-  state = receive(state, "Bonjour", NOW, "w1");
-  state = receive(state, "Awa", NOW, "w2");
-  state = receive(state, "2", NOW, "w3");
-  state = receive(state, "Mbour", NOW, "w4");
-  state = receive(state, "Premier message réel.", "2026-11-17T10:00:00.000Z", "w5");
-  state = receive(state, "Second message réel, plus tard.", "2026-11-17T11:00:00.000Z", "w6");
+  state = receive(state, "Second message réel, plus tard.", "2026-11-17T11:00:00.000Z", "wamid.b");
 
   const rows = buildTerrainInteractionRows(state);
   assert.equal(rows[0].message, "Second message réel, plus tard.", "le plus récent doit apparaître en premier");
@@ -204,14 +353,15 @@ test("buildTerrainInteractionRows — projection triée, plus récent en premier
   assert.equal(rows[0].roleLabel, "Mareyeur");
   assert.equal(rows[0].territoryLabel, "Mbour");
   assert.equal(rows[0].evidenceStatusLabel, "Déclarée");
-  assert.equal(rows[0].processingStatusLabel, "Reçue");
-  assert.equal(rows[0].messageTypeLabel, "Texte");
+  assert.equal(rows[0].processingStatusLabel, "En attente de traitement IA");
+  assert.equal(rows[0].hasInterpretation, false);
 
-  // Les interactions antérieures à la fin de l'onboarding n'ont pas encore
-  // d'acteur réel à afficher — repli honnête, jamais un nom fabriqué.
-  const firstRow = rows.find((row) => row.message === "Bonjour")!;
-  assert.equal(firstRow.actorName, "Contact en cours d’onboarding");
-  assert.equal(firstRow.roleLabel, "—");
+  const interpretedRow = rows.find((row) => row.message === "Premier message réel.")!;
+  assert.equal(interpretedRow.hasInterpretation, true);
+  assert.equal(interpretedRow.intentLabel, "Besoin");
+  assert.equal(interpretedRow.subject, "glace");
+  assert.equal(interpretedRow.confidenceLabel, "Moyenne");
+  assert.equal(interpretedRow.needsHumanReview, false);
 });
 
 test("deux numéros différents onboardent deux conversations et deux Acteurs indépendants", () => {

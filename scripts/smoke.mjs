@@ -502,6 +502,97 @@ try {
       throw new Error("Le contact WhatsApp inconnu ne crée pas de conversation minimale.");
     }
 
+    // Scénario A (mandat §13) : le pipeline IA tourne réellement via le
+    // vrai webhook HTTP (fixture déterministe, aucun ANTHROPIC_API_KEY
+    // dans cet environnement de smoke test — honnêteté documentée dans
+    // IMPLEMENTATION_LOG.md). La redélivrance ne doit jamais re-déclencher
+    // le pipeline (processingStatus reste "traitee", pas remis en attente).
+    if (matchingInteractions[0].intent !== "besoin") {
+      throw new Error(`Scénario A : l'intention attendue est "besoin", obtenue "${matchingInteractions[0].intent}".`);
+    }
+    if (matchingInteractions[0].processingStatus !== "traitee") {
+      throw new Error(`Scénario A : processingStatus attendu "traitee", obtenu "${matchingInteractions[0].processingStatus}".`);
+    }
+    if (matchingInteractions[0].evidenceStatus !== "declaree") {
+      throw new Error("Scénario A : le traitement IA n'a pas le droit de faire progresser evidenceStatus.");
+    }
+    if (matchingInteractions[0].interpretation?.territoryId !== "mbour") {
+      throw new Error("Scénario A : le territoire Mbour n'est pas résolu par l'interprétation.");
+    }
+
+    // Scénarios B (voix) et C (image) — mandat §13 : un acteur DÉJÀ
+    // onboardé (sinon ces messages seraient consommés comme réponses
+    // d'onboarding, D008) envoie une note vocale puis une photo.
+    const mediaPhone = "221700000098";
+    const mediaWamid = (suffix) => `wamid.smoke.media.${suffix}.${crypto.randomUUID()}`;
+    const onboardMessages = ["Bonjour", "Fatou", "2", "Mbour"];
+    for (const [index, text] of onboardMessages.entries()) {
+      const onboardBody = waPayload(text, mediaWamid(`onboard-${index}`)).replace(phone, mediaPhone);
+      const onboardSigned = sign(onboardBody);
+      const onboardResponse = await fetch(`${base}/api/webhooks/whatsapp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Hub-Signature-256": onboardSigned },
+        body: onboardBody
+      });
+      if (!onboardResponse.ok) throw new Error(`Onboarding WhatsApp (média) : le message "${text}" échoue.`);
+    }
+
+    const waMediaPayload = (type, mediaId, wamid) =>
+      JSON.stringify({
+        entry: [
+          {
+            changes: [
+              { value: { messages: [{ id: wamid, from: mediaPhone, timestamp: String(Math.floor(Date.now() / 1000)), type, [type]: { id: mediaId } }] } }
+            ]
+          }
+        ]
+      });
+
+    const audioWamid = mediaWamid("audio");
+    const audioBody = waMediaPayload("audio", "fixture-audio-besoin-glace", audioWamid);
+    const audioResponse = await fetch(`${base}/api/webhooks/whatsapp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Hub-Signature-256": sign(audioBody) },
+      body: audioBody
+    });
+    if (!audioResponse.ok) throw new Error("Scénario B : le webhook refuse le message audio.");
+
+    const imageWamid = mediaWamid("image");
+    const imageBody = waMediaPayload("image", "fixture-image-machine-glace-endommagee", imageWamid);
+    const imageResponse = await fetch(`${base}/api/webhooks/whatsapp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Hub-Signature-256": sign(imageBody) },
+      body: imageBody
+    });
+    if (!imageResponse.ok) throw new Error("Scénario C : le webhook refuse le message image.");
+
+    const mediaAdminLogin = await expectOk("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "administrateur@mbambulaan.sn", password: process.env.DEMO_ACCOUNT_PASSWORD ?? "demo-mbambulaan-2026" })
+    });
+    sessionCookie = mediaAdminLogin.headers.get("set-cookie").split(";")[0];
+    const stateAfterMedia = (await (await expectOk("/api/state")).json()).state;
+
+    const audioInteraction = stateAfterMedia.terrainInteractions.find((item) => item.externalMessageId === audioWamid);
+    if (!audioInteraction) throw new Error("Scénario B : l'interaction audio n'a pas été créée.");
+    if (audioInteraction.processingStatus !== "traitee" || !audioInteraction.transcription) {
+      throw new Error("Scénario B : la transcription (fixture) n'a pas été appliquée.");
+    }
+    if (audioInteraction.intent !== "besoin") throw new Error("Scénario B : l'intention dérivée de la transcription est incorrecte.");
+
+    const imageInteraction = stateAfterMedia.terrainInteractions.find((item) => item.externalMessageId === imageWamid);
+    if (!imageInteraction) throw new Error("Scénario C : l'interaction image n'a pas été créée.");
+    if (imageInteraction.processingStatus !== "traitee" || !imageInteraction.imageAnalysis) {
+      throw new Error("Scénario C : l'analyse d'image (fixture) n'a pas été appliquée.");
+    }
+    if (imageInteraction.evidenceStatus !== "declaree") {
+      throw new Error("Scénario C : une image ne doit jamais faire progresser evidenceStatus vers verifiee.");
+    }
+    if (imageInteraction.interpretation?.needsHumanReview !== true) {
+      throw new Error("Scénario C : une analyse d'image de confiance faible doit rester needsHumanReview=true.");
+    }
+
     await expectOk("/api/auth/logout", { method: "POST" });
     sessionCookie = "";
     await expectStatus("/api/state", 401);

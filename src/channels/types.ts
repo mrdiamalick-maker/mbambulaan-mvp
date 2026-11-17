@@ -1,4 +1,4 @@
-import type { InteractionChannel, TerrainInteractionMessageType } from "@/domain/types";
+import type { InteractionChannel, MediaReference, TerrainInteractionMessageType } from "@/domain/types";
 
 // InboundChannelMessage — ce que tout ChannelAdapter doit produire à
 // partir d'un événement fournisseur, avant toute traduction en commande
@@ -16,6 +16,16 @@ export interface InboundChannelMessage {
   // for debugging/audit") — jamais l'enveloppe entière avec d'autres
   // contacts/messages, jamais interprété par le domaine.
   rawProviderEvent?: unknown;
+  // mediaRef (mandat T02 §10) — référence durable, jamais le binaire à ce
+  // stade (le pont de canal télécharge les octets séparément, au moment du
+  // traitement IA, jamais conservés dans l'état produit).
+  mediaRef?: MediaReference;
+  // hasCaption — distingue "rawContent est une vraie légende fournie par
+  // l'utilisateur" (mandat §4.3, à combiner avec l'analyse d'image) de
+  // "rawContent est le repère factuel fabriqué en l'absence de légende" —
+  // jamais ce second cas transmis à l'IA comme s'il s'agissait d'un
+  // contenu réel.
+  hasCaption?: boolean;
 }
 
 export interface ChannelAdapter {

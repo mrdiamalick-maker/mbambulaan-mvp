@@ -4,13 +4,21 @@
 // doit vérifier maintenant ?" — missions groupées par statut, avec
 // territoire/responsable/origine, jamais un tableau de bord KPI massif.
 // Remplace le message "reconnectez-vous en capitaine" pour
-// l'administrateur (mandat §3).
+// l'administrateur (mandat §3). Section "Interactions terrain reçues"
+// (Sprint T01, enrichie Sprint T02 §8) : affiche désormais
+// l'interprétation IA et permet à l'opérateur de confirmer/corriger/
+// marquer à revoir, geste humain auditable (correct_terrain_interpretation).
+import { useState } from "react";
 import { ClipboardList, MessageCircleMore } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { FieldMission, FieldMissionStatus, ProductState } from "@/domain/types";
-import { fieldMissionStatusLabels } from "@/domain/types";
-import { buildTerrainInteractionRows } from "@/domain/channel-interaction";
+import type { FieldMission, FieldMissionStatus, ProductState, TerrainInteractionIntent } from "@/domain/types";
+import { fieldMissionStatusLabels, terrainInteractionIntentLabels } from "@/domain/types";
+import { buildTerrainInteractionRows, type TerrainInteractionRow } from "@/domain/channel-interaction";
+import { useProduct } from "@/components/providers/ProductProvider";
+
+const INTENT_OPTIONS: TerrainInteractionIntent[] = ["signal", "besoin", "observation", "capacite", "non_classifie"];
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -33,6 +41,49 @@ function describeOrigin(mission: FieldMission): string {
   if (mission.collectiveNeedId) return "Besoin collectif";
   if (mission.situationId) return "Situation";
   return "Décision directe";
+}
+
+// InteractionCorrectionActions — mandat §8 : "confirm the interpretation;
+// correct intent and key extracted fields; mark interpretation for
+// review." Un seul petit formulaire inline plutôt qu'un dialogue séparé —
+// "do not redesign the full application". Soumission désactivée pendant
+// l'appel pour éviter un double envoi (geste humain auditable, jamais
+// dupliqué par un double clic).
+function InteractionCorrectionActions({ row }: { row: TerrainInteractionRow }) {
+  const { run } = useProduct();
+  const [selectedIntent, setSelectedIntent] = useState<TerrainInteractionIntent>((Object.entries(terrainInteractionIntentLabels).find(([, label]) => label === row.intentLabel)?.[0] as TerrainInteractionIntent) ?? "non_classifie");
+  const [submitting, setSubmitting] = useState<"confirm" | "review" | "correct" | null>(null);
+
+  async function submit(markForReview: boolean, intent?: TerrainInteractionIntent, which: "confirm" | "review" | "correct" = "confirm") {
+    setSubmitting(which);
+    await run({ type: "correct_terrain_interpretation", interactionId: row.id, markForReview, intent });
+    setSubmitting(null);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 pt-1">
+      <Button type="button" size="sm" variant="outline" disabled={submitting !== null} onClick={() => void submit(false, undefined, "confirm")}>
+        Confirmer
+      </Button>
+      <Button type="button" size="sm" variant="outline" disabled={submitting !== null} onClick={() => void submit(true, undefined, "review")}>
+        Marquer à revoir
+      </Button>
+      <select
+        className="h-8 rounded-md border bg-background px-2 text-xs"
+        value={selectedIntent}
+        onChange={(event) => setSelectedIntent(event.target.value as TerrainInteractionIntent)}
+      >
+        {INTENT_OPTIONS.map((option) => (
+          <option key={option} value={option}>
+            {terrainInteractionIntentLabels[option]}
+          </option>
+        ))}
+      </select>
+      <Button type="button" size="sm" variant="outline" disabled={submitting !== null} onClick={() => void submit(false, selectedIntent, "correct")}>
+        Corriger l’intention
+      </Button>
+    </div>
+  );
 }
 
 export function TerrainSupervisorView({ state }: { state: ProductState }) {
@@ -101,17 +152,23 @@ export function TerrainSupervisorView({ state }: { state: ProductState }) {
                 <CardContent className="space-y-1.5 p-4">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold leading-5">{row.actorName} · {row.roleLabel}</p>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge variant="outline">{row.intentLabel}</Badge>
                       <Badge variant="outline">{row.evidenceStatusLabel}</Badge>
-                      {row.processingStatusLabel !== "Reçue" && <Badge variant="outline">{row.processingStatusLabel}</Badge>}
+                      <Badge variant="outline">{row.processingStatusLabel}</Badge>
+                      {row.confidenceLabel && <Badge variant="outline">Confiance : {row.confidenceLabel}</Badge>}
+                      {row.needsHumanReview && <Badge variant="destructive">À revoir</Badge>}
                     </div>
                   </div>
                   <p className="text-sm">{row.message}</p>
+                  {row.summary && <p className="text-xs text-muted-foreground">Interprétation : {row.summary}</p>}
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     <span>{row.territoryLabel}</span>
+                    {row.subject && <span>Sujet : {row.subject}</span>}
                     <span>{row.messageTypeLabel}</span>
                     <span>{formatDate(row.receivedAt)}</span>
                   </div>
+                  {row.hasInterpretation && <InteractionCorrectionActions row={row} />}
                 </CardContent>
               </Card>
             ))}

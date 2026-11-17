@@ -97,6 +97,12 @@ const all: Command["type"][] = [
   // programme reste un geste de coordination.
   "create_programme_organization_engagement",
   "update_programme_organization_engagement_status",
+  // correct_terrain_interpretation (Sprint T02, mandat §8) — geste humain
+  // d'un opérateur Terrain (confirmer/corriger/marquer à revoir une
+  // interprétation IA), jamais le pont webhook (apply_terrain_interpretation,
+  // lui, n'apparaît dans aucune liste de permissions — mandat T01/T02,
+  // "aucun rôle humain ne peut déclencher les commandes webhook").
+  "correct_terrain_interpretation",
   "reset_demo"
 ];
 
