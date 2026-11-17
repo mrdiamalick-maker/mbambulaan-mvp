@@ -8,7 +8,16 @@ const server = remoteBase
   ? undefined
   : spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--port", String(port)], {
       stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, NODE_ENV: "production", DEMO_MODE: "true" }
+      env: {
+        ...process.env,
+        NODE_ENV: "production",
+        DEMO_MODE: "true",
+        // Secrets de smoke test uniquement (Sprint T01) — jamais les vrais
+        // secrets WhatsApp, utilisés seulement pour signer/vérifier les
+        // requêtes que ce script envoie à son propre serveur local.
+        WHATSAPP_APP_SECRET: "smoke-test-whatsapp-secret",
+        WHATSAPP_VERIFY_TOKEN: "smoke-test-verify-token"
+      }
     });
 let serverError = "";
 let demoState;
@@ -406,7 +415,99 @@ try {
   sessionCookie = "";
   await expectStatus("/api/state", 401);
 
-  console.log(`Smoke E2E: authentification réelle, /etat canonique (login, alias, deep links, rôles et gardes), APIs institutionnelles, Terrain mobile (entrée dédiée, retour, appel simulé, signalement), Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
+  // Parcours WhatsApp (Sprint T01, docs/product/CURRENT_SPRINT.md §12/§13)
+  // — ne tourne qu'en mode local (le secret de signature du déploiement
+  // distant n'est pas connu de ce script) : poignée de main, signature
+  // invalide refusée, scénario d'acceptation §13 (message réel non onboardé
+  // → interaction DECLARED visible), puis redélivrance identique → une
+  // seule interaction (idempotence du webhook, pas seulement de dispatch()).
+  if (!remoteBase) {
+    const { createHmac } = await import("node:crypto");
+    const waSecret = "smoke-test-whatsapp-secret";
+    const sign = (body) => "sha256=" + createHmac("sha256", waSecret).update(body, "utf8").digest("hex");
+    const phone = "221700000099";
+    const waPayload = (text, wamid) =>
+      JSON.stringify({
+        entry: [
+          {
+            changes: [
+              {
+                value: {
+                  messages: [
+                    { id: wamid, from: phone, timestamp: String(Math.floor(Date.now() / 1000)), type: "text", text: { body: text } }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      });
+
+    const challengeOk = await fetch(
+      `${base}/api/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=smoke-test-verify-token&hub.challenge=SMOKE123`
+    );
+    if (!challengeOk.ok || (await challengeOk.text()) !== "SMOKE123") {
+      throw new Error("La vérification (GET) du webhook WhatsApp échoue avec un verify_token valide.");
+    }
+    const challengeBad = await fetch(
+      `${base}/api/webhooks/whatsapp?hub.mode=subscribe&hub.verify_token=mauvais-jeton&hub.challenge=SMOKE123`
+    );
+    if (challengeBad.status !== 403) throw new Error("Le webhook WhatsApp accepte un verify_token invalide.");
+
+    const badSignatureBody = waPayload("Message avec signature invalide.", "wamid.smoke.badsig");
+    const badSignature = await fetch(`${base}/api/webhooks/whatsapp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Hub-Signature-256": "sha256=0000000000" },
+      body: badSignatureBody
+    });
+    if (badSignature.status !== 401) throw new Error("Le webhook WhatsApp accepte une signature invalide.");
+
+    const wamid = `wamid.smoke.${crypto.randomUUID()}`;
+    const body = waPayload("J'ai besoin de glace aujourd'hui à Mbour.", wamid);
+    const signature = sign(body);
+    const firstDelivery = await fetch(`${base}/api/webhooks/whatsapp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Hub-Signature-256": signature },
+      body
+    });
+    if (!firstDelivery.ok) throw new Error("Le webhook WhatsApp refuse un message valide.");
+    const secondDelivery = await fetch(`${base}/api/webhooks/whatsapp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Hub-Signature-256": signature },
+      body
+    });
+    if (!secondDelivery.ok) throw new Error("La redélivrance (provider event dupliqué) fait échouer le webhook.");
+
+    const whatsappAdminLogin = await expectOk("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "administrateur@mbambulaan.sn", password: process.env.DEMO_ACCOUNT_PASSWORD ?? "demo-mbambulaan-2026" })
+    });
+    const whatsappAdminCookie = whatsappAdminLogin.headers.get("set-cookie");
+    if (!whatsappAdminCookie) throw new Error("La connexion administrateur n'établit pas de session.");
+    sessionCookie = whatsappAdminCookie.split(";")[0];
+
+    const stateAfterWhatsapp = (await (await expectOk("/api/state")).json()).state;
+    const matchingInteractions = stateAfterWhatsapp.terrainInteractions.filter((item) => item.externalMessageId === wamid);
+    if (matchingInteractions.length !== 1) {
+      throw new Error(`La redélivrance WhatsApp n'est pas idempotente (1 interaction attendue, ${matchingInteractions.length} trouvée(s)).`);
+    }
+    if (matchingInteractions[0].evidenceStatus !== "declaree") {
+      throw new Error("L'interaction WhatsApp n'est pas créée avec evidenceStatus = declaree.");
+    }
+    if (!matchingInteractions[0].rawContent.includes("Mbour")) {
+      throw new Error("Le contenu brut du message WhatsApp n'est pas préservé tel quel.");
+    }
+    if (!stateAfterWhatsapp.conversations.some((item) => item.channelAddress === phone)) {
+      throw new Error("Le contact WhatsApp inconnu ne crée pas de conversation minimale.");
+    }
+
+    await expectOk("/api/auth/logout", { method: "POST" });
+    sessionCookie = "";
+    await expectStatus("/api/state", 401);
+  }
+
+  console.log(`Smoke E2E: authentification réelle, /etat canonique (login, alias, deep links, rôles et gardes), APIs institutionnelles, Terrain mobile (entrée dédiée, retour, appel simulé, signalement), WhatsApp (webhook, signature, idempotence)${remoteBase ? " [webhook WhatsApp ignoré en mode distant]" : ""}, Public (contenus, Atlas, opportunités, demandes, contributions, analytics), infrastructure, pirogue, coordination, Community et rareté validés sur ${base}.`);
 } finally {
   server?.kill("SIGTERM");
 }

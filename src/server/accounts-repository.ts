@@ -169,7 +169,14 @@ async function ensureDemoAccount() {
     build("acc-demo-operateur", "operateur@mbambulaan.sn", "operateur", "act-operateur", "Compte de démonstration — Opérateur"),
     build("acc-demo-mareyeur", "mareyeur@mbambulaan.sn", "mareyeur", "act-mareyeur", "Compte de démonstration — Mareyeur"),
     build("acc-demo-transformateur", "transformateur@mbambulaan.sn", "transformateur", "act-transform", "Compte de démonstration — Transformateur"),
-    build("acc-demo-prestataire", "prestataire@mbambulaan.sn", "prestataire", "act-prestataire", "Compte de démonstration — Prestataire")
+    build("acc-demo-prestataire", "prestataire@mbambulaan.sn", "prestataire", "act-prestataire", "Compte de démonstration — Prestataire"),
+    // Sprint T01 (docs/product/CURRENT_SPRINT.md) — administrateur manquait
+    // à l'appel alors que act-admin existe déjà dans le Demo World et que
+    // /app/terrain lui réserve TerrainSupervisorView, l'écran où ce sprint
+    // ajoute "Interactions terrain reçues" : sans ce compte, cet écran
+    // n'était démontrable par personne. Déviation documentée ici et dans
+    // IMPLEMENTATION_LOG.md plutôt que silencieuse.
+    build("acc-demo-administrateur", "administrateur@mbambulaan.sn", "administrateur", "act-admin", "Compte de démonstration — Administrateur")
   );
 }
 

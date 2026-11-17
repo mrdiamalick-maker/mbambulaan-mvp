@@ -5,11 +5,12 @@
 // territoire/responsable/origine, jamais un tableau de bord KPI massif.
 // Remplace le message "reconnectez-vous en capitaine" pour
 // l'administrateur (mandat §3).
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, MessageCircleMore } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { FieldMission, FieldMissionStatus, ProductState } from "@/domain/types";
 import { fieldMissionStatusLabels } from "@/domain/types";
+import { buildTerrainInteractionRows } from "@/domain/channel-interaction";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -36,6 +37,7 @@ function describeOrigin(mission: FieldMission): string {
 
 export function TerrainSupervisorView({ state }: { state: ProductState }) {
   const missions = state.fieldMissions;
+  const interactionRows = buildTerrainInteractionRows(state);
   const realiseesRecentes = missions
     .filter((item) => item.status === "realisee")
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -85,6 +87,37 @@ export function TerrainSupervisorView({ state }: { state: ProductState }) {
           );
         })
       )}
+
+      <div>
+        <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          <MessageCircleMore size={13} /> Interactions terrain reçues ({interactionRows.length})
+        </p>
+        {interactionRows.length === 0 ? (
+          <Card className="mt-2"><CardContent className="p-5"><p className="text-sm text-muted-foreground">Aucune interaction reçue pour le moment.</p></CardContent></Card>
+        ) : (
+          <div className="mt-2 space-y-2">
+            {interactionRows.map((row) => (
+              <Card key={row.id}>
+                <CardContent className="space-y-1.5 p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold leading-5">{row.actorName} · {row.roleLabel}</p>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant="outline">{row.evidenceStatusLabel}</Badge>
+                      {row.processingStatusLabel !== "Reçue" && <Badge variant="outline">{row.processingStatusLabel}</Badge>}
+                    </div>
+                  </div>
+                  <p className="text-sm">{row.message}</p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <span>{row.territoryLabel}</span>
+                    <span>{row.messageTypeLabel}</span>
+                    <span>{formatDate(row.receivedAt)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

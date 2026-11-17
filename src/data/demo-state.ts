@@ -2771,7 +2771,13 @@ export function createDemoState(): ProductState {
       { id: "not-ouakam-creneau", role: "capitaine", title: "Ouakam : nouveau créneau de débarquement confirmé", href: "/app/situations/sit-ouakam-creneau-quai", read: false },
       ...generatedNotifications
     ],
-    audit: []
+    audit: [],
+    // conversations / terrainInteractions (Sprint T01) — aucune fixture :
+    // seules de vraies commandes receive_channel_message/
+    // send_channel_message les peuplent (même discipline que
+    // programOpportunities ci-dessus).
+    conversations: [],
+    terrainInteractions: []
   };
 
   // PD.5 — Pont de connaissance opérationnelle (mandat "Operational

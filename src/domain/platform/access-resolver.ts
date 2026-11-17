@@ -15,7 +15,7 @@ export interface UserCapabilities {
 
 export function resolveCapabilities(
   state: ProductState,
-  organizationId: string
+  organizationId: string | undefined
 ): UserCapabilities {
 
 

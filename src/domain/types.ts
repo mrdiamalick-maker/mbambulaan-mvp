@@ -43,7 +43,13 @@ export interface Actor {
   id: string;
   name: string;
   role: Role;
-  organizationId: string;
+  // organizationId rendu optionnel (Sprint T01, "WhatsApp Transport +
+  // Terrain Intake Foundation") : un acteur créé par onboarding WhatsApp
+  // n'a pas d'organisation réelle à rattacher — en inventer une pour
+  // satisfaire ce champ aurait fabriqué une donnée. Tous les usages
+  // existants (recherche via .find(), jamais un accès direct supposant
+  // la présence) tolèrent déjà une organisation absente/non trouvée.
+  organizationId?: string;
   territoryIds: string[];
   phone: string;
   verified: boolean;
@@ -584,6 +590,148 @@ export interface IncomingMessage {
   dismissedAt?: string;
   dismissedByActorId?: string;
   duplicateOfSignalId?: string;
+}
+
+// --- Channel Interaction — Sprint T01 ("WhatsApp Transport + Terrain -----
+// Intake Foundation", docs/product/CURRENT_SPRINT.md) -------------------
+//
+// Trois concepts distincts demandés par le mandat (§3) : canal, fil de
+// conversation/identité externe, message terrain. Après analyse du
+// domaine existant (mandat §2) :
+//   - CommunicationChannel/Communication (plus haut) modélisent des
+//     communications SIMULÉES liées à une Situation (Communication.
+//     simulated: true) — pas une conversation réelle bidirectionnelle.
+//   - Signal["channel"] modélise la provenance d'un Signal déjà qualifié,
+//     pas un canal d'échange vivant.
+//   - IncomingMessage modélise une file de messages SIMULÉE (commentaire
+//     ci-dessus, "pas une intégration WhatsApp/SMS/téléphonie réelle").
+// Aucun des trois ne convient : InteractionChannel est donc un nouveau
+// type, volontairement distinct de CommunicationChannel (documenté ici
+// plutôt que silencieusement superposé — mandat "documenter tout conflit
+// de domaine avant d'introduire un nouveau concept").
+export type InteractionChannel = "whatsapp" | "sms" | "telephone";
+
+// ConversationOnboardingStage — mandat §5 : "collecter progressivement"
+// prénom → rôle → site. "non_demarre" couvre le tout premier message d'un
+// contact inconnu : ce message est TOUJOURS préservé tel quel (mandat §5,
+// "l'acteur peut soumettre le message original avant la fin de
+// l'onboarding"), jamais interprété comme une réponse — il n'y a encore
+// rien à quoi répondre. La question d'onboarding n'est posée qu'APRÈS ce
+// premier message ; c'est seulement le message SUIVANT qui est interprété
+// comme réponse à la question qui vient d'être posée.
+export type ConversationOnboardingStage =
+  | "non_demarre"
+  | "prenom_demande"
+  | "role_demande"
+  | "site_demande"
+  | "complet";
+
+export interface ConversationMessage {
+  id: string;
+  direction: "inbound" | "outbound";
+  body: string;
+  occurredAt: string;
+}
+
+// Conversation — réalise le "minimal pending actor/contact record" du
+// mandat §5 : un contact existe dès le premier message (channel +
+// channelAddress + stade d'onboarding), AVANT qu'un Actor réel ne soit
+// créé. Délibérément pas d'entité ExternalContact séparée (nom suggéré par
+// le mandat §3) : pour une paire (channel, channelAddress), l'identité du
+// contact et le fil de conversation ont exactement le même cycle de vie et
+// la même clé — les séparer aurait dupliqué cette paire sans qu'aucun
+// besoin réel ne justifie deux cycles de vie distincts (mandat "ne pas
+// créer de doublon seulement pour satisfaire ce sprint").
+export interface Conversation {
+  id: string;
+  channel: InteractionChannel;
+  channelAddress: string;
+  // actorId reste absent tant que l'onboarding n'a pas produit un Actor
+  // réel (nom + rôle + territoire) — jamais un Actor à moitié rempli avec
+  // des champs requis fabriqués (mandat "ne pas fabriquer de donnée").
+  actorId?: string;
+  onboardingStage: ConversationOnboardingStage;
+  pendingName?: string;
+  pendingRole?: Role;
+  pendingTerritoryId?: string;
+  startedAt: string;
+  lastMessageAt: string;
+  messages: ConversationMessage[];
+}
+
+// TerrainInteractionMessageType — mandat §10 : le parsing ne doit jamais
+// planter sur audio/image/média non supporté. "texte" est le seul type
+// réellement traité en T01 (rawContent = contenu réel) ; les autres
+// préservent un repère factuel (jamais un contenu inventé/transcrit) pour
+// préparer T02 (mandat D003/§10).
+export type TerrainInteractionMessageType = "texte" | "audio" | "image" | "document" | "autre";
+
+export const terrainInteractionMessageTypeLabels: Record<TerrainInteractionMessageType, string> = {
+  texte: "Texte",
+  audio: "Message vocal",
+  image: "Image",
+  document: "Document",
+  autre: "Autre"
+};
+
+// TerrainInteractionProcessingStatus — mandat §6/§10 : distincte de
+// evidenceStatus (fiabilité de l'affirmation) et de intent (classification
+// métier, hors périmètre T01). "media_en_attente" signale à l'opérateur
+// qu'un contenu est arrivé mais n'est pas encore exploitable (pas de
+// transcription/vision en T01) — jamais "recue" pour un contenu non
+// textuel, pour ne jamais laisser croire qu'il a été traité.
+export type TerrainInteractionProcessingStatus = "recue" | "media_en_attente";
+
+export const terrainInteractionProcessingStatusLabels: Record<TerrainInteractionProcessingStatus, string> = {
+  recue: "Reçue",
+  media_en_attente: "Média en attente (T02)"
+};
+
+// TerrainInteractionIntent — mandat §6 : "intent = UNCLASSIFIED pour T01".
+// Une seule valeur existe volontairement : SIGNAL/NEED/OBSERVATION/
+// CAPACITY (mandat PRODUCT_BASELINE §5) ne sont PAS implémentés ici — le
+// type reste à une seule valeur plutôt que préparer une union à 5 branches
+// qu'aucune commande de ce sprint ne produit encore (mandat "ne pas
+// construire le moteur de classification maintenant").
+export type TerrainInteractionIntent = "non_classifie";
+
+// TerrainInteraction — mandat §6. "actor/contact reference" est réalisé
+// par conversationId (toujours présent, dès le premier message, même
+// avant la création d'un Actor réel) + actorId optionnel (renseigné une
+// fois l'onboarding complet) — jamais un Actor fabriqué à moitié rempli
+// pour satisfaire ce champ plus tôt. evidenceStatus réutilise
+// VerificationStatus (déjà la grammaire "declaree/documentee/verifiee"
+// partagée par Organization/ActorRelationship, voir commentaire plus haut)
+// plutôt qu'un nouvel enum DECLARED/OBSERVED/VERIFIED : "declaree" porte
+// exactement le sens du mandat §6 ("evidenceStatus = DECLARED par
+// défaut") ; documenté ici comme mapping délibéré, pas une substitution
+// silencieuse.
+export interface TerrainInteraction {
+  id: string;
+  // Identifiant du message côté fournisseur (ex. wamid WhatsApp) —
+  // optionnel : un futur canal sans identifiant fournisseur stable reste
+  // possible (mandat "canal-agnostique").
+  externalMessageId?: string;
+  conversationId: string;
+  actorId?: string;
+  channel: InteractionChannel;
+  messageType: TerrainInteractionMessageType;
+  // Contenu brut tel que reçu pour "texte" ; repère factuel non fabriqué
+  // pour les autres types (mandat §10) — jamais une transcription.
+  rawContent: string;
+  receivedAt: string;
+  territoryId?: string;
+  evidenceStatus: VerificationStatus;
+  processingStatus: TerrainInteractionProcessingStatus;
+  intent: TerrainInteractionIntent;
+  // rawProviderEvent (mandat §4, "raw provider event retained for
+  // debugging/audit") — le message fournisseur isolé (jamais l'enveloppe
+  // webhook entière avec d'autres contacts/messages), jamais journalisé en
+  // clair côté serveur (mandat §11) : conservé uniquement dans l'état
+  // produit, visible seulement par un opérateur authentifié qui ouvre ce
+  // dossier précis. Optionnel : un canal de test/fixture peut ne pas en
+  // fournir.
+  rawProviderEvent?: unknown;
 }
 
 export interface Situation {
@@ -1596,6 +1744,14 @@ export interface ProductState {
   subscriptions: Subscription[];
   notifications: Notification[];
   audit: AuditEntry[];
+  // conversations / terrainInteractions (Sprint T01) — additifs, même
+  // discipline que findings/collectiveNeeds/programOpportunities plus
+  // haut : aucune migration des tableaux existants, aucune donnée de
+  // démonstration fabriquée pour ce sprint (createDemoState() les laisse
+  // vides, seules de vraies commandes receive_channel_message/
+  // send_channel_message les peuplent).
+  conversations: Conversation[];
+  terrainInteractions: TerrainInteraction[];
 }
 
 export type Command =
@@ -2049,7 +2205,25 @@ export type Command =
   // contacted → engaged/declined) vérifiée par le domaine
   // (programme-mobilization.ts), pas par ce type.
   | { type: "update_programme_organization_engagement_status"; actorId: string; engagementId: string; status: Exclude<ProgrammeOrganizationEngagementStatus, "considered">; note?: string }
-  | { type: "reset_demo"; actorId: string };
+  | { type: "reset_demo"; actorId: string }
+  // receive_channel_message / send_channel_message (Sprint T01) —
+  // délibérément SANS actorId : un numéro inconnu n'a pas encore d'Actor
+  // (CommandInput, plus bas, exclut automatiquement de /api/actions toute
+  // commande sans actorId — ces deux commandes ne peuvent transiter que
+  // par le pont webhook dédié, jamais par une session humaine). Elles ne
+  // sont volontairement ajoutées à aucune liste de permissions.ts : aucun
+  // rôle humain ne peut les déclencher, même via /api/actions.
+  | {
+      type: "receive_channel_message";
+      channel: InteractionChannel;
+      channelAddress: string;
+      messageType: TerrainInteractionMessageType;
+      rawContent: string;
+      receivedAt: string;
+      externalMessageId?: string;
+      rawProviderEvent?: unknown;
+    }
+  | { type: "send_channel_message"; channel: InteractionChannel; channelAddress: string; body: string; sentAt: string };
 
 export type CommandInput = Command extends infer Item
   ? Item extends { actorId: string }

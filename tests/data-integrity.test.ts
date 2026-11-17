@@ -67,7 +67,9 @@ test("le tenant de démonstration relie les objets sans référence orpheline", 
     initiative.territoryIds.forEach((id) => assert.ok(territoryIds.has(id)));
     initiative.funding.forEach((fund) => assert.ok(actorIds.has(fund.partnerId)));
   }
-  state.actors.forEach((item) => assert.ok(organizationIds.has(item.organizationId)));
+  state.actors.forEach((item) => {
+    if (item.organizationId !== undefined) assert.ok(organizationIds.has(item.organizationId));
+  });
   state.vessels.forEach((item) => {
     assert.ok(siteIds.has(item.homeSiteId));
     assert.ok(actorIds.has(item.captainId));
