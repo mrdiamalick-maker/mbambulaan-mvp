@@ -113,3 +113,53 @@ All four are read only from `process.env` in `src/channels/whatsapp.ts`; none ar
 - SIGNAL/NEED/OBSERVATION/CAPACITY classification (PRODUCT_BASELINE §5) is entirely unbuilt — `intent` has exactly one value (`non_classifie`) by design, ready to be widened when that engine is built, but nothing today infers or guesses an intent.
 - The outbound reply path only supports the three fixed onboarding prompts plus one generic acknowledgement (`src/channels/message-templates.ts`) — no AI-generated replies, as required; this is the natural place to extend when richer replies are in scope.
 - The WhatsApp section of `scripts/smoke.mjs` only runs in local-spawn mode (see "Tests executed"); extending it to the remote deployment would require either provisioning `WHATSAPP_APP_SECRET` there and passing it to the smoke script, or restructuring that check to not require a real signature.
+
+
+---
+
+## T02 — Voice + AI Understanding + Structured Terrain Intent
+
+Status: NOT STARTED
+Branch: `product/whatsapp-revenue-mvp`
+
+### Completion status
+TBD
+
+### Final commit SHA
+TBD
+
+### Files created / modified
+TBD
+
+### Intelligence/provider architecture
+TBD
+
+### Runtime provider(s)
+TBD
+
+### Environment variables
+TBD
+
+### Media retrieval/storage
+TBD
+
+### Structured AI schemas
+TBD
+
+### Tests executed
+TBD
+
+### Manual review routes / screenshots
+TBD
+
+### Demonstrated language support
+TBD
+
+### External blockers
+TBD
+
+### Deviations from CURRENT_SPRINT
+TBD
+
+### Known debt / T03 preparation
+TBD
