@@ -59,3 +59,25 @@ Canonical files:
 - docs/product/IMPLEMENTATION_LOG.md
 
 Important: decisions must not exist only in chat histories.
+
+
+## 2026-11-17 — D008 — Onboarding messages are not operational terrain interactions
+Decision: onboarding answers (name, role, site/territory) stay in conversation history but do not appear as operational TerrainInteractions.
+
+The initial substantive message that triggered onboarding is preserved as an operational interaction.
+
+Why: the terrain inbox must represent field information, not profile-completion chatter.
+
+## 2026-11-17 — D009 — T02 adds multimodal intelligence behind a provider-agnostic boundary
+Decision: voice transcription, language handling, image understanding and terrain-intent interpretation are implemented through an intelligence abstraction outside the core domain.
+
+Why:
+- runtime AI provider may change;
+- Claude is the coding agent, not necessarily the runtime model;
+- domain logic must survive provider replacement;
+- field usage requires text, voice and image without forcing French.
+
+## 2026-11-17 — D010 — AI interpretation never equals verification
+Decision: AI can classify, extract and suggest, but cannot silently promote an interaction to VERIFIED.
+
+Original content and provenance must remain available, and uncertain interpretations must be reviewable/correctable by a human.
