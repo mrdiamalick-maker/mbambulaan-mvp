@@ -1,313 +1,236 @@
-# CURRENT SPRINT — T03 — Need/Capacity Matching + First Coordination Loop
+# CURRENT SPRINT — T04 — Live Pilot Readiness + Commercial Validation
 
 Status: READY FOR IMPLEMENTATION
 Branch: `product/whatsapp-revenue-mvp`
-Depends on: T02 accepted
+Depends on: T03 accepted
 
 ## 1. Sprint objective
 
-Build the first end-to-end coordination loop that can create economic value.
+Move the Revenue MVP from deterministic/tested architecture to a product that can be used by real actors in Dakar/Senegal.
 
-At the end of T03:
+At the end of T04, the team must be able to onboard real WhatsApp users, process real text/voice/image interactions, create real needs/capacities, run the T03 coordination loop, and measure pilot/commercial usage.
 
-1. a terrain interaction classified as NEED can become a structured active need;
-2. a terrain interaction classified as CAPACITY can become a structured available capacity;
-3. Mbàmbulaan can identify relevant matches between them;
-4. an authorised operator can review and trigger a coordination;
-5. both sides can be notified through the existing channel abstraction;
-6. the coordination outcome can be tracked;
-7. the platform can measure whether Mbàmbulaan created a useful connection.
+This sprint is about **production readiness for a small field pilot**, not adding broad product scope.
 
-This is the first Revenue MVP loop.
+## 2. Critical live gaps to close
 
-T03 does not implement payments or subscriptions.
+The following are currently NOT proven live and must be addressed:
 
-## 2. Product principle
+1. live Meta WhatsApp Business / Cloud API connectivity;
+2. live text send/receive;
+3. live media download from Meta;
+4. real text/image intelligence provider invocation;
+5. real speech-to-text provider for voice notes;
+6. operational error visibility for pilot support;
+7. minimal pilot metrics and actor management;
+8. privacy/consent wording appropriate for real users.
 
-Mbàmbulaan is not a marketplace.
+## 3. WhatsApp live configuration
 
-Matching is a coordination capability, not a public listing/catalogue.
+Keep the existing provider abstraction.
 
-The product must answer:
+Add production-ready configuration/documentation for:
+- Meta app;
+- WhatsApp Business account/number;
+- webhook URL;
+- verify token;
+- app secret;
+- permanent/system-user access token where appropriate;
+- phone number id;
+- required webhook subscriptions.
 
-- who needs what?
-- who can provide it?
-- where?
-- when?
-- how compatible are they?
-- can Mbàmbulaan initiate a useful coordination?
-- did it result in an outcome?
+Add a startup/configuration health check that can tell an administrator whether:
+- inbound webhook is configured;
+- outbound messaging credentials are present;
+- media retrieval is configured.
 
-Do not create a generic marketplace browse/search experience.
+Never expose secret values in UI/logs.
 
-## 3. Reuse existing domain before creating new objects
+## 4. Real speech-to-text
 
-Before coding, inspect the current domain for:
-- ServiceRequest;
-- PartnerService / provider capacities;
-- Opportunity;
-- Coordination;
-- Commitment / Engagement;
-- Infrastructure available capacity;
-- Actor / Organization / Territory / Site;
-- any existing need/capacity matching logic.
+T02 left a genuine capability gap: Anthropic adapter does not transcribe audio.
 
-The repository already has substantial coordination concepts. T03 must connect the new TerrainInteraction pipeline to them rather than creating a parallel mini-product.
+Choose and implement one real speech-to-text provider behind the existing intelligence abstraction.
 
-If a new object is needed, document why existing domain objects are insufficient in IMPLEMENTATION_LOG.
+Selection criteria:
+- reliable API;
+- acceptable cost for 10–30 pilot users;
+- audio formats compatible with WhatsApp voice notes;
+- multilingual capability;
+- ability to test French immediately;
+- Wolof must be treated honestly: only claim support if demonstrated with real samples.
 
-## 4. Promote interpreted interactions into business objects
+The provider choice must be documented in IMPLEMENTATION_LOG with:
+- pricing model at implementation date;
+- supported formats/languages claimed by provider;
+- actual tested languages;
+- fallback/error behaviour.
 
-### NEED
+Do not couple the domain to the provider.
 
-When a `TerrainInteraction` has:
-- intent = `besoin`;
-- a valid interpretation;
-- sufficient structured information;
-- and no blocking human-review condition;
+## 5. Real intelligence validation
 
-the system must support creating/reusing the canonical domain object representing an active need/request.
+The existing real text/image provider path must be exercised with real API credentials before T04 can be marked fully live-ready.
 
-Minimum useful attributes:
-- source interaction id;
-- requesting actor;
-- organization if known;
+Validate:
+- NEED;
+- CAPACITY;
+- SIGNAL;
+- OBSERVATION;
+- ambiguous/UNCLASSIFIED;
+- image with useful caption;
+- image without enough context.
+
+Record actual outputs in test/QA notes without committing personal data or secrets.
+
+If Anthropic remains the provider, use the existing adapter boundary. If another provider is chosen, preserve the same boundary.
+
+## 6. Voice flow
+
+Real acceptance path:
+
+WhatsApp voice note
+→ Meta media retrieval
+→ speech-to-text provider
+→ transcription persisted
+→ language metadata if available
+→ terrain interpretation
+→ NEED/SIGNAL/OBSERVATION/CAPACITY
+→ confirmation/review when uncertain
+→ visible in Terrain UI.
+
+No manual upload step should be required in the real pilot path.
+
+## 7. WhatsApp-side confirmation responses
+
+T02 sends clarification/confirmation prompts but does not process a user's "oui/non" response as a confirmation.
+
+Implement a minimal deterministic confirmation state for real pilot usability.
+
+Examples:
+- Mbàmbulaan asks: "J'ai compris que vous cherchez de la glace à Mbour aujourd'hui. C'est bien cela ?"
+- user replies "Oui" → confirm current pending interpretation;
+- user replies "Non" → mark for clarification/review and ask a short follow-up.
+
+Requirements:
+- only treat yes/no as confirmation when a conversation has an explicit pending confirmation;
+- never interpret arbitrary "oui" messages out of context;
+- support common simple variants in French;
+- Wolof confirmation variants may be added only if validated with the product owner/real users, not guessed.
+
+Keep full conversation trace.
+
+## 8. Pilot actor management
+
+Add a minimal internal pilot view or extend existing admin/terrain UI to show:
+
+- actor;
+- phone/contact;
+- role;
 - territory/site;
-- subject/category;
-- quantity/unit if known;
-- required time window if known;
-- createdAt;
-- status;
-- provenance / evidence link.
+- onboarding completeness;
+- last interaction;
+- number of substantive interactions;
+- needs created;
+- capacities created;
+- coordinations initiated/completed;
+- whether provider-side value has been received.
 
-Do not fabricate missing values.
+Do not build a CRM.
 
-### CAPACITY
+## 9. Pilot metrics
 
-When a `TerrainInteraction` has:
-- intent = `capacite`;
-- a valid interpretation;
-- sufficient structured information;
+Expose a compact internal pilot scorecard derived from real state, at minimum:
 
-the system must support creating/reusing the canonical domain representation of a provider/resource/service capacity.
-
-Minimum useful attributes:
-- source interaction id;
-- provider actor / organization;
-- territory/site;
-- subject/category;
-- quantity/unit if known;
-- availability window if known;
-- createdAt;
-- status;
-- provenance / evidence link.
-
-Do not treat every CAPACITY as a permanent provider catalogue entry. A statement such as "mon camion est libre aujourd'hui" is time-bounded.
-
-## 5. Initial commercial categories
-
-For T03, matching quality matters more than breadth.
-
-Support explicitly these first categories:
-
-1. **Glace / froid**
-   - ice supply;
-   - cold storage / available cold capacity.
-
-2. **Transport**
-   - fish/logistics transport.
-
-3. **Acheteur / débouché**
-   - buyer/outlet demand and available buying interest.
-
-The architecture may remain extensible, but do not implement a generic ontology engine.
-
-## 6. Matching engine
-
-Matching must be deterministic/explainable in T03.
-
-Do not let an LLM directly decide that two actors should be connected.
-
-A match should consider, when available:
-- compatible subject/category;
-- territory/site proximity or same territory;
-- time-window overlap;
-- compatible quantity/unit;
-- active status;
-- provider/requester are not the same actor;
-- provider capacity is not expired;
-- trust/evidence status as a reason/flag, not an opaque score.
-
-Output should include:
-- need id;
-- capacity/provider id;
-- match status;
-- human-readable reasons;
-- warnings/gaps;
-- createdAt;
-- optional simple priority level.
-
-Do not invent a pseudo-scientific 0-100 score unless the current domain already has a justified equivalent.
-
-## 7. Human-in-the-loop
-
-T03 must not automatically connect people solely because a match exists.
-
-An authorised Mbàmbulaan operator must be able to:
-
-- review the need;
-- review candidate capacity/providers;
-- see why each candidate matches;
-- reject a bad match;
-- select a candidate;
-- initiate coordination.
-
-Later automation may be added after field validation.
-
-## 8. Coordination initiation
-
-When an operator initiates coordination:
-
-1. create/reuse the canonical Coordination/Commitment/Engagement domain object;
-2. link it to:
-   - source need;
-   - selected provider/capacity;
-   - requesting actor;
-   - provider actor/organization;
-   - territory;
-   - originating TerrainInteraction(s);
-3. create outbound notification intents for both sides.
-
-Example requester message:
-"Mbàmbulaan a identifié une possibilité pour votre besoin de glace à Mbour. Souhaitez-vous être mis en relation ?"
-
-Example provider message:
-"Un acteur à Mbour recherche de la glace aujourd'hui. Souhaitez-vous recevoir la demande ?"
-
-Use concise configurable templates. Do not expose personal contact details until the coordination step authorises it.
-
-## 9. Channel notification
-
-Use the existing channel abstraction.
-
-For WhatsApp contacts:
-- send a clear notification;
-- preserve outbound conversation history;
-- persist delivery attempt/status where architecture supports it;
-- provider failure must not lose the coordination object.
-
-If live WhatsApp credentials are not available, deterministic adapter tests are acceptable, but the handoff must clearly distinguish live vs fixture validation.
-
-## 10. Coordination statuses
-
-Reuse existing statuses if available.
-
-The loop must support at least the semantic equivalents of:
-
-- proposed;
-- requester accepted / declined;
-- provider accepted / declined;
-- connected;
-- completed;
-- failed/cancelled.
-
-Avoid introducing a new status model if existing coordination/engagement objects already cover this.
-
-## 11. Outcome capture
-
-This is essential.
-
-For each initiated coordination, allow an operator to record:
-
-- did the connection happen?
-- was the need fulfilled?
-- quantity/value if known;
-- short outcome note;
-- failure reason if not fulfilled.
-
-Do not force transaction value when unknown.
-
-This data will later become the foundation for Mbàmbulaan's commercial proof:
-- needs detected;
+- onboarded actors;
+- active users (at least one substantive interaction);
+- substantive interactions;
+- NEED count;
+- CAPACITY count;
 - matches proposed;
 - coordinations initiated;
-- successful outcomes.
+- successful coordinations;
+- provider organisations/actors receiving opportunities.
 
-## 12. Revenue evidence, not billing
+Where possible, distinguish:
+- demo/fixture data;
+- real pilot data.
 
-T03 must expose simple evidence that a professional actor received value.
+Do not fabricate analytics precision.
 
-At minimum, for provider-side actors/organizations track or derive:
-- opportunities received;
-- opportunities accepted;
-- successful coordinations.
+## 10. Commercial validation fields
 
-Do not implement payment, invoicing, subscription enforcement or commissions yet.
+For provider-side actors/organisations, add minimal commercial research fields or an adjacent pilot record:
 
-We need proof of willingness-to-pay before billing automation.
+- contacted for pilot: yes/no;
+- pilot participation accepted: yes/no;
+- willingness-to-pay asked: yes/no;
+- willingness-to-pay response: yes/no/maybe;
+- indicative amount mentioned, optional;
+- note.
 
-## 13. UI
+This is research evidence, not a subscription system.
 
-Extend existing Coordination / Terrain spaces rather than creating a marketplace.
+Do not create invoices/payments.
 
-Minimum operator workflow:
+## 11. Real-data safeguards
 
-### From Terrain
-Interaction NEED/CAPACITY
-→ "Créer/qualifier en besoin/capacité" if required
-→ link to resulting business object.
+Before real pilot usage:
 
-### In Coordination
-Need
-→ candidate matches
-→ reasons/warnings
-→ select provider
-→ initiate coordination
-→ follow status/outcome.
+- clearly flag demo vs real records;
+- avoid mixing simulated data into real pilot metrics;
+- add consent/privacy notice in the first-contact/onboarding flow;
+- disclose that Mbàmbulaan may process text, voice and images to provide the service;
+- provide a simple mechanism/flag to stop pilot communications for a contact;
+- do not expose actor phone numbers outside authorised internal views.
 
-Keep UI operational and compact.
+Keep wording simple and field-appropriate.
 
-## 14. Idempotence / provenance
+## 12. Operational resilience
 
-The same TerrainInteraction must not create duplicate needs/capacities if retried.
+For real pilot support, provide an internal way to see:
+- failed inbound processing;
+- failed transcription;
+- failed AI interpretation;
+- failed outbound WhatsApp sends;
+- pending human review.
 
-Every promoted object must retain source TerrainInteraction provenance.
+Allow retry where technically safe.
 
-Every coordination must be traceable back to:
-- need;
-- capacity/provider;
-- original interactions.
+Do not build a full observability platform.
 
-## 15. Tests required
+## 13. Tests required
 
 At minimum:
 
-### Promotion
-- NEED interaction creates exactly one canonical need;
-- duplicate promotion does not duplicate;
-- CAPACITY interaction creates exactly one capacity representation;
-- missing required data routes to review, not fabricated data.
+### WhatsApp live-path contracts
+- text webhook path regression;
+- media download contract;
+- outbound send contract;
+- missing/expired credentials produce explicit admin-visible failure.
 
-### Matching
-- ice need at Mbour matches active ice/cold capacity in Mbour;
-- expired capacity does not match;
-- transport need does not match cold storage;
-- actor does not match themselves;
-- time mismatch produces warning or exclusion according to explicit rule;
-- quantity mismatch is explained.
+### Speech-to-text
+- provider adapter success;
+- provider adapter error;
+- unsupported/unknown language handling;
+- audio pipeline preserves original interaction on failure.
 
-### Coordination
-- operator can select valid match and initiate coordination;
-- notifications generated for both sides;
-- duplicate initiation is idempotent;
-- provider/requester acceptance updates coordination;
-- outcome can be recorded;
-- failed notification does not delete coordination.
+### Confirmation
+- pending confirmation + "Oui" confirms;
+- pending confirmation + "Non" routes to review;
+- "Oui" with no pending confirmation remains a normal/unclassified message, never mutates previous interaction.
+
+### Pilot metrics
+- counts derive correctly;
+- demo and real-pilot records can be distinguished;
+- successful coordination increments success metrics.
+
+### Commercial research
+- willingness-to-pay research fields can be recorded and audited;
+- no billing/subscription side effect.
 
 ### Regression
-- T01 webhook/idempotence remains green;
-- T02 intent/media/AI tests remain green;
-- evidence status is never silently promoted.
+- T01–T03 suites remain green.
 
 Run:
 `npm run lint`
@@ -316,88 +239,64 @@ Run:
 `npm run build`
 `git diff --check`
 
-Run E2E where supported.
+Run E2E.
 
-## 16. Acceptance scenario — first revenue-value loop
+## 14. Live acceptance checklist
 
-### Actors
-- Awa, mareyeuse in Mbour, known WhatsApp actor.
-- Froid Mbour, professional cold/ice provider.
+T04 is not fully accepted until the following have been demonstrated with real credentials:
 
-### Inbound need
-Awa sends:
-"J'ai besoin de glace aujourd'hui à Mbour."
+1. a real WhatsApp user sends a text to the Mbàmbulaan number;
+2. Mbàmbulaan receives and stores it;
+3. Mbàmbulaan sends a reply to that same real user;
+4. a real voice note is received and transcribed;
+5. the transcription is interpreted and visible in Terrain;
+6. a real image is received and analysed, without automatic verification;
+7. at least one NEED and one CAPACITY can enter the T03 matching loop.
 
-Expected:
-- T02 classifies NEED;
-- canonical active need exists;
-- source interaction retained.
+If credentials cannot be provisioned in the coding environment, implementation may be marked CODE COMPLETE but not LIVE ACCEPTED. Document exact remaining activation steps.
 
-### Inbound capacity
-Provider sends:
-"Nous avons de la glace disponible aujourd'hui à Mbour."
+## 15. Pilot target
 
-Expected:
-- T02 classifies CAPACITY;
-- active capacity exists;
-- source interaction retained.
+The product should be ready to support the founder's initial Dakar field target:
 
-### Match
-Expected:
-- Mbàmbulaan identifies a candidate match;
-- reason includes compatible category + Mbour + compatible time window;
-- operator can review it.
+- 10–30 real actors onboarded;
+- multiple roles, not only fishermen;
+- at least 3 provider-side actors;
+- initial focus: ice/cold, transport, buyer/outlet;
+- at least one real coordination attempted;
+- willingness-to-pay question asked to provider-side participants.
 
-### Coordination
-Operator selects the match and initiates coordination.
-
-Expected:
-- coordination object exists;
-- requester/provider notifications are generated;
-- both source interactions remain traceable;
-- operator can record final result.
-
-### Outcome
-Operator records:
-"Besoin satisfait."
-
-Expected:
-- coordination marked successful/completed;
-- provider-side value evidence increments.
-
-This full scenario must be demonstrable without a marketplace.
-
-## 17. Explicit out of scope
+## 16. Explicit out of scope
 
 Do not build:
-- payments;
-- commissions;
+- automated payment;
 - subscription enforcement;
-- automated billing;
-- public marketplace/catalogue;
-- AI-autonomous matching;
-- bidding/auction;
-- delivery fleet;
-- escrow;
-- ratings/reviews;
-- complex geospatial routing;
+- marketplace;
+- public catalogue;
+- autonomous matching;
+- large CRM;
+- sophisticated BI/dashboard suite;
+- call-center/IVR;
+- full Wolof conversational agent;
 - State/Public redesign.
 
-## 18. Required implementation handoff
+## 17. Required implementation handoff
 
-Append T03 to `docs/product/IMPLEMENTATION_LOG.md` with:
-- completion status;
+Append T04 to `docs/product/IMPLEMENTATION_LOG.md` with:
+- completion status: CODE COMPLETE vs LIVE ACCEPTED;
 - final commit SHA;
-- existing domain concepts reused;
-- new domain concepts and justification;
-- matching rules;
-- coordination workflow/status mapping;
-- notification behaviour;
+- speech-to-text provider chosen and why;
+- provider costs/pricing reference captured at implementation time;
+- live Meta setup status;
+- live AI setup status;
+- tested languages;
+- pilot metrics implementation;
+- consent/privacy implementation;
+- commercial research fields;
 - tests/results;
-- manual review routes;
-- live vs fixture validation;
-- known blockers;
+- exact live activation steps remaining;
 - deviations;
-- debt/preparation for T04 commercial validation.
+- blockers;
+- recommendation for first Dakar pilot day.
 
-Do not mark T03 DONE solely because objects exist. The full acceptance scenario must pass end-to-end.
+Do not call the Revenue MVP live-ready unless the real acceptance checklist has been exercised.
