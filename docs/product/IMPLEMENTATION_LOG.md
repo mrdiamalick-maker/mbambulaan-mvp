@@ -241,3 +241,50 @@ Only French was exercised — every fixture, every test sentence, and the only t
 - **The deterministic fixture's keyword lists are intentionally small and literal** (see the bug caught and fixed during manual testing, above) — expect to need to extend `SIGNAL_MARKERS`/`NEED_MARKERS`/`CAPACITY_MARKERS`/`OBSERVATION_MARKERS`/`SUBJECT_MARKERS` in `src/intelligence/fixture-adapter.ts` as real usage surfaces phrasing it doesn't yet recognise — or, better, treat any growing reliance on it as the signal that a real provider should be turned on instead.
 - **The Terrain UI's correction form is intentionally minimal** (confirm / mark-for-review / change-intent-only) — §8 also mentions correcting "key extracted fields" (subject/territory/quantity/etc.); the domain command (`correct_terrain_interpretation`) already accepts all of them, only the UI form doesn't yet expose inputs for each. Extending the form is pure UI work, no domain change needed.
 - **`document`/`autre` message types have no interpretation pipeline** — they still create an interaction (§6 compliance preserved) but `runIntelligencePipeline` throws for them deliberately (never a fabricated success), landing on `echec_traitement`. Out of scope per §4 (only text/audio/image are specified).
+
+
+---
+
+## T03 — Need/Capacity Matching + First Coordination Loop
+
+Status: NOT STARTED
+Branch: `product/whatsapp-revenue-mvp`
+
+### Completion status
+TBD
+
+### Final commit SHA
+TBD
+
+### Existing domain concepts reused
+TBD
+
+### New domain concepts added
+TBD
+
+### Matching rules
+TBD
+
+### Coordination workflow/status mapping
+TBD
+
+### Notification behaviour
+TBD
+
+### Tests executed
+TBD
+
+### Manual review routes
+TBD
+
+### Live vs fixture validation
+TBD
+
+### External blockers
+TBD
+
+### Deviations from CURRENT_SPRINT
+TBD
+
+### Known debt / T04 commercial validation
+TBD
