@@ -256,7 +256,7 @@ Implements CURRENT_SPRINT.md §1-§17 in full, including the "do not mark T03 DO
 
 ### Final commit SHA
 
-`<filled in the follow-up commit on this branch>`
+`838a25886fda94b748190d0e5c10eade46db0e4d`
 
 ### Existing domain concepts reused
 
