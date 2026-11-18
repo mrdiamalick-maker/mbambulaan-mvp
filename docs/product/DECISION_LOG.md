@@ -81,3 +81,30 @@ Why:
 Decision: AI can classify, extract and suggest, but cannot silently promote an interaction to VERIFIED.
 
 Original content and provenance must remain available, and uncertain interpretations must be reviewable/correctable by a human.
+
+
+## 2026-11-18 — D011 — T02 accepted with live-provider caveat
+Decision: T02 architecture and deterministic multimodal pipeline are accepted.
+
+Caveat:
+- no real WhatsApp credentials have been validated;
+- no real Anthropic API validation has been performed;
+- the current Anthropic runtime adapter does not transcribe audio;
+- real voice transcription remains a pilot-readiness dependency.
+
+This does not block T03 domain/value-loop development.
+
+## 2026-11-18 — D012 — First commercial value loop is operator-reviewed matching
+Decision: Mbàmbulaan will first prove economic value through NEED ↔ CAPACITY matching and a human-reviewed coordination flow.
+
+The first categories are:
+- ice/cold;
+- transport;
+- buyer/outlet.
+
+No marketplace and no autonomous AI matching.
+
+## 2026-11-18 — D013 — Revenue proof precedes billing automation
+Decision: T03 tracks professional value received (opportunities, accepted opportunities, successful coordinations) but does not implement payments/subscriptions.
+
+Why: willingness-to-pay must be validated with real actors before automating billing.
