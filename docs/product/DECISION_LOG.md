@@ -108,3 +108,24 @@ No marketplace and no autonomous AI matching.
 Decision: T03 tracks professional value received (opportunities, accepted opportunities, successful coordinations) but does not implement payments/subscriptions.
 
 Why: willingness-to-pay must be validated with real actors before automating billing.
+
+
+## 2026-11-18 — D014 — T03 accepted as the first complete value loop
+Decision: the NEED → CAPACITY → MATCH → COORDINATION → OUTCOME loop is accepted.
+
+The matching engine remains deterministic and operator-reviewed. Revenue evidence is derived from provider-side opportunities/acceptance/success, without billing automation.
+
+## 2026-11-18 — D015 — T04 prioritises live pilot readiness over new product breadth
+Decision: the next sprint closes real-world activation gaps instead of adding more modules.
+
+Priority:
+- real WhatsApp;
+- real voice transcription;
+- real AI validation;
+- pilot actor/metric management;
+- commercial willingness-to-pay evidence.
+
+## 2026-11-18 — D016 — Revenue MVP is not considered live until real credentials and real user media have been exercised
+Decision: fixture/E2E success is necessary but insufficient for pilot readiness.
+
+Code-complete and live-accepted statuses must remain separate.
