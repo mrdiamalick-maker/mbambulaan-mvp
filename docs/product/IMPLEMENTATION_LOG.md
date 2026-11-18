@@ -367,7 +367,7 @@ NOT LIVE ACCEPTED: none of CURRENT_SPRINT.md §14's 7 steps (real WhatsApp user,
 
 ### Final commit SHA
 
-`PENDING` — filled in by a follow-up commit immediately after this one (same two-commit pattern as T02/T03): this commit's own SHA cannot be known before it is created.
+`19ec782b7eb02b7022d9f120cf72b7259ca87459`
 
 ### Speech-to-text provider
 
