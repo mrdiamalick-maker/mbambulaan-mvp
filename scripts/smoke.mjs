@@ -593,6 +593,83 @@ try {
       throw new Error("Scénario C : une analyse d'image de confiance faible doit rester needsHumanReview=true.");
     }
 
+    // Sprint T03 (mandat §16) : scénario d'acceptation complet "première
+    // boucle de valeur" — Awa (besoin de glace) + Froid Mbour (capacité de
+    // glace) → match → coordination → acceptation des deux côtés → issue.
+    // sessionCookie reste celui de l'administrateur (connecté ci-dessus).
+    const awaPhone = "221700000097";
+    const froidPhone = "221700000096";
+    const t03Wamid = (suffix) => `wamid.smoke.t03.${suffix}.${crypto.randomUUID()}`;
+
+    async function onboardAndSend(phone, name, roleChoice, territoryAnswer, finalMessage) {
+      // waPayload (scénario A, plus haut) ferme sur son propre numéro de
+      // téléphone constant — on reconstruit donc le payload directement
+      // avec le bon numéro plutôt que de dépendre de cette fermeture.
+      for (const [index, text] of ["Bonjour", name, roleChoice, territoryAnswer, finalMessage].entries()) {
+        const body = JSON.stringify({
+          entry: [{ changes: [{ value: { messages: [{ id: t03Wamid(`${phone}-${index}`), from: phone, timestamp: String(Math.floor(Date.now() / 1000)), type: "text", text: { body: text } }] } }] }]
+        });
+        const response = await fetch(`${base}/api/webhooks/whatsapp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Hub-Signature-256": sign(body) },
+          body
+        });
+        if (!response.ok) throw new Error(`Sprint T03 : l'onboarding/message "${text}" échoue pour ${phone}.`);
+      }
+    }
+
+    await onboardAndSend(awaPhone, "Awa", "2", "Mbour", "J'ai besoin de glace aujourd'hui à Mbour.");
+    await onboardAndSend(froidPhone, "Froid Mbour", "4", "Mbour", "Nous avons de la glace disponible aujourd'hui à Mbour.");
+
+    demoState = (await (await expectOk("/api/state")).json()).state;
+    const awaActor = demoState.actors.find((item) => item.phone === awaPhone);
+    const froidActor = demoState.actors.find((item) => item.phone === froidPhone);
+    if (!awaActor || !froidActor) throw new Error("Sprint T03 : les deux acteurs (Awa, Froid Mbour) ne sont pas onboardés.");
+
+    const t03Need = demoState.terrainNeeds.find((item) => item.actorId === awaActor.id);
+    if (!t03Need) throw new Error("Sprint T03 : le besoin d'Awa n'a pas été promu automatiquement.");
+    const t03Capacity = demoState.terrainCapacities.find((item) => item.actorId === froidActor.id);
+    if (!t03Capacity) throw new Error("Sprint T03 : la capacité de Froid Mbour n'a pas été promue automatiquement.");
+
+    await action("refresh_terrain_matches", { needId: t03Need.id });
+    const t03Match = demoState.terrainMatches.find((item) => item.needId === t03Need.id && item.capacityId === t03Capacity.id && item.status === "propose");
+    if (!t03Match) throw new Error("Sprint T03 : aucun candidat identifié pour le besoin d'Awa (catégorie/territoire compatibles attendus).");
+    if (!t03Match.reasons.some((reason) => reason.includes("territoire"))) {
+      throw new Error("Sprint T03 : les raisons du match doivent mentionner la compatibilité de territoire.");
+    }
+
+    await action("initiate_terrain_coordination", {
+      matchId: t03Match.id,
+      requesterMessage: "Smoke test : message demandeur.",
+      providerMessage: "Smoke test : message fournisseur."
+    });
+    const t03Coordination = demoState.terrainCoordinations.find((item) => item.matchId === t03Match.id);
+    if (!t03Coordination) throw new Error("Sprint T03 : la coordination n'a pas été créée.");
+    if (t03Coordination.notifications.length !== 2) throw new Error("Sprint T03 : les deux notifications (demandeur/fournisseur) doivent être générées.");
+    if (!t03Coordination.sourceInteractionIds.length) throw new Error("Sprint T03 : les interactions d'origine doivent rester traçables.");
+
+    await action("initiate_terrain_coordination", {
+      matchId: t03Match.id,
+      requesterMessage: "Smoke test : message demandeur (rejoué).",
+      providerMessage: "Smoke test : message fournisseur (rejoué)."
+    });
+    if (demoState.terrainCoordinations.filter((item) => item.matchId === t03Match.id).length !== 1) {
+      throw new Error("Sprint T03 : une double initiation ne doit jamais créer une seconde coordination.");
+    }
+
+    await action("record_terrain_coordination_response", { coordinationId: t03Coordination.id, side: "demandeur", response: "acceptee" });
+    await action("record_terrain_coordination_response", { coordinationId: t03Coordination.id, side: "fournisseur", response: "acceptee" });
+    const connected = demoState.terrainCoordinations.find((item) => item.id === t03Coordination.id);
+    if (connected.status !== "connectee") throw new Error("Sprint T03 : la coordination doit être connectée après les deux acceptations.");
+
+    await action("update_terrain_coordination_status", { coordinationId: t03Coordination.id, status: "terminee", outcome: { fulfilled: true, note: "Besoin satisfait." } });
+    const completed = demoState.terrainCoordinations.find((item) => item.id === t03Coordination.id);
+    if (completed.status !== "terminee" || completed.outcome?.fulfilled !== true) {
+      throw new Error("Sprint T03 : l'issue satisfaite n'est pas enregistrée correctement.");
+    }
+    const satisfiedNeed = demoState.terrainNeeds.find((item) => item.id === t03Need.id);
+    if (satisfiedNeed.status !== "satisfaite") throw new Error("Sprint T03 : le besoin devrait être marqué satisfait après une issue réussie.");
+
     await expectOk("/api/auth/logout", { method: "POST" });
     sessionCookie = "";
     await expectStatus("/api/state", 401);

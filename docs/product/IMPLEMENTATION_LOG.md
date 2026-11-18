@@ -247,44 +247,106 @@ Only French was exercised — every fixture, every test sentence, and the only t
 
 ## T03 — Need/Capacity Matching + First Coordination Loop
 
-Status: NOT STARTED
+Status: DONE. The full acceptance scenario (§16) passes end-to-end through the real HTTP webhook and the real `/api/actions` endpoint, not just unit tests — see "Tests executed". Real-provider notification delivery is unvalidated (no live WhatsApp credentials), same documented gap as T01/T02.
 Branch: `product/whatsapp-revenue-mvp`
 
 ### Completion status
-TBD
+
+Implements CURRENT_SPRINT.md §1-§17 in full, including the "do not mark T03 DONE merely because objects exist" requirement: the complete chain (NEED interaction → promoted Need → match → coordination → both-side acceptance → outcome → need closed) was run against a real running server via real HTTP (webhook + `/api/actions`), not just constructed directly in a unit test. `lint`/`typecheck`/`build`/`git diff --check` are clean; `npm test` is 651/651 green (up from 623 at T02: +28 new tests, 0 broken); `npm run test:e2e` passes, replaying the exact §16 scenario (Awa/Froid Mbour, Mbour, ice) end-to-end.
 
 ### Final commit SHA
-TBD
+
+`<filled in the follow-up commit on this branch>`
 
 ### Existing domain concepts reused
-TBD
 
-### New domain concepts added
-TBD
+Before writing any new object, the following were read in full (mandat §3): `ServiceRequest`, `Capacity`, `Opportunity`, `Commitment`, `CoordinationSpace`, `ProgrammeOrganizationEngagement`, `Infrastructure`, `Actor`/`Organization`/`Territory`/`Site`. Reused as-is, unmodified:
+- `Territory`/`Actor`/`Organization` — need/capacity/coordination all reference these by id, never a duplicated copy of territory name or actor name.
+- `id()`, `timestamp()`, `withAudit()` (`rules.ts`) — same helpers every prior sprint uses, no duplication.
+- The existing generic "status update with an explicit legal-transition table" pattern already used by `update_initiative_status` (`initiative-lifecycle.ts`) — `update_terrain_coordination_status` follows the identical shape (a gate function per transition, an audit detail string with previous→next status).
+- The existing `InteractionChannel`/`Conversation`/`send_channel_message` machinery from T01 — coordination notifications are WhatsApp messages exactly like any other outbound message, logged into the same `Conversation.messages` history.
+- The existing `dispatch()`/idempotency mechanism (`repository.ts`) — the webhook's auto-promotion call reuses it with its own idempotency key, no second mechanism invented.
+
+### New domain concepts added — and why existing ones were insufficient (mandat §3/§18)
+
+Four new objects in `src/domain/terrain-matching.ts`/`types.ts`, deliberately narrow (mandat §5, "matching quality matters more than breadth"). Full reasoning is written in-line in `types.ts` right above the new section; summary:
+
+- **`TerrainNeed`/`TerrainCapacity`** (new) — not `ServiceRequest`/`Capacity`: those are structurally about fish-lot sourcing (`speciesId`, `quantityKg`, `quality` required) and about a pre-registered `Infrastructure` asset respectively. A WhatsApp-declared need for ice has no species or quality; a WhatsApp-declared "my truck is free today" capacity has no `infrastructureId` and is explicitly time-bounded (mandat §4, "do not treat every CAPACITY as a permanent provider catalogue entry") — the opposite of what `Infrastructure`/`Capacity` model.
+- **`TerrainMatch`** (new) — no existing object represents "a candidate pairing between a need and a capacity, with reasons/warnings, before any coordination exists." Persisted (not purely computed on each render) specifically so "matches proposed" (mandat §12) is a real, countable fact, not re-derived from a UI render that leaves no trace.
+- **`TerrainCoordination`** (new) — `CoordinationSpace` has **no status field at all** (just free-text `objective`/`decision` plus a `commitments` array) and requires a `situationId` or `opportunityId` anchor — neither exists for a terrain need/capacity pairing. Reusing it would have meant bolting a status machine onto an object built for a different job, breaking nothing for its existing callers only by accident. `Opportunity.status` (`detectee`/`proposee`/`engagee`/`executee`) is a single one-sided flow (fish lot → buyer), not two independent accept/decline facts. `ProgrammeOrganizationEngagement` is one-sided too (mobilising an organisation for a programme).
+- **`TerrainCoordinationStatus` is 4 values, not 8** — a first draft modeled "requester accepted" and "provider accepted" as two more values of a single status field, but that cannot represent both facts independently (a single field can only hold one value at a time) and a review during implementation caught that this let a coordination reach `connectee` having only ever recorded **one** side's acceptance. Fixed before being tested further: `requesterResponse`/`providerResponse` are two independent optional fields on `TerrainCoordination`; `status` holds only `proposee`/`connectee`/`terminee`/`echouee`, and `connectee` is only reachable once **both** response fields are `"acceptee"`. This is flagged here explicitly as a design correction made during this same implementation pass, not shipped-then-fixed.
+- **Message templates stayed out of `src/domain`** (same T01/T02 discipline) — an earlier draft of `applyInitiateTerrainCoordination` built the two notification strings inline in the domain function; this was corrected before commit to match `send_channel_message`'s existing pattern: `initiate_terrain_coordination` takes `requesterMessage`/`providerMessage` as already-rendered input (computed by the caller via `src/channels/message-templates.ts`'s two new functions), exactly like `send_channel_message.body`.
 
 ### Matching rules
-TBD
+
+`computeMatchCandidates` (`terrain-matching.ts`), pure and deterministic — mandat §6, "do not let an LLM directly decide that two actors should be connected":
+
+Hard filters (never shown, never a warning — simply absent from the candidate list):
+1. same `category` (glace_froid / transport / acheteur_debouche);
+2. same `territoryId`;
+3. capacity `status === "active"` (excludes `engagee`/`expiree`/`annulee`);
+4. `capacity.actorId !== need.actorId`.
+
+Explainable signals (always shown as a reason or a warning, never silently applied):
+- a matching `requiredTimeWindow`/`availabilityWindow` is a reason; a **different** one is a warning, not an exclusion — chosen explicitly (mandat §6 allows either) because these are free-form, coarse buckets ("aujourd'hui"/"demain"/"ce matin"), and excluding on a mismatch risked hiding a genuinely useful match from the operator over an imprecise signal;
+- a quantity shortfall, or mismatched units, is a warning with the concrete numbers, never silently dropped or converted;
+- the provider's declared-not-verified evidence status is always surfaced as a reason string (mandat §6, "trust/evidence status as a reason/flag, not an opaque score").
+
+`priority` is `"haute"` when there are no warnings, `"moyenne"` otherwise — no numeric score (mandat §6, "do not invent a pseudo-scientific 0-100 score").
 
 ### Coordination workflow/status mapping
-TBD
+
+`status`: `proposee → connectee → terminee` or `echouee` (from any non-terminal state). `requesterResponse`/`providerResponse` (`"acceptee" | "refusee"`) are independent; either side declining moves `status` straight to `echouee`; `status` becomes `connectee` only once both are `"acceptee"`. `outcome.fulfilled === true` on `terminee` also closes the source `TerrainNeed` (`status: "satisfaite"`) — the one cross-object side effect in this sprint, directly read from mandat §16's own scenario wording.
 
 ### Notification behaviour
-TBD
+
+`applyInitiateTerrainCoordination` (pure) only **prepares** two `TerrainCoordinationNotification` records with `status: "a_envoyer"` — real sending is a separate orchestration step (`src/server/coordination-notifications.ts`, `attemptCoordinationNotifications`), because `applyCommand` must stay synchronous. That helper is called from `src/app/api/actions/route.ts` right after `initiate_terrain_coordination` is dispatched, in **both** persistence branches (`memoire_locale_demo` and PostgreSQL) — this was the one necessary, narrowly-scoped change to the shared `/api/actions` route in this sprint, and why: in `memoire_locale_demo` mode, a human action only ever mutates the **client's** `demoState`, never the server's global state (verified by reading the route before writing code) — so a second, separate "send pending notifications" endpoint reading server-authoritative state would never see a coordination a human operator just created locally. The helper is injected an `applyAndPersist(state, command)` function so it stays persistence-mode-agnostic and fully unit-testable (`tests/coordination-notifications.test.ts`, mocked `fetch`, no server-only import chain). A successful send is also logged into the actor's `Conversation.messages` via the existing T01 `send_channel_message` command (mandat §9, "preserve outbound conversation history"). A failed send never removes the notification or the coordination — only `status` becomes `"echec"` with an explicit `failureReason`.
 
 ### Tests executed
-TBD
+
+- `npm run typecheck` — clean.
+- `npm run lint` — 0 errors, 4 pre-existing warnings, none in files touched by this sprint.
+- `npm test` — **651/651 passing** (623 at T02 + 28 new: 24 in `tests/terrain-matching.test.ts`, 4 in `tests/coordination-notifications.test.ts`). Covers every §15 category:
+  - **Promotion**: NEED → exactly one `TerrainNeed`; duplicate promotion is a no-op; CAPACITY → exactly one `TerrainCapacity`; missing/low-confidence/uncategorisable data is rejected (`evaluatePromotion`), never fabricated.
+  - **Matching**: ice-at-Mbour matches ice-at-Mbour; expired capacity never matches; transport need never matches a cold-storage capacity; an actor never matches themselves; a time-window mismatch produces a warning (the explicit rule chosen, documented above); a quantity shortfall is explained.
+  - **Coordination**: operator selects a match and initiates a coordination linked to need/capacity/both source interactions; both notifications are generated (`a_envoyer`); a duplicate initiation on the same match is a no-op; independent requester/provider acceptance, and a decline from either side fails the coordination immediately; an outcome can be recorded once connected, and closes the need when fulfilled; a failed notification never deletes the coordination.
+  - **Regression**: full existing suite re-run and green (no isolated T03-only run); `evidenceStatus` on every `TerrainInteraction` is asserted `"declaree"` from the first message through a completed coordination — the matching/coordination loop never touches it.
+- `npm run build` — succeeds.
+- `git diff --check` — clean.
+- `npm run test:e2e` (local spawn mode) — **passes**, including the full §16 acceptance scenario run through real HTTP: two real WhatsApp onboarding+message sequences (Awa's need, Froid Mbour's capacity) via the signed webhook; automatic promotion verified on both; `refresh_terrain_matches`, `initiate_terrain_coordination` (plus a duplicate call asserted idempotent), `record_terrain_coordination_response` (both sides) and `update_terrain_coordination_status` all called via real `/api/actions` POSTs under an authenticated `administrateur` session; final assertions on `connectee`, `terminee`, `outcome.fulfilled`, and the need reaching `"satisfaite"`.
 
 ### Manual review routes
-TBD
+
+- `/app/coordination`, logged in as `administrateur@mbambulaan.sn`: new "Besoins, capacités et coordinations" section, mounted beside the existing `CoordinationWorkspace` (not inside its 1191-line file — a new, independently-reviewable component, `src/components/ecosystem/TerrainMatchingWorkspace.tsx`). Shows active needs with a "Rafraîchir les candidats" button, each candidate's reasons/warnings/priority with "Rejeter"/"Initier la coordination" actions, declared capacities, and coordinations with per-side accept/decline buttons and an outcome-recording form once connected.
+- `/app/terrain`, same `administrateur` session: each interpreted interaction now also shows a "Créer/qualifier en besoin/capacité" button — only rendered when not already promoted and currently eligible (`evaluatePromotion`); mandat §13's explicit manual fallback for anything the webhook's automatic promotion didn't already handle.
+- Both screenshotted against a locally built-and-started instance after replaying the real §16 scenario through the real webhook and clicking through the real UI (refresh → initiate → both accept → record outcome); delivered to the product owner as chat attachments in this session.
 
 ### Live vs fixture validation
-TBD
+
+- **Implemented architecture**: complete — promotion, matching, coordination, notification-intent, outcome capture, revenue-evidence derivation.
+- **Deterministic test coverage**: complete — 28 new unit tests, all passing.
+- **Real end-to-end integration (not live provider)**: done and is the main new proof this sprint adds beyond T01/T02 — the full §16 scenario runs through the real webhook route and the real `/api/actions` route against a running server, not only through `applyCommand` called directly in a unit test.
+- **Real WhatsApp notification delivery**: **not validated** — no live Meta credentials in this environment, same as T01/T02. Every coordination notification in every test and in the screenshots ends up `status: "echec"`, `failureReason: "WhatsApp Cloud API non configurée..."` — this is the expected, honest result of `whatsappAdapter.sendText` failing without credentials, and it is exactly what proves the "provider failure must not lose the coordination object" requirement (mandat §9): the coordination, in every one of these runs, is still there, still progresses through acceptance and outcome, unaffected by the notification failure.
+- **Revenue evidence with a real organisation**: `buildTerrainValueEvidence`'s derivation logic is unit-tested with an explicit test-only `organizationId` override, because every actor this sprint's pipeline can produce is WhatsApp-onboarded and therefore (by T01's own "never fabricate an organisation" rule) has no `organizationId` — so the E2E run's own evidence list is legitimately empty. This is not a bug to fix in T03; it is the correct, honest consequence of two already-accepted decisions (T01: never fabricate an organisation; T03: never fabricate a `Capacity`'s provenance) interacting — closing it is a T04/commercial-validation concern (linking a real professional organisation to a real WhatsApp-onboarded actor), not a T03 domain gap.
 
 ### External blockers
-TBD
+
+Same three as T02, unchanged and not reopened by this sprint — no new blocker was introduced:
+- no `ANTHROPIC_API_KEY` (real text/image interpretation untested live);
+- no live Meta WhatsApp credentials (real notification delivery untested live, see above);
+- no real speech-to-text provider.
 
 ### Deviations from CURRENT_SPRINT
-TBD
+
+1. **`TerrainCoordinationStatus` corrected from 8 values to 4 + two independent response fields**, caught and fixed during this implementation pass before any test was written against the broken version — see "New domain concepts added" for the exact bug (a single-field model let `connectee` be reached with only one side's acceptance ever recorded). Documented because the mandate's own §10 wording ("requester accepted/declined; provider accepted/declined") reads naturally as status values, and a first-pass literal reading got this wrong; the semantic equivalents mandat §10 asks for are preserved, just not as literal `status` enum members.
+2. **Auto-promotion added beyond the UI's explicit manual button** — mandat §13 says "Créer/qualifier en besoin/capacité **if required**", which this sprint reads as: automatic when the interaction is unambiguously eligible (confident interpretation, known category, known territory, real actor), with the manual button as the explicit fallback for everything else. The webhook dispatches `promote_terrain_interaction` with `actorId` set to the **message's own actor** (never a fabricated "system" actor) immediately after a successful interpretation; this is legitimate because `dispatch()` never checks permissions (only `/api/actions` does, via `assertCan`), so the same command type is safely usable both ways without any `actorId`-exclusion trick.
+3. **A narrowly-scoped addition to `/api/actions/route.ts`** (previously untouched by T01/T02) — see "Notification behaviour" above for the exact reasoning (the `memoire_locale_demo` client-state architecture leaves no other place to trigger a real send tied to a human-initiated coordination). The change is gated strictly on `command.type === "initiate_terrain_coordination"`; no other command's handling changed.
+4. **`TerrainMatch` is persisted, not purely computed on render** — a leaner design would have computed candidates fresh on every page load with no backing object at all. Chosen against that specifically so "matches proposed" (mandat §12's revenue-evidence list) is a real, auditable count rather than something that could only ever be reconstructed approximately after the fact.
 
 ### Known debt / T04 commercial validation
-TBD
+
+- **Linking a WhatsApp-onboarded actor to a real professional organisation** is the single most actionable next step to make `buildTerrainValueEvidence` produce non-empty results outside of tests — nothing in T03's domain blocks this; it is an onboarding/identity question, not a matching or coordination one.
+- **The correction form on `/app/terrain` only lets an operator change intent**, not subject/territory/quantity, even though `correct_terrain_interpretation` (T02) already accepts all of them — extending the form is pure UI work, flagged already in T02's own debt list and still true here.
+- **No reverse path from a declined/failed coordination back to a fresh search** — a need that ends up `echouee` or whose coordination fails stays exactly where it is; mandat explicitly scoped automation of a retry loop out ("later automation may be added after field validation," §7) and this sprint did not add one either.
+- **Unit conversion for quantity warnings is not attempted** — a mismatch like "besoin en kg, capacité en tonnes" is surfaced as a warning naming both units, never converted or compared numerically; this is a deliberate, documented simplification (mandat §6 only asks that a mismatch be "explained"), not an oversight.
+- **`document`/`autre`-type interactions can never be promoted** — `evaluatePromotion` only accepts `besoin`/`capacite` intents, which T02's pipeline never assigns to non-text/audio/image message types anyway; consistent with T02's own documented scope boundary, not a new gap.

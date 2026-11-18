@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { currentSession } from "@/server/session";
 import type { Role } from "@/domain/types";
 import { CoordinationWorkspace } from "@/components/ecosystem/CoordinationWorkspace";
+import { TerrainMatchingWorkspace } from "@/components/ecosystem/TerrainMatchingWorkspace";
 
 // Garde de rôle serveur — Lot 2, refonte navigation par rôle (CEO
 // 2026-08-16) : mareyeur/transformateur/prestataire n'ont plus d'entrée de
@@ -33,6 +34,7 @@ export default async function CoordinationPage() {
           (Next.js) — même repli que /connexion et /app/initiatives, déjà
           en place dans ce dépôt. */}
       <div className="px-5 pt-6 lg:px-8"><Suspense fallback={null}><CoordinationWorkspace /></Suspense></div>
+      <div className="px-5 pt-8 lg:px-8"><Suspense fallback={null}><TerrainMatchingWorkspace /></Suspense></div>
     </div>
   );
 }

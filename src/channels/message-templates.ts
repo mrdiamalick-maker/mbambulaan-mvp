@@ -32,3 +32,16 @@ export function renderReplyText(intent: ReplyIntent, territories: Territory[]): 
   }
   return "Message bien reçu. Merci.";
 }
+
+// Gabarits de coordination — mandat T03 §8, mêmes exemples que le mandat,
+// remplis par des champs déjà structurés (jamais une génération libre).
+// Appelés par la couche UI/orchestration AVANT de dispatcher
+// initiate_terrain_coordination (requesterMessage/providerMessage,
+// types.ts) — le domaine ne construit jamais ce texte lui-même.
+export function renderCoordinationRequesterMessage(subjectLabel: string, territoryLabel: string): string {
+  return `Mbàmbulaan a identifié une possibilité pour votre besoin (${subjectLabel}) à ${territoryLabel}. Souhaitez-vous être mis en relation ?`;
+}
+
+export function renderCoordinationProviderMessage(subjectLabel: string, territoryLabel: string): string {
+  return `Un acteur à ${territoryLabel} recherche : ${subjectLabel}. Souhaitez-vous recevoir la demande ?`;
+}

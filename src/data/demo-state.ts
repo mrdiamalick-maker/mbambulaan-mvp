@@ -2777,7 +2777,13 @@ export function createDemoState(): ProductState {
     // send_channel_message les peuplent (même discipline que
     // programOpportunities ci-dessus).
     conversations: [],
-    terrainInteractions: []
+    terrainInteractions: [],
+    // terrainNeeds / terrainCapacities / terrainMatches / terrainCoordinations
+    // (Sprint T03) — aucune fixture : seules de vraies commandes les peuplent.
+    terrainNeeds: [],
+    terrainCapacities: [],
+    terrainMatches: [],
+    terrainCoordinations: []
   };
 
   // PD.5 — Pont de connaissance opérationnelle (mandat "Operational

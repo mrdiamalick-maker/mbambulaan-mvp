@@ -103,6 +103,21 @@ const all: Command["type"][] = [
   // lui, n'apparaît dans aucune liste de permissions — mandat T01/T02,
   // "aucun rôle humain ne peut déclencher les commandes webhook").
   "correct_terrain_interpretation",
+  // promote_terrain_interaction / refresh_terrain_matches /
+  // reject_terrain_match / initiate_terrain_coordination /
+  // record_terrain_coordination_response / update_terrain_coordination_status
+  // (Sprint T03, mandat §7/§8) — gestes humains d'un opérateur Terrain/
+  // Coordination autorisé. record_coordination_notification_result
+  // n'apparaît dans aucune liste de permissions (même discipline que
+  // apply_terrain_interpretation) : seule l'orchestration serveur
+  // (src/server/coordination-notifications.ts) le déclenche, jamais une
+  // session humaine.
+  "promote_terrain_interaction",
+  "refresh_terrain_matches",
+  "reject_terrain_match",
+  "initiate_terrain_coordination",
+  "record_terrain_coordination_response",
+  "update_terrain_coordination_status",
   "reset_demo"
 ];
 

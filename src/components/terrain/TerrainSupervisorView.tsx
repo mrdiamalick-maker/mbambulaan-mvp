@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { FieldMission, FieldMissionStatus, ProductState, TerrainInteractionIntent } from "@/domain/types";
 import { fieldMissionStatusLabels, terrainInteractionIntentLabels } from "@/domain/types";
 import { buildTerrainInteractionRows, type TerrainInteractionRow } from "@/domain/channel-interaction";
+import { evaluatePromotion } from "@/domain/terrain-matching";
 import { useProduct } from "@/components/providers/ProductProvider";
 
 const INTENT_OPTIONS: TerrainInteractionIntent[] = ["signal", "besoin", "observation", "capacite", "non_classifie"];
@@ -81,6 +82,42 @@ function InteractionCorrectionActions({ row }: { row: TerrainInteractionRow }) {
       </select>
       <Button type="button" size="sm" variant="outline" disabled={submitting !== null} onClick={() => void submit(false, selectedIntent, "correct")}>
         Corriger l’intention
+      </Button>
+    </div>
+  );
+}
+
+// PromotionAction — mandat T03 §13, "Créer/qualifier en besoin/capacité
+// if required". La promotion automatique (pont webhook) couvre déjà le
+// cas sûr ; ce bouton reste le repli explicite pour tout le reste (revue
+// humaine passée, correction a posteriori, etc.) — jamais affiché quand
+// déjà promu ou non éligible.
+function PromotionAction({ state, row }: { state: ProductState; row: TerrainInteractionRow }) {
+  const { run } = useProduct();
+  const [submitting, setSubmitting] = useState(false);
+  const interaction = state.terrainInteractions.find((item) => item.id === row.id);
+  if (!interaction) return null;
+
+  const alreadyPromoted =
+    state.terrainNeeds.some((item) => item.sourceInteractionId === interaction.id) ||
+    state.terrainCapacities.some((item) => item.sourceInteractionId === interaction.id);
+  if (alreadyPromoted) {
+    return <p className="pt-1 text-xs text-muted-foreground">Déjà promu en besoin/capacité — voir l’espace Coordination.</p>;
+  }
+
+  const eligibility = evaluatePromotion(interaction);
+  if (!eligibility.eligible) return null;
+
+  async function promote() {
+    setSubmitting(true);
+    await run({ type: "promote_terrain_interaction", interactionId: row.id });
+    setSubmitting(false);
+  }
+
+  return (
+    <div className="pt-1">
+      <Button type="button" size="sm" variant="outline" disabled={submitting} onClick={() => void promote()}>
+        Créer/qualifier en {interaction.intent === "besoin" ? "besoin" : "capacité"}
       </Button>
     </div>
   );
@@ -169,6 +206,7 @@ export function TerrainSupervisorView({ state }: { state: ProductState }) {
                     <span>{formatDate(row.receivedAt)}</span>
                   </div>
                   {row.hasInterpretation && <InteractionCorrectionActions row={row} />}
+                  {row.hasInterpretation && <PromotionAction state={state} row={row} />}
                 </CardContent>
               </Card>
             ))}

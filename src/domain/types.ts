@@ -827,6 +827,231 @@ export interface TerrainInteraction {
   processingFailureReason?: string;
 }
 
+// --- Need/Capacity Matching + First Coordination Loop — Sprint T03 ------
+// (docs/product/CURRENT_SPRINT.md) ----------------------------------------
+//
+// Mandat §3 : "inspect the current domain... before creating new objects."
+// Analyse faite avant tout code :
+//   - ServiceRequest (plus haut) porte déjà "Need", mais structurellement
+//     pour le sourcing de LOTS DE POISSON (speciesId, quantityKg, quality
+//     obligatoires, ServiceRequestIntent fixe sans "glace"/"transport"
+//     générique) — un besoin de glace/froid/transport/acheteur déclaré par
+//     un contact WhatsApp n'a ni espèce, ni qualité, ni quantité en kg de
+//     poisson. Le réutiliser aurait fabriqué ces champs.
+//   - Capacity (plus haut) exige un infrastructureId réel — une capacité
+//     terrain ad hoc ("j'ai 2 tonnes de froid dispo aujourd'hui") n'est pas
+//     rattachée à une Infrastructure déjà enregistrée, et le mandat §4
+//     interdit explicitement de la traiter comme une entrée de catalogue
+//     permanente. Infrastructure elle-même est un actif PERMANENT du
+//     territoire (theoreticalCapacity, organizationId, status) — l'inverse
+//     exact de "mon camion est libre aujourd'hui".
+//   - Opportunity est structurellement lotId+serviceRequestId — le
+//     rapprochement lot de poisson ↔ acheteur, pas besoin ↔ capacité
+//     générique.
+//   - CoordinationSpace n'a AUCUN champ de statut (juste objectif/décision
+//     texte libre + commitments), et exige un situationId OU un
+//     opportunityId — aucun des deux n'existe pour un besoin/capacité
+//     terrain. Le cycle proposé/accepté-demandeur/accepté-fournisseur/
+//     connecté/terminé/échoué du mandat §10 n'a nulle part où vivre dedans
+//     sans la dénaturer pour tous ses autres usages (Situations).
+//   - ProgrammeOrganizationEngagement a un statut (considered/contacted/
+//     engaged/declined) mais à SENS UNIQUE (mobiliser une organisation
+//     pour un programme) — pas de double acceptation demandeur+fournisseur.
+// Conclusion documentée ici (mandat §3/§18, "document why existing domain
+// objects are insufficient") : quatre objets nouveaux, délibérément
+// étroits (mandat §5, "matching quality matters more than breadth — do
+// not implement a generic ontology engine").
+
+// TerrainMatchCategory — mandat §5, exactement les 3 catégories
+// commerciales initiales, jamais une taxonomie générique.
+export type TerrainMatchCategory = "glace_froid" | "transport" | "acheteur_debouche";
+
+export const terrainMatchCategoryLabels: Record<TerrainMatchCategory, string> = {
+  glace_froid: "Glace / froid",
+  transport: "Transport",
+  acheteur_debouche: "Acheteur / débouché"
+};
+
+export type TerrainNeedStatus = "active" | "en_coordination" | "satisfaite" | "annulee";
+
+export const terrainNeedStatusLabels: Record<TerrainNeedStatus, string> = {
+  active: "Actif",
+  en_coordination: "En coordination",
+  satisfaite: "Satisfait",
+  annulee: "Annulé"
+};
+
+// TerrainNeed — mandat §4 "NEED". sourceInteractionId est la seule preuve
+// de provenance conservée (jamais un evidenceStatus dupliqué ici : la
+// TerrainInteraction d'origine porte déjà la sienne — mandat §5
+// "provenance/evidence link", lu comme un LIEN, pas une seconde vérité).
+export interface TerrainNeed {
+  id: string;
+  sourceInteractionId: string;
+  actorId: string;
+  organizationId?: string;
+  territoryId: string;
+  category: TerrainMatchCategory;
+  subject?: string;
+  quantity?: number;
+  unit?: string;
+  requiredTimeWindow?: string;
+  createdAt: string;
+  status: TerrainNeedStatus;
+}
+
+// TerrainCapacityStatus — "expiree" existe précisément parce que le
+// mandat §4 interdit de traiter une capacité comme un catalogue permanent
+// ("mon camion est libre aujourd'hui" est borné dans le temps) ;
+// "engagee" est posé dès qu'une coordination est initiée sur elle (jamais
+// proposée deux fois en parallèle).
+export type TerrainCapacityStatus = "active" | "engagee" | "expiree" | "annulee";
+
+export const terrainCapacityStatusLabels: Record<TerrainCapacityStatus, string> = {
+  active: "Active",
+  engagee: "Engagée",
+  expiree: "Expirée",
+  annulee: "Annulée"
+};
+
+export interface TerrainCapacity {
+  id: string;
+  sourceInteractionId: string;
+  actorId: string;
+  organizationId?: string;
+  territoryId: string;
+  category: TerrainMatchCategory;
+  subject?: string;
+  quantity?: number;
+  unit?: string;
+  availabilityWindow?: string;
+  createdAt: string;
+  status: TerrainCapacityStatus;
+}
+
+// TerrainMatchStatus — mandat §6. "propose" = candidat affiché à un
+// opérateur (pas seulement calculé en mémoire — mandat §12, "matches
+// proposed" doit rester une preuve dénombrable) ; "rejete" = écarté
+// explicitement par un humain (jamais ré-affiché) ; "converti" = devenu
+// une TerrainCoordination ; "perime" = la capacité visée n'est plus
+// active au moment d'un rafraîchissement (mandat "expired capacity does
+// not match", y compris pour un match déjà proposé).
+export type TerrainMatchStatus = "propose" | "rejete" | "converti" | "perime";
+
+export const terrainMatchStatusLabels: Record<TerrainMatchStatus, string> = {
+  propose: "Proposé",
+  rejete: "Rejeté",
+  converti: "Converti en coordination",
+  perime: "Périmé"
+};
+
+// TerrainMatchPriority — mandat §6 : "optional simple priority level...
+// do not invent a pseudo-scientific 0-100 score." Dérivée uniquement de
+// la présence d'avertissements (aucun warning = haute, au moins un =
+// moyenne) — jamais un calcul pondéré opaque.
+export type TerrainMatchPriority = "haute" | "moyenne";
+
+export interface TerrainMatch {
+  id: string;
+  needId: string;
+  capacityId: string;
+  status: TerrainMatchStatus;
+  reasons: string[];
+  warnings: string[];
+  priority: TerrainMatchPriority;
+  createdAt: string;
+  rejectedByActorId?: string;
+  rejectedAt?: string;
+  rejectionNote?: string;
+}
+
+// TerrainCoordinationStatus — mandat §10 : "reuse existing statuses if
+// available" (vérifié : aucun objet existant ne couvre ce cycle à double
+// acceptation, voir le commentaire de doctrine plus haut). Un champ de
+// statut UNIQUE ne peut pas représenter fidèlement "demandeur accepté" ET
+// "fournisseur accepté" comme deux faits INDÉPENDANTS (ils arrivent en
+// réalité dans un ordre quelconque, parfois aucun des deux) — voir
+// requesterResponse/providerResponse ci-dessous, qui portent ces deux
+// faits séparément. status ne retient donc que les 4 phases majeures ;
+// "requester/provider accepted/declined" (mandat §10) sont les
+// équivalents sémantiques de requesterResponse/providerResponse, pas une
+// cinquième et sixième valeur de status.
+export type TerrainCoordinationStatus = "proposee" | "connectee" | "terminee" | "echouee";
+
+export const terrainCoordinationStatusLabels: Record<TerrainCoordinationStatus, string> = {
+  proposee: "Proposée",
+  connectee: "Connectée",
+  terminee: "Terminée",
+  echouee: "Échouée"
+};
+
+export type TerrainCoordinationResponse = "acceptee" | "refusee";
+
+export const terrainCoordinationResponseLabels: Record<TerrainCoordinationResponse, string> = {
+  acceptee: "Acceptée",
+  refusee: "Refusée"
+};
+
+export type TerrainCoordinationNotificationTarget = "demandeur" | "fournisseur";
+export type TerrainCoordinationNotificationStatus = "a_envoyer" | "envoyee" | "echec";
+
+// TerrainCoordinationNotification — mandat §9 : "provider failure must
+// not lose the coordination object." L'intention de notification est
+// toujours créée de façon synchrone (applyInitiateTerrainCoordination,
+// pur) ; l'envoi réel (E/S) est une étape séparée (src/server/
+// coordination-notifications.ts) qui ne fait jamais disparaître la
+// Coordination si elle échoue — seul ce statut change.
+export interface TerrainCoordinationNotification {
+  target: TerrainCoordinationNotificationTarget;
+  channel: InteractionChannel;
+  status: TerrainCoordinationNotificationStatus;
+  body: string;
+  preparedAt: string;
+  sentAt?: string;
+  failureReason?: string;
+}
+
+// TerrainCoordinationOutcome — mandat §11. "fulfilled" reste le seul fait
+// obligatoire ; tout le reste n'est renseigné que si réellement connu
+// (mandat "do not force transaction value when unknown").
+export interface TerrainCoordinationOutcome {
+  fulfilled: boolean;
+  note?: string;
+  quantity?: number;
+  unit?: string;
+  failureReason?: string;
+  recordedByActorId: string;
+  recordedAt: string;
+}
+
+export interface TerrainCoordination {
+  id: string;
+  matchId: string;
+  needId: string;
+  capacityId: string;
+  requesterActorId: string;
+  providerActorId: string;
+  requesterOrganizationId?: string;
+  providerOrganizationId?: string;
+  territoryId: string;
+  // sourceInteractionIds (mandat §14, "every coordination must be
+  // traceable back to... original interactions") — les deux interactions
+  // d'origine (besoin + capacité), jamais recalculées depuis need/capacity
+  // (qui peuvent en théorie être corrigés plus tard).
+  sourceInteractionIds: string[];
+  status: TerrainCoordinationStatus;
+  // requesterResponse / providerResponse — mandat §10, deux faits
+  // indépendants (voir commentaire de doctrine sur TerrainCoordinationStatus) :
+  // absents tant que ce côté n'a pas répondu, jamais déduits l'un de
+  // l'autre.
+  requesterResponse?: TerrainCoordinationResponse;
+  providerResponse?: TerrainCoordinationResponse;
+  notifications: TerrainCoordinationNotification[];
+  outcome?: TerrainCoordinationOutcome;
+  createdAt: string;
+  createdByActorId: string;
+}
+
 export interface Situation {
   id: string;
   reference: string;
@@ -1845,6 +2070,13 @@ export interface ProductState {
   // send_channel_message les peuplent).
   conversations: Conversation[];
   terrainInteractions: TerrainInteraction[];
+  // terrainNeeds / terrainCapacities / terrainMatches / terrainCoordinations
+  // (Sprint T03) — mêmes discipline : additifs, vides à la création
+  // (createDemoState()), peuplés uniquement par de vraies commandes.
+  terrainNeeds: TerrainNeed[];
+  terrainCapacities: TerrainCapacity[];
+  terrainMatches: TerrainMatch[];
+  terrainCoordinations: TerrainCoordination[];
 }
 
 export type Command =
@@ -2350,6 +2582,54 @@ export type Command =
       timeWindow?: string;
       note?: string;
       markForReview?: boolean;
+    }
+  // --- Sprint T03 — Need/Capacity Matching + First Coordination Loop ----
+  //
+  // promote_terrain_interaction / refresh_terrain_matches /
+  // reject_terrain_match / initiate_terrain_coordination /
+  // update_terrain_coordination_status — toutes AVEC actorId (geste
+  // humain d'un opérateur autorisé, permissions.ts) OU, pour
+  // promote_terrain_interaction uniquement, déclenchées directement par
+  // le pont webhook via dispatch() avec actorId = l'acteur réel auteur du
+  // message (jamais un "acteur système" fabriqué — promouvoir son propre
+  // besoin/capacité déclaré est honnêtement attribuable à cet acteur).
+  // dispatch() ne vérifie jamais les permissions (seul /api/actions le
+  // fait) : les deux chemins coexistent sans conflit, aucune astuce
+  // actorId-optionnel nécessaire ici (mandat T01, pattern différent de
+  // receive_channel_message/apply_terrain_interpretation).
+  | { type: "promote_terrain_interaction"; actorId: string; interactionId: string }
+  | { type: "refresh_terrain_matches"; actorId: string; needId: string }
+  | { type: "reject_terrain_match"; actorId: string; matchId: string; note?: string }
+  // requesterMessage/providerMessage : texte déjà rendu par l'appelant
+  // (src/channels/message-templates.ts), jamais construit ici — même
+  // discipline que send_channel_message.body (mandat T01 §8, "keep
+  // message templates/configuration outside core domain logic").
+  | { type: "initiate_terrain_coordination"; actorId: string; matchId: string; requesterMessage: string; providerMessage: string }
+  // record_terrain_coordination_response — un seul côté à la fois (mandat
+  // §10, "requester accepted/declined" et "provider accepted/declined"
+  // sont deux faits indépendants, cf. types ci-dessus). Un refus clôt la
+  // coordination (echouee) ; une acceptation ne connecte QUE si l'autre
+  // côté a déjà accepté — jamais devinée, toujours vérifiée par le
+  // domaine (terrain-matching.ts).
+  | { type: "record_terrain_coordination_response"; actorId: string; coordinationId: string; side: "demandeur" | "fournisseur"; response: TerrainCoordinationResponse }
+  | {
+      type: "update_terrain_coordination_status";
+      actorId: string;
+      coordinationId: string;
+      status: Extract<TerrainCoordinationStatus, "terminee" | "echouee">;
+      outcome?: { fulfilled: boolean; note?: string; quantity?: number; unit?: string; failureReason?: string };
+    }
+  // record_coordination_notification_result — SANS actorId, même
+  // discipline que apply_terrain_interpretation : seule l'orchestration
+  // serveur (src/server/coordination-notifications.ts, jamais une session
+  // humaine) constate le résultat réel d'un envoi (E/S), jamais un fait
+  // attribuable à un acteur.
+  | {
+      type: "record_coordination_notification_result";
+      coordinationId: string;
+      target: TerrainCoordinationNotificationTarget;
+      status: Extract<TerrainCoordinationNotificationStatus, "envoyee" | "echec">;
+      failureReason?: string;
     };
 
 export type CommandInput = Command extends infer Item

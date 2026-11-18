@@ -13,6 +13,7 @@ import {
 import type { InboundChannelMessage } from "@/channels/types";
 import { intelligenceAdapter } from "@/intelligence/adapter";
 import { isValidInterpretation } from "@/intelligence/schemas";
+import { evaluatePromotion } from "@/domain/terrain-matching";
 
 // Webhook WhatsApp — Sprint T01 (transport) + T02 (intelligence). Seul
 // point d'entrée qui dispatche receive_channel_message/send_channel_message/
@@ -143,6 +144,20 @@ export async function POST(request: NextRequest) {
           `whatsapp:${message.externalMessageId}:interpretation`
         );
         interaction = await findInteraction(state, message.externalMessageId);
+
+        // Promotion automatique (mandat T03 §4/§13, "if required" —
+        // automatique quand c'est sûr, le bouton manuel de l'UI Terrain
+        // reste le repli explicite sinon). actorId = l'acteur réel auteur
+        // du message (jamais un acteur système fabriqué) — dispatch()
+        // ignore les permissions (seul /api/actions les vérifie), donc
+        // aucun conflit avec le fait que ce même type de commande reste
+        // aussi déclenchable par un opérateur humain.
+        if (interaction && interaction.actorId && evaluatePromotion(interaction).eligible) {
+          state = await dispatch(
+            { type: "promote_terrain_interaction", actorId: interaction.actorId, interactionId: interaction.id },
+            `whatsapp:${message.externalMessageId}:promotion`
+          );
+        }
       }
 
       const conversation = state.conversations.find(

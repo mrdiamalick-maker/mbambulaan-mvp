@@ -5,6 +5,7 @@ import { assertCan } from "@/server/permissions";
 import { dispatch, persistenceMode } from "@/server/repository";
 import { requireSession, UnauthorizedError } from "@/server/session";
 import { projectStateForSession } from "@/server/access-projection";
+import { attemptCoordinationNotifications } from "@/server/coordination-notifications";
 
 type ActionRequest = CommandInput & {
   demoState?: ProductState;
@@ -34,12 +35,18 @@ export async function POST(request: NextRequest) {
     assertCan(session.role, command);
 
     if (persistenceMode() === "memoire_locale_demo" && demoState) {
-      const next = applyCommand(demoState, command);
+      let next = applyCommand(demoState, command);
+      if (command.type === "initiate_terrain_coordination") {
+        next = await notifyAfterCoordinationInitiation(next, command, (state, inner) => applyCommand(state, inner));
+      }
       return NextResponse.json({ state: projectStateForSession(next, session) });
     }
 
     const key = request.headers.get("idempotency-key") ?? crypto.randomUUID();
-    const next = await dispatch(command, key);
+    let next = await dispatch(command, key);
+    if (command.type === "initiate_terrain_coordination") {
+      next = await notifyAfterCoordinationInitiation(next, command, (_state, inner) => dispatch(inner, crypto.randomUUID()));
+    }
     return NextResponse.json({ state: projectStateForSession(next, session) });
   } catch (error) {
     if (error instanceof UnauthorizedError) {
@@ -50,4 +57,20 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+}
+
+// notifyAfterCoordinationInitiation — Sprint T03 (mandat §9). Seul geste
+// humain de ce endpoint qui déclenche une E/S réelle (envoi WhatsApp) ;
+// voir src/server/coordination-notifications.ts pour pourquoi ce n'est
+// pas un second pont webhook. Portée volontairement limitée à
+// initiate_terrain_coordination — aucune autre commande de ce endpoint
+// n'est affectée par cet ajout.
+async function notifyAfterCoordinationInitiation(
+  state: ProductState,
+  command: Extract<Command, { type: "initiate_terrain_coordination" }>,
+  applyAndPersist: (state: ProductState, inner: Command) => Promise<ProductState> | ProductState
+): Promise<ProductState> {
+  const coordination = state.terrainCoordinations.find((item) => item.matchId === command.matchId);
+  if (!coordination) return state;
+  return attemptCoordinationNotifications(state, coordination.id, applyAndPersist);
 }

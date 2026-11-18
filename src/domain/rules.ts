@@ -28,6 +28,15 @@ import { applyInitiativeLifecycleCommand } from "./initiative-lifecycle";
 import { applyActorRelationshipCommand } from "./actor-relationship";
 import { applyProgrammeMobilizationCommand } from "./programme-mobilization";
 import { applyCorrectTerrainInterpretation, applyReceiveChannelMessage, applySendChannelMessage, applyTerrainInterpretation } from "./channel-interaction";
+import {
+  applyInitiateTerrainCoordination,
+  applyPromoteTerrainInteraction,
+  applyRecordCoordinationNotificationResult,
+  applyRecordTerrainCoordinationResponse,
+  applyRefreshTerrainMatches,
+  applyRejectTerrainMatch,
+  applyUpdateTerrainCoordinationStatus
+} from "./terrain-matching";
 
 // Le moteur de rapprochement Lot ↔ ServiceRequest (§5.11) ne concerne que
 // les intentions d'approvisionnement : une demande de formation ou de
@@ -118,6 +127,13 @@ const transitions: Record<
     | "send_channel_message"
     | "apply_terrain_interpretation"
     | "correct_terrain_interpretation"
+    | "promote_terrain_interaction"
+    | "refresh_terrain_matches"
+    | "reject_terrain_match"
+    | "initiate_terrain_coordination"
+    | "record_terrain_coordination_response"
+    | "update_terrain_coordination_status"
+    | "record_coordination_notification_result"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -997,6 +1013,34 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   if (command.type === "correct_terrain_interpretation") {
     return applyCorrectTerrainInterpretation(state, command);
   }
+  // promote_terrain_interaction / refresh_terrain_matches /
+  // reject_terrain_match / initiate_terrain_coordination /
+  // record_terrain_coordination_response / update_terrain_coordination_status /
+  // record_coordination_notification_result (Sprint T03) — domaine
+  // fonctionnel distinct (terrain-matching.ts), voir la doctrine complète
+  // dans types.ts sur pourquoi ServiceRequest/Capacity/Opportunity/
+  // CoordinationSpace ne conviennent pas.
+  if (command.type === "promote_terrain_interaction") {
+    return applyPromoteTerrainInteraction(state, command);
+  }
+  if (command.type === "refresh_terrain_matches") {
+    return applyRefreshTerrainMatches(state, command);
+  }
+  if (command.type === "reject_terrain_match") {
+    return applyRejectTerrainMatch(state, command);
+  }
+  if (command.type === "initiate_terrain_coordination") {
+    return applyInitiateTerrainCoordination(state, command);
+  }
+  if (command.type === "record_terrain_coordination_response") {
+    return applyRecordTerrainCoordinationResponse(state, command);
+  }
+  if (command.type === "update_terrain_coordination_status") {
+    return applyUpdateTerrainCoordinationStatus(state, command);
+  }
+  if (command.type === "record_coordination_notification_result") {
+    return applyRecordCoordinationNotificationResult(state, command);
+  }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
   }
@@ -1237,6 +1281,13 @@ export type WorkflowAction = Exclude<
   | "send_channel_message"
   | "apply_terrain_interpretation"
   | "correct_terrain_interpretation"
+  | "promote_terrain_interaction"
+  | "refresh_terrain_matches"
+  | "reject_terrain_match"
+  | "initiate_terrain_coordination"
+  | "record_terrain_coordination_response"
+  | "update_terrain_coordination_status"
+  | "record_coordination_notification_result"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {
