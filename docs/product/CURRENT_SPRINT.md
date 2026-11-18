@@ -1,268 +1,313 @@
-# CURRENT SPRINT — T02 — Voice + AI Understanding + Structured Terrain Intent
+# CURRENT SPRINT — T03 — Need/Capacity Matching + First Coordination Loop
 
 Status: READY FOR IMPLEMENTATION
 Branch: `product/whatsapp-revenue-mvp`
-Depends on: T01 accepted
+Depends on: T02 accepted
 
 ## 1. Sprint objective
 
-Turn Mbàmbulaan Terrain from a transport/inbox feature into an intelligent field intake.
+Build the first end-to-end coordination loop that can create economic value.
 
-At the end of T02, Mbàmbulaan must be able to receive a **text, voice note or image** from WhatsApp, preserve the original content, derive a structured interpretation, and classify the business intent as one of:
+At the end of T03:
 
-- SIGNAL
-- NEED
-- OBSERVATION
-- CAPACITY
+1. a terrain interaction classified as NEED can become a structured active need;
+2. a terrain interaction classified as CAPACITY can become a structured available capacity;
+3. Mbàmbulaan can identify relevant matches between them;
+4. an authorised operator can review and trigger a coordination;
+5. both sides can be notified through the existing channel abstraction;
+6. the coordination outcome can be tracked;
+7. the platform can measure whether Mbàmbulaan created a useful connection.
 
-The output must remain explainable, auditable and reversible. AI assistance must never silently create a VERIFIED fact.
+This is the first Revenue MVP loop.
 
-T02 does **not** implement automated matching or payments. That is T03.
+T03 does not implement payments or subscriptions.
 
-## 2. Product correction inherited from T01
+## 2. Product principle
 
-T01 stored every onboarding answer as a `TerrainInteraction`. Product review rejects that behaviour for the operational inbox.
+Mbàmbulaan is not a marketplace.
 
-New rule:
-- the initial substantive message from an unknown contact remains a `TerrainInteraction`;
-- answers whose only purpose is onboarding (name, role, territory/site) remain in `Conversation.messages`;
-- onboarding answers must **not** appear as operational terrain interactions;
-- once onboarding is complete, subsequent substantive messages again create terrain interactions.
+Matching is a coordination capability, not a public listing/catalogue.
 
-Do not delete conversation history. The correction concerns only operational interaction creation/projection.
+The product must answer:
 
-Add tests for this exact rule.
+- who needs what?
+- who can provide it?
+- where?
+- when?
+- how compatible are they?
+- can Mbàmbulaan initiate a useful coordination?
+- did it result in an outcome?
 
-## 3. AI boundary
+Do not create a generic marketplace browse/search experience.
 
-Introduce an AI/intelligence abstraction independent from WhatsApp and from any one model provider.
+## 3. Reuse existing domain before creating new objects
 
-Target conceptual flow:
+Before coding, inspect the current domain for:
+- ServiceRequest;
+- PartnerService / provider capacities;
+- Opportunity;
+- Coordination;
+- Commitment / Engagement;
+- Infrastructure available capacity;
+- Actor / Organization / Territory / Site;
+- any existing need/capacity matching logic.
 
-`Channel Adapter → Media/Text Normalisation → Intelligence Adapter → Structured Interpretation → Domain Update`
+The repository already has substantial coordination concepts. T03 must connect the new TerrainInteraction pipeline to them rather than creating a parallel mini-product.
 
-The core domain must not import a vendor SDK.
+If a new object is needed, document why existing domain objects are insufficient in IMPLEMENTATION_LOG.
 
-Suggested boundary, adapt names to project conventions:
-- `IntelligenceAdapter`
-- `transcribeAudio(...)`
-- `analyseImage(...)`
-- `interpretTerrainMessage(...)`
-
-Provider-specific code belongs outside `src/domain`.
-
-If a provider is configured, use it through environment variables.
-If no provider credentials are available, deterministic fixtures/mocks must allow the complete flow to be tested without fabricating production success.
-
-Do not hard-code business logic into prompts only. Validate AI output against strict runtime schemas before applying it.
-
-## 4. Supported input types
-
-### 4.1 Text
-Use the original inbound text.
-
-### 4.2 Audio / voice note
-For a WhatsApp audio message:
-1. retrieve media metadata/file through the provider API;
-2. persist provider/media reference safely;
-3. transcribe audio through the intelligence adapter;
-4. preserve the original audio reference and the transcription;
-5. run the transcription through terrain interpretation;
-6. mark the interaction as processed only after a valid structured interpretation exists.
-
-The product must work when the spoken language is not French.
-
-Target languages for the first real pilot:
-- French;
-- Wolof where the chosen transcription/model genuinely supports it;
-- unknown/other must remain a valid state rather than being forced to French.
-
-Do not claim Wolof support if the chosen runtime provider cannot demonstrate acceptable transcription. Expose language + confidence/uncertainty.
-
-### 4.3 Image
-For a WhatsApp image:
-1. retrieve the media;
-2. preserve the media/provider reference;
-3. analyse image content through the intelligence adapter;
-4. if caption/text exists, combine it with image analysis;
-5. produce a proposed interpretation;
-6. never treat visual inference alone as VERIFIED.
-
-Examples:
-- equipment appears damaged;
-- ice machine/photo of equipment;
-- landing/product context;
-- infrastructure state.
-
-The system must describe uncertainty. "Looks like" is not verification.
-
-## 5. Structured terrain interpretation
-
-Extend `TerrainInteraction` or introduce one tightly-linked interpretation object. Avoid duplicate source-of-truth objects.
-
-Minimum structured output:
-
-- `intent`: SIGNAL | NEED | OBSERVATION | CAPACITY | UNCLASSIFIED
-- `summary`: short human-readable summary
-- `language`: detected/declared language when available
-- `subject`: free but normalised short concept, e.g. ice, cold storage, transport, buyer, equipment
-- `territoryId` when reliably resolvable
-- `siteId` when reliably resolvable
-- `quantity` optional
-- `unit` optional
-- `timeWindow` optional
-- `confidence` or equivalent bounded score/category for the AI interpretation
-- `needsHumanReview`: boolean
-- provenance linking back to original message/media/transcription
-
-Important:
-- do not fabricate missing quantity, location or date;
-- absence is better than invention;
-- preserve raw/original content;
-- the AI interpretation is not the evidence status.
-
-## 6. Intent definitions
-
-### SIGNAL
-A problem, incident, disruption or risk.
-Examples:
-- "La machine à glace est en panne."
-- "Le camion n'est pas venu."
+## 4. Promote interpreted interactions into business objects
 
 ### NEED
-An actor is looking for a resource, service, buyer, transport, cold capacity, etc.
-Examples:
-- "J'ai besoin de glace à Mbour aujourd'hui."
-- "Je cherche un camion pour Dakar."
 
-### OBSERVATION
-Useful field information without a direct request or available capacity.
-Examples:
-- "Beaucoup de pirogues sont rentrées ce matin."
-- "Le prix du thiof a augmenté."
+When a `TerrainInteraction` has:
+- intent = `besoin`;
+- a valid interpretation;
+- sufficient structured information;
+- and no blocking human-review condition;
+
+the system must support creating/reusing the canonical domain object representing an active need/request.
+
+Minimum useful attributes:
+- source interaction id;
+- requesting actor;
+- organization if known;
+- territory/site;
+- subject/category;
+- quantity/unit if known;
+- required time window if known;
+- createdAt;
+- status;
+- provenance / evidence link.
+
+Do not fabricate missing values.
 
 ### CAPACITY
-An actor offers/declares an available resource, service or ability.
-Examples:
-- "J'ai 2 tonnes de froid disponibles."
-- "Mon camion est libre demain matin."
 
-### UNCLASSIFIED
-Use when the message is conversational, ambiguous or the interpretation cannot safely decide.
+When a `TerrainInteraction` has:
+- intent = `capacite`;
+- a valid interpretation;
+- sufficient structured information;
 
-Never force one of the four business intents.
+the system must support creating/reusing the canonical domain representation of a provider/resource/service capacity.
 
-## 7. Human confirmation
+Minimum useful attributes:
+- source interaction id;
+- provider actor / organization;
+- territory/site;
+- subject/category;
+- quantity/unit if known;
+- availability window if known;
+- createdAt;
+- status;
+- provenance / evidence link.
 
-When confidence is low, key fields are missing, or the interpretation is consequential, Mbàmbulaan must ask a short confirmation/clarification.
+Do not treat every CAPACITY as a permanent provider catalogue entry. A statement such as "mon camion est libre aujourd'hui" is time-bounded.
 
-Examples:
-- "J'ai compris que vous cherchez de la glace à Mbour aujourd'hui. C'est bien cela ?"
-- "Vous signalez une panne de la machine à glace ?"
+## 5. Initial commercial categories
 
-Do not build an open-ended autonomous agent.
+For T03, matching quality matters more than breadth.
 
-The system may generate/suggest a concise reply, but:
-- onboarding still has deterministic priority;
-- domain changes must be based on validated structured output;
-- clarification must not silently alter the original user statement.
+Support explicitly these first categories:
 
-## 8. Terrain UI
+1. **Glace / froid**
+   - ice supply;
+   - cold storage / available cold capacity.
 
-Upgrade the existing Terrain interaction view.
+2. **Transport**
+   - fish/logistics transport.
 
-For each operational interaction show at minimum:
-- actor/contact;
-- role if known;
-- territory/site if known;
-- original message or transcription;
-- media type;
-- intent badge;
-- short interpreted summary;
-- subject;
-- evidence status;
-- AI confidence/review status;
-- processing status;
-- timestamp.
+3. **Acheteur / débouché**
+   - buyer/outlet demand and available buying interest.
 
-Provide a way for an authorised operator to:
-- confirm the interpretation;
-- correct intent and key extracted fields;
-- mark interpretation for review.
+The architecture may remain extensible, but do not implement a generic ontology engine.
 
-Human correction must remain auditable.
+## 6. Matching engine
 
-Do not redesign the full application.
+Matching must be deterministic/explainable in T03.
 
-## 9. Evidence / trust rule
+Do not let an LLM directly decide that two actors should be connected.
 
-Default inbound actor content remains `declaree`.
+A match should consider, when available:
+- compatible subject/category;
+- territory/site proximity or same territory;
+- time-window overlap;
+- compatible quantity/unit;
+- active status;
+- provider/requester are not the same actor;
+- provider capacity is not expired;
+- trust/evidence status as a reason/flag, not an opaque score.
 
-AI processing does not upgrade evidence status.
+Output should include:
+- need id;
+- capacity/provider id;
+- match status;
+- human-readable reasons;
+- warnings/gaps;
+- createdAt;
+- optional simple priority level.
 
-An image can support an observation, but does not automatically produce `verifiee`.
+Do not invent a pseudo-scientific 0-100 score unless the current domain already has a justified equivalent.
 
-Only an existing/explicit authorised human workflow may set VERIFIED.
+## 7. Human-in-the-loop
 
-## 10. Provider/media handling
+T03 must not automatically connect people solely because a match exists.
 
-Extend the WhatsApp adapter to retrieve media safely when configured.
+An authorised Mbàmbulaan operator must be able to:
 
-Requirements:
-- no long-lived provider secrets in logs/state;
-- avoid persisting binary media in the tenant JSON payload if architecture makes that unsafe/heavy;
-- persist durable references/metadata appropriate to the current project architecture;
-- define a clean storage boundary for media if binary persistence is required;
-- media retrieval failures become explicit processing errors/retryable states, not lost messages.
+- review the need;
+- review candidate capacity/providers;
+- see why each candidate matches;
+- reject a bad match;
+- select a candidate;
+- initiate coordination.
 
-## 11. Failure modes
+Later automation may be added after field validation.
 
-The following must not lose the original interaction:
-- transcription failure;
-- unsupported language;
-- AI timeout;
-- malformed AI JSON;
-- image analysis failure;
-- provider media download failure;
-- ambiguous classification.
+## 8. Coordination initiation
 
-In all such cases:
-- keep original interaction;
-- set explicit processing/review state;
-- allow retry/manual handling.
+When an operator initiates coordination:
 
-## 12. Tests required
+1. create/reuse the canonical Coordination/Commitment/Engagement domain object;
+2. link it to:
+   - source need;
+   - selected provider/capacity;
+   - requesting actor;
+   - provider actor/organization;
+   - territory;
+   - originating TerrainInteraction(s);
+3. create outbound notification intents for both sides.
+
+Example requester message:
+"Mbàmbulaan a identifié une possibilité pour votre besoin de glace à Mbour. Souhaitez-vous être mis en relation ?"
+
+Example provider message:
+"Un acteur à Mbour recherche de la glace aujourd'hui. Souhaitez-vous recevoir la demande ?"
+
+Use concise configurable templates. Do not expose personal contact details until the coordination step authorises it.
+
+## 9. Channel notification
+
+Use the existing channel abstraction.
+
+For WhatsApp contacts:
+- send a clear notification;
+- preserve outbound conversation history;
+- persist delivery attempt/status where architecture supports it;
+- provider failure must not lose the coordination object.
+
+If live WhatsApp credentials are not available, deterministic adapter tests are acceptable, but the handoff must clearly distinguish live vs fixture validation.
+
+## 10. Coordination statuses
+
+Reuse existing statuses if available.
+
+The loop must support at least the semantic equivalents of:
+
+- proposed;
+- requester accepted / declined;
+- provider accepted / declined;
+- connected;
+- completed;
+- failed/cancelled.
+
+Avoid introducing a new status model if existing coordination/engagement objects already cover this.
+
+## 11. Outcome capture
+
+This is essential.
+
+For each initiated coordination, allow an operator to record:
+
+- did the connection happen?
+- was the need fulfilled?
+- quantity/value if known;
+- short outcome note;
+- failure reason if not fulfilled.
+
+Do not force transaction value when unknown.
+
+This data will later become the foundation for Mbàmbulaan's commercial proof:
+- needs detected;
+- matches proposed;
+- coordinations initiated;
+- successful outcomes.
+
+## 12. Revenue evidence, not billing
+
+T03 must expose simple evidence that a professional actor received value.
+
+At minimum, for provider-side actors/organizations track or derive:
+- opportunities received;
+- opportunities accepted;
+- successful coordinations.
+
+Do not implement payment, invoicing, subscription enforcement or commissions yet.
+
+We need proof of willingness-to-pay before billing automation.
+
+## 13. UI
+
+Extend existing Coordination / Terrain spaces rather than creating a marketplace.
+
+Minimum operator workflow:
+
+### From Terrain
+Interaction NEED/CAPACITY
+→ "Créer/qualifier en besoin/capacité" if required
+→ link to resulting business object.
+
+### In Coordination
+Need
+→ candidate matches
+→ reasons/warnings
+→ select provider
+→ initiate coordination
+→ follow status/outcome.
+
+Keep UI operational and compact.
+
+## 14. Idempotence / provenance
+
+The same TerrainInteraction must not create duplicate needs/capacities if retried.
+
+Every promoted object must retain source TerrainInteraction provenance.
+
+Every coordination must be traceable back to:
+- need;
+- capacity/provider;
+- original interactions.
+
+## 15. Tests required
 
 At minimum:
 
-### T01 regression/correction
-- first substantive message before onboarding is preserved as terrain interaction;
-- name/role/site onboarding answers remain only in conversation history and do not pollute terrain inbox;
-- known onboarded contact produces terrain interactions normally.
+### Promotion
+- NEED interaction creates exactly one canonical need;
+- duplicate promotion does not duplicate;
+- CAPACITY interaction creates exactly one capacity representation;
+- missing required data routes to review, not fabricated data.
 
-### Text intelligence
-- NEED: "J'ai besoin de glace aujourd'hui à Mbour."
-- CAPACITY: "J'ai 2 tonnes de chambre froide disponibles à Mbour aujourd'hui."
-- SIGNAL: "La machine à glace du quai est en panne."
-- OBSERVATION: "Beaucoup de pirogues sont rentrées ce matin."
-- ambiguous conversational message → UNCLASSIFIED or human review, never forced.
+### Matching
+- ice need at Mbour matches active ice/cold capacity in Mbour;
+- expired capacity does not match;
+- transport need does not match cold storage;
+- actor does not match themselves;
+- time mismatch produces warning or exclusion according to explicit rule;
+- quantity mismatch is explained.
 
-### Audio
-- audio fixture reaches transcription adapter;
-- transcription preserved;
-- interpreted result stored;
-- transcription failure preserves original interaction and marks failure/review.
+### Coordination
+- operator can select valid match and initiate coordination;
+- notifications generated for both sides;
+- duplicate initiation is idempotent;
+- provider/requester acceptance updates coordination;
+- outcome can be recorded;
+- failed notification does not delete coordination.
 
-### Image
-- image fixture reaches vision adapter;
-- analysis preserved;
-- AI output does not upgrade evidence status;
-- analysis failure preserves original interaction.
-
-### Robustness
-- malformed intelligence output rejected by schema;
-- duplicate provider event still idempotent;
-- existing test suite remains green.
+### Regression
+- T01 webhook/idempotence remains green;
+- T02 intent/media/AI tests remain green;
+- evidence status is never silently promoted.
 
 Run:
 `npm run lint`
@@ -273,77 +318,86 @@ Run:
 
 Run E2E where supported.
 
-## 13. Acceptance scenarios
+## 16. Acceptance scenario — first revenue-value loop
 
-### Scenario A — Text NEED
-Known actor sends:
+### Actors
+- Awa, mareyeuse in Mbour, known WhatsApp actor.
+- Froid Mbour, professional cold/ice provider.
+
+### Inbound need
+Awa sends:
 "J'ai besoin de glace aujourd'hui à Mbour."
 
 Expected:
-- one terrain interaction;
-- intent NEED;
-- subject roughly equivalent to ice/glace;
-- territory Mbour if resolvable;
-- time window today if extractable;
-- evidence remains DECLARED;
-- visible in Terrain UI.
+- T02 classifies NEED;
+- canonical active need exists;
+- source interaction retained.
 
-### Scenario B — Voice NEED
-Known actor sends a voice note expressing a need for ice.
+### Inbound capacity
+Provider sends:
+"Nous avons de la glace disponible aujourd'hui à Mbour."
 
 Expected:
-- media retrieved;
-- transcription stored;
-- language recorded if detectable;
-- intent NEED if interpretation is reliable;
-- original media provenance retained;
-- visible in Terrain UI.
+- T02 classifies CAPACITY;
+- active capacity exists;
+- source interaction retained.
 
-### Scenario C — Image SIGNAL
-Known actor sends a photo of an apparently damaged ice-related machine, optionally with a short caption.
+### Match
+Expected:
+- Mbàmbulaan identifies a candidate match;
+- reason includes compatible category + Mbour + compatible time window;
+- operator can review it.
+
+### Coordination
+Operator selects the match and initiates coordination.
 
 Expected:
-- image analysis stored as AI interpretation;
-- likely SIGNAL only if evidence/context is sufficient;
-- needsHumanReview true when uncertain;
-- evidence is never automatically VERIFIED.
+- coordination object exists;
+- requester/provider notifications are generated;
+- both source interactions remain traceable;
+- operator can record final result.
 
-## 14. Explicit out of scope
+### Outcome
+Operator records:
+"Besoin satisfait."
+
+Expected:
+- coordination marked successful/completed;
+- provider-side value evidence increments.
+
+This full scenario must be demonstrable without a marketplace.
+
+## 17. Explicit out of scope
 
 Do not build:
-- need ↔ capacity matching;
-- automated provider notifications;
-- subscriptions/payment;
-- marketplace;
-- autonomous purchasing/booking;
-- State-space redesign;
-- Public-space redesign;
-- phone-call/IVR integration;
-- full multilingual conversational agent;
-- semantic knowledge base/RAG.
+- payments;
+- commissions;
+- subscription enforcement;
+- automated billing;
+- public marketplace/catalogue;
+- AI-autonomous matching;
+- bidding/auction;
+- delivery fleet;
+- escrow;
+- ratings/reviews;
+- complex geospatial routing;
+- State/Public redesign.
 
-These belong to later sprints.
+## 18. Required implementation handoff
 
-## 15. Required implementation handoff
-
-Append a new T02 section to `docs/product/IMPLEMENTATION_LOG.md` containing:
+Append T03 to `docs/product/IMPLEMENTATION_LOG.md` with:
 - completion status;
 - final commit SHA;
-- files created/modified;
-- intelligence/provider architecture;
-- runtime provider(s) used;
-- environment variables;
-- media storage/retrieval approach;
-- schemas used for structured AI output;
+- existing domain concepts reused;
+- new domain concepts and justification;
+- matching rules;
+- coordination workflow/status mapping;
+- notification behaviour;
 - tests/results;
-- manual review routes/screenshots;
-- demonstrated language support;
-- external blockers;
-- deviations and why;
-- known debt for T03.
+- manual review routes;
+- live vs fixture validation;
+- known blockers;
+- deviations;
+- debt/preparation for T04 commercial validation.
 
-Do not mark T02 DONE merely because mocks pass. Clearly distinguish:
-- implemented architecture;
-- deterministic test coverage;
-- real provider/API validation;
-- real WhatsApp validation.
+Do not mark T03 DONE solely because objects exist. The full acceptance scenario must pass end-to-end.
