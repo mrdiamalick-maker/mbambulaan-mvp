@@ -350,3 +350,59 @@ Same three as T02, unchanged and not reopened by this sprint — no new blocker 
 - **No reverse path from a declined/failed coordination back to a fresh search** — a need that ends up `echouee` or whose coordination fails stays exactly where it is; mandat explicitly scoped automation of a retry loop out ("later automation may be added after field validation," §7) and this sprint did not add one either.
 - **Unit conversion for quantity warnings is not attempted** — a mismatch like "besoin en kg, capacité en tonnes" is surfaced as a warning naming both units, never converted or compared numerically; this is a deliberate, documented simplification (mandat §6 only asks that a mismatch be "explained"), not an oversight.
 - **`document`/`autre`-type interactions can never be promoted** — `evaluatePromotion` only accepts `besoin`/`capacite` intents, which T02's pipeline never assigns to non-text/audio/image message types anyway; consistent with T02's own documented scope boundary, not a new gap.
+
+
+---
+
+## T04 — Live Pilot Readiness + Commercial Validation
+
+Status: NOT STARTED
+Branch: `product/whatsapp-revenue-mvp`
+
+### Completion status
+TBD — must distinguish CODE COMPLETE vs LIVE ACCEPTED
+
+### Final commit SHA
+TBD
+
+### Speech-to-text provider
+TBD
+
+### Provider pricing/cost reference
+TBD
+
+### Live Meta setup
+TBD
+
+### Live AI setup
+TBD
+
+### Tested languages
+TBD
+
+### Pilot metrics
+TBD
+
+### Consent/privacy
+TBD
+
+### Commercial research fields
+TBD
+
+### Tests executed
+TBD
+
+### Live acceptance checklist
+TBD
+
+### Remaining activation steps
+TBD
+
+### External blockers
+TBD
+
+### Deviations
+TBD
+
+### Recommendation for first Dakar pilot day
+TBD
