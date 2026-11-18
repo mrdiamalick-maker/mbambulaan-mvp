@@ -118,6 +118,14 @@ const all: Command["type"][] = [
   "initiate_terrain_coordination",
   "record_terrain_coordination_response",
   "update_terrain_coordination_status",
+  // record_commercial_research / mark_operational_failure_resolved /
+  // retry_coordination_notification (Sprint T04, mandat §10/§12) — gestes
+  // humains d'un administrateur pilote. record_operational_failure
+  // n'apparaît dans aucune liste de permissions (même discipline
+  // qu'apply_terrain_interpretation) : seul le pont webhook le déclenche.
+  "record_commercial_research",
+  "mark_operational_failure_resolved",
+  "retry_coordination_notification",
   "reset_demo"
 ];
 

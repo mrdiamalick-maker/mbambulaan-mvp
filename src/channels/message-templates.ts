@@ -14,7 +14,14 @@ import type { Territory } from "@/domain/types";
 // la décision métier.
 export function renderReplyText(intent: ReplyIntent, territories: Territory[]): string {
   if (intent.kind === "ask_prenom") {
-    return "Bienvenue sur Mbàmbulaan. Quel est votre prénom ?";
+    // Mention consentement/vie privée (Sprint T04, mandat §11) — ajoutée
+    // au tout premier message plutôt qu'à un endroit séparé : c'est le
+    // seul moment garanti où un nouveau contact lit effectivement un
+    // message avant d'avoir donné la moindre information. Formulation
+    // courte, adaptée au terrain (jamais un texte juridique) : divulgue
+    // texte/voix/image + le mot-clé STOP (mandat "provide a simple
+    // mechanism/flag to stop pilot communications").
+    return "Bienvenue sur Mbàmbulaan. Vos messages (texte, voix, photo) peuvent être traités pour vous mettre en relation avec d'autres acteurs. Répondez STOP à tout moment pour arrêter. Quel est votre prénom ?";
   }
   if (intent.kind === "ask_role") {
     const choices = roleChoicesList().map((choice) => `${choice.index}. ${choice.label}`).join("\n");
@@ -28,7 +35,16 @@ export function renderReplyText(intent: ReplyIntent, territories: Territory[]): 
     const parts = [`J'ai compris : ${intent.intentLabel.toLowerCase()}`];
     if (intent.subject) parts.push(`concernant ${intent.subject}`);
     if (intent.territoryLabel) parts.push(`à ${intent.territoryLabel}`);
-    return `${parts.join(" ")}. C'est bien cela ? Un opérateur va vérifier votre message.`;
+    return `${parts.join(" ")}. C'est bien cela ? Répondez Oui ou Non.`;
+  }
+  // confirmed / ask_clarification (Sprint T04, mandat §7) — réponses à la
+  // confirmation ci-dessus, gabarits déterministes courts, même discipline
+  // que le reste de ce fichier (jamais un texte généré).
+  if (intent.kind === "confirmed") {
+    return "Merci, c'est confirmé.";
+  }
+  if (intent.kind === "ask_clarification") {
+    return "D'accord. Pouvez-vous préciser votre message en quelques mots ?";
   }
   return "Message bien reçu. Merci.";
 }

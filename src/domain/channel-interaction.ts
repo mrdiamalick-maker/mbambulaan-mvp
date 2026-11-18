@@ -79,6 +79,39 @@ export function territoryChoicesList(territories: Territory[]): Array<{ index: n
     .map((t, i) => ({ index: i + 1, name: t.name }));
 }
 
+// --- Confirmation / opt-out (Sprint T04, mandat §7/§11) ------------------
+
+function stripApostrophes(text: string): string {
+  return text.replace(/['’]/g, "");
+}
+
+// isStopKeyword — mandat §11, "provide a simple mechanism/flag to stop
+// pilot communications for a contact". Un seul mot-clé exact, jamais une
+// correspondance floue (un contact qui écrit "stop le vol de filets" dans
+// un message substantiel ne doit pas être désinscrit par erreur).
+export function isStopKeyword(rawContent: string): boolean {
+  return normalize(rawContent) === "stop";
+}
+
+// CONFIRM_YES/CONFIRM_NO — mandat §7 : "support common simple variants in
+// French" uniquement. Aucune variante wolof : le mandat exige
+// explicitement une validation par le porteur produit/des utilisateurs
+// réels avant d'en ajouter une seule ("not guessed") — rien de tel n'a eu
+// lieu dans ce sprint.
+const CONFIRM_YES = new Set(["oui", "ok", "daccord", "exact", "correct", "cest ca", "cest cela"]);
+const CONFIRM_NO = new Set(["non", "pas exact", "faux", "incorrect"]);
+
+// matchConfirmationAnswer — comparaison EXACTE après normalisation
+// (casse/espaces/apostrophes), même discipline que matchRoleChoice/
+// matchTerritoryChoice ci-dessus : jamais une correspondance approximative
+// qui risquerait de deviner une confirmation absente.
+export function matchConfirmationAnswer(rawContent: string): "oui" | "non" | undefined {
+  const text = stripApostrophes(normalize(rawContent));
+  if (CONFIRM_YES.has(text)) return "oui";
+  if (CONFIRM_NO.has(text)) return "non";
+  return undefined;
+}
+
 // --- Réponse à envoyer (descripteur, jamais le texte littéral) ----------
 //
 // determineReplyIntent — appelée par le pont de canal APRÈS dispatch, sur
@@ -91,7 +124,17 @@ export type ReplyIntent =
   | { kind: "ask_role" }
   | { kind: "ask_site" }
   | { kind: "ack" }
-  | { kind: "confirm_interpretation"; intentLabel: string; subject?: string; territoryLabel?: string };
+  | { kind: "confirm_interpretation"; intentLabel: string; subject?: string; territoryLabel?: string }
+  // confirmed / ask_clarification (Sprint T04, mandat §7) — construits
+  // directement par le pont webhook (jamais par determineReplyIntent
+  // ci-dessous) : la réponse "oui"/"non" à une confirmation en attente ne
+  // crée pas de nouvelle TerrainInteraction (voir applyReceiveChannelMessage),
+  // donc determineReplyIntent — qui lit l'interaction résultante — n'a
+  // aucun moyen de distinguer ces deux cas après coup. Le pont webhook lit
+  // la confirmation en attente AVANT dispatch, avec la même fonction pure
+  // (matchConfirmationAnswer), pour choisir la réponse.
+  | { kind: "confirmed" }
+  | { kind: "ask_clarification" };
 
 // determineReplyIntent — mandat T02 §7, "human confirmation" : lecture
 // conservative de "the system MAY generate/suggest a concise reply" —
@@ -173,6 +216,92 @@ export function applyReceiveChannelMessage(state: ProductState, command: Extract
       messages: []
     };
   let next = state;
+
+  // Opt-out (Sprint T04, mandat §11) — vérifié EN PREMIER, avant tout
+  // traitement d'onboarding/interprétation : un contact déjà désinscrit
+  // ne doit plus produire aucun effet de bord (ni interaction, ni
+  // progression d'onboarding, ni confirmation) — seul l'historique de
+  // conversation continue de grandir, pour trace/audit.
+  if (conversation.optedOut) {
+    conversation = appendMessage(conversation, "inbound", rawContent, receivedAt);
+    next = upsertConversation(next, conversation);
+    return withAudit(
+      next,
+      conversation.actorId ?? "contact-non-identifie",
+      "conversation",
+      conversation.id,
+      "receive_channel_message",
+      "Message reçu après demande d'arrêt (STOP) — aucun traitement."
+    );
+  }
+  if (isStopKeyword(rawContent)) {
+    conversation = { ...conversation, optedOut: true, optedOutAt: receivedAt, pendingConfirmationInteractionId: undefined };
+    conversation = appendMessage(conversation, "inbound", rawContent, receivedAt);
+    next = upsertConversation(next, conversation);
+    return withAudit(
+      next,
+      conversation.actorId ?? "contact-non-identifie",
+      "conversation",
+      conversation.id,
+      "receive_channel_message",
+      "Arrêt des communications demandé (STOP)."
+    );
+  }
+
+  // Confirmation en attente (Sprint T04, mandat §7) — uniquement si
+  // l'onboarding était déjà complet AVANT ce message ET qu'une
+  // confirmation est explicitement attendue (posée par
+  // applyTerrainInterpretation). Le pendant est TOUJOURS effacé par ce
+  // message, qu'il soit reconnu comme oui/non ou non (mandat "a stale
+  // pending confirmation must never silently warp interpretation of an
+  // unrelated future message"). Même raisonnement que D008
+  // (onboarding-chatter exclu de l'inbox terrain, décision T04 documentée
+  // dans IMPLEMENTATION_LOG) : une réponse oui/non à une confirmation
+  // n'est pas elle-même une nouvelle information de terrain — jamais une
+  // seconde TerrainInteraction créée pour "Oui"/"Non".
+  if (wasOnboardingComplete && conversation.pendingConfirmationInteractionId) {
+    const pendingInteractionId = conversation.pendingConfirmationInteractionId;
+    const answer = matchConfirmationAnswer(rawContent);
+    conversation = { ...conversation, pendingConfirmationInteractionId: undefined };
+    if (answer) {
+      const pending = next.terrainInteractions.find((item) => item.id === pendingInteractionId);
+      if (pending?.interpretation) {
+        const updatedInteraction: TerrainInteraction = {
+          ...pending,
+          interpretation: {
+            ...pending.interpretation,
+            // "correctedByActorId"/"correctedAt" réutilisés ici pour
+            // représenter une auto-confirmation du déclarant lui-même par
+            // WhatsApp — même champs qu'une correction d'opérateur
+            // (correct_terrain_interpretation), distinguables si besoin en
+            // comparant cet actorId à celui de l'interaction d'origine
+            // (mandat T04, décision documentée dans IMPLEMENTATION_LOG :
+            // réutiliser plutôt que dupliquer un couple de champs
+            // équivalent).
+            needsHumanReview: answer === "non",
+            correctedByActorId: conversation.actorId,
+            correctedAt: receivedAt
+          }
+        };
+        next = updateInteraction(next, updatedInteraction);
+      }
+      conversation = appendMessage(conversation, "inbound", rawContent, receivedAt);
+      next = upsertConversation(next, conversation);
+      return withAudit(
+        next,
+        conversation.actorId ?? "contact-non-identifie",
+        "conversation",
+        conversation.id,
+        "receive_channel_message",
+        answer === "oui"
+          ? "Interprétation confirmée par le contact (réponse « oui »)."
+          : "Interprétation marquée à revoir par le contact (réponse « non »)."
+      );
+    }
+    // answer === undefined : ce message n'est pas une réponse oui/non — il
+    // retombe dans le traitement normal ci-dessous (la confirmation en
+    // attente vient déjà d'être effacée).
+  }
 
   if (!isNewConversation && !wasOnboardingComplete) {
     if (conversation.onboardingStage === "prenom_demande") {
@@ -322,8 +451,21 @@ export function applyTerrainInterpretation(state: ProductState, command: Extract
     imageAnalysis: command.imageAnalysis ?? interaction.imageAnalysis,
     interpretation
   };
+  let next = updateInteraction(state, updated);
+  // pendingConfirmationInteractionId (Sprint T04, mandat §7) — posé sur la
+  // conversation d'origine exactement quand une confirmation WhatsApp
+  // oui/non est attendue (needsHumanReview), effacé sinon : toute
+  // interprétation nouvelle (de CETTE interaction) remplace la
+  // confirmation précédemment en attente, jamais cumulée.
+  const owningConversation = next.conversations.find((item) => item.id === interaction.conversationId);
+  if (owningConversation) {
+    next = upsertConversation(next, {
+      ...owningConversation,
+      pendingConfirmationInteractionId: interpretation.needsHumanReview ? interaction.id : undefined
+    });
+  }
   return withAudit(
-    updateInteraction(state, updated),
+    next,
     interaction.actorId ?? "contact-non-identifie",
     "terrain_interaction",
     interaction.id,

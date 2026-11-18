@@ -37,6 +37,12 @@ import {
   applyRejectTerrainMatch,
   applyUpdateTerrainCoordinationStatus
 } from "./terrain-matching";
+import {
+  applyMarkOperationalFailureResolved,
+  applyRecordCommercialResearch,
+  applyRecordOperationalFailure,
+  applyRetryCoordinationNotification
+} from "./pilot";
 
 // Le moteur de rapprochement Lot ↔ ServiceRequest (§5.11) ne concerne que
 // les intentions d'approvisionnement : une demande de formation ou de
@@ -134,6 +140,10 @@ const transitions: Record<
     | "record_terrain_coordination_response"
     | "update_terrain_coordination_status"
     | "record_coordination_notification_result"
+    | "record_commercial_research"
+    | "record_operational_failure"
+    | "mark_operational_failure_resolved"
+    | "retry_coordination_notification"
   >,
   [SituationStatus, SituationStatus]
 > = {
@@ -1041,6 +1051,22 @@ export function applyCommand(state: ProductState, command: Command): ProductStat
   if (command.type === "record_coordination_notification_result") {
     return applyRecordCoordinationNotificationResult(state, command);
   }
+  // record_commercial_research / record_operational_failure /
+  // mark_operational_failure_resolved / retry_coordination_notification
+  // (Sprint T04) — domaine fonctionnel distinct (pilot.ts), voir la
+  // doctrine complète dans types.ts.
+  if (command.type === "record_commercial_research") {
+    return applyRecordCommercialResearch(state, command);
+  }
+  if (command.type === "record_operational_failure") {
+    return applyRecordOperationalFailure(state, command);
+  }
+  if (command.type === "mark_operational_failure_resolved") {
+    return applyMarkOperationalFailureResolved(state, command);
+  }
+  if (command.type === "retry_coordination_notification") {
+    return applyRetryCoordinationNotification(state, command);
+  }
   if (command.type === "announce_return" || command.type === "confirm_arrival" || command.type === "record_landing") {
     return applyTripCommand(state, command);
   }
@@ -1288,6 +1314,10 @@ export type WorkflowAction = Exclude<
   | "record_terrain_coordination_response"
   | "update_terrain_coordination_status"
   | "record_coordination_notification_result"
+  | "record_commercial_research"
+  | "record_operational_failure"
+  | "mark_operational_failure_resolved"
+  | "retry_coordination_notification"
 >;
 
 export function availableAction(status: SituationStatus): WorkflowAction | undefined {

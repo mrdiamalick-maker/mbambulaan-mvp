@@ -356,53 +356,120 @@ Same three as T02, unchanged and not reopened by this sprint — no new blocker 
 
 ## T04 — Live Pilot Readiness + Commercial Validation
 
-Status: NOT STARTED
+Status: **CODE COMPLETE, NOT LIVE ACCEPTED** (D016). Every section of CURRENT_SPRINT.md §3-§12 that does not require a real external credential (Meta WhatsApp Business, Anthropic, a speech-to-text provider) is implemented, tested, and exercised through a real HTTP webhook round-trip in `scripts/smoke.mjs`. The real-provider code paths (live Meta, live Anthropic, live Whisper) are wired behind the existing provider-agnostic boundaries and activate automatically once credentials exist, but none could be exercised in this sandboxed coding environment — see "External blockers". Per CURRENT_SPRINT.md §14, this is the explicitly allowed outcome when credentials cannot be provisioned; the §14 checklist is NOT satisfied and the product is NOT declared live-ready.
 Branch: `product/whatsapp-revenue-mvp`
 
 ### Completion status
-TBD — must distinguish CODE COMPLETE vs LIVE ACCEPTED
+
+CODE COMPLETE. All of §3 (health check), §4 (speech-to-text adapter), §7 (WhatsApp confirmation), §8 (pilot actor view), §9 (pilot metrics), §10 (commercial research fields), §11 (consent/opt-out/phone-exposure safeguards), §12 (operational resilience) are implemented and tested. §5 (real intelligence validation with real credentials) and the live portions of §6 could not be exercised — no `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/Meta WhatsApp credentials exist in this environment. `lint`/`typecheck`/`build`/`git diff --check` are clean. `npm test` is 670/670 green (up from 651 at T03: +19 new tests, 0 broken). `npm run test:e2e` passes, including a new real-HTTP-webhook scenario for the confirmation (`Oui`/`Non`) and `STOP` opt-out flows.
+
+NOT LIVE ACCEPTED: none of CURRENT_SPRINT.md §14's 7 steps (real WhatsApp user, real voice note, real image, real NEED/CAPACITY through the real matching loop) have been demonstrated with real credentials. **LIVE ACCEPTED requires a human with real Meta/OpenAI/Anthropic credentials to run the §14 checklist from a real phone — this sprint cannot self-certify that.**
 
 ### Final commit SHA
-TBD
+
+`PENDING` — filled in by a follow-up commit immediately after this one (same two-commit pattern as T02/T03): this commit's own SHA cannot be known before it is created.
 
 ### Speech-to-text provider
-TBD
+
+**OpenAI Whisper** (`whisper-1`, `POST https://api.openai.com/v1/audio/transcriptions`), wired in `src/intelligence/whisper-adapter.ts` and composed into `src/intelligence/adapter.ts` (real when `OPENAI_API_KEY` is set, deterministic fixture otherwise — exact same compositional pattern as the existing Anthropic text/vision wiring).
+
+Why, against §4's criteria:
+- **Audio format compatibility** — accepts ogg/opus directly (WhatsApp's native voice-note container), no conversion step needed.
+- **Reliable, simple API** — a single REST endpoint, multipart form upload, usable with plain `fetch`+`FormData`+`Blob` (Node 20+ globals), zero added dependency — same minimal-dependency discipline as `anthropic-adapter.ts`.
+- **Immediate French testability** — French is a well-established, heavily-used case for this model (though "well-established" is a claim about the provider's general reputation, not a test this sprint ran — see "Tested languages").
+- **Wolof** — NOT claimed. OpenAI does not officially document/benchmark Wolof support for Whisper. `whisper-adapter.ts` carries this exact caveat in a comment; nothing in this codebase claims Wolof works.
+
+Fallback/error behaviour: throws an explicit error (never a fabricated transcript) when `OPENAI_API_KEY` is absent, when the audio bytes were never downloaded (`media.data` missing), or when the HTTP call itself fails (non-2xx or no usable `text` field in the response). The provider does not expose a usable confidence signal in this response shape (`verbose_json` gives per-segment `avg_logprob`, not a global score) — rather than fabricate a finer-grained confidence from that, the adapter always reports `"moyenne"` for a successful transcription, the same bounded-category discipline used everywhere else in this domain. The detected `language` field is passed through verbatim (e.g. `"french"`) — never mapped to an ISO code, since that mapping would itself be a guess.
 
 ### Provider pricing/cost reference
-TBD
+
+OpenAI Whisper API pricing at implementation time (model's own training knowledge, **not independently verified against OpenAI's live pricing page in this sprint — verify before relying on it for the pilot budget**): approximately $0.006 per minute of audio, rounded up to the nearest second. For the §15 pilot target (10-30 actors, occasional short voice notes), this is negligible — well under a few dollars per month at realistic pilot volume. This figure is a documented estimate, not a measurement; it has not been checked against a real invoice.
 
 ### Live Meta setup
-TBD
+
+**NOT CONFIGURED** in this environment — no `WHATSAPP_APP_SECRET`/`WHATSAPP_VERIFY_TOKEN`/`WHATSAPP_ACCESS_TOKEN`/`WHATSAPP_PHONE_NUMBER_ID` exist here. A health check (`src/channels/whatsapp-health.ts`, exposed only to an authenticated `administrateur` session via `GET /api/admin/whatsapp-health`, surfaced in the new "Préparation du pilote WhatsApp" panel on `/app/administration`) reports presence/absence of each as a plain boolean — **never a secret value**, in the UI, logs, or anywhere else.
+
+Setup checklist for the next session with real access (kept here, per §17, rather than a separate doc, to avoid sprawl):
+1. Create/use a Meta Business app with the WhatsApp Business Platform (Cloud API) product added.
+2. Provision a WhatsApp Business Account (WABA) and a phone number for Mbàmbulaan; note the **phone number ID**.
+3. Generate a **permanent/system-user access token** with `whatsapp_business_messaging` + `whatsapp_business_management` permissions (not a short-lived user token).
+4. Set `WHATSAPP_ACCESS_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID` in the deployment environment.
+5. Choose a **verify token** (any string you control) and an **app secret** (from the Meta app's Basic Settings); set `WHATSAPP_VERIFY_TOKEN` and `WHATSAPP_APP_SECRET`.
+6. In the Meta app's WhatsApp → Configuration, set the webhook URL to `https://<deployment-host>/api/webhooks/whatsapp` and the verify token to the same value as `WHATSAPP_VERIFY_TOKEN`; Meta will call the `GET` handler, already implemented and tested, to confirm.
+7. Subscribe the webhook to the `messages` field (minimum required; this is the only field this codebase consumes).
+8. Confirm the health panel on `/app/administration` shows all three WhatsApp rows as "Configuré".
 
 ### Live AI setup
-TBD
+
+- **Anthropic (text/image interpretation)** — code-complete since T02, unexercised against the real API in any sprint so far (no `ANTHROPIC_API_KEY` here). This sprint did a focused desk re-review of `src/intelligence/anthropic-adapter.ts` for obvious correctness bugs before the pilot; none were found — the request/response shape, JSON-only system prompt, and strict schema validation (`isValidInterpretation`/`isValidImageAnalysis`) all look correct on inspection, but "looks correct on inspection" is explicitly NOT the same claim as "validated against the real API," and is not represented as such anywhere else in this log.
+- **OpenAI Whisper (voice transcription)** — code-complete as of this sprint (see above), unexercised against the real API — no `OPENAI_API_KEY` here either.
+
+Setup: set `ANTHROPIC_API_KEY`+`ANTHROPIC_MODEL` to enable real text/image interpretation; set `OPENAI_API_KEY` (and optionally `OPENAI_TRANSCRIPTION_MODEL`, default `whisper-1`) to enable real voice transcription. Both health flags are visible in the same admin panel as the WhatsApp configuration.
 
 ### Tested languages
-TBD
+
+**None, with real audio.** No real speech-to-text request has been made in this environment — this is stated plainly rather than inferred from the provider's general documentation. French is the only language this codebase's deterministic fixtures and Anthropic prompts are written against; Wolof is explicitly and repeatedly flagged throughout this sprint's code comments as unverified, never to be claimed as supported until demonstrated with real Wolof audio samples and a human (product owner or real user) confirming the result.
 
 ### Pilot metrics
-TBD
+
+New `src/domain/pilot.ts`: `buildPilotScorecard(state)` returns onboarded actors, active users (≥1 substantive interaction), substantive interactions, NEED/CAPACITY counts, matches proposed, coordinations initiated, successful coordinations (`terminee` + `outcome.fulfilled`), and provider organisations receiving opportunities (reusing T03's `buildTerrainValueEvidence`) — every count derives directly from an existing `ProductState` array, none stored separately, none a fabricated percentage or average. `buildPilotActorRows(state)` projects one row per real pilot actor (name, phone, role, site, onboarding completeness, last interaction, needs/capacities created, coordinations initiated/completed, whether provider-side value has been received). Both are surfaced in a new read-only "Préparation du pilote WhatsApp" panel on `/app/administration` (already `administrateur`-only, server-gated by the existing `layout.tsx`) — a handful of tables and counters, explicitly not a CRM.
+
+Demo-vs-real distinction (§9/§11): `isPilotActor(state, actorId)` derives "real pilot actor" as "appears in `state.conversations` with an `actorId`" — every one of the ~60 Demo World actors is seeded directly by `createDemoState()`, which never populates `conversations`, so no demo actor can ever satisfy this test; no new flag was added to `Actor` (that would have meant a retroactive migration of the Demo World, against the project's "never fabricate data retroactively" discipline). The six T01-T04 arrays this feeds from (`conversations`, `terrainInteractions`, `terrainNeeds`, `terrainCapacities`, `terrainMatches`, `terrainCoordinations`) are *already* 100% real-pilot data by construction — `createDemoState()` seeds all six empty — so no further filtering was needed for the scorecard's non-actor-centric counts.
+
+Known limitation, documented rather than worked around: `receivedProviderValue` (per pilot actor) and the organisation-keyed value-evidence list both key on `Actor.organizationId`, and no actor produced by the WhatsApp onboarding pipeline has a real organisation yet (T01's "never fabricate an organization" rule) — so both will honestly read empty/false until a real pilot provider is explicitly linked to a real organisation by an administrator. The admin panel surfaces this limitation directly to the user rather than silently showing a misleading "no value received" without context.
 
 ### Consent/privacy
-TBD
+
+The first onboarding reply (`ask_prenom`, `src/channels/message-templates.ts`) now discloses, in one short field-appropriate sentence, that messages (text, voice, photo) may be processed to connect the contact with other actors, and that replying `STOP` at any time stops communications — chosen as the first message because it is the one guaranteed moment a new contact reads something before providing any information.
+
+`STOP` (exact match only, case/accent-insensitive — never a substring match, so a substantive message that happens to contain the word "stop" is never misread as an opt-out) sets `Conversation.optedOut`/`optedOutAt`. Once set: no further `TerrainInteraction` is ever created from that conversation, no onboarding/confirmation processing runs, and the webhook route sends no further reply of any kind to that contact — but the conversation's message history keeps growing, for audit/trace, never deleted. This is a new, explicit decision (not previously requested) documented here under "Deviations".
+
+Phone number exposure (§11) was audited, not assumed: `grep`-ing every component under `src/components` and `src/app` for `channelAddress`/`actor.phone` usage confirms the only places that render a phone number are `TerrainSupervisorView.tsx` and the new `PilotReadinessPanel.tsx`, both reachable only from `/app/terrain` and `/app/administration` — both already gated by an authenticated session with the relevant role (neither is reachable from any public/unauthenticated route, verified against `src/app/app/(coordination)/administration/layout.tsx`'s server-side `administrateur`-only redirect and the equivalent terrain guard).
 
 ### Commercial research fields
-TBD
+
+New `CommercialResearchRecord` (`types.ts`) — a deliberately adjacent, separately-removable object (never a mutation of `Actor`/`Organization`), keyed by `organizationId` when known, else `actorId`: `contactedForPilot`, `pilotParticipationAccepted`, `willingnessToPayAsked`, `willingnessToPayResponse` (`oui`/`non`/`peut_etre`), `indicativeAmountFcfa`, `note`. New command `record_commercial_research` (`actorId` required — administrator-only, see `permissions.ts`), implemented as an upsert in `src/domain/pilot.ts` (a second call for the same organisation/actor updates in place, never duplicates), audited via the existing `withAudit`. Surfaced as a small form per pilot provider (derived from declared capacities) in the admin panel. No invoice, no subscription, no billing code anywhere in this sprint — verified by the new test asserting `state.organizations`/`state.subscriptions` are untouched by this command.
 
 ### Tests executed
-TBD
+
+- `npm run lint` — clean (same 3 pre-existing unrelated warnings as T03, 0 errors).
+- `npm run typecheck` — clean.
+- `npm test` — **670/670 passing** (651 at T03 + 19 new: `tests/confirmation.test.ts` ×6, `tests/whisper-adapter.test.ts` ×7, `tests/pilot.test.ts` ×6). 0 pre-existing tests broken.
+- `npm run build` — clean production build.
+- `git diff --check` — clean (no whitespace errors).
+- `npm run test:e2e` (`scripts/smoke.mjs`) — passing, including a new local-spawn-only T04 scenario (same `remoteBase` guard as the existing WhatsApp scenarios, since a remote deployment's real secret is unknown to this script): onboard a new real actor over the real signed webhook, send a message that the deterministic fixture classifies as a `signal` (`needsHumanReview: true`), confirm `pendingConfirmationInteractionId` is set on the resulting conversation, send `"Oui"` and confirm it clears `needsHumanReview` without creating a second interaction, then send `"STOP"` and confirm no further interaction is created from that contact.
+
+What these tests do NOT prove (explicitly, per the project's standing "never overclaim" discipline): any real provider call succeeding, any real WhatsApp delivery, any real Wolof transcription, any real willingness-to-pay data from an actual pilot participant.
 
 ### Live acceptance checklist
-TBD
+
+CURRENT_SPRINT.md §14's 7 steps: **0 of 7 demonstrated.** No real WhatsApp user, no real voice note, no real image, no real credentials exist in this coding environment to run any of them. Per §14's own explicit allowance, this sprint is marked CODE COMPLETE rather than blocked outright, with exact remaining steps listed below.
 
 ### Remaining activation steps
-TBD
+
+1. Provision Meta WhatsApp credentials per the "Live Meta setup" checklist above; confirm the admin health panel shows all three WhatsApp rows "Configuré".
+2. Provision `ANTHROPIC_API_KEY`+`ANTHROPIC_MODEL`; confirm the health panel shows "Fournisseur IA (Anthropic)" as "Configuré".
+3. Provision `OPENAI_API_KEY`; confirm the health panel shows "Fournisseur de transcription (OpenAI Whisper)" as "Configuré".
+4. From a real phone, send a text message to the Mbàmbulaan WhatsApp number; confirm it is received, stored, and replied to (§14.1-§14.3).
+5. From the same phone, send a real voice note; confirm it is transcribed, interpreted, and visible in the Terrain view, and record the actually-detected language (§14.4-§14.5) — this is the first real test of whether Whisper's French claim holds in practice for this product's actual audio conditions (background noise, accent, connection quality).
+6. Send a real photo (with and without a caption); confirm it is analysed and never auto-verified (§14.6).
+7. Drive one real NEED and one real CAPACITY (from two different real phones) through the full T03 matching/coordination loop, exactly as `scripts/smoke.mjs`'s T03 scenario does synthetically today (§14.7).
+8. Only once all 7 steps above are directly observed by a human with real credentials: update this section's "Status" line to LIVE ACCEPTED, with a dated note of who ran the checklist and what was observed.
 
 ### External blockers
-TBD
+
+Identical in kind to every prior sprint's blocker: **no real Meta WhatsApp Business credentials, no real `ANTHROPIC_API_KEY`, no real `OPENAI_API_KEY` exist in this sandboxed coding environment.** All three are required to exercise §5/§6/§14 — none can be provisioned from inside this session. This sprint followed §14's explicit instruction for exactly this situation: implement everything possible behind the existing provider boundaries, mark the result CODE COMPLETE but NOT LIVE ACCEPTED, and document precisely what remains (see above) rather than asserting live readiness that was never actually observed.
 
 ### Deviations
-TBD
+
+- **Confirmation replies reuse the correction-audit fields.** A WhatsApp contact confirming their own pending interpretation with "Oui"/"Non" sets `TerrainInterpretation.correctedByActorId`/`correctedAt` — the same fields T02's `correct_terrain_interpretation` uses for an operator's correction — rather than adding a second, parallel pair of fields. Documented in `channel-interaction.ts`: distinguishable later, if ever needed, by comparing that `actorId` to the interaction's own `actorId` (self-confirmation) versus a different one (operator correction).
+- **A confirmation reply never creates a new `TerrainInteraction`**, by the same reasoning D008 already established for onboarding chatter: a bare "Oui"/"Non" answering a pending confirmation is not new field information, just a yes/no on information that already exists. This is a new decision, not previously written down, made during this sprint and recorded here rather than silently assumed.
+- **A stale pending confirmation is always cleared by the next message, matched or not.** If a contact's reply to a pending confirmation doesn't match any recognised "Oui"/"Non" variant, the pending confirmation is dropped and the message is treated as an ordinary new message — chosen specifically so a confirmation prompt can never silently warp the interpretation of an unrelated later message.
+- **Opt-out (`STOP`) halts ALL further processing for that conversation**, not merely outbound replies — chosen as the more privacy-respecting reading of §11's "stop pilot communications," since continuing to run the AI pipeline and create interactions for someone who withdrew consent would be processing beyond what they agreed to, even if nothing is ever sent back to them.
+- **Audio media download failure is tolerated (not fatal) when no real speech-to-text provider is configured**, mirroring the existing image-branch pattern exactly — the deterministic fixture never needs the downloaded bytes (keyed by `mediaId` alone), so a download failure must not turn a working fixture-backed demo path into a fabricated `echec_traitement`. A real provider (Whisper), by contrast, explicitly requires the bytes and fails loudly and honestly when they're missing.
+- **The `confirm_interpretation` reply text changed** from "Un opérateur va vérifier votre message." (T02) to "Répondez Oui ou Non." (T04), since the contact can now meaningfully answer. No test depended on the old wording (checked before changing it).
+- **Demo-vs-pilot-actor distinction derived, not stored** (`isPilotActor`), to avoid a retroactive migration of the Demo World — see "Pilot metrics" above.
 
 ### Recommendation for first Dakar pilot day
-TBD
+
+Before onboarding any real actor, provision the Meta/Anthropic/OpenAI credentials and have the founder personally send 2-3 real WhatsApp messages (a text, a short voice note, a photo) from their own phone to exercise the complete webhook → provider → reply round-trip live, end to end, with no one else watching yet. Confirm each message appears correctly in `/app/terrain` and that the reply actually arrives on the phone. Only after that succeeds, begin onboarding the first 2-3 real provider-side actors (ice/cold, transport, or buyer) specifically so the first coordination attempted is provider-side-initiated and low-stakes, and ask the willingness-to-pay question (§10) to each of them personally rather than leaving it to a blind WhatsApp exchange — the commercial research fields exist to record that conversation's outcome honestly, not to replace it.

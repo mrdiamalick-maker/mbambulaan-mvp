@@ -2783,7 +2783,11 @@ export function createDemoState(): ProductState {
     terrainNeeds: [],
     terrainCapacities: [],
     terrainMatches: [],
-    terrainCoordinations: []
+    terrainCoordinations: [],
+    // commercialResearchRecords / operationalFailures (Sprint T04) —
+    // aucune fixture : seules de vraies commandes les peuplent.
+    commercialResearchRecords: [],
+    operationalFailures: []
   };
 
   // PD.5 — Pont de connaissance opérationnelle (mandat "Operational

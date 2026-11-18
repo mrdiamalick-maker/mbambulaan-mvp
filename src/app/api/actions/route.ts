@@ -39,6 +39,9 @@ export async function POST(request: NextRequest) {
       if (command.type === "initiate_terrain_coordination") {
         next = await notifyAfterCoordinationInitiation(next, command, (state, inner) => applyCommand(state, inner));
       }
+      if (command.type === "retry_coordination_notification") {
+        next = await attemptCoordinationNotifications(next, command.coordinationId, (state, inner) => applyCommand(state, inner));
+      }
       return NextResponse.json({ state: projectStateForSession(next, session) });
     }
 
@@ -46,6 +49,15 @@ export async function POST(request: NextRequest) {
     let next = await dispatch(command, key);
     if (command.type === "initiate_terrain_coordination") {
       next = await notifyAfterCoordinationInitiation(next, command, (_state, inner) => dispatch(inner, crypto.randomUUID()));
+    }
+    if (command.type === "retry_coordination_notification") {
+      // retry_coordination_notification (Sprint T04, mandat §12) — même
+      // discipline que notifyAfterCoordinationInitiation ci-dessous :
+      // applyCommand vient de remettre la notification visée à
+      // "a_envoyer" ; attemptCoordinationNotifications ne traite déjà que
+      // les notifications dans cet état, donc la rappeler ici retente
+      // UNIQUEMENT celle-ci, sans toucher aux autres.
+      next = await attemptCoordinationNotifications(next, command.coordinationId, (_state, inner) => dispatch(inner, crypto.randomUUID()));
     }
     return NextResponse.json({ state: projectStateForSession(next, session) });
   } catch (error) {

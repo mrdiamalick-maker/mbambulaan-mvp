@@ -6,6 +6,7 @@
 // les autres pages déjà migrées (Lot 2 à 6).
 import { Database, KeyRound, ScrollText, ShieldCheck } from "lucide-react";
 import { useProduct } from "@/components/providers/ProductProvider";
+import { PilotReadinessPanel } from "@/components/ecosystem/PilotReadinessPanel";
 
 export default function AdministrationPage() {
   const { state, persistence } = useProduct();
@@ -59,6 +60,8 @@ export default function AdministrationPage() {
           {state.audit.length === 0 && <p className="p-6 text-sm text-muted-foreground">Le journal s’alimentera à la première action de démonstration.</p>}
         </div>
       </section>
+
+      <PilotReadinessPanel />
     </div>
   );
 }

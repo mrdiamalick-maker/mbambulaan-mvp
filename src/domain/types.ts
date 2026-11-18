@@ -654,6 +654,24 @@ export interface Conversation {
   pendingName?: string;
   pendingRole?: Role;
   pendingTerritoryId?: string;
+  // pendingConfirmationInteractionId (Sprint T04, mandat §7) — état
+  // transitoire de coordination par conversation, pas une nouvelle entité
+  // ni un nouveau cycle de vie : juste "la prochaine réponse oui/non de ce
+  // contact concerne cette interaction précise". Posé uniquement par
+  // applyTerrainInterpretation quand needsHumanReview devient vrai ;
+  // effacé par le message SUIVANT quel qu'il soit (reconnu comme oui/non
+  // ou non) — jamais laissé traîner pour ne pas détourner l'interprétation
+  // d'un message sans rapport (mandat §7, "only treat yes/no as
+  // confirmation when a conversation has an explicit pending
+  // confirmation").
+  pendingConfirmationInteractionId?: string;
+  // optedOut / optedOutAt (Sprint T04, mandat §11) — un contact qui répond
+  // "STOP" cesse de recevoir toute communication ET tout traitement
+  // ultérieur (mandat "provide a simple mechanism/flag to stop pilot
+  // communications"). Absent = comportement normal (aucune migration des
+  // conversations déjà existantes, qui restent actives).
+  optedOut?: boolean;
+  optedOutAt?: string;
   startedAt: string;
   lastMessageAt: string;
   messages: ConversationMessage[];
@@ -1050,6 +1068,72 @@ export interface TerrainCoordination {
   outcome?: TerrainCoordinationOutcome;
   createdAt: string;
   createdByActorId: string;
+}
+
+// --- Live Pilot Readiness + Commercial Validation — Sprint T04 ----------
+// (docs/product/CURRENT_SPRINT.md) --------------------------------------
+//
+// CommercialResearchRecord — mandat §10. Analyse faite avant tout code :
+// Organization (plus haut) et Actor ne portent aujourd'hui aucune notion
+// de "sollicitation pilote" ni de "disposition à payer" — les y ajouter
+// aurait mélangé un état opérationnel (qui est cet acteur/cette
+// organisation) avec une preuve de recherche commerciale temporaire,
+// jamais nettoyée ni auditée de la même façon (mandat "research evidence,
+// not a subscription system"). Objet adjacent et volontairement isolé :
+// aucune facture, aucun abonnement, aucun effet sur
+// Organization/Actor/Capacity — seulement une fiche de recherche
+// rattachée par référence (organizationId quand connu, sinon actorId pour
+// un fournisseur-acteur sans organisation réelle, cf. T01 "ne pas
+// fabriquer d'organisation"). Mandat D013 : "willingness-to-pay must be
+// validated with real actors before automating billing" — ce record EST
+// cette validation, rien de plus.
+export type WillingnessToPayResponse = "oui" | "non" | "peut_etre";
+
+export const willingnessToPayResponseLabels: Record<WillingnessToPayResponse, string> = {
+  oui: "Oui",
+  non: "Non",
+  peut_etre: "Peut-être"
+};
+
+export interface CommercialResearchRecord {
+  id: string;
+  organizationId?: string;
+  // actorId — utilisé uniquement quand ce fournisseur n'a pas
+  // d'organisation réelle connue (cf. Actor.organizationId ci-dessus,
+  // optionnel pour la même raison depuis T01).
+  actorId?: string;
+  contactedForPilot: boolean;
+  pilotParticipationAccepted?: boolean;
+  willingnessToPayAsked: boolean;
+  willingnessToPayResponse?: WillingnessToPayResponse;
+  indicativeAmountFcfa?: number;
+  note?: string;
+  updatedAt: string;
+  updatedByActorId: string;
+}
+
+// OperationalFailure — mandat §12. Analyse faite avant tout code : un
+// échec de traitement IA (TerrainInteraction.processingStatus ===
+// "echec_traitement") et un échec d'envoi de notification de coordination
+// (TerrainCoordinationNotification.status === "echec") sont déjà
+// entièrement visibles dans l'état existant — les dupliquer ici créerait
+// une seconde vérité désynchronisable. Le seul angle mort réel (mandat
+// §2, "operational error visibility for pilot support") : un échec
+// INATTENDU dans le traitement d'un message entrant côté pont webhook
+// (erreur de parsing, exception du pipeline IA qui échappe à son propre
+// try/catch, échec d'envoi d'une réponse conversationnelle ordinaire —
+// PAS une notification de coordination, déjà tracée) n'était auparavant
+// visible que dans les logs serveur (console.error), inaccessibles à un
+// administrateur sans accès shell. Ce tableau comble UNIQUEMENT cet
+// angle mort — jamais un système d'observabilité générique (mandat "do
+// not build a full observability platform").
+export interface OperationalFailure {
+  id: string;
+  occurredAt: string;
+  channel: InteractionChannel;
+  channelAddress: string;
+  reason: string;
+  resolved: boolean;
 }
 
 export interface Situation {
@@ -2077,6 +2161,11 @@ export interface ProductState {
   terrainCapacities: TerrainCapacity[];
   terrainMatches: TerrainMatch[];
   terrainCoordinations: TerrainCoordination[];
+  // commercialResearchRecords / operationalFailures (Sprint T04) — mêmes
+  // discipline : additifs, vides à la création (createDemoState()),
+  // peuplés uniquement par de vraies commandes.
+  commercialResearchRecords: CommercialResearchRecord[];
+  operationalFailures: OperationalFailure[];
 }
 
 export type Command =
@@ -2630,7 +2719,40 @@ export type Command =
       target: TerrainCoordinationNotificationTarget;
       status: Extract<TerrainCoordinationNotificationStatus, "envoyee" | "echec">;
       failureReason?: string;
-    };
+    }
+  // --- Sprint T04 — Live Pilot Readiness + Commercial Validation --------
+  //
+  // record_commercial_research — AVEC actorId (geste humain d'un
+  // administrateur qui mène la recherche commerciale, jamais le pont
+  // webhook). Upsert : identifié par organizationId OU actorId (jamais
+  // les deux — un seul référent par fiche), implémenté dans
+  // src/domain/pilot.ts.
+  | {
+      type: "record_commercial_research";
+      actorId: string;
+      organizationId?: string;
+      providerActorId?: string;
+      contactedForPilot: boolean;
+      pilotParticipationAccepted?: boolean;
+      willingnessToPayAsked: boolean;
+      willingnessToPayResponse?: WillingnessToPayResponse;
+      indicativeAmountFcfa?: number;
+      note?: string;
+    }
+  // record_operational_failure — SANS actorId, même discipline que
+  // apply_terrain_interpretation : seul le pont webhook constate un échec
+  // inattendu de traitement, jamais attribuable à un acteur.
+  | { type: "record_operational_failure"; channel: InteractionChannel; channelAddress: string; reason: string }
+  // mark_operational_failure_resolved — AVEC actorId (geste humain d'un
+  // administrateur qui a traité/vérifié l'échec).
+  | { type: "mark_operational_failure_resolved"; actorId: string; failureId: string }
+  // retry_coordination_notification — AVEC actorId. Remet UNIQUEMENT la
+  // notification visée (coordinationId + target) en "a_envoyer" ; ne
+  // retente jamais l'envoi elle-même (mandat "allow retry where
+  // technically safe" — le domaine reste pur/synchrone, l'envoi réel est
+  // retenté par l'appelant serveur via attemptCoordinationNotifications,
+  // même discipline qu'initiate_terrain_coordination).
+  | { type: "retry_coordination_notification"; actorId: string; coordinationId: string; target: TerrainCoordinationNotificationTarget };
 
 export type CommandInput = Command extends infer Item
   ? Item extends { actorId: string }

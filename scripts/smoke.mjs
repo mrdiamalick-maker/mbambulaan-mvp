@@ -670,6 +670,74 @@ try {
     const satisfiedNeed = demoState.terrainNeeds.find((item) => item.id === t03Need.id);
     if (satisfiedNeed.status !== "satisfaite") throw new Error("Sprint T03 : le besoin devrait être marqué satisfait après une issue réussie.");
 
+    // Sprint T04 (mandat §7/§11) — confirmation WhatsApp oui/non + opt-out
+    // STOP, exercés via le vrai webhook HTTP (signature réelle, pas de
+    // raccourci côté domaine). sessionCookie reste celui de
+    // l'administrateur (connecté ci-dessus).
+    const ousmanePhone = "221700000095";
+    const t04Wamid = (suffix) => `wamid.smoke.t04.${suffix}.${crypto.randomUUID()}`;
+
+    async function sendWhatsapp(phone, text, suffix) {
+      const body = JSON.stringify({
+        entry: [{ changes: [{ value: { messages: [{ id: t04Wamid(suffix), from: phone, timestamp: String(Math.floor(Date.now() / 1000)), type: "text", text: { body: text } }] } }] }]
+      });
+      const response = await fetch(`${base}/api/webhooks/whatsapp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Hub-Signature-256": sign(body) },
+        body
+      });
+      if (!response.ok) throw new Error(`Sprint T04 : le message "${text}" échoue pour ${phone}.`);
+    }
+
+    for (const [index, text] of ["Bonjour", "Ousmane", "4", "Mbour"].entries()) {
+      await sendWhatsapp(ousmanePhone, text, `onboard-${index}`);
+    }
+    // "en panne" → intent "signal" (fixture déterministe) → needsHumanReview
+    // toujours vrai pour un signal (mandat T02 §9) : déclenche la
+    // confirmation sans dépendre d'un fournisseur IA réel.
+    await sendWhatsapp(ousmanePhone, "La machine à glace est en panne à Mbour.", "signal");
+
+    let stateAfterSignal = (await (await expectOk("/api/state")).json()).state;
+    const ousmaneActor = stateAfterSignal.actors.find((item) => item.phone === ousmanePhone);
+    if (!ousmaneActor) throw new Error("Sprint T04 : Ousmane n'est pas onboardé.");
+    const ousmaneConversation = stateAfterSignal.conversations.find((item) => item.actorId === ousmaneActor.id);
+    const signalInteraction = stateAfterSignal.terrainInteractions.find((item) => item.actorId === ousmaneActor.id);
+    if (!signalInteraction || signalInteraction.interpretation?.needsHumanReview !== true) {
+      throw new Error("Sprint T04 : le signal attendu doit rester needsHumanReview=true.");
+    }
+    if (ousmaneConversation?.pendingConfirmationInteractionId !== signalInteraction.id) {
+      throw new Error("Sprint T04 : la confirmation en attente n'est pas posée sur la conversation.");
+    }
+
+    const interactionCountBeforeOui = stateAfterSignal.terrainInteractions.length;
+    await sendWhatsapp(ousmanePhone, "Oui", "confirm-oui");
+    let stateAfterOui = (await (await expectOk("/api/state")).json()).state;
+    if (stateAfterOui.terrainInteractions.length !== interactionCountBeforeOui) {
+      throw new Error("Sprint T04 : « Oui » ne doit jamais créer de nouvelle interaction.");
+    }
+    const confirmedInteraction = stateAfterOui.terrainInteractions.find((item) => item.id === signalInteraction.id);
+    if (confirmedInteraction.interpretation?.needsHumanReview !== false) {
+      throw new Error("Sprint T04 : « Oui » doit confirmer l'interprétation (needsHumanReview=false).");
+    }
+    const ousmaneConversationAfterOui = stateAfterOui.conversations.find((item) => item.actorId === ousmaneActor.id);
+    if (ousmaneConversationAfterOui.pendingConfirmationInteractionId !== undefined) {
+      throw new Error("Sprint T04 : la confirmation en attente doit être effacée après « Oui ».");
+    }
+
+    // STOP — mandat §11 : plus aucun traitement après désinscription.
+    await sendWhatsapp(ousmanePhone, "STOP", "stop");
+    let stateAfterStop = (await (await expectOk("/api/state")).json()).state;
+    const ousmaneConversationAfterStop = stateAfterStop.conversations.find((item) => item.actorId === ousmaneActor.id);
+    if (ousmaneConversationAfterStop?.optedOut !== true) {
+      throw new Error("Sprint T04 : STOP doit marquer la conversation comme désinscrite.");
+    }
+    const interactionCountBeforePostStop = stateAfterStop.terrainInteractions.length;
+    await sendWhatsapp(ousmanePhone, "J'ai encore besoin de glace à Mbour.", "post-stop");
+    const stateAfterPostStop = (await (await expectOk("/api/state")).json()).state;
+    if (stateAfterPostStop.terrainInteractions.length !== interactionCountBeforePostStop) {
+      throw new Error("Sprint T04 : aucun message ne doit plus être traité après STOP.");
+    }
+
     await expectOk("/api/auth/logout", { method: "POST" });
     sessionCookie = "";
     await expectStatus("/api/state", 401);

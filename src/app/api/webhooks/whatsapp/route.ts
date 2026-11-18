@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Command, ProductState, Territory } from "@/domain/types";
-import { dispatch } from "@/server/repository";
-import { determineReplyIntent } from "@/domain/channel-interaction";
+import { dispatch, getState } from "@/server/repository";
+import { determineReplyIntent, matchConfirmationAnswer } from "@/domain/channel-interaction";
+import type { ReplyIntent } from "@/domain/channel-interaction";
 import { renderReplyText } from "@/channels/message-templates";
 import { getChannelAdapter } from "@/channels/registry";
 import {
@@ -53,7 +54,30 @@ async function runIntelligencePipeline(message: InboundChannelMessage, territori
 
   if (message.messageType === "audio") {
     if (!message.mediaRef) throw new Error("Message audio sans référence média exploitable.");
-    const transcription = await intelligenceAdapter.transcribeAudio({ mediaId: message.mediaRef.mediaId, mimeType: message.mediaRef.mimeType });
+    // Téléchargement des octets AVANT transcription (Sprint T04, mandat
+    // §4/§6) — corrige un manque de T02 : la branche audio appelait
+    // transcribeAudio sans jamais récupérer le média lui-même (seule la
+    // fixture déterministe n'en avait pas besoin). Même discipline que la
+    // branche image ci-dessous : un échec de téléchargement ne fait PAS
+    // échouer tout le pipeline ici — la fixture déterministe (aucun
+    // fournisseur réel configuré) n'a jamais besoin des octets, elle reste
+    // clé uniquement par mediaId. Un fournisseur réel configuré
+    // (whisper-adapter.ts), lui, exige explicitement les octets et échoue
+    // honnêtement si `data` est absent — jamais une transcription
+    // fabriquée (mandat §11, "l'interaction d'origine ne doit jamais être
+    // perdue" : l'échec devient alors echec_traitement, pas un succès
+    // silencieux).
+    let downloaded: { data: Buffer; mimeType: string } | undefined;
+    try {
+      downloaded = await downloadWhatsappMedia(message.mediaRef.mediaId);
+    } catch {
+      downloaded = undefined;
+    }
+    const transcription = await intelligenceAdapter.transcribeAudio({
+      mediaId: message.mediaRef.mediaId,
+      mimeType: downloaded?.mimeType ?? message.mediaRef.mimeType,
+      data: downloaded?.data
+    });
     const interpretation = await intelligenceAdapter.interpretTerrainMessage({ text: transcription.text, knownTerritories: territoryContext(territories) });
     if (!isValidInterpretation(interpretation)) throw new Error("Sortie IA invalide (schéma d'interprétation non respecté).");
     return { outcome: "succes", transcription, interpretation };
@@ -112,6 +136,22 @@ export async function POST(request: NextRequest) {
 
   for (const message of messages) {
     try {
+      // Lecture AVANT dispatch (Sprint T04, mandat §7) — nécessaire pour
+      // décider quelle réponse envoyer : une fois receive_channel_message
+      // dispatché, la confirmation en attente (si elle existait) a déjà
+      // été effacée par le domaine (channel-interaction.ts) et aucune
+      // nouvelle TerrainInteraction n'a été créée pour une réponse
+      // oui/non — determineReplyIntent (appelé plus bas) ne peut alors
+      // plus distinguer ces deux cas. matchConfirmationAnswer est pure et
+      // déterministe : l'appeler deux fois (ici et dans le domaine) sur
+      // les mêmes entrées donne toujours le même résultat.
+      const stateBefore = await getState();
+      const conversationBefore = stateBefore.conversations.find(
+        (item) => item.channel === message.channel && item.channelAddress === message.channelAddress
+      );
+      const pendingConfirmationBefore = conversationBefore?.pendingConfirmationInteractionId;
+      const confirmationAnswer = pendingConfirmationBefore ? matchConfirmationAnswer(message.rawContent) : undefined;
+
       let state = await dispatch(
         {
           type: "receive_channel_message",
@@ -165,27 +205,61 @@ export async function POST(request: NextRequest) {
       );
       if (!conversation) continue;
 
-      const intent = determineReplyIntent(conversation, interaction, state.territories);
+      // Opt-out (Sprint T04, mandat §11) — un contact qui a demandé l'arrêt
+      // (STOP, ce message ou un précédent) ne reçoit plus AUCUNE réponse,
+      // ni accusé de réception ni confirmation.
+      if (conversation.optedOut) continue;
+
+      const intent: ReplyIntent =
+        confirmationAnswer === "oui"
+          ? { kind: "confirmed" }
+          : confirmationAnswer === "non"
+            ? { kind: "ask_clarification" }
+            : determineReplyIntent(conversation, interaction, state.territories);
       const replyText = renderReplyText(intent, state.territories);
       const adapter = getChannelAdapter(message.channel);
 
-      await adapter.sendText(message.channelAddress, replyText);
-      await dispatch(
-        {
-          type: "send_channel_message",
-          channel: message.channel,
-          channelAddress: message.channelAddress,
-          body: replyText,
-          sentAt: new Date().toISOString()
-        },
-        `whatsapp:${message.externalMessageId}:reply`
-      );
+      try {
+        await adapter.sendText(message.channelAddress, replyText);
+        await dispatch(
+          {
+            type: "send_channel_message",
+            channel: message.channel,
+            channelAddress: message.channelAddress,
+            body: replyText,
+            sentAt: new Date().toISOString()
+          },
+          `whatsapp:${message.externalMessageId}:reply`
+        );
+      } catch (sendError) {
+        // Échec d'envoi d'une réponse conversationnelle ordinaire (Sprint
+        // T04, mandat §12) — jamais perdu dans les seuls logs serveur :
+        // consigné pour qu'un administrateur puisse le voir sans accès
+        // shell (src/domain/pilot.ts, OperationalFailure). Pas de
+        // relance vers le catch englobant ci-dessous : il consignerait la
+        // même panne une seconde fois (mandat "jamais un angle mort
+        // dupliqué").
+        console.error(`[webhook whatsapp] envoi de réponse échoué : ${(sendError as Error).message}`);
+        await dispatch(
+          { type: "record_operational_failure", channel: message.channel, channelAddress: message.channelAddress, reason: (sendError as Error).message },
+          `whatsapp:${message.externalMessageId}:reply-failure`
+        );
+      }
     } catch (error) {
       // Jamais de payload personnel en clair dans les logs (mandat §11
       // T01) — seul le message d'erreur (configuration/réseau) est
       // journalisé. Un message qui échoue n'empêche jamais le traitement
-      // du reste du lot.
+      // du reste du lot. Mandat T04 §12 : également consigné dans
+      // OperationalFailure pour une visibilité admin sans accès shell.
       console.error(`[webhook whatsapp] message non traité : ${(error as Error).message}`);
+      try {
+        await dispatch(
+          { type: "record_operational_failure", channel: message.channel, channelAddress: message.channelAddress, reason: (error as Error).message },
+          `whatsapp:${message.externalMessageId}:failure`
+        );
+      } catch {
+        // La consignation elle-même ne doit jamais faire échouer le lot.
+      }
     }
   }
 
